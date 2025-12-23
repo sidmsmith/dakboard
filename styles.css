@@ -260,7 +260,9 @@ body {
   left: 840px;
   width: 500px;
   height: 400px;
-  overflow: visible;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .weather-content {
@@ -354,6 +356,27 @@ body {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #4a90e2 #2a2a2a;
+}
+
+.weather-forecast-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.weather-forecast-list::-webkit-scrollbar-track {
+  background: #2a2a2a;
+  border-radius: 4px;
+}
+
+.weather-forecast-list::-webkit-scrollbar-thumb {
+  background: #4a90e2;
+  border-radius: 4px;
+}
+
+.weather-forecast-list::-webkit-scrollbar-thumb:hover {
+  background: #5ba0f2;
 }
 
 .weather-forecast-item {
@@ -649,16 +672,18 @@ body {
 }
 
 .garage-door-icon {
-  width: calc(120px * var(--scale-factor, 1));
-  height: calc(120px * var(--scale-factor, 1));
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  max-width: calc(120px * var(--scale-factor, 1));
+  max-height: calc(120px * var(--scale-factor, 1));
   margin-bottom: calc(16px * var(--scale-factor, 1));
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 1;
   min-width: 0;
-  max-width: 100%;
-  max-height: 100%;
+  min-height: 0;
 }
 
 .garage-door-icon svg,
