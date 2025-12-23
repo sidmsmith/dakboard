@@ -1208,7 +1208,7 @@ async function loadTodoListItems(entityId) {
       return item.status === 'completed';
     });
     
-    console.log(`Found ${incomplete.length} incomplete and ${completed.length} completed items`);
+    // Found incomplete and completed items
     
     // Show incomplete first (up to 5 visible, rest scrollable)
     incomplete.forEach(item => {
@@ -1243,7 +1243,7 @@ function createTodoItem(item, entityId, isCompleted = false) {
   }
   checkbox.addEventListener('click', (e) => {
     e.stopPropagation(); // Prevent event bubbling
-    console.log('Checkbox clicked for item:', item.summary, 'UID:', item.uid, 'Current status:', isCompleted);
+    // Checkbox clicked
     toggleTodoItem(entityId, item.uid, !isCompleted);
   });
   
