@@ -25,7 +25,8 @@ export default async function (req, res) {
     try {
       // Use the todo.get_items service to fetch items
       // Response structure: { "todo.entity_id": { "items": [...] } }
-      const serviceResponse = await fetch(`${haUrl}/api/services/todo/get_items`, {
+      // Note: Must add ?return_response=true to get the response data
+      const serviceResponse = await fetch(`${haUrl}/api/services/todo/get_items?return_response=true`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${haToken}`,
