@@ -39,24 +39,35 @@
         <div class="widget-title">🌤️ Weather</div>
       </div>
       <div id="weather-content">
-        <div class="weather-icon" id="weather-icon">⏳</div>
-        <div class="weather-temp" id="weather-temp">--°F</div>
-        <div class="weather-details">
-          <div class="weather-detail">
-            <span>Feels Like</span>
-            <span id="weather-feels-like">--°F</span>
+        <!-- Current Conditions -->
+        <div class="weather-current">
+          <div class="weather-current-main">
+            <div class="weather-icon-large" id="weather-icon">⏳</div>
+            <div class="weather-temp-large" id="weather-temp">--°F</div>
           </div>
-          <div class="weather-detail">
-            <span>Humidity</span>
-            <span id="weather-humidity">--%</span>
+          <div class="weather-condition-text" id="weather-conditions">Loading...</div>
+          <div class="weather-current-time" id="weather-time"></div>
+          <div class="weather-details-current">
+            <div class="weather-detail">
+              <span>Feels Like</span>
+              <span id="weather-feels-like">--°F</span>
+            </div>
+            <div class="weather-detail">
+              <span>Humidity</span>
+              <span id="weather-humidity">--%</span>
+            </div>
+            <div class="weather-detail">
+              <span>Wind</span>
+              <span id="weather-wind">-- mph</span>
+            </div>
           </div>
-          <div class="weather-detail">
-            <span>Wind</span>
-            <span id="weather-wind">-- mph</span>
-          </div>
-          <div class="weather-detail">
-            <span>Conditions</span>
-            <span id="weather-conditions">Loading...</span>
+        </div>
+        
+        <!-- Forecast Section -->
+        <div class="weather-forecast" id="weather-forecast">
+          <div class="weather-forecast-header">5-Day Forecast</div>
+          <div class="weather-forecast-list" id="weather-forecast-list">
+            <!-- Forecast items will be populated by JavaScript -->
           </div>
         </div>
       </div>

@@ -166,13 +166,22 @@ async function loadWeather() {
     const state = entity.state;
     const attrs = entity.attributes;
     
-    // Update weather icon (simplified - you may want to map HA conditions to emojis)
+    // Update current conditions
     const icon = getWeatherIcon(attrs.condition || state);
     document.getElementById('weather-icon').textContent = icon;
     
-    // Update temperature
     const temp = attrs.temperature || attrs.temp || '--';
     document.getElementById('weather-temp').textContent = `${Math.round(temp)}°F`;
+    
+    // Update condition text
+    const condition = attrs.condition || state || '--';
+    document.getElementById('weather-conditions').textContent = condition;
+    
+    // Update current time
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const dateStr = now.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+    document.getElementById('weather-time').textContent = `${timeStr} • ${dateStr}`;
     
     // Update details
     document.getElementById('weather-feels-like').textContent = 
@@ -181,30 +190,149 @@ async function loadWeather() {
       attrs.humidity ? `${Math.round(attrs.humidity)}%` : '--%';
     document.getElementById('weather-wind').textContent = 
       attrs.wind_speed ? `${Math.round(attrs.wind_speed)} mph` : '-- mph';
-    document.getElementById('weather-conditions').textContent = 
-      attrs.condition || state || '--';
+    
+    // Load forecast
+    loadWeatherForecast(attrs);
   } catch (error) {
     console.error('Error loading weather:', error);
     document.getElementById('weather-conditions').textContent = 'Error loading weather';
   }
 }
 
+// Load weather forecast
+function loadWeatherForecast(attrs) {
+  const forecastList = document.getElementById('weather-forecast-list');
+  forecastList.innerHTML = '';
+  
+  // Check for forecast data in attributes
+  // Pirate Weather typically provides forecast in attrs.forecast array
+  const forecast = attrs.forecast || [];
+  
+  if (!forecast || forecast.length === 0) {
+    forecastList.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Forecast data not available</div>';
+    return;
+  }
+  
+  // Show first 5 days of forecast
+  const daysToShow = Math.min(5, forecast.length);
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  
+  for (let i = 0; i < daysToShow; i++) {
+    const day = forecast[i];
+    const forecastDate = new Date(day.datetime || day.date);
+    const dayName = dayNames[forecastDate.getDay()];
+    
+    const low = Math.round(day.templow || day.temperature_low || day.low || 0);
+    const high = Math.round(day.temperature || day.temp || day.high || 0);
+    const condition = day.condition || day.weather || 'unknown';
+    const icon = getWeatherIcon(condition);
+    
+    // Calculate temperature range for bar
+    const minTemp = Math.min(...forecast.slice(0, daysToShow).map(d => Math.round(d.templow || d.temperature_low || d.low || 0)));
+    const maxTemp = Math.max(...forecast.slice(0, daysToShow).map(d => Math.round(d.temperature || d.temp || d.high || 0)));
+    const range = maxTemp - minTemp;
+    const lowPercent = range > 0 ? ((low - minTemp) / range) * 100 : 0;
+    const highPercent = range > 0 ? ((high - minTemp) / range) * 100 : 100;
+    const barWidth = highPercent - lowPercent;
+    const barLeft = lowPercent;
+    
+    // Current temp marker (if available)
+    const currentTemp = attrs.temperature ? Math.round(attrs.temperature) : null;
+    let markerPercent = null;
+    if (currentTemp && i === 0 && currentTemp >= minTemp && currentTemp <= maxTemp) {
+      markerPercent = range > 0 ? ((currentTemp - minTemp) / range) * 100 : 50;
+    }
+    
+    const forecastItem = document.createElement('div');
+    forecastItem.className = 'weather-forecast-item';
+    
+    forecastItem.innerHTML = `
+      <div class="weather-forecast-day">${dayName}</div>
+      <div class="weather-forecast-icon">${icon}</div>
+      <div class="weather-forecast-temps">
+        <div class="weather-forecast-low">${low}°</div>
+        <div class="weather-forecast-bar">
+          <div class="weather-forecast-bar-fill" style="width: ${barWidth}%; left: ${barLeft}%;">
+            ${markerPercent !== null ? `<div class="weather-forecast-bar-marker" style="left: ${markerPercent}%;"></div>` : ''}
+          </div>
+        </div>
+        <div class="weather-forecast-high">${high}°</div>
+      </div>
+    `;
+    
+    forecastList.appendChild(forecastItem);
+  }
+}
+
 // Get weather icon from condition
 function getWeatherIcon(condition) {
+  if (!condition) return '⏳';
+  
+  const lower = condition.toLowerCase();
+  
   const iconMap = {
+    // Clear/Sunny
     'sunny': '☀️',
     'clear': '☀️',
+    'clear-day': '☀️',
+    'clear-night': '🌙',
+    
+    // Partly Cloudy
     'partlycloudy': '⛅',
+    'partly-cloudy': '⛅',
+    'partly-cloudy-day': '⛅',
+    'partly-cloudy-night': '☁️',
+    
+    // Cloudy
     'cloudy': '☁️',
+    'overcast': '☁️',
+    
+    // Rain
     'rainy': '🌧️',
+    'rain': '🌧️',
+    'shower': '🌦️',
+    'showers': '🌦️',
+    'light-rain': '🌦️',
+    'heavy-rain': '🌧️',
+    
+    // Thunderstorm
+    'thunderstorm': '⛈️',
+    'thunder': '⛈️',
+    
+    // Snow
     'snowy': '❄️',
+    'snow': '❄️',
+    'sleet': '🌨️',
+    'hail': '🌨️',
+    
+    // Wind/Fog
     'windy': '💨',
+    'wind': '💨',
     'foggy': '🌫️',
+    'fog': '🌫️',
+    'mist': '🌫️',
+    
+    // Extreme
+    'tornado': '🌪️',
+    'hurricane': '🌀',
   };
   
-  if (!condition) return '⏳';
-  const lower = condition.toLowerCase();
-  return iconMap[lower] || '🌤️';
+  // Try exact match first
+  if (iconMap[lower]) {
+    return iconMap[lower];
+  }
+  
+  // Try partial matches
+  if (lower.includes('rain')) return '🌧️';
+  if (lower.includes('snow')) return '❄️';
+  if (lower.includes('cloud')) return '☁️';
+  if (lower.includes('clear') || lower.includes('sun')) return '☀️';
+  if (lower.includes('fog') || lower.includes('mist')) return '🌫️';
+  if (lower.includes('wind')) return '💨';
+  if (lower.includes('thunder') || lower.includes('storm')) return '⛈️';
+  
+  // Default
+  return '🌤️';
 }
 
 // Load todos from HA
