@@ -161,6 +161,7 @@ async function loadCalendarEvents() {
           start: startTime,
           end: endTime,
           location: event.location || null,
+          description: event.description || null,
           calendar: event.calendar,
           allDay: event.all_day || false
         };
