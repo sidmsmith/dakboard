@@ -255,6 +255,7 @@ body {
 }
 
 /* Weather - Default position and size */
+/* TODO: Revisit sizing/overflow constraints - forecast may not show scrollbar properly when resized */
 .weather-widget {
   top: 20px;
   left: 840px;
@@ -629,6 +630,7 @@ body {
 }
 
 /* Garage Doors - Default position and size */
+/* TODO: Revisit sizing/overflow constraints - garage icons may extend beyond widget when resized small */
 .garage-widget {
   top: 540px;
   left: 20px;
