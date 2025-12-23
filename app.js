@@ -1694,6 +1694,124 @@ async function triggerHAWebhook(webhookId) {
   }
 }
 
+// Widget Visibility Management
+const WIDGET_CONFIG = {
+  'calendar-widget': { name: 'Calendar', icon: '📅' },
+  'weather-widget': { name: 'Weather', icon: '🌤️' },
+  'todo-widget': { name: 'Todo List', icon: '✅' },
+  'garage-widget': { name: 'Garage Doors', icon: '🚗' },
+  'alarm-widget': { name: 'Alarm Panel', icon: '🔒' }
+};
+
+// Load widget visibility state from localStorage
+function loadWidgetVisibility() {
+  try {
+    const saved = localStorage.getItem('dakboard-widget-visibility');
+    if (saved) {
+      const visibility = JSON.parse(saved);
+      Object.keys(visibility).forEach(widgetId => {
+        const widget = document.querySelector(`.${widgetId}`);
+        if (widget) {
+          if (visibility[widgetId] === false) {
+            widget.classList.add('hidden');
+          }
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error loading widget visibility:', error);
+  }
+}
+
+// Save widget visibility state to localStorage
+function saveWidgetVisibility() {
+  try {
+    const visibility = {};
+    Object.keys(WIDGET_CONFIG).forEach(widgetId => {
+      const widget = document.querySelector(`.${widgetId}`);
+      if (widget) {
+        visibility[widgetId] = !widget.classList.contains('hidden');
+      }
+    });
+    localStorage.setItem('dakboard-widget-visibility', JSON.stringify(visibility));
+  } catch (error) {
+    console.error('Error saving widget visibility:', error);
+  }
+}
+
+// Toggle widget visibility
+function toggleWidgetVisibility(widgetId) {
+  const widget = document.querySelector(`.${widgetId}`);
+  if (widget) {
+    widget.classList.toggle('hidden');
+    saveWidgetVisibility();
+    updateWidgetControlPanel();
+  }
+}
+
+// Initialize widget control panel
+function initializeWidgetControlPanel() {
+  const toggleBtn = document.getElementById('widget-control-toggle');
+  const panel = document.getElementById('widget-control-panel');
+  const closeBtn = document.getElementById('close-widget-panel');
+  
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      panel.classList.toggle('open');
+    });
+  }
+  
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      panel.classList.remove('open');
+    });
+  }
+  
+  // Close panel when clicking outside
+  document.addEventListener('click', (e) => {
+    if (panel && panel.classList.contains('open') && 
+        !panel.contains(e.target) && 
+        toggleBtn && !toggleBtn.contains(e.target)) {
+      panel.classList.remove('open');
+    }
+  });
+  
+  updateWidgetControlPanel();
+}
+
+// Update widget control panel with current widget states
+function updateWidgetControlPanel() {
+  const list = document.getElementById('widget-control-list');
+  if (!list) return;
+  
+  list.innerHTML = '';
+  
+  Object.keys(WIDGET_CONFIG).forEach(widgetId => {
+    const config = WIDGET_CONFIG[widgetId];
+    const widget = document.querySelector(`.${widgetId}`);
+    const isHidden = widget && widget.classList.contains('hidden');
+    
+    const item = document.createElement('div');
+    item.className = `widget-control-item ${isHidden ? 'hidden' : ''}`;
+    
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = `widget-control-toggle-btn ${isHidden ? 'hidden' : ''}`;
+    toggleBtn.innerHTML = isHidden ? '👁️' : '👁️‍🗨️';
+    toggleBtn.title = isHidden ? 'Show widget' : 'Hide widget';
+    toggleBtn.addEventListener('click', () => toggleWidgetVisibility(widgetId));
+    
+    item.innerHTML = `
+      <div class="widget-control-item-info">
+        <span class="widget-control-item-icon">${config.icon}</span>
+        <span class="widget-control-item-name">${config.name}</span>
+      </div>
+    `;
+    item.appendChild(toggleBtn);
+    
+    list.appendChild(item);
+  });
+}
+
 // Start auto-refresh
 function startAutoRefresh() {
   setInterval(() => {
