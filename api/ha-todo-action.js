@@ -145,19 +145,16 @@ export default async function (req, res) {
       }
       // Use todo.update_item service with status field
       serviceEndpoint = 'update_item';
-      // Format: target.entity_id is an array, data has status and item
+      // Try REST API format: flattened structure
+      // Based on HA REST API, services typically use entity_id at root level
       body = {
-        target: {
-          entity_id: [entity_id]
-        },
-        data: {
-          status: action === 'complete' ? 'completed' : 'needs_action',
-          item: uid
-        }
+        entity_id: entity_id,
+        item: uid,
+        status: action === 'complete' ? 'completed' : 'needs_action'
       };
       
       // Log the request for debugging
-      console.log('Calling todo.update_item with:', JSON.stringify(body, null, 2));
+      console.log('Calling todo.update_item with (flattened format):', JSON.stringify(body, null, 2));
     } else {
       return res.status(400).json({ error: 'Invalid action. Must be: add, complete, or uncomplete' });
     }
@@ -180,6 +177,8 @@ export default async function (req, res) {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('HA API error response:', errorText);
+      console.error('Request that failed:', JSON.stringify({ url: requestUrl, body: body }, null, 2));
       return res.status(response.status).json({ 
         error: `HA API error: ${response.status} ${response.statusText}`,
         details: errorText
