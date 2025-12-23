@@ -17,8 +17,13 @@ body {
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  grid-template-rows: repeat(6, minmax(150px, auto));
+  /* Use auto-sizing rows - each row sizes based on content */
+  grid-auto-rows: minmax(min-content, auto);
   gap: 20px;
+  /* Ensure the dashboard fits viewport height */
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
 }
 
 .widget {
