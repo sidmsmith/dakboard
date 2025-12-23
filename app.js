@@ -881,21 +881,21 @@ async function loadTodoListItems(entityId) {
     }
     
     console.log('Fetched todo items:', items);
+    
     const todoList = document.getElementById('todo-list');
     todoList.innerHTML = '';
     
-    if (items.length === 0) {
+    if (!items || items.length === 0) {
       todoList.innerHTML = '<li class="todo-item"><span style="color: #888;">No todos</span></li>';
       return;
     }
     
     // Separate completed and incomplete items
+    // HA todo items have status: 'needs_action' (incomplete) or 'completed'
     const incomplete = items.filter(item => {
-      // Status can be 'needs_action', 'incomplete', or falsy for incomplete
       return !item.status || item.status === 'needs_action' || item.status === 'incomplete';
     });
     const completed = items.filter(item => {
-      // Status is 'completed' for completed items
       return item.status === 'completed';
     });
     
