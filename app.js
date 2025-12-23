@@ -1085,9 +1085,9 @@ async function fetchMDIIcon(iconName) {
 // Load garage doors from HA
 async function loadGarageDoors() {
   const doors = [
-    { id: 1, entity: CONFIG.HA_GARAGE_DOOR_1, webhook: CONFIG.HA_GARAGE_WEBHOOK_1, name: 'Garage 1' },
-    { id: 2, entity: CONFIG.HA_GARAGE_DOOR_2, webhook: CONFIG.HA_GARAGE_WEBHOOK_2, name: 'Garage 2' },
-    { id: 3, entity: CONFIG.HA_GARAGE_DOOR_3, webhook: CONFIG.HA_GARAGE_WEBHOOK_3, name: 'Garage 3' },
+    { id: 1, entity: CONFIG.HA_GARAGE_DOOR_1, webhook: CONFIG.HA_GARAGE_WEBHOOK_1, name: 'Garage 1: Truck' },
+    { id: 2, entity: CONFIG.HA_GARAGE_DOOR_2, webhook: CONFIG.HA_GARAGE_WEBHOOK_2, name: 'Garage 2: Sarah' },
+    { id: 3, entity: CONFIG.HA_GARAGE_DOOR_3, webhook: CONFIG.HA_GARAGE_WEBHOOK_3, name: 'Garage 3: Sidney' },
   ];
   
   const container = document.getElementById('garage-doors');
@@ -1124,7 +1124,6 @@ async function loadGarageDoors() {
           ${iconHtml}
         </div>
         <div class="garage-door-name">${door.name}</div>
-        <div class="garage-door-status">${isOpen ? 'OPEN' : 'CLOSED'}</div>
       `;
       
       doorDiv.addEventListener('click', () => toggleGarageDoor(doorDiv));
@@ -1140,7 +1139,6 @@ async function loadGarageDoors() {
           ${iconHtml}
         </div>
         <div class="garage-door-name">${door.name}</div>
-        <div class="garage-door-status" style="color: #888;">Error</div>
       `;
       container.appendChild(doorDiv);
     }
