@@ -23,24 +23,26 @@ export default async function (req, res) {
     }
     
     try {
-      const response = await fetch(`${haUrl}/api/todo/item/list`, {
-        method: 'POST',
+      // HA todo items are accessed via the entity state, not a separate endpoint
+      // The entity state contains the items in attributes.items
+      const entityResponse = await fetch(`${haUrl}/api/states/${encodeURIComponent(entity_id)}`, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${haToken}`,
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ entity_id: entity_id })
+        }
       });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        return res.status(response.status).json({ 
-          error: `HA API error: ${response.status} ${response.statusText}`,
+      if (!entityResponse.ok) {
+        const errorText = await entityResponse.text();
+        return res.status(entityResponse.status).json({ 
+          error: `HA API error: ${entityResponse.status} ${entityResponse.statusText}`,
           details: errorText
         });
       }
       
-      const data = await response.json();
+      const entity = await entityResponse.json();
+      const items = entity.attributes?.items || [];
       
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'POST');
@@ -48,10 +50,10 @@ export default async function (req, res) {
       
       return res.status(200).json({ 
         success: true,
-        items: data || []
+        items: items
       });
     } catch (error) {
-      console.error('Error calling HA todo/item/list:', error);
+      console.error('Error fetching todo items:', error);
       return res.status(500).json({ 
         error: 'Internal server error',
         message: error.message 
