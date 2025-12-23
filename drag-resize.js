@@ -15,17 +15,29 @@ function loadWidgetLayout() {
     const saved = localStorage.getItem('dakboard-widget-layout');
     if (saved) {
       const layout = JSON.parse(saved);
+      console.log('Loading saved layout:', layout);
       Object.keys(layout).forEach(widgetId => {
         const widget = document.querySelector(`.${widgetId}`);
         if (widget && layout[widgetId]) {
           const { x, y, width, height } = layout[widgetId];
-          widget.style.left = `${x}px`;
-          widget.style.top = `${y}px`;
+          // Ensure widgets are within viewport
+          const viewportWidth = window.innerWidth;
+          const viewportHeight = window.innerHeight;
+          
+          // Clamp positions to viewport
+          const clampedX = Math.max(0, Math.min(x, viewportWidth - width));
+          const clampedY = Math.max(0, Math.min(y, viewportHeight - height));
+          
+          widget.style.left = `${clampedX}px`;
+          widget.style.top = `${clampedY}px`;
           widget.style.width = `${width}px`;
           widget.style.height = `${height}px`;
           updateWidgetScale(widget);
+          console.log(`Loaded ${widgetId}: x=${clampedX}, y=${clampedY}, w=${width}, h=${height}`);
         }
       });
+    } else {
+      console.log('No saved layout found, using default positions');
     }
   } catch (error) {
     console.error('Error loading widget layout:', error);
