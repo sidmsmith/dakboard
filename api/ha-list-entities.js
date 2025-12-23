@@ -30,12 +30,8 @@ export default async function (req, res) {
 
     const data = await response.json();
     
-    // Filter for Pirate Weather entities
-    const pirateWeatherEntities = data.filter(entity => 
-      entity.entity_id.includes('pirate') || 
-      entity.entity_id.includes('weather') ||
-      entity.entity_id.toLowerCase().includes('forecast')
-    );
+    // Return ALL entities (not just Pirate Weather)
+    // This allows discovery of todo lists, garage doors, alarms, etc.
     
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -44,12 +40,7 @@ export default async function (req, res) {
     
     return res.status(200).json({
       total: data.length,
-      pirateWeather: pirateWeatherEntities.length,
-      entities: pirateWeatherEntities.map(e => ({
-        entity_id: e.entity_id,
-        state: e.state,
-        attributes: Object.keys(e.attributes || {}).slice(0, 20) // First 20 attribute keys
-      }))
+      entities: data // Return all entities
     });
   } catch (error) {
     console.error('Error fetching HA entities:', error);
