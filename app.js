@@ -30,10 +30,35 @@ currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay())
 
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOMContentLoaded - Starting initialization');
+  
+  // Check if drag-resize functions are available
+  if (typeof initializeDragAndResize === 'function') {
+    console.log('initializeDragAndResize function found');
+  } else {
+    console.error('initializeDragAndResize function NOT found! Check drag-resize.js loading.');
+  }
+  
   loadWidgetLayout(); // Load saved positions/sizes first
   initializeCalendar();
   initializeEventListeners();
-  initializeDragAndResize(); // Initialize drag and resize functionality
+  
+  // Initialize drag and resize - with retry if function not available
+  if (typeof initializeDragAndResize === 'function') {
+    initializeDragAndResize(); // Initialize drag and resize functionality
+  } else {
+    console.error('Cannot initialize drag and resize - function not available');
+    // Retry after a short delay
+    setTimeout(() => {
+      if (typeof initializeDragAndResize === 'function') {
+        console.log('Retrying initializeDragAndResize');
+        initializeDragAndResize();
+      } else {
+        console.error('initializeDragAndResize still not available after retry');
+      }
+    }, 500);
+  }
+  
   loadAllData();
   startAutoRefresh();
 });

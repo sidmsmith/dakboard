@@ -78,25 +78,43 @@ function snapToGridValue(value) {
 
 // Initialize drag and resize for all widgets
 function initializeDragAndResize() {
+  console.log('initializeDragAndResize called');
+  
   // Wait a bit for widgets to be rendered
   setTimeout(() => {
-    document.querySelectorAll('.widget').forEach(widget => {
+    const widgets = document.querySelectorAll('.widget');
+    console.log(`Found ${widgets.length} widgets`);
+    
+    if (widgets.length === 0) {
+      console.error('No widgets found! Check HTML structure.');
+      return;
+    }
+    
+    widgets.forEach((widget, index) => {
+      console.log(`Initializing widget ${index + 1}:`, widget.className);
+      
       // Add resize handles
       addResizeHandles(widget);
       
       // Make header draggable
       const header = widget.querySelector('.widget-header');
       if (header) {
+        console.log(`  - Header found, adding drag listener`);
         header.addEventListener('mousedown', (e) => {
           if (e.target.closest('.resize-handle')) return; // Don't drag if clicking resize handle
           if (e.target.tagName === 'BUTTON') return; // Don't drag if clicking buttons
+          console.log('  - Drag started');
           startDrag(widget, e);
         });
+      } else {
+        console.warn(`  - No header found for widget ${index + 1}`);
       }
       
       // Update scale on initial load
       updateWidgetScale(widget);
     });
+    
+    console.log('Drag and resize initialization complete');
   }, 100);
   
   // Global mouse events
@@ -127,10 +145,13 @@ function addResizeHandles(widget) {
     handleEl.style.cursor = handle.cursor;
     handleEl.addEventListener('mousedown', (e) => {
       e.stopPropagation();
+      console.log('Resize started:', handle.class);
       startResize(widget, handle.class, e);
     });
     widget.appendChild(handleEl);
   });
+  
+  console.log(`  - Added ${handles.length} resize handles`);
 }
 
 // Start dragging widget
