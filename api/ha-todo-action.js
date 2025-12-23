@@ -155,12 +155,19 @@ export default async function (req, res) {
           item: uid
         }
       };
+      
+      // Log the request for debugging
+      console.log('Calling todo.update_item with:', JSON.stringify(body, null, 2));
     } else {
       return res.status(400).json({ error: 'Invalid action. Must be: add, complete, or uncomplete' });
     }
 
     // Call HA API
-    const response = await fetch(`${haUrl}/api/services/todo/${serviceEndpoint}`, {
+    const requestUrl = `${haUrl}/api/services/todo/${serviceEndpoint}`;
+    console.log('HA API URL:', requestUrl);
+    console.log('Request body:', JSON.stringify(body, null, 2));
+    
+    const response = await fetch(requestUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${haToken}`,
@@ -168,6 +175,8 @@ export default async function (req, res) {
       },
       body: JSON.stringify(body)
     });
+    
+    console.log('HA API response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
