@@ -209,7 +209,10 @@ async function loadWeatherForecast(attrs) {
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const forecastData = [];
     
-    // Pirate Weather uses pattern: sensor.pirateweather_daily_high_temperature_0d, sensor.pirateweather_daily_low_temperature_0d, etc.
+    // Pirate Weather uses pattern:
+    // - Highs: sensor.pirateweather_daytime_high_temperature_0d, 1d, 2d, etc.
+    // - Lows: sensor.pirateweather_overnight_low_temperature_0d, 1d, 2d, etc.
+    // - Icons: sensor.pirateweather_icon_0d, 1d, 2d, etc.
     // Days are 0d (today), 1d (tomorrow), 2d, etc.
     
     for (let dayOffset = 0; dayOffset < daysToShow; dayOffset++) {
@@ -217,11 +220,10 @@ async function loadWeatherForecast(attrs) {
         const daySuffix = `${dayOffset}d`;
         
         // Fetch entities for this day
-        const [highEntity, lowEntity, iconEntity, conditionEntity] = await Promise.all([
-          fetchHAEntity(`sensor.pirateweather_daily_high_temperature_${daySuffix}`).catch(() => null),
-          fetchHAEntity(`sensor.pirateweather_daily_low_temperature_${daySuffix}`).catch(() => null),
-          fetchHAEntity(`sensor.pirateweather_icon_${daySuffix}`).catch(() => null),
-          fetchHAEntity(`sensor.pirateweather_daily_condition_${daySuffix}`).catch(() => null)
+        const [highEntity, lowEntity, iconEntity] = await Promise.all([
+          fetchHAEntity(`sensor.pirateweather_daytime_high_temperature_${daySuffix}`).catch(() => null),
+          fetchHAEntity(`sensor.pirateweather_overnight_low_temperature_${daySuffix}`).catch(() => null),
+          fetchHAEntity(`sensor.pirateweather_icon_${daySuffix}`).catch(() => null)
         ]);
         
         // If we have high and low, we can build the forecast
@@ -229,18 +231,23 @@ async function loadWeatherForecast(attrs) {
           const high = Math.round(parseFloat(highEntity.state) || 0);
           const low = Math.round(parseFloat(lowEntity.state) || 0);
           
-          // Get condition and icon
+          // Get icon and condition from icon entity
           let condition = 'unknown';
           let icon = '🌤️';
           
-          if (conditionEntity && conditionEntity.state) {
-            condition = conditionEntity.state;
-            icon = getWeatherIcon(condition);
-          } else if (iconEntity && iconEntity.state) {
-            // Icon entity might contain the condition name
-            const iconState = iconEntity.state.toLowerCase();
-            condition = iconState;
-            icon = getWeatherIcon(iconState);
+          if (iconEntity && iconEntity.state) {
+            // Icon entity state might be the condition name or icon emoji
+            const iconState = iconEntity.state;
+            // Check if it's an emoji (contains emoji characters)
+            if (/[\u{1F300}-\u{1F9FF}]/u.test(iconState)) {
+              icon = iconState;
+              // Try to get condition from attributes if available
+              condition = iconEntity.attributes?.condition || iconEntity.attributes?.friendly_name || 'unknown';
+            } else {
+              // It's a condition name, convert to icon
+              condition = iconState;
+              icon = getWeatherIcon(iconState);
+            }
           }
           
           // Calculate day name (today + day offset)
@@ -298,13 +305,13 @@ function parseForecastFromEntities(entities, daysToShow) {
         }
         
         const stateValue = entity.state;
-        if (id.includes('high') && id.includes('temperature')) {
+        if (id.includes('daytime_high_temperature')) {
           dayMap[dayOffset].high = Math.round(parseFloat(stateValue) || 0);
-        } else if (id.includes('low') && id.includes('temperature')) {
+        } else if (id.includes('overnight_low_temperature')) {
           dayMap[dayOffset].low = Math.round(parseFloat(stateValue) || 0);
         } else if (id.includes('condition')) {
           dayMap[dayOffset].condition = stateValue || 'unknown';
-        } else if (id.includes('icon')) {
+        } else if (id.includes('icon') && !id.includes('time')) {
           dayMap[dayOffset].icon = stateValue;
         }
       }
