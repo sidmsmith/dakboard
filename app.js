@@ -1059,6 +1059,29 @@ async function addTodoItem(entityId, summary) {
   }
 }
 
+// Cache for MDI icons
+const mdiIconCache = {};
+
+// Fetch MDI icon SVG
+async function fetchMDIIcon(iconName) {
+  if (mdiIconCache[iconName]) {
+    return mdiIconCache[iconName];
+  }
+  
+  try {
+    const response = await fetch(`https://cdn.jsdelivr.net/npm/@mdi/svg@latest/svg/${iconName}.svg`);
+    if (response.ok) {
+      const svgText = await response.text();
+      mdiIconCache[iconName] = svgText;
+      return svgText;
+    }
+  } catch (error) {
+    console.error(`Error fetching MDI icon ${iconName}:`, error);
+  }
+  
+  return null;
+}
+
 // Load garage doors from HA
 async function loadGarageDoors() {
   const doors = [
@@ -1069,6 +1092,12 @@ async function loadGarageDoors() {
   
   const container = document.getElementById('garage-doors');
   container.innerHTML = '';
+  
+  // Pre-fetch both icons
+  const [garageIcon, garageOpenIcon] = await Promise.all([
+    fetchMDIIcon('garage'),
+    fetchMDIIcon('garage-open')
+  ]);
   
   for (const door of doors) {
     try {
@@ -1086,34 +1115,13 @@ async function loadGarageDoors() {
       doorDiv.dataset.doorId = door.id;
       doorDiv.dataset.webhookId = door.webhook;
       
+      // Use MDI icon based on state
+      const iconSvg = isOpen ? (garageOpenIcon || garageIcon) : (garageIcon || garageOpenIcon);
+      const iconHtml = iconSvg ? iconSvg.replace('<svg', '<svg class="mdi-icon"') : '<div style="width: 120px; height: 120px; background: currentColor; opacity: 0.3;"></div>';
+      
       doorDiv.innerHTML = `
         <div class="garage-door-icon ${isOpen ? 'open' : 'closed'}">
-          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-            <!-- Garage structure (roof and walls) -->
-            <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
-            <!-- Roof -->
-            <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
-            <!-- Garage door panels -->
-            ${isOpen ? `
-              <!-- Open door: panels at top -->
-              <rect x="30" y="30" width="70" height="15" fill="currentColor" opacity="0.8"/>
-              <rect x="100" y="30" width="70" height="15" fill="currentColor" opacity="0.8"/>
-              <rect x="30" y="45" width="70" height="15" fill="currentColor" opacity="0.8"/>
-              <rect x="100" y="45" width="70" height="15" fill="currentColor" opacity="0.8"/>
-            ` : `
-              <!-- Closed door: vertical panels -->
-              <rect x="30" y="60" width="70" height="20" fill="currentColor"/>
-              <rect x="100" y="60" width="70" height="20" fill="currentColor"/>
-              <rect x="30" y="80" width="70" height="20" fill="currentColor"/>
-              <rect x="100" y="80" width="70" height="20" fill="currentColor"/>
-              <rect x="30" y="100" width="70" height="20" fill="currentColor"/>
-              <rect x="100" y="100" width="70" height="20" fill="currentColor"/>
-              <rect x="30" y="120" width="70" height="20" fill="currentColor"/>
-              <rect x="100" y="120" width="70" height="20" fill="currentColor"/>
-              <!-- Door handle -->
-              <circle cx="170" cy="110" r="4" fill="currentColor" opacity="0.6"/>
-            `}
-          </svg>
+          ${iconHtml}
         </div>
         <div class="garage-door-name">${door.name}</div>
         <div class="garage-door-status">${isOpen ? 'OPEN' : 'CLOSED'}</div>
@@ -1126,21 +1134,10 @@ async function loadGarageDoors() {
       // Still create the door element but show error state
       const doorDiv = document.createElement('div');
       doorDiv.className = 'garage-door closed';
+      const iconHtml = garageIcon ? garageIcon.replace('<svg', '<svg class="mdi-icon"') : '<div style="width: 120px; height: 120px; background: currentColor; opacity: 0.3;"></div>';
       doorDiv.innerHTML = `
         <div class="garage-door-icon closed">
-          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-            <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
-            <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
-            <rect x="30" y="60" width="70" height="20" fill="currentColor"/>
-            <rect x="100" y="60" width="70" height="20" fill="currentColor"/>
-            <rect x="30" y="80" width="70" height="20" fill="currentColor"/>
-            <rect x="100" y="80" width="70" height="20" fill="currentColor"/>
-            <rect x="30" y="100" width="70" height="20" fill="currentColor"/>
-            <rect x="100" y="100" width="70" height="20" fill="currentColor"/>
-            <rect x="30" y="120" width="70" height="20" fill="currentColor"/>
-            <rect x="100" y="120" width="70" height="20" fill="currentColor"/>
-            <circle cx="170" cy="110" r="4" fill="currentColor" opacity="0.6"/>
-          </svg>
+          ${iconHtml}
         </div>
         <div class="garage-door-name">${door.name}</div>
         <div class="garage-door-status" style="color: #888;">Error</div>

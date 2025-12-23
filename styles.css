@@ -518,9 +518,15 @@ body {
   justify-content: center;
 }
 
-.garage-door-icon svg {
+.garage-door-icon svg,
+.garage-door-icon .mdi-icon {
   width: 100%;
   height: 100%;
+}
+
+.garage-door-icon svg path,
+.garage-door-icon .mdi-icon path {
+  fill: currentColor;
 }
 
 .garage-door-icon.closed {
