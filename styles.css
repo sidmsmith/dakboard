@@ -900,3 +900,111 @@ body {
   color: #e74c3c;
 }
 
+/* Drag and Resize Handles */
+.resize-handle {
+  position: absolute;
+  background: rgba(74, 144, 226, 0.5);
+  border: 2px solid #4a90e2;
+  border-radius: 4px;
+  z-index: 10;
+  transition: background 0.2s;
+  pointer-events: auto;
+}
+
+.resize-handle:hover {
+  background: rgba(74, 144, 226, 0.8);
+  border-color: #5ba0f2;
+}
+
+.resize-handle.bottom-right {
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+}
+
+.resize-handle.bottom-left {
+  bottom: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nesw-resize;
+}
+
+.resize-handle.top-right {
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nesw-resize;
+}
+
+.resize-handle.top-left {
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+}
+
+.resize-handle.right {
+  top: 50%;
+  right: 0;
+  width: 8px;
+  height: 40px;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
+.resize-handle.left {
+  top: 50%;
+  left: 0;
+  width: 8px;
+  height: 40px;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
+.resize-handle.bottom {
+  bottom: 0;
+  left: 50%;
+  width: 40px;
+  height: 8px;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+.resize-handle.top {
+  top: 0;
+  left: 50%;
+  width: 40px;
+  height: 8px;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+/* Smart content scaling - responsive font sizes */
+.widget[data-scale] {
+  font-size: calc(1rem * var(--scale-factor, 1));
+}
+
+.widget[data-scale] .widget-title {
+  font-size: calc(1.125rem * var(--scale-factor, 1));
+}
+
+.widget[data-scale] .calendar-day {
+  min-height: calc(100px * var(--scale-factor, 1));
+  padding: calc(10px * var(--scale-factor, 1));
+}
+
+.widget[data-scale] .calendar-event {
+  font-size: calc(0.75rem * var(--scale-factor, 1));
+  padding: calc(4px * var(--scale-factor, 1)) calc(8px * var(--scale-factor, 1));
+}
+
+/* Grid snap indicator */
+.widget.snapping {
+  transition: top 0.1s, left 0.1s;
+}
+
