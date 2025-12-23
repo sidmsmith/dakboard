@@ -1099,7 +1099,7 @@ async function loadTodos() {
         e.entity_id.toLowerCase().includes('todo') || 
         (e.attributes?.friendly_name && e.attributes.friendly_name.toLowerCase().includes('todo'))
       );
-      console.log('Entities with "todo" in name:', todoLike.map(e => ({ id: e.entity_id, name: e.attributes?.friendly_name })));
+      // Filtered todo-like entities for debugging
       
       document.getElementById('todo-list').innerHTML = 
         '<li class="todo-item"><span style="color: #888;">No todo lists found. Check console for debug info.</span></li>';
