@@ -605,12 +605,14 @@ function renderForecast(forecastData, attrs) {
     forecastItem.appendChild(iconDiv);
     forecastItem.appendChild(tempsDiv);
     
-    // Add click handler to load hourly forecast (capture dayOffset in closure)
-    forecastItem.addEventListener('click', (function(offset, dayName, high, low) {
-      return function() {
-        showHourlyForecast(offset, dayName, high, low);
+    // Add click handler to load hourly forecast (capture day data in closure)
+    const dayOffsetForClick = day.dayOffset !== undefined ? day.dayOffset : index;
+    forecastItem.addEventListener('click', (function(offset, name, highTemp, lowTemp) {
+      return function(e) {
+        e.stopPropagation();
+        showHourlyForecast(offset, name, highTemp, lowTemp);
       };
-    })(dayOffset, day.dayName, day.high, day.low));
+    })(dayOffsetForClick, day.dayName, day.high, day.low));
     
     forecastList.appendChild(forecastItem);
   });
