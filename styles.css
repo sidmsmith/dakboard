@@ -267,32 +267,32 @@ body {
 
 .weather-forecast-bar {
   flex: 1;
-  height: 8px;
+  height: 10px;
   background: #2a2a2a;
-  border-radius: 4px;
+  border-radius: 5px;
   position: relative;
   overflow: visible;
 }
 
 .weather-forecast-bar-fill {
   height: 100%;
-  background: linear-gradient(to right, #4a90e2 0%, #5aa0f2 25%, #6ab0f2 50%, #7ac0f2 75%, #8ad0f2 100%);
-  border-radius: 4px;
+  background: linear-gradient(to right, #4a90e2 0%, #5aa0f2 20%, #6ab0f2 40%, #7ac0f2 60%, #8ad0f2 80%, #9ae0f2 100%);
+  border-radius: 5px;
   position: relative;
-  box-shadow: 0 1px 3px rgba(74, 144, 226, 0.3);
+  box-shadow: 0 1px 3px rgba(74, 144, 226, 0.4);
 }
 
 .weather-forecast-bar-marker {
   position: absolute;
   top: 50%;
   transform: translateY(-50%) translateX(-50%);
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   background: #fff;
   border: 3px solid #4a90e2;
   border-radius: 50%;
   z-index: 3;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(255, 255, 255, 0.8);
 }
 
 .weather-forecast-high {

@@ -374,19 +374,58 @@ function renderForecast(forecastData, attrs) {
     const forecastItem = document.createElement('div');
     forecastItem.className = 'weather-forecast-item';
     
-    forecastItem.innerHTML = `
-      <div class="weather-forecast-day">${day.dayName}</div>
-      <div class="weather-forecast-icon">${day.icon}</div>
-      <div class="weather-forecast-temps">
-        <div class="weather-forecast-low">${day.low}°</div>
-        <div class="weather-forecast-bar">
-          <div class="weather-forecast-bar-fill" style="width: ${barWidth}%; left: ${barLeft}%;">
-            ${markerPercent !== null ? `<div class="weather-forecast-bar-marker" style="left: ${markerPercent}%;"></div>` : ''}
-          </div>
-        </div>
-        <div class="weather-forecast-high">${day.high}°</div>
-      </div>
-    `;
+    // Day name
+    const dayDiv = document.createElement('div');
+    dayDiv.className = 'weather-forecast-day';
+    dayDiv.textContent = day.dayName;
+    
+    // Icon
+    const iconDiv = document.createElement('div');
+    iconDiv.className = 'weather-forecast-icon';
+    iconDiv.textContent = day.icon;
+    
+    // Temps container
+    const tempsDiv = document.createElement('div');
+    tempsDiv.className = 'weather-forecast-temps';
+    
+    // Low temp
+    const lowDiv = document.createElement('div');
+    lowDiv.className = 'weather-forecast-low';
+    lowDiv.textContent = `${day.low}°`;
+    
+    // Bar
+    const bar = document.createElement('div');
+    bar.className = 'weather-forecast-bar';
+    
+    // Bar fill
+    const barFill = document.createElement('div');
+    barFill.className = 'weather-forecast-bar-fill';
+    barFill.style.width = `${barWidth}%`;
+    barFill.style.left = `${barLeft}%`;
+    
+    // Current temp marker (if today)
+    if (markerPercent !== null) {
+      const marker = document.createElement('div');
+      marker.className = 'weather-forecast-bar-marker';
+      marker.style.left = `${markerPercent}%`;
+      barFill.appendChild(marker);
+    }
+    
+    bar.appendChild(barFill);
+    
+    // High temp
+    const highDiv = document.createElement('div');
+    highDiv.className = 'weather-forecast-high';
+    highDiv.textContent = `${day.high}°`;
+    
+    // Assemble
+    tempsDiv.appendChild(lowDiv);
+    tempsDiv.appendChild(bar);
+    tempsDiv.appendChild(highDiv);
+    
+    forecastItem.appendChild(dayDiv);
+    forecastItem.appendChild(iconDiv);
+    forecastItem.appendChild(tempsDiv);
     
     forecastList.appendChild(forecastItem);
   });
