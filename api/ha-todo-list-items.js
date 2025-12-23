@@ -44,6 +44,11 @@ export default async function (req, res) {
 
     const data = await response.json();
     
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    
     // Return items array
     return res.status(200).json({ 
       success: true,
