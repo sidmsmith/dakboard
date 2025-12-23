@@ -119,6 +119,11 @@ export default async function (req, res) {
       });
     }
 
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    
     // Return success
     return res.status(200).json({ success: true });
   } catch (error) {
