@@ -1755,14 +1755,22 @@ function initializeWidgetControlPanel() {
   const panel = document.getElementById('widget-control-panel');
   const closeBtn = document.getElementById('close-widget-panel');
   
-  if (toggleBtn) {
-    toggleBtn.addEventListener('click', () => {
-      panel.classList.toggle('open');
-    });
+  if (!toggleBtn || !panel) {
+    console.error('Widget control panel elements not found');
+    return;
   }
   
+  toggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    panel.classList.toggle('open');
+    if (panel.classList.contains('open')) {
+      updateWidgetControlPanel();
+    }
+  });
+  
   if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
       panel.classList.remove('open');
     });
   }
@@ -1771,9 +1779,14 @@ function initializeWidgetControlPanel() {
   document.addEventListener('click', (e) => {
     if (panel && panel.classList.contains('open') && 
         !panel.contains(e.target) && 
-        toggleBtn && !toggleBtn.contains(e.target)) {
+        !toggleBtn.contains(e.target)) {
       panel.classList.remove('open');
     }
+  });
+  
+  // Prevent panel clicks from closing it
+  panel.addEventListener('click', (e) => {
+    e.stopPropagation();
   });
   
   updateWidgetControlPanel();
