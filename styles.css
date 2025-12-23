@@ -267,11 +267,15 @@ body {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Current Conditions Section */
 .weather-current {
   text-align: center;
+  flex-shrink: 0;
 }
 
 .weather-current-main {
@@ -326,6 +330,11 @@ body {
 /* Forecast Section */
 .weather-forecast {
   margin-top: 8px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .weather-forecast-header {
@@ -341,6 +350,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .weather-forecast-item {
