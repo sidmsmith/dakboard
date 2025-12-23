@@ -877,7 +877,9 @@ async function loadTodoListItems(entityId) {
       
       if (response.ok) {
         const data = await response.json();
+        console.log('Todo API response data:', JSON.stringify(data, null, 2));
         items = data.items || [];
+        console.log('Extracted items from data.items:', items);
       } else {
         console.error('Failed to fetch todo items:', response.status, response.statusText);
         const errorText = await response.text();
@@ -885,10 +887,12 @@ async function loadTodoListItems(entityId) {
       }
     }
     
-    console.log('Fetched todo items:', items);
+    console.log('Final fetched todo items:', items);
     console.log('Items count:', items.length);
     if (items.length > 0) {
       console.log('First item sample:', items[0]);
+    } else {
+      console.warn('No items found! Check the API response structure above.');
     }
     
     const todoList = document.getElementById('todo-list');

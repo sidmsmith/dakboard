@@ -83,6 +83,11 @@ export default async function (req, res) {
       items = Array.isArray(items) ? items : [];
       console.log('Final items array length:', items.length);
       
+      // If still no items, log the full serviceData for debugging
+      if (items.length === 0) {
+        console.log('WARNING: No items extracted. Full serviceData:', JSON.stringify(serviceData, null, 2));
+      }
+      
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'POST');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
