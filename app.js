@@ -189,20 +189,24 @@ async function loadHourlyForecast(dayOffset, contentElement) {
     // Calculate starting hour offset (0h = current hour, 24h = tomorrow 0h, etc.)
     const startHour = dayOffset * 24;
     
+    // Track consecutive failures to stop early
+    let consecutiveFailures = 0;
+    const maxFailures = 3;
+    
     for (let hourOffset = 0; hourOffset < hoursToShow; hourOffset++) {
       const totalHourOffset = startHour + hourOffset;
       const hourSuffix = `${totalHourOffset}h`;
       
       try {
-        // Fetch hourly entities
-        const [tempEntity, iconEntity, conditionEntity, precipEntity] = await Promise.all([
+        // Fetch hourly entities (don't fetch condition - it doesn't exist)
+        const [tempEntity, iconEntity, precipEntity] = await Promise.all([
           fetchHAEntity(`sensor.pirateweather_temperature_${hourSuffix}`).catch(() => null),
           fetchHAEntity(`sensor.pirateweather_icon_${hourSuffix}`).catch(() => null),
-          fetchHAEntity(`sensor.pirateweather_condition_${hourSuffix}`).catch(() => null),
           fetchHAEntity(`sensor.pirateweather_precip_probability_${hourSuffix}`).catch(() => null)
         ]);
         
         if (tempEntity && tempEntity.state) {
+          consecutiveFailures = 0; // Reset on success
           const temp = Math.round(parseFloat(tempEntity.state) || 0);
           
           // Get icon and condition
@@ -213,18 +217,15 @@ async function loadHourlyForecast(dayOffset, contentElement) {
             const iconState = iconEntity.state;
             if (/[\u{1F300}-\u{1F9FF}]/u.test(iconState)) {
               icon = iconState;
-              condition = iconEntity.attributes?.condition || conditionEntity?.state || 'unknown';
+              condition = iconEntity.attributes?.condition || iconEntity.attributes?.friendly_name || 'unknown';
             } else {
               condition = iconState;
               icon = getWeatherIcon(iconState);
             }
-          } else if (conditionEntity && conditionEntity.state) {
-            condition = conditionEntity.state;
-            icon = getWeatherIcon(condition);
           }
           
           // Get precipitation probability
-          const precipProb = precipEntity ? Math.round(parseFloat(precipEntity.state) || 0) : null;
+          const precipProb = precipEntity && precipEntity.state ? Math.round(parseFloat(precipEntity.state) || 0) : null;
           
           // Calculate time
           const hourTime = new Date();
@@ -239,9 +240,20 @@ async function loadHourlyForecast(dayOffset, contentElement) {
             condition,
             precipProb
           });
+        } else {
+          // Entity doesn't exist
+          consecutiveFailures++;
+          if (consecutiveFailures >= maxFailures) {
+            // Stop if we hit too many failures in a row
+            break;
+          }
         }
       } catch (error) {
-        console.error(`Error fetching hourly data for hour ${hourSuffix}:`, error);
+        // Silently handle errors - entity doesn't exist
+        consecutiveFailures++;
+        if (consecutiveFailures >= maxFailures) {
+          break;
+        }
       }
     }
     
@@ -370,7 +382,7 @@ async function loadWeatherForecast(attrs) {
   forecastList.innerHTML = '<div style="color: #888; text-align: center; padding: 10px;">Loading forecast...</div>';
   
   try {
-    const daysToShow = 8; // Show 8 days like the HA card
+    const daysToShow = 5; // Only show 5 days (0d-4d) - entities beyond don't exist
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const forecastData = [];
     
@@ -379,6 +391,7 @@ async function loadWeatherForecast(attrs) {
     // - Lows: sensor.pirateweather_overnight_low_temperature_0d, 1d, 2d, etc.
     // - Icons: sensor.pirateweather_icon_0d, 1d, 2d, etc.
     // Days are 0d (today), 1d (tomorrow), 2d, etc.
+    // Only days 0d-4d are available
     
     for (let dayOffset = 0; dayOffset < daysToShow; dayOffset++) {
       try {
