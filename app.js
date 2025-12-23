@@ -945,7 +945,9 @@ function createTodoItem(item, entityId, isCompleted = false) {
   if (isCompleted) {
     checkbox.classList.add('checked');
   }
-  checkbox.addEventListener('click', () => {
+  checkbox.addEventListener('click', (e) => {
+    e.stopPropagation(); // Prevent event bubbling
+    console.log('Checkbox clicked for item:', item.summary, 'UID:', item.uid, 'Current status:', isCompleted);
     toggleTodoItem(entityId, item.uid, !isCompleted);
   });
   
