@@ -17,13 +17,14 @@ body {
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  /* Use auto-sizing rows - each row sizes based on content */
-  grid-auto-rows: minmax(min-content, auto);
+  /* Use explicit row sizing to prevent overlap */
+  grid-template-rows: auto auto auto;
   gap: 20px;
   /* Ensure the dashboard fits viewport height */
-  min-height: 100vh;
-  max-height: 100vh;
+  height: 100vh;
   overflow: hidden;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .widget {
@@ -224,10 +225,13 @@ body {
   background: #6a6a6a;
 }
 
-/* Weather - Top Right, spans 5 columns */
+/* Weather - Top Right, spans 5 columns, row 1 */
 .weather-widget {
   grid-column: 8 / 13;
   grid-row: 1 / 2;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -390,12 +394,14 @@ body {
   text-align: right;
 }
 
-/* Todo - Top Right Below Weather, spans 5 columns, 1 row */
+/* Todo - Below Weather, spans 5 columns, row 2 */
 .todo-widget {
   grid-column: 8 / 13;
-  grid-row: 3 / 4;
+  grid-row: 2 / 3;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .todo-tabs {
@@ -559,10 +565,13 @@ body {
   opacity: 0.6;
 }
 
-/* Garage Doors - Bottom Left */
+/* Garage Doors - Bottom Left, row 2 */
 .garage-widget {
   grid-column: 1 / 8;
   grid-row: 2 / 3;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .garage-doors {
@@ -677,12 +686,15 @@ body {
   opacity: 1;
 }
 
-/* Alarm - Bottom Right */
+/* Alarm - Bottom Right, row 3 */
 .alarm-widget {
   grid-column: 8 / 13;
   grid-row: 3 / 4;
+  display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+  min-height: 0;
 }
 
 .alarm-status {
