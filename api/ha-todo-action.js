@@ -45,10 +45,7 @@ export default async function (req, res) {
       
       const serviceData = await serviceResponse.json();
       
-      // Debug: log the full response structure
-      console.log('Todo get_items service response:', JSON.stringify(serviceData, null, 2));
-      console.log('Entity ID:', entity_id);
-      console.log('Response keys:', Object.keys(serviceData || {}));
+      // Parse response structure
       
       // Response structure with ?return_response=true:
       // { "service_response": { "todo.entity_id": { "items": [...] } }, "changed_states": [] }
@@ -58,40 +55,28 @@ export default async function (req, res) {
       // Check for service_response wrapper first (when using ?return_response=true)
       if (serviceData && serviceData.service_response && serviceData.service_response[entity_id]) {
         items = serviceData.service_response[entity_id].items || [];
-        console.log('Found items in serviceData.service_response[entity_id].items:', items);
       } else if (serviceData && serviceData[entity_id]) {
         // Direct structure: { "todo.entity_id": { "items": [...] } }
         items = serviceData[entity_id].items || [];
-        console.log('Found items in serviceData[entity_id].items:', items);
       } else if (serviceData && serviceData[entity_id] && Array.isArray(serviceData[entity_id])) {
         // Response might be: { "todo.entity_id": [...] }
         items = serviceData[entity_id];
-        console.log('Found items as direct array in serviceData[entity_id]:', items);
       } else if (Array.isArray(serviceData)) {
         // Fallback: if response is directly an array
         items = serviceData;
-        console.log('Response is direct array:', items);
       } else if (serviceData && serviceData.items) {
         // Fallback: if response has items at root level
         items = serviceData.items;
-        console.log('Found items in serviceData.items:', items);
       } else if (serviceData && serviceData.response) {
         // Check if response is nested in a 'response' field
         const responseData = serviceData.response;
         if (responseData && responseData[entity_id]) {
           items = responseData[entity_id].items || [];
-          console.log('Found items in serviceData.response[entity_id].items:', items);
         }
       }
       
       // Ensure items is an array
       items = Array.isArray(items) ? items : [];
-      console.log('Final items array length:', items.length);
-      
-      // If still no items, log the full serviceData for debugging
-      if (items.length === 0) {
-        console.log('WARNING: No items extracted. Full serviceData:', JSON.stringify(serviceData, null, 2));
-      }
       
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'POST');

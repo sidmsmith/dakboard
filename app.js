@@ -97,6 +97,8 @@ async function loadCalendarEvents() {
           
           if (serviceResponse.ok) {
             const serviceData = await serviceResponse.json();
+            console.log(`Calendar ${calEntityId} response:`, JSON.stringify(serviceData, null, 2));
+            
             let events = [];
             
             if (Array.isArray(serviceData)) {
@@ -107,12 +109,24 @@ async function loadCalendarEvents() {
               events = serviceData[calEntityId];
             } else if (serviceData.service_response && serviceData.service_response[calEntityId]) {
               events = serviceData.service_response[calEntityId] || [];
+            } else {
+              console.log(`Unknown response structure for ${calEntityId}:`, Object.keys(serviceData));
             }
             
+            console.log(`Found ${events.length} events for ${calEntityId}`);
             events.forEach(event => {
               event.calendar = calEntityId;
               allEvents.push(event);
             });
+          } else {
+            const errorText = await serviceResponse.text();
+            console.error(`Failed to fetch events for ${calEntityId}:`, serviceResponse.status);
+            console.error(`Error response:`, errorText);
+            console.error(`Request body was:`, JSON.stringify({
+              entity_id: calEntityId,
+              start_date_time: weekStart.toISOString(),
+              end_date_time: weekEnd.toISOString()
+            }, null, 2));
           }
         } catch (error) {
           console.error(`Error fetching events for ${calEntityId}:`, error);
@@ -1139,7 +1153,6 @@ function createTodoItem(item, entityId, isCompleted = false) {
 
 // Toggle todo item completion
 async function toggleTodoItem(entityId, itemUid, complete) {
-  console.log('Toggling todo item:', { entityId, itemUid, complete });
   
   try {
     const action = complete ? 'complete' : 'uncomplete';
@@ -1181,7 +1194,7 @@ async function toggleTodoItem(entityId, itemUid, complete) {
       return;
     }
     
-    console.log('Successfully toggled todo item');
+    // Successfully toggled todo item
     
     // Reload items after a short delay
     setTimeout(() => {

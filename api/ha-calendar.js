@@ -74,7 +74,8 @@ export default async function (req, res) {
     for (const calEntityId of calendarEntities) {
       try {
         // Use calendar.get_events service
-        const serviceResponse = await fetch(`${haUrl}/api/services/calendar/get_events`, {
+        // Try with ?return_response=true to get the response data
+        const serviceResponse = await fetch(`${haUrl}/api/services/calendar/get_events?return_response=true`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${haToken}`,
@@ -88,7 +89,15 @@ export default async function (req, res) {
         });
 
         if (!serviceResponse.ok) {
+          const errorText = await serviceResponse.text();
           console.error(`Failed to fetch events for ${calEntityId}:`, serviceResponse.status);
+          console.error(`Error details:`, errorText);
+          // Log the request body for debugging
+          console.error(`Request was:`, JSON.stringify({
+            entity_id: calEntityId,
+            start_date_time: start.toISOString(),
+            end_date_time: end.toISOString()
+          }, null, 2));
           continue;
         }
 
