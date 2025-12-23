@@ -23,8 +23,8 @@ export default async function (req, res) {
     }
     
     try {
-      // HA todo items are accessed via the entity state, not a separate endpoint
-      // The entity state contains the items in attributes.items
+      // Try multiple approaches to get todo items
+      // Approach 1: Check if items are in entity state attributes
       const entityResponse = await fetch(`${haUrl}/api/states/${encodeURIComponent(entity_id)}`, {
         method: 'GET',
         headers: {
@@ -42,7 +42,33 @@ export default async function (req, res) {
       }
       
       const entity = await entityResponse.json();
-      const items = entity.attributes?.items || [];
+      let items = entity.attributes?.items;
+      
+      // If items not in attributes, try using the todo service
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        // Try calling the todo service to get items
+        // Some HA versions use: /api/services/todo/get_items
+        try {
+          const serviceResponse = await fetch(`${haUrl}/api/services/todo/get_items`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${haToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ entity_id: entity_id })
+          });
+          
+          if (serviceResponse.ok) {
+            const serviceData = await serviceResponse.json();
+            items = serviceData.items || serviceData || [];
+          }
+        } catch (serviceError) {
+          console.log('Service call failed, using entity attributes:', serviceError);
+        }
+      }
+      
+      // Ensure items is an array
+      items = Array.isArray(items) ? items : [];
       
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'POST');
