@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Garage Door Design Samples</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      padding: 40px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 40px;
+      font-size: 32px;
+    }
+
+    .samples-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .sample-card {
+      background: #2a2a2a;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .sample-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #fff;
+    }
+
+    .door-pair {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .door-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .door-state-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+
+    .door-icon {
+      width: 120px;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .door-icon svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .door-icon.closed {
+      color: #27ae60; /* Green */
+    }
+
+    .door-icon.open {
+      color: #e74c3c; /* Red */
+    }
+
+    .door-card {
+      background: #333;
+      border-radius: 10px;
+      padding: 20px;
+      border: 3px solid;
+      transition: all 0.3s;
+    }
+
+    .door-card.closed {
+      background: rgba(39, 174, 96, 0.1);
+      border-color: #27ae60;
+    }
+
+    .door-card.open {
+      background: rgba(231, 76, 60, 0.1);
+      border-color: #e74c3c;
+    }
+
+    .door-card .door-icon.closed {
+      color: #27ae60;
+    }
+
+    .door-card .door-icon.open {
+      color: #e74c3c;
+    }
+  </style>
+</head>
+<body>
+  <h1>Garage Door Design Samples</h1>
+  
+  <div class="samples-grid">
+    <!-- Design 1: Current - Sectional Panels -->
+    <div class="sample-card">
+      <div class="sample-title">Design 1: Sectional Panels</div>
+      <div class="door-pair">
+        <div class="door-state">
+          <div class="door-icon closed">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <rect x="30" y="60" width="70" height="20" fill="currentColor"/>
+              <rect x="100" y="60" width="70" height="20" fill="currentColor"/>
+              <rect x="30" y="80" width="70" height="20" fill="currentColor"/>
+              <rect x="100" y="80" width="70" height="20" fill="currentColor"/>
+              <rect x="30" y="100" width="70" height="20" fill="currentColor"/>
+              <rect x="100" y="100" width="70" height="20" fill="currentColor"/>
+              <rect x="30" y="120" width="70" height="20" fill="currentColor"/>
+              <rect x="100" y="120" width="70" height="20" fill="currentColor"/>
+              <circle cx="170" cy="110" r="4" fill="currentColor" opacity="0.6"/>
+            </svg>
+          </div>
+          <div class="door-state-label">Closed</div>
+        </div>
+        <div class="door-state">
+          <div class="door-icon open">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <rect x="30" y="30" width="70" height="15" fill="currentColor" opacity="0.8"/>
+              <rect x="100" y="30" width="70" height="15" fill="currentColor" opacity="0.8"/>
+              <rect x="30" y="45" width="70" height="15" fill="currentColor" opacity="0.8"/>
+              <rect x="100" y="45" width="70" height="15" fill="currentColor" opacity="0.8"/>
+            </svg>
+          </div>
+          <div class="door-state-label">Open</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design 2: Roll-up Style -->
+    <div class="sample-card">
+      <div class="sample-title">Design 2: Roll-up Style</div>
+      <div class="door-pair">
+        <div class="door-state">
+          <div class="door-icon closed">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <!-- Horizontal roll-up panels -->
+              <rect x="30" y="60" width="140" height="8" fill="currentColor"/>
+              <rect x="30" y="72" width="140" height="8" fill="currentColor"/>
+              <rect x="30" y="84" width="140" height="8" fill="currentColor"/>
+              <rect x="30" y="96" width="140" height="8" fill="currentColor"/>
+              <rect x="30" y="108" width="140" height="8" fill="currentColor"/>
+              <rect x="30" y="120" width="140" height="8" fill="currentColor"/>
+              <rect x="30" y="132" width="140" height="8" fill="currentColor"/>
+              <rect x="30" y="144" width="140" height="8" fill="currentColor"/>
+              <!-- Roll-up mechanism at top -->
+              <circle cx="100" cy="50" r="8" fill="currentColor" opacity="0.5"/>
+            </svg>
+          </div>
+          <div class="door-state-label">Closed</div>
+        </div>
+        <div class="door-state">
+          <div class="door-icon open">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <!-- Rolled up panels -->
+              <ellipse cx="100" cy="45" rx="60" ry="25" fill="currentColor" opacity="0.6"/>
+              <rect x="30" y="30" width="140" height="6" fill="currentColor" opacity="0.4"/>
+              <rect x="30" y="36" width="140" height="6" fill="currentColor" opacity="0.4"/>
+              <rect x="30" y="42" width="140" height="6" fill="currentColor" opacity="0.4"/>
+            </svg>
+          </div>
+          <div class="door-state-label">Open</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design 3: Traditional with Windows -->
+    <div class="sample-card">
+      <div class="sample-title">Design 3: Traditional with Windows</div>
+      <div class="door-pair">
+        <div class="door-state">
+          <div class="door-icon closed">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <!-- Door panels with windows -->
+              <rect x="30" y="60" width="65" height="100" fill="currentColor"/>
+              <rect x="105" y="60" width="65" height="100" fill="currentColor"/>
+              <!-- Windows -->
+              <rect x="40" y="75" width="45" height="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+              <rect x="115" y="75" width="45" height="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+              <!-- Handle -->
+              <circle cx="165" cy="110" r="4" fill="currentColor" opacity="0.6"/>
+            </svg>
+          </div>
+          <div class="door-state-label">Closed</div>
+        </div>
+        <div class="door-state">
+          <div class="door-icon open">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <!-- Open panels at top -->
+              <rect x="30" y="30" width="65" height="20" fill="currentColor" opacity="0.8"/>
+              <rect x="105" y="30" width="65" height="20" fill="currentColor" opacity="0.8"/>
+              <rect x="30" y="50" width="65" height="20" fill="currentColor" opacity="0.8"/>
+              <rect x="105" y="50" width="65" height="20" fill="currentColor" opacity="0.8"/>
+            </svg>
+          </div>
+          <div class="door-state-label">Open</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design 4: Modern Minimalist -->
+    <div class="sample-card">
+      <div class="sample-title">Design 4: Modern Minimalist</div>
+      <div class="door-pair">
+        <div class="door-state">
+          <div class="door-icon closed">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="2" opacity="0.2"/>
+              <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="2" opacity="0.2"/>
+              <!-- Simple solid door -->
+              <rect x="40" y="60" width="120" height="120" fill="currentColor" rx="4"/>
+              <!-- Minimal handle -->
+              <rect x="155" y="105" width="8" height="20" rx="2" fill="currentColor" opacity="0.5"/>
+            </svg>
+          </div>
+          <div class="door-state-label">Closed</div>
+        </div>
+        <div class="door-state">
+          <div class="door-icon open">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="2" opacity="0.2"/>
+              <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="2" opacity="0.2"/>
+              <!-- Open door at top -->
+              <rect x="40" y="30" width="120" height="30" fill="currentColor" opacity="0.7" rx="4"/>
+            </svg>
+          </div>
+          <div class="door-state-label">Open</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design 5: Detailed with Tracks -->
+    <div class="sample-card">
+      <div class="sample-title">Design 5: Detailed with Tracks</div>
+      <div class="door-pair">
+        <div class="door-state">
+          <div class="door-icon closed">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+              <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+              <!-- Side tracks -->
+              <rect x="25" y="50" width="4" height="130" fill="currentColor" opacity="0.4"/>
+              <rect x="171" y="50" width="4" height="130" fill="currentColor" opacity="0.4"/>
+              <!-- Door panels -->
+              <rect x="35" y="60" width="65" height="25" fill="currentColor"/>
+              <rect x="100" y="60" width="65" height="25" fill="currentColor"/>
+              <rect x="35" y="85" width="65" height="25" fill="currentColor"/>
+              <rect x="100" y="85" width="65" height="25" fill="currentColor"/>
+              <rect x="35" y="110" width="65" height="25" fill="currentColor"/>
+              <rect x="100" y="110" width="65" height="25" fill="currentColor"/>
+              <rect x="35" y="135" width="65" height="25" fill="currentColor"/>
+              <rect x="100" y="135" width="65" height="25" fill="currentColor"/>
+              <!-- Handle -->
+              <circle cx="165" cy="125" r="5" fill="currentColor" opacity="0.6"/>
+            </svg>
+          </div>
+          <div class="door-state-label">Closed</div>
+        </div>
+        <div class="door-state">
+          <div class="door-icon open">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+              <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+              <!-- Side tracks -->
+              <rect x="25" y="50" width="4" height="130" fill="currentColor" opacity="0.4"/>
+              <rect x="171" y="50" width="4" height="130" fill="currentColor" opacity="0.4"/>
+              <!-- Open panels at top -->
+              <rect x="35" y="30" width="65" height="18" fill="currentColor" opacity="0.8"/>
+              <rect x="100" y="30" width="65" height="18" fill="currentColor" opacity="0.8"/>
+              <rect x="35" y="48" width="65" height="18" fill="currentColor" opacity="0.8"/>
+              <rect x="100" y="48" width="65" height="18" fill="currentColor" opacity="0.8"/>
+            </svg>
+          </div>
+          <div class="door-state-label">Open</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design 6: Carriage Style -->
+    <div class="sample-card">
+      <div class="sample-title">Design 6: Carriage Style</div>
+      <div class="door-pair">
+        <div class="door-state">
+          <div class="door-icon closed">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <!-- Carriage door panels (two separate doors) -->
+              <rect x="30" y="60" width="70" height="120" fill="currentColor" rx="2"/>
+              <rect x="100" y="60" width="70" height="120" fill="currentColor" rx="2"/>
+              <!-- Decorative X pattern -->
+              <line x1="35" y1="65" x2="95" y2="175" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+              <line x1="95" y1="65" x2="35" y2="175" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+              <line x1="105" y1="65" x2="165" y2="175" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+              <line x1="165" y1="65" x2="105" y2="175" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+              <!-- Handles -->
+              <circle cx="95" cy="120" r="4" fill="currentColor" opacity="0.6"/>
+              <circle cx="165" cy="120" r="4" fill="currentColor" opacity="0.6"/>
+            </svg>
+          </div>
+          <div class="door-state-label">Closed</div>
+        </div>
+        <div class="door-state">
+          <div class="door-icon open">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <!-- Open doors (swung out) -->
+              <rect x="30" y="30" width="70" height="25" fill="currentColor" opacity="0.8" rx="2"/>
+              <rect x="100" y="30" width="70" height="25" fill="currentColor" opacity="0.8" rx="2"/>
+            </svg>
+          </div>
+          <div class="door-state-label">Open</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design 7: Industrial Style -->
+    <div class="sample-card">
+      <div class="sample-title">Design 7: Industrial Style</div>
+      <div class="door-pair">
+        <div class="door-state">
+          <div class="door-icon closed">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <!-- Industrial panels with rivets -->
+              <rect x="30" y="60" width="140" height="30" fill="currentColor"/>
+              <rect x="30" y="90" width="140" height="30" fill="currentColor"/>
+              <rect x="30" y="120" width="140" height="30" fill="currentColor"/>
+              <rect x="30" y="150" width="140" height="30" fill="currentColor"/>
+              <!-- Rivets -->
+              <circle cx="45" cy="75" r="2" fill="currentColor" opacity="0.4"/>
+              <circle cx="155" cy="75" r="2" fill="currentColor" opacity="0.4"/>
+              <circle cx="45" cy="105" r="2" fill="currentColor" opacity="0.4"/>
+              <circle cx="155" cy="105" r="2" fill="currentColor" opacity="0.4"/>
+              <circle cx="45" cy="135" r="2" fill="currentColor" opacity="0.4"/>
+              <circle cx="155" cy="135" r="2" fill="currentColor" opacity="0.4"/>
+              <!-- Handle -->
+              <rect x="165" y="110" width="8" height="20" rx="2" fill="currentColor" opacity="0.6"/>
+            </svg>
+          </div>
+          <div class="door-state-label">Closed</div>
+        </div>
+        <div class="door-state">
+          <div class="door-icon open">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+              <!-- Rolled up panels -->
+              <rect x="30" y="30" width="140" height="20" fill="currentColor" opacity="0.7"/>
+              <rect x="30" y="50" width="140" height="20" fill="currentColor" opacity="0.7"/>
+            </svg>
+          </div>
+          <div class="door-state-label">Open</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design 8: Simple Outline -->
+    <div class="sample-card">
+      <div class="sample-title">Design 8: Simple Outline</div>
+      <div class="door-pair">
+        <div class="door-state">
+          <div class="door-icon closed">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="2" opacity="0.2"/>
+              <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="2" opacity="0.2"/>
+              <!-- Simple outline door -->
+              <rect x="40" y="60" width="120" height="120" fill="none" stroke="currentColor" stroke-width="4" rx="4"/>
+              <!-- Center divider -->
+              <line x1="100" y1="60" x2="100" y2="180" stroke="currentColor" stroke-width="3"/>
+            </svg>
+          </div>
+          <div class="door-state-label">Closed</div>
+        </div>
+        <div class="door-state">
+          <div class="door-icon open">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="2" opacity="0.2"/>
+              <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="2" opacity="0.2"/>
+              <!-- Open outline at top -->
+              <rect x="40" y="30" width="120" height="30" fill="none" stroke="currentColor" stroke-width="4" opacity="0.7" rx="4"/>
+              <line x1="100" y1="30" x2="100" y2="60" stroke="currentColor" stroke-width="3" opacity="0.7"/>
+            </svg>
+          </div>
+          <div class="door-state-label">Open</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full card previews -->
+  <h2 style="text-align: center; margin-top: 60px; margin-bottom: 30px;">Full Card Preview</h2>
+  <div class="samples-grid">
+    <div class="sample-card">
+      <div class="sample-title">Design 1 on Card</div>
+      <div class="door-card closed">
+        <div class="door-icon closed">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+            <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+            <rect x="30" y="60" width="70" height="20" fill="currentColor"/>
+            <rect x="100" y="60" width="70" height="20" fill="currentColor"/>
+            <rect x="30" y="80" width="70" height="20" fill="currentColor"/>
+            <rect x="100" y="80" width="70" height="20" fill="currentColor"/>
+            <rect x="30" y="100" width="70" height="20" fill="currentColor"/>
+            <rect x="100" y="100" width="70" height="20" fill="currentColor"/>
+            <rect x="30" y="120" width="70" height="20" fill="currentColor"/>
+            <rect x="100" y="120" width="70" height="20" fill="currentColor"/>
+            <circle cx="170" cy="110" r="4" fill="currentColor" opacity="0.6"/>
+          </svg>
+        </div>
+        <div style="font-size: 18px; font-weight: 600; margin-top: 12px;">Garage Door 1</div>
+        <div style="font-size: 14px; font-weight: 600; color: #27ae60; margin-top: 8px;">CLOSED</div>
+      </div>
+    </div>
+
+    <div class="sample-card">
+      <div class="sample-title">Design 2 on Card</div>
+      <div class="door-card open">
+        <div class="door-icon open">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+            <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+            <ellipse cx="100" cy="45" rx="60" ry="25" fill="currentColor" opacity="0.6"/>
+            <rect x="30" y="30" width="140" height="6" fill="currentColor" opacity="0.4"/>
+            <rect x="30" y="36" width="140" height="6" fill="currentColor" opacity="0.4"/>
+            <rect x="30" y="42" width="140" height="6" fill="currentColor" opacity="0.4"/>
+          </svg>
+        </div>
+        <div style="font-size: 18px; font-weight: 600; margin-top: 12px;">Garage Door 2</div>
+        <div style="font-size: 14px; font-weight: 600; color: #e74c3c; margin-top: 8px;">OPEN</div>
+      </div>
+    </div>
+
+    <div class="sample-card">
+      <div class="sample-title">Design 3 on Card</div>
+      <div class="door-card closed">
+        <div class="door-icon closed">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+            <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+            <rect x="30" y="60" width="65" height="100" fill="currentColor"/>
+            <rect x="105" y="60" width="65" height="100" fill="currentColor"/>
+            <rect x="40" y="75" width="45" height="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+            <rect x="115" y="75" width="45" height="30" fill="none" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+            <circle cx="165" cy="110" r="4" fill="currentColor" opacity="0.6"/>
+          </svg>
+        </div>
+        <div style="font-size: 18px; font-weight: 600; margin-top: 12px;">Garage Door 3</div>
+        <div style="font-size: 14px; font-weight: 600; color: #27ae60; margin-top: 8px;">CLOSED</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
