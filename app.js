@@ -886,6 +886,10 @@ async function loadTodoListItems(entityId) {
     }
     
     console.log('Fetched todo items:', items);
+    console.log('Items count:', items.length);
+    if (items.length > 0) {
+      console.log('First item sample:', items[0]);
+    }
     
     const todoList = document.getElementById('todo-list');
     todoList.innerHTML = '';

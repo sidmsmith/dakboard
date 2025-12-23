@@ -45,21 +45,43 @@ export default async function (req, res) {
       
       const serviceData = await serviceResponse.json();
       
+      // Debug: log the full response structure
+      console.log('Todo get_items service response:', JSON.stringify(serviceData, null, 2));
+      console.log('Entity ID:', entity_id);
+      console.log('Response keys:', Object.keys(serviceData || {}));
+      
       // Response structure: { "todo.entity_id": { "items": [...] } }
       // Extract items from the response
       let items = [];
+      
+      // Check various possible response structures
       if (serviceData && serviceData[entity_id]) {
         items = serviceData[entity_id].items || [];
+        console.log('Found items in serviceData[entity_id].items:', items);
+      } else if (serviceData && serviceData[entity_id] && Array.isArray(serviceData[entity_id])) {
+        // Response might be: { "todo.entity_id": [...] }
+        items = serviceData[entity_id];
+        console.log('Found items as direct array in serviceData[entity_id]:', items);
       } else if (Array.isArray(serviceData)) {
         // Fallback: if response is directly an array
         items = serviceData;
-      } else if (serviceData.items) {
+        console.log('Response is direct array:', items);
+      } else if (serviceData && serviceData.items) {
         // Fallback: if response has items at root level
         items = serviceData.items;
+        console.log('Found items in serviceData.items:', items);
+      } else if (serviceData && serviceData.response) {
+        // Check if response is nested in a 'response' field
+        const responseData = serviceData.response;
+        if (responseData && responseData[entity_id]) {
+          items = responseData[entity_id].items || [];
+          console.log('Found items in serviceData.response[entity_id].items:', items);
+        }
       }
       
       // Ensure items is an array
       items = Array.isArray(items) ? items : [];
+      console.log('Final items array length:', items.length);
       
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'POST');
