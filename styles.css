@@ -510,8 +510,25 @@ body {
 }
 
 .garage-door-icon {
-  font-size: 64px;
+  width: 120px;
+  height: 120px;
   margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.garage-door-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.garage-door-icon.closed {
+  color: #27ae60; /* Green for closed */
+}
+
+.garage-door-icon.open {
+  color: #e74c3c; /* Red for open */
 }
 
 .garage-door-name {
@@ -526,7 +543,7 @@ body {
 }
 
 .garage-door.open {
-  background: #4a4a4a;
+  background: rgba(231, 76, 60, 0.1); /* Light red background */
   border: 3px solid #e74c3c;
 }
 
@@ -535,6 +552,7 @@ body {
 }
 
 .garage-door.closed {
+  background: rgba(39, 174, 96, 0.1); /* Light green background */
   border: 3px solid #27ae60;
 }
 

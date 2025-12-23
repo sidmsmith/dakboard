@@ -1087,7 +1087,34 @@ async function loadGarageDoors() {
       doorDiv.dataset.webhookId = door.webhook;
       
       doorDiv.innerHTML = `
-        <div class="garage-door-icon">🚪</div>
+        <div class="garage-door-icon ${isOpen ? 'open' : 'closed'}">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <!-- Garage structure (roof and walls) -->
+            <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+            <!-- Roof -->
+            <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+            <!-- Garage door panels -->
+            ${isOpen ? `
+              <!-- Open door: panels at top -->
+              <rect x="30" y="30" width="70" height="15" fill="currentColor" opacity="0.8"/>
+              <rect x="100" y="30" width="70" height="15" fill="currentColor" opacity="0.8"/>
+              <rect x="30" y="45" width="70" height="15" fill="currentColor" opacity="0.8"/>
+              <rect x="100" y="45" width="70" height="15" fill="currentColor" opacity="0.8"/>
+            ` : `
+              <!-- Closed door: vertical panels -->
+              <rect x="30" y="60" width="70" height="20" fill="currentColor"/>
+              <rect x="100" y="60" width="70" height="20" fill="currentColor"/>
+              <rect x="30" y="80" width="70" height="20" fill="currentColor"/>
+              <rect x="100" y="80" width="70" height="20" fill="currentColor"/>
+              <rect x="30" y="100" width="70" height="20" fill="currentColor"/>
+              <rect x="100" y="100" width="70" height="20" fill="currentColor"/>
+              <rect x="30" y="120" width="70" height="20" fill="currentColor"/>
+              <rect x="100" y="120" width="70" height="20" fill="currentColor"/>
+              <!-- Door handle -->
+              <circle cx="170" cy="110" r="4" fill="currentColor" opacity="0.6"/>
+            `}
+          </svg>
+        </div>
         <div class="garage-door-name">${door.name}</div>
         <div class="garage-door-status">${isOpen ? 'OPEN' : 'CLOSED'}</div>
       `;
@@ -1100,7 +1127,21 @@ async function loadGarageDoors() {
       const doorDiv = document.createElement('div');
       doorDiv.className = 'garage-door closed';
       doorDiv.innerHTML = `
-        <div class="garage-door-icon">🚪</div>
+        <div class="garage-door-icon closed">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <rect x="20" y="20" width="160" height="160" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+            <polygon points="20,20 100,40 180,20" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+            <rect x="30" y="60" width="70" height="20" fill="currentColor"/>
+            <rect x="100" y="60" width="70" height="20" fill="currentColor"/>
+            <rect x="30" y="80" width="70" height="20" fill="currentColor"/>
+            <rect x="100" y="80" width="70" height="20" fill="currentColor"/>
+            <rect x="30" y="100" width="70" height="20" fill="currentColor"/>
+            <rect x="100" y="100" width="70" height="20" fill="currentColor"/>
+            <rect x="30" y="120" width="70" height="20" fill="currentColor"/>
+            <rect x="100" y="120" width="70" height="20" fill="currentColor"/>
+            <circle cx="170" cy="110" r="4" fill="currentColor" opacity="0.6"/>
+          </svg>
+        </div>
         <div class="garage-door-name">${door.name}</div>
         <div class="garage-door-status" style="color: #888;">Error</div>
       `;
