@@ -185,7 +185,7 @@ async function loadWeather() {
     
     // Update details
     document.getElementById('weather-feels-like').textContent = 
-      attrs.temperature_feels_like ? `${Math.round(attrs.temperature_feels_like)}°F` : '--°F';
+      attrs.apparent_temperature ? `${Math.round(attrs.apparent_temperature)}°F` : '--°F';
     document.getElementById('weather-humidity').textContent = 
       attrs.humidity ? `${Math.round(attrs.humidity)}%` : '--%';
     document.getElementById('weather-wind').textContent = 
