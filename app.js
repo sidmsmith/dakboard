@@ -256,6 +256,35 @@ function initializeEventListeners() {
       closeHourlyModal();
     }
   });
+  
+  // Calendar event details modal
+  const closeEventModalBtn = document.getElementById('close-event-modal');
+  const eventModal = document.getElementById('event-modal');
+  
+  if (closeEventModalBtn) {
+    closeEventModalBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeEventModal();
+    });
+  }
+  
+  if (eventModal) {
+    eventModal.addEventListener('click', (e) => {
+      // Close if clicking directly on the modal background (not on modal-content)
+      if (e.target === eventModal || e.target.id === 'event-modal') {
+        closeEventModal();
+      }
+    });
+    
+    // Prevent clicks inside modal-content from closing the modal
+    const modalContent = eventModal.querySelector('.modal-content');
+    if (modalContent) {
+      modalContent.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+    }
+  }
 }
 
 // Render weekly calendar
