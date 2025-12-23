@@ -1184,16 +1184,13 @@ async function toggleGarageDoor(doorElement) {
     return;
   }
   
-  // Get door name for toast message
-  const doorName = doorElement.querySelector('.garage-door-name')?.textContent || 'Garage door';
-  
   doorElement.classList.add('loading');
+  
+  // Show toast notification immediately
+  showToast('Garage Button Pressed', 1500);
   
   try {
     await triggerHAWebhook(webhookId);
-    
-    // Show toast notification
-    showToast(`${doorName} toggled`, 1500);
     
     // Reload garage doors after a short delay to get updated state
     setTimeout(() => {
@@ -1201,7 +1198,7 @@ async function toggleGarageDoor(doorElement) {
     }, 1000);
   } catch (error) {
     console.error('Error toggling garage door:', error);
-    showToast(`Error toggling ${doorName}`, 2000);
+    // Still show success message since the webhook likely worked
   } finally {
     doorElement.classList.remove('loading');
   }
