@@ -1012,6 +1012,22 @@ body {
   padding: calc(4px * var(--scale-factor, 1)) calc(8px * var(--scale-factor, 1));
 }
 
+/* Garage widget specific scaling */
+.widget[data-scale].garage-widget .garage-doors {
+  gap: calc(20px * var(--scale-factor, 1));
+  padding: calc(10px * var(--scale-factor, 1));
+}
+
+.widget[data-scale].garage-widget .garage-door {
+  padding: calc(24px * var(--scale-factor, 1));
+  border-radius: calc(10px * var(--scale-factor, 1));
+}
+
+/* Alarm widget specific scaling */
+.widget[data-scale].alarm-widget .alarm-status {
+  gap: calc(24px * var(--scale-factor, 1));
+}
+
 /* Grid snap indicator */
 .widget.snapping {
   transition: top 0.1s, left 0.1s;
