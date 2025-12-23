@@ -271,9 +271,21 @@ function handleMouseMove(e) {
       newTop = resizeStart.top + deltaY;
     }
     
-    // Enforce minimum size
-    const minWidth = 200;
-    const minHeight = 150;
+    // Enforce minimum size based on widget type
+    let minWidth = 200;
+    let minHeight = 150;
+    
+    // Widget-specific minimum sizes
+    if (resizeWidget.classList.contains('garage-widget')) {
+      minWidth = 400; // Need space for 3 garage doors
+      minHeight = 150;
+    } else if (resizeWidget.classList.contains('alarm-widget')) {
+      minWidth = 200;
+      minHeight = 150;
+    } else if (resizeWidget.classList.contains('weather-widget')) {
+      minWidth = 300;
+      minHeight = 300; // Need space for current + forecast
+    }
     
     if (newWidth < minWidth) {
       if (resizeDirection.includes('left')) {
