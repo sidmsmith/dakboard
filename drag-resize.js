@@ -78,22 +78,26 @@ function snapToGridValue(value) {
 
 // Initialize drag and resize for all widgets
 function initializeDragAndResize() {
-  document.querySelectorAll('.widget').forEach(widget => {
-    // Add resize handles
-    addResizeHandles(widget);
-    
-    // Make header draggable
-    const header = widget.querySelector('.widget-header');
-    if (header) {
-      header.addEventListener('mousedown', (e) => {
-        if (e.target.closest('.resize-handle')) return; // Don't drag if clicking resize handle
-        startDrag(widget, e);
-      });
-    }
-    
-    // Update scale on initial load
-    updateWidgetScale(widget);
-  });
+  // Wait a bit for widgets to be rendered
+  setTimeout(() => {
+    document.querySelectorAll('.widget').forEach(widget => {
+      // Add resize handles
+      addResizeHandles(widget);
+      
+      // Make header draggable
+      const header = widget.querySelector('.widget-header');
+      if (header) {
+        header.addEventListener('mousedown', (e) => {
+          if (e.target.closest('.resize-handle')) return; // Don't drag if clicking resize handle
+          if (e.target.tagName === 'BUTTON') return; // Don't drag if clicking buttons
+          startDrag(widget, e);
+        });
+      }
+      
+      // Update scale on initial load
+      updateWidgetScale(widget);
+    });
+  }, 100);
   
   // Global mouse events
   document.addEventListener('mousemove', handleMouseMove);
