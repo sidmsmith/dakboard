@@ -59,6 +59,26 @@ function initializeEventListeners() {
     showMonthModal();
   });
   
+  // Todo add item
+  const todoInput = document.getElementById('todo-input');
+  const todoAddBtn = document.getElementById('todo-add-btn');
+  
+  if (todoAddBtn) {
+    todoAddBtn.addEventListener('click', () => {
+      if (activeTodoList && todoInput && todoInput.value.trim()) {
+        addTodoItem(activeTodoList, todoInput.value);
+      }
+    });
+  }
+  
+  if (todoInput) {
+    todoInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && activeTodoList && todoInput.value.trim()) {
+        addTodoItem(activeTodoList, todoInput.value);
+      }
+    });
+  }
+  
   document.getElementById('close-month-modal').addEventListener('click', () => {
     closeMonthModal();
   });
