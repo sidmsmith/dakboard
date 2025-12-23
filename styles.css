@@ -361,8 +361,9 @@ body {
   gap: 6px;
   overflow-y: auto;
   flex: 1;
-  max-height: calc(5 * (var(--todo-item-height, 48px) + 6px)); /* Show exactly 5 items */
-  min-height: calc(5 * (var(--todo-item-height, 48px) + 6px));
+  /* Show exactly 5 items: (48px height + 6px gap) * 5 = 270px */
+  max-height: 270px;
+  min-height: 270px;
 }
 
 .todo-item {
@@ -374,6 +375,8 @@ body {
   gap: 10px;
   font-size: 14px;
   transition: background 0.2s;
+  min-height: 48px;
+  flex-shrink: 0;
 }
 
 .todo-item:hover {
