@@ -207,81 +207,58 @@ async function loadWeatherForecast(attrs) {
   try {
     const daysToShow = 8; // Show 8 days like the HA card
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const forecastData = [];
     
-    // First, try to get all Pirate Weather entities to see the naming pattern
-    const allStates = await fetchAllHAStates();
-    let forecastData = [];
+    // Pirate Weather uses pattern: sensor.pirateweather_daily_high_temperature_0d, sensor.pirateweather_daily_low_temperature_0d, etc.
+    // Days are 0d (today), 1d (tomorrow), 2d, etc.
     
-    if (allStates && allStates.length > 0) {
-      // Filter for Pirate Weather forecast entities
-      const forecastEntities = allStates.filter(e => {
-        const id = e.entity_id.toLowerCase();
-        return (id.includes('pirate') || (id.includes('weather') && id.includes('pirate'))) && 
-               (id.includes('day_') || id.includes('daily_') || id.includes('forecast')) &&
-               (id.includes('high') || id.includes('low') || id.includes('condition') || id.includes('icon') || id.includes('temp'));
-      });
-      
-      console.log(`Found ${forecastEntities.length} potential forecast entities:`, 
-        forecastEntities.slice(0, 20).map(e => e.entity_id));
-      
-      if (forecastEntities.length > 0) {
-        // Parse entities to build forecast
-        forecastData = parseForecastFromEntities(forecastEntities, daysToShow);
-      }
-    }
-    
-    // If no data from entities, try direct entity patterns
-    if (forecastData.length === 0) {
-      const baseEntityId = CONFIG.HA_WEATHER_ENTITY.replace('weather.', 'sensor.').replace('weather_', 'sensor.');
-      
-      // Common Pirate Weather patterns
-      const patterns = [
-        { prefix: `${baseEntityId}_day_` },
-        { prefix: `${baseEntityId}_daily_` },
-        { prefix: `${baseEntityId.replace('pirateweather', 'pirateweather_daily')}_` },
-        { prefix: `sensor.pirateweather_day_` },
-        { prefix: `sensor.pirateweather_daily_` },
-      ];
-      
-      for (const pattern of patterns) {
-        try {
-          // Test day 1
-          const testHigh = await fetchHAEntity(`${pattern.prefix}1_high`).catch(() => null);
-          if (testHigh && testHigh.state) {
-            console.log(`Found forecast pattern: ${pattern.prefix}`);
-            
-            // Fetch all days
-            for (let day = 1; day <= daysToShow; day++) {
-              try {
-                const [highEntity, lowEntity, conditionEntity, iconEntity] = await Promise.all([
-                  fetchHAEntity(`${pattern.prefix}${day}_high`).catch(() => null),
-                  fetchHAEntity(`${pattern.prefix}${day}_low`).catch(() => null),
-                  fetchHAEntity(`${pattern.prefix}${day}_condition`).catch(() => null),
-                  fetchHAEntity(`${pattern.prefix}${day}_icon`).catch(() => null)
-                ]);
-                
-                if (highEntity && lowEntity) {
-                  const high = Math.round(parseFloat(highEntity.state) || 0);
-                  const low = Math.round(parseFloat(lowEntity.state) || 0);
-                  const condition = conditionEntity ? (conditionEntity.state || conditionEntity.attributes?.condition || 'unknown') : 'unknown';
-                  const icon = iconEntity ? iconEntity.state : getWeatherIcon(condition);
-                  
-                  const forecastDate = new Date();
-                  forecastDate.setDate(forecastDate.getDate() + (day - 1));
-                  const dayName = dayNames[forecastDate.getDay()];
-                  
-                  forecastData.push({ day, dayName, high, low, condition, icon });
-                }
-              } catch (error) {
-                console.error(`Error fetching forecast day ${day}:`, error);
-              }
-            }
-            
-            if (forecastData.length > 0) break;
+    for (let dayOffset = 0; dayOffset < daysToShow; dayOffset++) {
+      try {
+        const daySuffix = `${dayOffset}d`;
+        
+        // Fetch entities for this day
+        const [highEntity, lowEntity, iconEntity, conditionEntity] = await Promise.all([
+          fetchHAEntity(`sensor.pirateweather_daily_high_temperature_${daySuffix}`).catch(() => null),
+          fetchHAEntity(`sensor.pirateweather_daily_low_temperature_${daySuffix}`).catch(() => null),
+          fetchHAEntity(`sensor.pirateweather_icon_${daySuffix}`).catch(() => null),
+          fetchHAEntity(`sensor.pirateweather_daily_condition_${daySuffix}`).catch(() => null)
+        ]);
+        
+        // If we have high and low, we can build the forecast
+        if (highEntity && lowEntity) {
+          const high = Math.round(parseFloat(highEntity.state) || 0);
+          const low = Math.round(parseFloat(lowEntity.state) || 0);
+          
+          // Get condition and icon
+          let condition = 'unknown';
+          let icon = '🌤️';
+          
+          if (conditionEntity && conditionEntity.state) {
+            condition = conditionEntity.state;
+            icon = getWeatherIcon(condition);
+          } else if (iconEntity && iconEntity.state) {
+            // Icon entity might contain the condition name
+            const iconState = iconEntity.state.toLowerCase();
+            condition = iconState;
+            icon = getWeatherIcon(iconState);
           }
-        } catch (e) {
-          continue;
+          
+          // Calculate day name (today + day offset)
+          const forecastDate = new Date();
+          forecastDate.setDate(forecastDate.getDate() + dayOffset);
+          const dayName = dayNames[forecastDate.getDay()];
+          
+          forecastData.push({ 
+            day: dayOffset + 1, 
+            dayName, 
+            high, 
+            low, 
+            condition, 
+            icon 
+          });
         }
+      } catch (error) {
+        console.error(`Error fetching forecast day ${dayOffset}:`, error);
       }
     }
     
@@ -301,54 +278,53 @@ async function loadWeatherForecast(attrs) {
   }
 }
 
-// Parse forecast from entity list
+// Parse forecast from entity list (fallback method)
 function parseForecastFromEntities(entities, daysToShow) {
   const forecastData = [];
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   
-  // Group entities by day number
+  // Group entities by day offset (0d, 1d, 2d, etc.)
   const dayMap = {};
   
   entities.forEach(entity => {
     const id = entity.entity_id.toLowerCase();
-    // Extract day number from entity ID
-    // Patterns: "day_1_high", "daily_1_high", "forecast_1_high", etc.
-    const dayMatch = id.match(/(?:day_|daily_|forecast_)(\d+)/);
+    // Extract day offset from entity ID (e.g., "daily_high_temperature_0d" -> 0, "1d" -> 1)
+    const dayMatch = id.match(/(\d+)d$/);
     if (dayMatch) {
-      const dayNum = parseInt(dayMatch[1]);
-      if (dayNum >= 1 && dayNum <= daysToShow) {
-        if (!dayMap[dayNum]) {
-          dayMap[dayNum] = {};
+      const dayOffset = parseInt(dayMatch[1]);
+      if (dayOffset >= 0 && dayOffset < daysToShow) {
+        if (!dayMap[dayOffset]) {
+          dayMap[dayOffset] = {};
         }
         
         const stateValue = entity.state;
-        if (id.includes('high') || id.includes('temp_high') || id.includes('temperature_high')) {
-          dayMap[dayNum].high = Math.round(parseFloat(stateValue) || 0);
-        } else if (id.includes('low') || id.includes('temp_low') || id.includes('temperature_low')) {
-          dayMap[dayNum].low = Math.round(parseFloat(stateValue) || 0);
-        } else if (id.includes('condition') || id.includes('weather')) {
-          dayMap[dayNum].condition = stateValue || 'unknown';
+        if (id.includes('high') && id.includes('temperature')) {
+          dayMap[dayOffset].high = Math.round(parseFloat(stateValue) || 0);
+        } else if (id.includes('low') && id.includes('temperature')) {
+          dayMap[dayOffset].low = Math.round(parseFloat(stateValue) || 0);
+        } else if (id.includes('condition')) {
+          dayMap[dayOffset].condition = stateValue || 'unknown';
         } else if (id.includes('icon')) {
-          dayMap[dayNum].icon = stateValue;
+          dayMap[dayOffset].icon = stateValue;
         }
       }
     }
   });
   
   // Build forecast array
-  for (let day = 1; day <= daysToShow; day++) {
-    if (dayMap[day] && dayMap[day].high !== undefined && dayMap[day].low !== undefined) {
+  for (let dayOffset = 0; dayOffset < daysToShow; dayOffset++) {
+    if (dayMap[dayOffset] && dayMap[dayOffset].high !== undefined && dayMap[dayOffset].low !== undefined) {
       const forecastDate = new Date();
-      forecastDate.setDate(forecastDate.getDate() + (day - 1));
+      forecastDate.setDate(forecastDate.getDate() + dayOffset);
       const dayName = dayNames[forecastDate.getDay()];
       
       forecastData.push({
-        day,
+        day: dayOffset + 1,
         dayName,
-        high: dayMap[day].high,
-        low: dayMap[day].low,
-        condition: dayMap[day].condition || 'unknown',
-        icon: dayMap[day].icon || getWeatherIcon(dayMap[day].condition || 'unknown')
+        high: dayMap[dayOffset].high,
+        low: dayMap[dayOffset].low,
+        condition: dayMap[dayOffset].condition || 'unknown',
+        icon: dayMap[dayOffset].icon || getWeatherIcon(dayMap[dayOffset].condition || 'unknown')
       });
     }
   }
