@@ -341,6 +341,13 @@ function renderCalendar() {
       
       eventDiv.textContent = eventText;
       eventDiv.title = `${event.title}${event.location ? ` - ${event.location}` : ''}`;
+      
+      // Add click handler to show event details
+      eventDiv.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showEventDetails(event);
+      });
+      
       eventsDiv.appendChild(eventDiv);
     });
     
@@ -399,6 +406,93 @@ function showHourlyForecast(dayOffset, dayName, high, low) {
 // Close hourly forecast modal
 function closeHourlyModal() {
   document.getElementById('hourly-modal').classList.remove('active');
+}
+
+// Show calendar event details modal
+function showEventDetails(event) {
+  const modal = document.getElementById('event-modal');
+  const title = document.getElementById('event-modal-title');
+  const content = document.getElementById('event-details-content');
+  
+  // Set title
+  title.textContent = event.title || 'Event Details';
+  
+  // Format start and end times
+  const startDate = new Date(event.start);
+  const endDate = new Date(event.end || event.start);
+  
+  const startStr = startDate.toLocaleString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+  
+  const endStr = endDate.toLocaleString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+  
+  // Build event details HTML
+  let detailsHTML = `
+    <div class="event-detail-row">
+      <div class="event-detail-label">Time:</div>
+      <div class="event-detail-value">${startStr} - ${endStr}</div>
+    </div>
+  `;
+  
+  if (event.location) {
+    detailsHTML += `
+      <div class="event-detail-row">
+        <div class="event-detail-label">Location:</div>
+        <div class="event-detail-value">${event.location}</div>
+      </div>
+    `;
+  }
+  
+  if (event.description) {
+    // Clean up description (remove HTML tags if any, handle line breaks)
+    let description = event.description
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/\[CAUTION:.*?\]/g, '') // Remove CAUTION notices
+      .trim();
+    
+    if (description) {
+      // Convert line breaks to <br>
+      description = description.replace(/\n/g, '<br>');
+      detailsHTML += `
+        <div class="event-detail-row">
+          <div class="event-detail-label">Description:</div>
+          <div class="event-detail-value event-description">${description}</div>
+        </div>
+      `;
+    }
+  }
+  
+  if (event.calendar) {
+    // Extract calendar name from entity ID (remove calendar. prefix)
+    const calendarName = event.calendar.replace(/^calendar\./, '').replace(/_/g, ' ');
+    detailsHTML += `
+      <div class="event-detail-row">
+        <div class="event-detail-label">Calendar:</div>
+        <div class="event-detail-value">${calendarName}</div>
+      </div>
+    `;
+  }
+  
+  content.innerHTML = detailsHTML;
+  
+  // Show modal
+  modal.classList.add('active');
+}
+
+// Close calendar event details modal
+function closeEventModal() {
+  document.getElementById('event-modal').classList.remove('active');
 }
 
 // Load hourly forecast for a specific day
