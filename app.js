@@ -1145,6 +1145,37 @@ async function loadGarageDoors() {
   }
 }
 
+// Show toast notification
+function showToast(message, duration = 1000) {
+  // Remove any existing toast
+  const existingToast = document.getElementById('toast-notification');
+  if (existingToast) {
+    existingToast.remove();
+  }
+  
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.id = 'toast-notification';
+  toast.className = 'toast-notification';
+  toast.textContent = message;
+  
+  // Add to body
+  document.body.appendChild(toast);
+  
+  // Trigger animation
+  setTimeout(() => {
+    toast.classList.add('show');
+  }, 10);
+  
+  // Auto-remove after duration
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => {
+      toast.remove();
+    }, 300); // Wait for fade-out animation
+  }, duration);
+}
+
 // Toggle garage door
 async function toggleGarageDoor(doorElement) {
   const webhookId = doorElement.dataset.webhookId;
@@ -1153,16 +1184,25 @@ async function toggleGarageDoor(doorElement) {
     return;
   }
   
+  // Get door name for toast message
+  const doorName = doorElement.querySelector('.garage-door-name')?.textContent || 'Garage door';
+  
   doorElement.classList.add('loading');
   
   try {
     await triggerHAWebhook(webhookId);
+    
+    // Show toast notification
+    showToast(`${doorName} toggled`, 1500);
+    
     // Reload garage doors after a short delay to get updated state
     setTimeout(() => {
       loadGarageDoors();
     }, 1000);
   } catch (error) {
     console.error('Error toggling garage door:', error);
+    showToast(`Error toggling ${doorName}`, 2000);
+  } finally {
     doorElement.classList.remove('loading');
   }
 }
