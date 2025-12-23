@@ -423,14 +423,27 @@ async function loadWeatherForecast(attrs) {
           forecastData.push({ 
             day: dayOffset + 1, 
             dayName, 
+            dayOffset, // Store for click handler
             high, 
             low, 
             condition, 
             icon 
           });
+        } else {
+          // Entity doesn't exist, stop trying further days
+          if (dayOffset > 0) {
+            console.log(`Forecast data only available for ${forecastData.length} days`);
+          }
+          break;
         }
       } catch (error) {
-        console.error(`Error fetching forecast day ${dayOffset}:`, error);
+        // Silently handle errors for missing entities beyond day 0
+        if (dayOffset === 0) {
+          console.error(`Error fetching forecast day ${dayOffset}:`, error);
+          break;
+        }
+        // For other days, just stop trying
+        break;
       }
     }
     
