@@ -907,8 +907,15 @@ body {
   border: 2px solid #4a90e2;
   border-radius: 4px;
   z-index: 10;
-  transition: background 0.2s;
+  transition: background 0.2s, opacity 0.2s;
   pointer-events: auto;
+  opacity: 0;
+}
+
+.widget:hover .resize-handle,
+.widget.dragging .resize-handle,
+.widget.resizing .resize-handle {
+  opacity: 1;
 }
 
 .resize-handle:hover {
