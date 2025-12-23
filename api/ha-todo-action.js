@@ -23,48 +23,38 @@ export default async function (req, res) {
     }
     
     try {
-      // Try multiple approaches to get todo items
-      // Approach 1: Check if items are in entity state attributes
-      const entityResponse = await fetch(`${haUrl}/api/states/${encodeURIComponent(entity_id)}`, {
-        method: 'GET',
+      // Use the todo.get_items service to fetch items
+      // Response structure: { "todo.entity_id": { "items": [...] } }
+      const serviceResponse = await fetch(`${haUrl}/api/services/todo/get_items`, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${haToken}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({ entity_id: entity_id })
       });
       
-      if (!entityResponse.ok) {
-        const errorText = await entityResponse.text();
-        return res.status(entityResponse.status).json({ 
-          error: `HA API error: ${entityResponse.status} ${entityResponse.statusText}`,
+      if (!serviceResponse.ok) {
+        const errorText = await serviceResponse.text();
+        return res.status(serviceResponse.status).json({ 
+          error: `HA API error: ${serviceResponse.status} ${serviceResponse.statusText}`,
           details: errorText
         });
       }
       
-      const entity = await entityResponse.json();
-      let items = entity.attributes?.items;
+      const serviceData = await serviceResponse.json();
       
-      // If items not in attributes, try using the todo service
-      if (!items || !Array.isArray(items) || items.length === 0) {
-        // Try calling the todo service to get items
-        // Some HA versions use: /api/services/todo/get_items
-        try {
-          const serviceResponse = await fetch(`${haUrl}/api/services/todo/get_items`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${haToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ entity_id: entity_id })
-          });
-          
-          if (serviceResponse.ok) {
-            const serviceData = await serviceResponse.json();
-            items = serviceData.items || serviceData || [];
-          }
-        } catch (serviceError) {
-          console.log('Service call failed, using entity attributes:', serviceError);
-        }
+      // Response structure: { "todo.entity_id": { "items": [...] } }
+      // Extract items from the response
+      let items = [];
+      if (serviceData && serviceData[entity_id]) {
+        items = serviceData[entity_id].items || [];
+      } else if (Array.isArray(serviceData)) {
+        // Fallback: if response is directly an array
+        items = serviceData;
+      } else if (serviceData.items) {
+        // Fallback: if response has items at root level
+        items = serviceData.items;
       }
       
       // Ensure items is an array
