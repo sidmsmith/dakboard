@@ -770,22 +770,12 @@ async function loadTodos() {
       return;
     }
     
-    // Filter for todo entities - check multiple patterns
+    // Filter for todo entities - ONLY entities that start with "todo."
     todoLists = allStates
       .filter(e => {
-        const entityId = e.entity_id.toLowerCase();
-        const domain = e.entity_id.split('.')[0]?.toLowerCase();
-        const friendlyName = (e.attributes?.friendly_name || '').toLowerCase();
-        
-        // Check multiple patterns:
-        // 1. Entity ID starts with 'todo.'
-        // 2. Domain is 'todo'
-        // 3. Entity type/domain in attributes
-        // 4. Friendly name contains 'todo' (as fallback)
-        return entityId.startsWith('todo.') || 
-               domain === 'todo' ||
-               e.attributes?.device_class === 'todo' ||
-               (friendlyName.includes('todo') && entityId.includes('list'));
+        const entityId = e.entity_id;
+        // Only include entities that start with "todo." (case-sensitive)
+        return entityId.startsWith('todo.');
       })
       .map(e => ({
         entityId: e.entity_id,
