@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dakboard - Layout 3: Split Screen</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .dashboard {
+      max-width: 1920px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Top Section: Calendar Full Width */
+    .calendar-section {
+      background: #2a2a2a;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #3a3a3a;
+    }
+
+    .calendar-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .calendar-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .calendar-nav button {
+      background: #3a3a3a;
+      border: none;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .calendar-nav button:hover {
+      background: #4a4a4a;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 12px;
+    }
+
+    .calendar-day-header {
+      text-align: center;
+      font-weight: 600;
+      color: #888;
+      padding: 12px;
+      font-size: 14px;
+      text-transform: uppercase;
+    }
+
+    .calendar-day {
+      min-height: 120px;
+      background: #333;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .calendar-day-number {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .calendar-day.today {
+      background: #4a90e2;
+      color: #fff;
+    }
+
+    .calendar-events {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .calendar-event {
+      font-size: 11px;
+      background: #5a5a5a;
+      padding: 4px 6px;
+      border-radius: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Bottom Section: Widgets Grid -->
+    .widgets-section {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+
+    .widget {
+      background: #2a2a2a;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .widget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #3a3a3a;
+    }
+
+    .widget-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .weather-widget {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .weather-icon {
+      font-size: 64px;
+      margin-bottom: 12px;
+    }
+
+    .weather-temp {
+      font-size: 48px;
+      font-weight: 300;
+      margin-bottom: 16px;
+    }
+
+    .weather-details {
+      width: 100%;
+    }
+
+    .weather-detail {
+      padding: 8px 0;
+      border-bottom: 1px solid #3a3a3a;
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+    }
+
+    .weather-detail:last-child {
+      border-bottom: none;
+    }
+
+    .todo-widget {
+      min-height: 300px;
+    }
+
+    .todo-list {
+      list-style: none;
+    }
+
+    .todo-item {
+      padding: 12px;
+      background: #333;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .todo-checkbox {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #666;
+      border-radius: 4px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .garage-widget {
+      grid-column: span 2;
+    }
+
+    .garage-doors {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .garage-door {
+      background: #333;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .garage-door:hover {
+      background: #3a3a3a;
+      transform: translateY(-2px);
+    }
+
+    .garage-door-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .garage-door.open {
+      background: #4a4a4a;
+      border: 2px solid #e74c3c;
+    }
+
+    .garage-door.closed {
+      border: 2px solid #27ae60;
+    }
+
+    .alarm-widget {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .alarm-status {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .alarm-icon {
+      font-size: 80px;
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+
+    .alarm-icon:hover {
+      transform: scale(1.1);
+    }
+
+    .alarm-status-text {
+      font-size: 28px;
+      font-weight: 600;
+    }
+
+    .alarm-status.armed {
+      color: #e74c3c;
+    }
+
+    .alarm-status.disarmed {
+      color: #27ae60;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <!-- Top Section: Calendar Full Width -->
+    <div class="calendar-section">
+      <div class="calendar-header">
+        <div class="calendar-title">📅 Calendar</div>
+        <button onclick="alert('Monthly view modal')">📆 Month</button>
+      </div>
+      <div class="calendar-nav">
+        <button>← Previous Week</button>
+        <span style="font-size: 18px; font-weight: 600;">Week of [Date Range]</span>
+        <button>Next Week →</button>
+      </div>
+      <div class="calendar-grid">
+        <div class="calendar-day-header">Sun</div>
+        <div class="calendar-day-header">Mon</div>
+        <div class="calendar-day-header">Tue</div>
+        <div class="calendar-day-header">Wed</div>
+        <div class="calendar-day-header">Thu</div>
+        <div class="calendar-day-header">Fri</div>
+        <div class="calendar-day-header">Sat</div>
+        
+        <div class="calendar-day">
+          <div class="calendar-day-number">1</div>
+          <div class="calendar-events"></div>
+        </div>
+        <div class="calendar-day">
+          <div class="calendar-day-number">2</div>
+          <div class="calendar-events"></div>
+        </div>
+        <div class="calendar-day today">
+          <div class="calendar-day-number">3</div>
+          <div class="calendar-events">
+            <div class="calendar-event">Meeting 9:00 AM</div>
+            <div class="calendar-event">Lunch 12:00 PM</div>
+          </div>
+        </div>
+        <div class="calendar-day">
+          <div class="calendar-day-number">4</div>
+          <div class="calendar-events"></div>
+        </div>
+        <div class="calendar-day">
+          <div class="calendar-day-number">5</div>
+          <div class="calendar-events">
+            <div class="calendar-event">Appointment 2:00 PM</div>
+          </div>
+        </div>
+        <div class="calendar-day">
+          <div class="calendar-day-number">6</div>
+          <div class="calendar-events"></div>
+        </div>
+        <div class="calendar-day">
+          <div class="calendar-day-number">7</div>
+          <div class="calendar-events"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Section: Widgets Grid -->
+    <div class="widgets-section">
+      <div class="widget weather-widget">
+        <div class="widget-header">
+          <div class="widget-title">🌤️ Weather</div>
+        </div>
+        <div class="weather-icon">☀️</div>
+        <div class="weather-temp">72°F</div>
+        <div class="weather-details">
+          <div class="weather-detail">
+            <span>Feels Like</span>
+            <span>75°F</span>
+          </div>
+          <div class="weather-detail">
+            <span>Humidity</span>
+            <span>65%</span>
+          </div>
+          <div class="weather-detail">
+            <span>Wind</span>
+            <span>5 mph</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="widget todo-widget">
+        <div class="widget-header">
+          <div class="widget-title">✅ Todo List</div>
+        </div>
+        <ul class="todo-list">
+          <li class="todo-item">
+            <div class="todo-checkbox"></div>
+            <span>Sample todo item 1</span>
+          </li>
+          <li class="todo-item">
+            <div class="todo-checkbox"></div>
+            <span>Sample todo item 2</span>
+          </li>
+          <li class="todo-item">
+            <div class="todo-checkbox"></div>
+            <span>Sample todo item 3</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="widget garage-widget">
+        <div class="widget-header">
+          <div class="widget-title">🚗 Garage Doors</div>
+        </div>
+        <div class="garage-doors">
+          <div class="garage-door closed">
+            <div class="garage-door-icon">🚪</div>
+            <div>Garage 1</div>
+            <div style="font-size: 12px; margin-top: 8px; color: #27ae60;">CLOSED</div>
+          </div>
+          <div class="garage-door open">
+            <div class="garage-door-icon">🚪</div>
+            <div>Garage 2</div>
+            <div style="font-size: 12px; margin-top: 8px; color: #e74c3c;">OPEN</div>
+          </div>
+          <div class="garage-door closed">
+            <div class="garage-door-icon">🚪</div>
+            <div>Garage 3</div>
+            <div style="font-size: 12px; margin-top: 8px; color: #27ae60;">CLOSED</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="widget alarm-widget">
+        <div class="widget-header">
+          <div class="widget-title">🔒 Alarm Panel</div>
+        </div>
+        <div class="alarm-status disarmed">
+          <div class="alarm-icon">🔓</div>
+          <div class="alarm-status-text">DISARMED</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

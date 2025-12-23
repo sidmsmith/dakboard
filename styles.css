@@ -1,0 +1,417 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: #1a1a1a;
+  color: #e0e0e0;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.dashboard {
+  max-width: 1920px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(6, minmax(150px, auto));
+  gap: 20px;
+}
+
+.widget {
+  background: #2a2a2a;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #3a3a3a;
+}
+
+.widget-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Calendar - Large, spans 7 columns, 3 rows */
+.calendar-widget {
+  grid-column: 1 / 8;
+  grid-row: 1 / 4;
+}
+
+.calendar-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.calendar-nav button {
+  background: #3a3a3a;
+  border: none;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s;
+}
+
+.calendar-nav button:hover:not(:disabled) {
+  background: #4a4a4a;
+}
+
+.calendar-nav button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  flex: 1;
+}
+
+.calendar-day-header {
+  text-align: center;
+  font-weight: 600;
+  color: #888;
+  padding: 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.calendar-day {
+  background: #333;
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100px;
+}
+
+.calendar-day-number {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.calendar-day.today {
+  background: #4a90e2;
+  color: #fff;
+}
+
+.calendar-events {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.calendar-event {
+  font-size: 10px;
+  background: #5a5a5a;
+  padding: 3px 5px;
+  border-radius: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.calendar-event:hover {
+  background: #6a6a6a;
+}
+
+/* Weather - Top Right, spans 5 columns, 2 rows */
+.weather-widget {
+  grid-column: 8 / 13;
+  grid-row: 1 / 3;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.weather-icon {
+  font-size: 96px;
+  margin-bottom: 16px;
+}
+
+.weather-temp {
+  font-size: 72px;
+  font-weight: 300;
+  margin-bottom: 20px;
+}
+
+.weather-details {
+  width: 100%;
+}
+
+.weather-detail {
+  padding: 10px 0;
+  border-bottom: 1px solid #3a3a3a;
+  display: flex;
+  justify-content: space-between;
+  font-size: 16px;
+}
+
+.weather-detail:last-child {
+  border-bottom: none;
+}
+
+/* Todo - Top Right Below Weather, spans 5 columns, 1 row */
+.todo-widget {
+  grid-column: 8 / 13;
+  grid-row: 3 / 4;
+}
+
+.todo-list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.todo-item {
+  padding: 10px;
+  background: #333;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.todo-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #666;
+  border-radius: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: transparent;
+  transition: all 0.2s;
+}
+
+.todo-checkbox:hover {
+  border-color: #888;
+}
+
+.todo-checkbox.checked {
+  background: #4a90e2;
+  border-color: #4a90e2;
+}
+
+.todo-checkbox.checked::after {
+  content: '✓';
+  color: white;
+  display: block;
+  text-align: center;
+  line-height: 14px;
+  font-size: 12px;
+}
+
+/* Garage Doors - Bottom Left, spans 7 columns, 2 rows */
+.garage-widget {
+  grid-column: 1 / 8;
+  grid-row: 4 / 6;
+}
+
+.garage-doors {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  flex: 1;
+}
+
+.garage-door {
+  background: #333;
+  border-radius: 10px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.garage-door:hover {
+  background: #3a3a3a;
+  transform: translateY(-2px);
+}
+
+.garage-door.loading {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.garage-door-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.garage-door-name {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.garage-door-status {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.garage-door.open {
+  background: #4a4a4a;
+  border: 3px solid #e74c3c;
+}
+
+.garage-door.open .garage-door-status {
+  color: #e74c3c;
+}
+
+.garage-door.closed {
+  border: 3px solid #27ae60;
+}
+
+.garage-door.closed .garage-door-status {
+  color: #27ae60;
+}
+
+/* Alarm - Bottom Right, spans 5 columns, 2 rows */
+.alarm-widget {
+  grid-column: 8 / 13;
+  grid-row: 4 / 6;
+  justify-content: center;
+  align-items: center;
+}
+
+.alarm-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.alarm-icon {
+  font-size: 120px;
+  cursor: pointer;
+  transition: transform 0.3s;
+}
+
+.alarm-icon:hover {
+  transform: scale(1.1);
+}
+
+.alarm-icon.loading {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.alarm-status-text {
+  font-size: 36px;
+  font-weight: 600;
+}
+
+.alarm-status.armed {
+  color: #e74c3c;
+}
+
+.alarm-status.disarmed {
+  color: #27ae60;
+}
+
+/* Modal Styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+}
+
+.modal.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: #2a2a2a;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 90%;
+  max-height: 90%;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #3a3a3a;
+}
+
+.modal-header h2 {
+  font-size: 24px;
+  color: #fff;
+}
+
+.modal-close {
+  background: #3a3a3a;
+  border: none;
+  color: #fff;
+  font-size: 32px;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s;
+}
+
+.modal-close:hover {
+  background: #4a4a4a;
+}
+
+/* Loading states */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.error {
+  color: #e74c3c;
+  font-size: 14px;
+  padding: 10px;
+  background: rgba(231, 76, 60, 0.1);
+  border-radius: 6px;
+  margin-top: 10px;
+}
+

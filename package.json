@@ -1,0 +1,12 @@
+{
+  "name": "dakboard",
+  "version": "1.0.0",
+  "description": "Smart home dashboard for fixed displays with HA, calendar, weather, and todo integration",
+  "type": "module",
+  "scripts": {
+    "dev": "python -m http.server 8000"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
+

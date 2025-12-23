@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dakboard - Smart Home Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Local config for development (gitignored) -->
+  <script src="config.js" defer></script>
+</head>
+<body>
+  <div class="dashboard">
+    <!-- Calendar - Large, Left Side -->
+    <div class="widget calendar-widget">
+      <div class="widget-header">
+        <div class="widget-title">📅 Calendar</div>
+        <button id="month-view-btn">📆 Month</button>
+      </div>
+      <div class="calendar-nav">
+        <button id="prev-week-btn">← Previous Week</button>
+        <span id="week-range">Week of [Date Range]</span>
+        <button id="next-week-btn">Next Week →</button>
+      </div>
+      <div class="calendar-grid" id="calendar-grid">
+        <div class="calendar-day-header">Sun</div>
+        <div class="calendar-day-header">Mon</div>
+        <div class="calendar-day-header">Tue</div>
+        <div class="calendar-day-header">Wed</div>
+        <div class="calendar-day-header">Thu</div>
+        <div class="calendar-day-header">Fri</div>
+        <div class="calendar-day-header">Sat</div>
+        <!-- Calendar days will be populated by JavaScript -->
+      </div>
+    </div>
+
+    <!-- Weather - Top Right -->
+    <div class="widget weather-widget">
+      <div class="widget-header">
+        <div class="widget-title">🌤️ Weather</div>
+      </div>
+      <div id="weather-content">
+        <div class="weather-icon" id="weather-icon">⏳</div>
+        <div class="weather-temp" id="weather-temp">--°F</div>
+        <div class="weather-details">
+          <div class="weather-detail">
+            <span>Feels Like</span>
+            <span id="weather-feels-like">--°F</span>
+          </div>
+          <div class="weather-detail">
+            <span>Humidity</span>
+            <span id="weather-humidity">--%</span>
+          </div>
+          <div class="weather-detail">
+            <span>Wind</span>
+            <span id="weather-wind">-- mph</span>
+          </div>
+          <div class="weather-detail">
+            <span>Conditions</span>
+            <span id="weather-conditions">Loading...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Todo - Below Weather -->
+    <div class="widget todo-widget">
+      <div class="widget-header">
+        <div class="widget-title">✅ Todo List</div>
+      </div>
+      <ul class="todo-list" id="todo-list">
+        <li class="todo-item">
+          <span>Loading todos...</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Garage Doors - Bottom Left -->
+    <div class="widget garage-widget">
+      <div class="widget-header">
+        <div class="widget-title">🚗 Garage Doors</div>
+      </div>
+      <div class="garage-doors" id="garage-doors">
+        <!-- Garage doors will be populated by JavaScript -->
+      </div>
+    </div>
+
+    <!-- Alarm - Bottom Right -->
+    <div class="widget alarm-widget">
+      <div class="widget-header">
+        <div class="widget-title">🔒 Alarm Panel</div>
+      </div>
+      <div class="alarm-status" id="alarm-status">
+        <div class="alarm-icon" id="alarm-icon">⏳</div>
+        <div class="alarm-status-text" id="alarm-status-text">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monthly Calendar Modal -->
+  <div id="month-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>📅 Monthly Calendar</h2>
+        <button class="modal-close" id="close-month-modal">&times;</button>
+      </div>
+      <div id="month-calendar-content">
+        <!-- Monthly calendar will be populated here -->
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
