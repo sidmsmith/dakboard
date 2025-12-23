@@ -97,27 +97,43 @@ async function loadCalendarEvents() {
           
           if (serviceResponse.ok) {
             const serviceData = await serviceResponse.json();
-            console.log(`Calendar ${calEntityId} response:`, JSON.stringify(serviceData, null, 2));
             
+            // Response structure with ?return_response=true:
+            // { "service_response": { "calendar.entity_id": { "events": [...] } } }
+            // OR direct structure: { "calendar.entity_id": { "events": [...] } }
             let events = [];
             
-            if (Array.isArray(serviceData)) {
+            // Check service_response wrapper first (when using ?return_response=true)
+            if (serviceData.service_response && serviceData.service_response[calEntityId]) {
+              const calendarData = serviceData.service_response[calEntityId];
+              if (calendarData.events && Array.isArray(calendarData.events)) {
+                events = calendarData.events;
+              } else if (Array.isArray(calendarData)) {
+                events = calendarData;
+              }
+            } else if (serviceData[calEntityId]) {
+              // Direct structure: { "calendar.entity_id": { "events": [...] } }
+              const calendarData = serviceData[calEntityId];
+              if (calendarData.events && Array.isArray(calendarData.events)) {
+                events = calendarData.events;
+              } else if (Array.isArray(calendarData)) {
+                events = calendarData;
+              }
+            } else if (Array.isArray(serviceData)) {
+              // Direct array response
               events = serviceData;
             } else if (serviceData.events && Array.isArray(serviceData.events)) {
+              // Root level events array
               events = serviceData.events;
-            } else if (serviceData[calEntityId] && Array.isArray(serviceData[calEntityId])) {
-              events = serviceData[calEntityId];
-            } else if (serviceData.service_response && serviceData.service_response[calEntityId]) {
-              events = serviceData.service_response[calEntityId] || [];
-            } else {
-              console.log(`Unknown response structure for ${calEntityId}:`, Object.keys(serviceData));
             }
             
-            console.log(`Found ${events.length} events for ${calEntityId}`);
-            events.forEach(event => {
-              event.calendar = calEntityId;
-              allEvents.push(event);
-            });
+            // Add calendar source to each event
+            if (Array.isArray(events)) {
+              events.forEach(event => {
+                event.calendar = calEntityId;
+                allEvents.push(event);
+              });
+            }
           } else {
             const errorText = await serviceResponse.text();
             console.error(`Failed to fetch events for ${calEntityId}:`, serviceResponse.status);

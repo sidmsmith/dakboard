@@ -102,26 +102,48 @@ export default async function (req, res) {
         }
 
         const serviceData = await serviceResponse.json();
+        console.log(`Calendar ${calEntityId} raw response:`, JSON.stringify(serviceData, null, 2));
         
-        // Response structure varies, but typically events are in the response
-        // Check different possible response structures
+        // Response structure with ?return_response=true:
+        // { "service_response": { "calendar.entity_id": { "events": [...] } } }
+        // OR direct structure: { "calendar.entity_id": { "events": [...] } }
         let events = [];
         
-        if (Array.isArray(serviceData)) {
+        // Check service_response wrapper first (when using ?return_response=true)
+        if (serviceData.service_response && serviceData.service_response[calEntityId]) {
+          const calendarData = serviceData.service_response[calEntityId];
+          if (calendarData.events && Array.isArray(calendarData.events)) {
+            events = calendarData.events;
+          } else if (Array.isArray(calendarData)) {
+            events = calendarData;
+          }
+        } else if (serviceData[calEntityId]) {
+          // Direct structure: { "calendar.entity_id": { "events": [...] } }
+          const calendarData = serviceData[calEntityId];
+          if (calendarData.events && Array.isArray(calendarData.events)) {
+            events = calendarData.events;
+          } else if (Array.isArray(calendarData)) {
+            events = calendarData;
+          }
+        } else if (Array.isArray(serviceData)) {
+          // Direct array response
           events = serviceData;
         } else if (serviceData.events && Array.isArray(serviceData.events)) {
+          // Root level events array
           events = serviceData.events;
-        } else if (serviceData[calEntityId] && Array.isArray(serviceData[calEntityId])) {
-          events = serviceData[calEntityId];
-        } else if (serviceData.service_response && serviceData.service_response[calEntityId]) {
-          events = serviceData.service_response[calEntityId] || [];
         }
+        
+        console.log(`Extracted ${events.length} events for ${calEntityId}`);
 
         // Add calendar source to each event
-        events.forEach(event => {
-          event.calendar = calEntityId;
-          allEvents.push(event);
-        });
+        if (Array.isArray(events)) {
+          events.forEach(event => {
+            event.calendar = calEntityId;
+            allEvents.push(event);
+          });
+        } else {
+          console.error(`Events is not an array for ${calEntityId}:`, typeof events, events);
+        }
       } catch (error) {
         console.error(`Error fetching events for ${calEntityId}:`, error);
         // Continue with other calendars
