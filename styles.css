@@ -260,7 +260,7 @@ body {
   left: 840px;
   width: 500px;
   height: 400px;
-  overflow-y: auto;
+  overflow: visible;
 }
 
 .weather-content {
@@ -721,6 +721,7 @@ body {
   height: 200px;
   justify-content: center;
   align-items: center;
+  padding: 0 !important;
 }
 
 .alarm-status {

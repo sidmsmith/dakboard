@@ -40,6 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   loadWidgetLayout(); // Load saved positions/sizes first
+  loadWidgetVisibility(); // Load widget visibility state
+  initializeWidgetControlPanel(); // Initialize widget visibility panel
   initializeCalendar();
   initializeEventListeners();
   
