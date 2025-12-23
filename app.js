@@ -30,8 +30,10 @@ currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay())
 
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', () => {
+  loadWidgetLayout(); // Load saved positions/sizes first
   initializeCalendar();
   initializeEventListeners();
+  initializeDragAndResize(); // Initialize drag and resize functionality
   loadAllData();
   startAutoRefresh();
 });
