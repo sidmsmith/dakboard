@@ -863,13 +863,14 @@ async function loadTodoListItems(entityId) {
         items = data || [];
       }
     } else {
-      // Use serverless function (for Vercel production)
-      const response = await fetch('/api/ha-todo-list-items', {
+      // Use serverless function (for Vercel production) - use ha-todo-action with list_items action
+      const response = await fetch('/api/ha-todo-action', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          action: 'list_items',
           entity_id: entityId
         })
       });
