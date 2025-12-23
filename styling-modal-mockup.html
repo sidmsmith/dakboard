@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Styling Modal Mockup</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      padding: 40px;
+      display: flex;
+      gap: 40px;
+      min-height: 100vh;
+    }
+
+    /* Side Panel (Widget Control Panel) */
+    .side-panel {
+      width: 350px;
+      background: #2a2a2a;
+      border-radius: 12px;
+      padding: 20px;
+      height: fit-content;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #3a3a3a;
+    }
+
+    .panel-header h3 {
+      font-size: 18px;
+      color: #fff;
+    }
+
+    .widget-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      margin-bottom: 8px;
+      background: #333;
+      border-radius: 8px;
+    }
+
+    .widget-item-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .widget-icon {
+      font-size: 20px;
+    }
+
+    .widget-name {
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .widget-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      width: 32px;
+      height: 32px;
+      border: 2px solid #4a90e2;
+      background: transparent;
+      color: #4a90e2;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+      background: #4a90e2;
+      color: #fff;
+    }
+
+    .action-btn.style-btn {
+      border-color: #9b59b6;
+      color: #9b59b6;
+    }
+
+    .action-btn.style-btn:hover {
+      background: #9b59b6;
+      color: #fff;
+    }
+
+    /* Styling Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+
+    .styling-modal {
+      width: 90%;
+      max-width: 1200px;
+      max-height: 90vh;
+      background: #2a2a2a;
+      border-radius: 12px;
+      display: flex;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-left {
+      width: 65%;
+      padding: 30px;
+      overflow-y: auto;
+    }
+
+    .modal-right {
+      width: 35%;
+      background: #1f1f1f;
+      padding: 30px;
+      border-left: 2px solid #3a3a3a;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #3a3a3a;
+    }
+
+    .modal-header h2 {
+      font-size: 24px;
+      color: #fff;
+    }
+
+    .close-btn {
+      width: 40px;
+      height: 40px;
+      background: #3a3a3a;
+      border: none;
+      color: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .close-btn:hover {
+      background: #4a4a4a;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 30px;
+      border-bottom: 2px solid #3a3a3a;
+      padding-bottom: 0;
+    }
+
+    .tab {
+      padding: 12px 20px;
+      background: transparent;
+      border: none;
+      color: #aaa;
+      cursor: pointer;
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+
+    .tab:hover {
+      color: #fff;
+    }
+
+    .tab.active {
+      color: #9b59b6;
+      border-bottom-color: #9b59b6;
+    }
+
+    /* Form Sections */
+    .form-section {
+      margin-bottom: 30px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .form-label {
+      min-width: 120px;
+      font-size: 14px;
+      color: #ccc;
+    }
+
+    .form-control {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .apply-all-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #888;
+    }
+
+    input[type="color"] {
+      width: 50px;
+      height: 36px;
+      border: 2px solid #3a3a3a;
+      border-radius: 6px;
+      cursor: pointer;
+      background: none;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 6px;
+      background: #3a3a3a;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: #9b59b6;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .range-value {
+      min-width: 50px;
+      text-align: right;
+      font-size: 14px;
+      color: #fff;
+    }
+
+    select {
+      flex: 1;
+      padding: 8px 12px;
+      background: #333;
+      border: 2px solid #3a3a3a;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    select:focus {
+      border-color: #9b59b6;
+      outline: none;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 8px 12px;
+      background: #333;
+      border: 2px solid #3a3a3a;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 14px;
+    }
+
+    input[type="text"]:focus {
+      border-color: #9b59b6;
+      outline: none;
+    }
+
+    .preset-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .preset-btn {
+      padding: 8px 16px;
+      background: #333;
+      border: 2px solid #3a3a3a;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .preset-btn:hover {
+      border-color: #9b59b6;
+      background: #3a3a3a;
+    }
+
+    /* Preview Panel */
+    .preview-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .preview-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+
+    .preview-widget {
+      flex: 1;
+      background: #333;
+      border-radius: 12px;
+      padding: 24px;
+      border: 2px solid #3a3a3a;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 300px;
+    }
+
+    .preview-header {
+      padding-bottom: 12px;
+      border-bottom: 2px solid #3a3a3a;
+    }
+
+    .preview-title-text {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .preview-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+      font-size: 14px;
+    }
+
+    /* Action Buttons */
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 2px solid #3a3a3a;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #9b59b6;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #8e44ad;
+    }
+
+    .btn-secondary {
+      background: #3a3a3a;
+      color: #fff;
+    }
+
+    .btn-secondary:hover {
+      background: #4a4a4a;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 2px solid #3a3a3a;
+      color: #fff;
+    }
+
+    .btn-outline:hover {
+      border-color: #4a4a4a;
+      background: #333;
+    }
+
+    /* Dashboard Background Section */
+    .dashboard-bg-section {
+      background: #1f1f1f;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+
+    .dashboard-bg-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #9b59b6;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Side Panel (Widget Control Panel) -->
+  <div class="side-panel">
+    <div class="panel-header">
+      <h3>Widget Visibility</h3>
+    </div>
+    
+    <div class="widget-item">
+      <div class="widget-item-info">
+        <span class="widget-icon">📅</span>
+        <span class="widget-name">Calendar</span>
+      </div>
+      <div class="widget-actions">
+        <button class="action-btn" title="Hide/Show">👁️</button>
+        <button class="action-btn style-btn" title="Style Widget">🎨</button>
+      </div>
+    </div>
+
+    <div class="widget-item">
+      <div class="widget-item-info">
+        <span class="widget-icon">🌤️</span>
+        <span class="widget-name">Weather</span>
+      </div>
+      <div class="widget-actions">
+        <button class="action-btn" title="Hide/Show">👁️</button>
+        <button class="action-btn style-btn" title="Style Widget">🎨</button>
+      </div>
+    </div>
+
+    <div class="widget-item">
+      <div class="widget-item-info">
+        <span class="widget-icon">✅</span>
+        <span class="widget-name">Todo List</span>
+      </div>
+      <div class="widget-actions">
+        <button class="action-btn" title="Hide/Show">👁️</button>
+        <button class="action-btn style-btn" title="Style Widget">🎨</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Styling Modal -->
+  <div class="modal-overlay">
+    <div class="styling-modal">
+      <!-- Left Side: Controls -->
+      <div class="modal-left">
+        <div class="modal-header">
+          <h2>🎨 Style Widget: Weather</h2>
+          <button class="close-btn">&times;</button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="tab active">Background</button>
+          <button class="tab">Border</button>
+          <button class="tab">Shadow</button>
+          <button class="tab">Text</button>
+          <button class="tab">Layout</button>
+          <button class="tab">Advanced</button>
+        </div>
+
+        <!-- Background Tab Content -->
+        <div class="form-section">
+          <div class="section-title">
+            <span>Background Color</span>
+          </div>
+          <div class="form-group">
+            <div class="form-row">
+              <label class="form-label">Color</label>
+              <div class="form-control">
+                <input type="color" value="#2a2a2a">
+                <input type="text" value="#2a2a2a" placeholder="#2a2a2a">
+                <label class="apply-all-checkbox">
+                  <input type="checkbox"> Apply to all
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <span>Background Type</span>
+          </div>
+          <div class="form-group">
+            <div class="form-row">
+              <label class="form-label">Type</label>
+              <div class="form-control">
+                <select>
+                  <option>Solid Color</option>
+                  <option>Gradient</option>
+                  <option>Pattern</option>
+                  <option>Image</option>
+                </select>
+                <label class="apply-all-checkbox">
+                  <input type="checkbox"> Apply to all
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <span>Transparency</span>
+          </div>
+          <div class="form-group">
+            <div class="form-row">
+              <label class="form-label">Opacity</label>
+              <div class="form-control">
+                <input type="range" min="0" max="100" value="100">
+                <span class="range-value">100%</span>
+                <label class="apply-all-checkbox">
+                  <input type="checkbox"> Apply to all
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Border Tab Content (Example) -->
+        <div class="form-section">
+          <div class="section-title">
+            <span>Border</span>
+          </div>
+          <div class="form-group">
+            <div class="form-row">
+              <label class="form-label">Color</label>
+              <div class="form-control">
+                <input type="color" value="#3a3a3a">
+                <label class="apply-all-checkbox">
+                  <input type="checkbox"> Apply to all
+                </label>
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Width</label>
+              <div class="form-control">
+                <input type="range" min="0" max="20" value="0">
+                <span class="range-value">0px</span>
+                <label class="apply-all-checkbox">
+                  <input type="checkbox"> Apply to all
+                </label>
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Style</label>
+              <div class="form-control">
+                <select>
+                  <option>None</option>
+                  <option>Solid</option>
+                  <option>Dashed</option>
+                  <option>Dotted</option>
+                </select>
+                <label class="apply-all-checkbox">
+                  <input type="checkbox"> Apply to all
+                </label>
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Radius</label>
+              <div class="form-control">
+                <input type="range" min="0" max="50" value="12">
+                <span class="range-value">12px</span>
+                <label class="apply-all-checkbox">
+                  <input type="checkbox"> Apply to all
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shadow Tab Content (Example) -->
+        <div class="form-section">
+          <div class="section-title">
+            <span>Box Shadow</span>
+          </div>
+          <div class="form-group">
+            <div class="form-row">
+              <label class="form-label">Preset</label>
+              <div class="form-control">
+                <div class="preset-buttons">
+                  <button class="preset-btn">None</button>
+                  <button class="preset-btn">Subtle</button>
+                  <button class="preset-btn">Medium</button>
+                  <button class="preset-btn">Strong</button>
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Color</label>
+              <div class="form-control">
+                <input type="color" value="#000000">
+                <label class="apply-all-checkbox">
+                  <input type="checkbox"> Apply to all
+                </label>
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Blur</label>
+              <div class="form-control">
+                <input type="range" min="0" max="50" value="6">
+                <span class="range-value">6px</span>
+                <label class="apply-all-checkbox">
+                  <input type="checkbox"> Apply to all
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Background Section -->
+        <div class="dashboard-bg-section">
+          <div class="dashboard-bg-title">Dashboard Background</div>
+          <div class="form-row">
+            <label class="form-label">Color</label>
+            <div class="form-control">
+              <input type="color" value="#1a1a1a">
+              <input type="text" value="#1a1a1a">
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="modal-actions">
+          <button class="btn btn-outline">Reset</button>
+          <button class="btn btn-secondary">Save as Theme</button>
+          <button class="btn btn-primary">Apply</button>
+        </div>
+      </div>
+
+      <!-- Right Side: Preview -->
+      <div class="modal-right">
+        <div class="preview-panel">
+          <div class="preview-title">Live Preview</div>
+          <div class="preview-widget" style="background: #2a2a2a; border: 2px solid #3a3a3a; border-radius: 12px;">
+            <div class="preview-header">
+              <div class="preview-title-text">🌤️ Weather</div>
+            </div>
+            <div class="preview-content">
+              Preview updates in real-time as you adjust settings
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
