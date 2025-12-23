@@ -36,9 +36,132 @@ document.addEventListener('DOMContentLoaded', () => {
   startAutoRefresh();
 });
 
+// Calendar events cache
+let calendarEvents = [];
+
+// Load calendar events from HA
+async function loadCalendarEvents() {
+  try {
+    // Calculate week range
+    const weekStart = new Date(currentWeekStart);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    weekEnd.setHours(23, 59, 59, 999);
+    
+    let response;
+    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
+      // Direct HA API call for local development
+      const haUrl = window.CONFIG.HA_URL;
+      const haToken = window.CONFIG.HA_TOKEN;
+      
+      // Get all calendar entities
+      const statesResponse = await fetch(`${haUrl}/api/states`, {
+        headers: {
+          'Authorization': `Bearer ${haToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!statesResponse.ok) {
+        throw new Error('Failed to fetch calendar entities');
+      }
+      
+      const allStates = await statesResponse.json();
+      const calendarEntities = allStates
+        .filter(state => state.entity_id.startsWith('calendar.'))
+        .map(state => state.entity_id);
+      
+      if (calendarEntities.length === 0) {
+        calendarEvents = [];
+        renderCalendar(); // Re-render without events
+        return;
+      }
+      
+      // Fetch events from all calendars
+      const allEvents = [];
+      for (const calEntityId of calendarEntities) {
+        try {
+          const serviceResponse = await fetch(`${haUrl}/api/services/calendar/get_events`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${haToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              entity_id: calEntityId,
+              start_date_time: weekStart.toISOString(),
+              end_date_time: weekEnd.toISOString()
+            })
+          });
+          
+          if (serviceResponse.ok) {
+            const serviceData = await serviceResponse.json();
+            let events = [];
+            
+            if (Array.isArray(serviceData)) {
+              events = serviceData;
+            } else if (serviceData.events && Array.isArray(serviceData.events)) {
+              events = serviceData.events;
+            } else if (serviceData[calEntityId] && Array.isArray(serviceData[calEntityId])) {
+              events = serviceData[calEntityId];
+            } else if (serviceData.service_response && serviceData.service_response[calEntityId]) {
+              events = serviceData.service_response[calEntityId] || [];
+            }
+            
+            events.forEach(event => {
+              event.calendar = calEntityId;
+              allEvents.push(event);
+            });
+          }
+        } catch (error) {
+          console.error(`Error fetching events for ${calEntityId}:`, error);
+        }
+      }
+      
+      // Format events
+      calendarEvents = allEvents.map(event => {
+        const startTime = event.start || event.start_time || event.dtstart;
+        const endTime = event.end || event.end_time || event.dtend;
+        const summary = event.summary || event.title || event.name || 'Untitled Event';
+        
+        return {
+          id: event.uid || event.id || `${event.calendar}-${startTime}`,
+          title: summary,
+          start: startTime,
+          end: endTime,
+          location: event.location || null,
+          calendar: event.calendar,
+          allDay: event.all_day || false
+        };
+      });
+      
+    } else {
+      // Use serverless function (for Vercel production)
+      response = await fetch(`/api/ha-calendar?startDate=${weekStart.toISOString()}&endDate=${weekEnd.toISOString()}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        calendarEvents = data.events || [];
+      } else {
+        console.error('Failed to fetch calendar events:', response.status);
+        calendarEvents = [];
+      }
+    }
+    
+    // Re-render calendar with events
+    renderCalendar();
+  } catch (error) {
+    console.error('Error loading calendar events:', error);
+    calendarEvents = [];
+    renderCalendar(); // Re-render even on error
+  }
+}
+
 // Initialize calendar view
 function initializeCalendar() {
   renderCalendar();
+  loadCalendarEvents(); // Load events from HA
 }
 
 // Initialize event listeners
@@ -47,11 +170,13 @@ function initializeEventListeners() {
   document.getElementById('prev-week-btn').addEventListener('click', () => {
     currentWeekStart.setDate(currentWeekStart.getDate() - 7);
     renderCalendar();
+    loadCalendarEvents(); // Reload events for new week
   });
   
   document.getElementById('next-week-btn').addEventListener('click', () => {
     currentWeekStart.setDate(currentWeekStart.getDate() + 7);
     renderCalendar();
+    loadCalendarEvents(); // Reload events for new week
   });
   
   // Monthly view modal
@@ -397,7 +522,8 @@ async function loadAllData() {
       loadWeather(),
       loadTodos(),
       loadGarageDoors(),
-      loadAlarm()
+      loadAlarm(),
+      loadCalendarEvents() // Reload calendar events on refresh
     ]);
   } catch (error) {
     console.error('Error loading dashboard data:', error);
