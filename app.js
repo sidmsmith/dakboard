@@ -405,7 +405,7 @@ async function loadWeatherForecast(attrs) {
         ]);
         
         // If we have high and low, we can build the forecast
-        if (highEntity && lowEntity) {
+        if (highEntity && lowEntity && highEntity.state && lowEntity.state) {
           const high = Math.round(parseFloat(highEntity.state) || 0);
           const low = Math.round(parseFloat(lowEntity.state) || 0);
           
@@ -444,18 +444,10 @@ async function loadWeatherForecast(attrs) {
           });
         } else {
           // Entity doesn't exist, stop trying further days
-          if (dayOffset > 0) {
-            console.log(`Forecast data only available for ${forecastData.length} days`);
-          }
           break;
         }
       } catch (error) {
-        // Silently handle errors for missing entities beyond day 0
-        if (dayOffset === 0) {
-          console.error(`Error fetching forecast day ${dayOffset}:`, error);
-          break;
-        }
-        // For other days, just stop trying
+        // Silently stop if entity doesn't exist
         break;
       }
     }
@@ -924,6 +916,8 @@ async function fetchHAEntity(entityId) {
       });
       
       if (!response.ok) {
+        // Don't log 404s/500s for missing entities (expected for some forecast days/hours)
+        // Just throw silently - caller will handle
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       return await response.json();
@@ -931,12 +925,14 @@ async function fetchHAEntity(entityId) {
       // Use serverless function (for Vercel production)
       const response = await fetch(`/api/ha-fetch?entityId=${encodeURIComponent(entityId)}`);
       if (!response.ok) {
+        // Don't log 404s/500s for missing entities (expected for some forecast days/hours)
+        // Just throw silently - caller will handle
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       return await response.json();
     }
   } catch (error) {
-    console.error(`Error fetching HA entity ${entityId}:`, error);
+    // Silently throw - caller will handle missing entities
     throw error;
   }
 }
