@@ -841,40 +841,46 @@ function renderTodoTabs() {
 // Load items for a specific todo list
 async function loadTodoListItems(entityId) {
   try {
-    const entity = await fetchHAEntity(entityId);
-    if (!entity) {
-      document.getElementById('todo-list').innerHTML = 
-        '<li class="todo-item"><span style="color: #888;">Error loading todo list</span></li>';
-      return;
-    }
+    // HA todo items are not in the entity attributes - we need to fetch them via the todo service
+    // Use the todo/item/list endpoint
+    let items = [];
     
-    // Debug: log the entity structure
-    console.log('Todo entity:', entityId);
-    console.log('Full entity:', JSON.stringify(entity, null, 2));
-    console.log('Entity attributes:', entity.attributes);
-    console.log('Entity state:', entity.state);
-    
-    // HA todo lists store items in attributes.items array
-    // Each item has: uid, summary, status (needs_action or completed)
-    // But the structure might vary - check all possible locations
-    let items = entity.attributes?.items;
-    
-    // If items is undefined, check other possible locations
-    if (!items) {
-      console.log('items not found in attributes.items, checking alternatives...');
-      console.log('All attribute keys:', Object.keys(entity.attributes || {}));
+    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
+      // Direct HA API call for local development
+      const response = await fetch(`${window.CONFIG.HA_URL}/api/todo/item/list`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId
+        })
+      });
       
-      // Try alternative attribute names
-      items = entity.attributes?.todo_items || 
-              entity.attributes?.list || 
-              entity.attributes?.tasks ||
-              (Array.isArray(entity.state) ? entity.state : null);
+      if (response.ok) {
+        const data = await response.json();
+        items = data || [];
+      }
+    } else {
+      // Use serverless function (for Vercel production)
+      const response = await fetch('/api/ha-todo-list-items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        items = data.items || [];
+      }
     }
     
-    // Ensure items is an array
-    items = Array.isArray(items) ? items : [];
-    
-    console.log('Final items array:', items);
+    console.log('Fetched todo items:', items);
     const todoList = document.getElementById('todo-list');
     todoList.innerHTML = '';
     
