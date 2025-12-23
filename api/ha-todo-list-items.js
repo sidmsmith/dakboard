@@ -1,4 +1,5 @@
 // Vercel serverless function to fetch todo list items from Home Assistant
+// File: api/ha-todo-list-items.js
 
 export default async function handler(req, res) {
   // Only allow POST

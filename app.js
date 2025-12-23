@@ -877,6 +877,10 @@ async function loadTodoListItems(entityId) {
       if (response.ok) {
         const data = await response.json();
         items = data.items || [];
+      } else {
+        console.error('Failed to fetch todo items:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
       }
     }
     
