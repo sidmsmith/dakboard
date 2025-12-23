@@ -849,13 +849,32 @@ async function loadTodoListItems(entityId) {
     }
     
     // Debug: log the entity structure
-    console.log('Todo entity:', entityId, entity);
+    console.log('Todo entity:', entityId);
+    console.log('Full entity:', JSON.stringify(entity, null, 2));
     console.log('Entity attributes:', entity.attributes);
-    console.log('Items:', entity.attributes?.items);
+    console.log('Entity state:', entity.state);
     
     // HA todo lists store items in attributes.items array
     // Each item has: uid, summary, status (needs_action or completed)
-    const items = entity.attributes?.items || [];
+    // But the structure might vary - check all possible locations
+    let items = entity.attributes?.items;
+    
+    // If items is undefined, check other possible locations
+    if (!items) {
+      console.log('items not found in attributes.items, checking alternatives...');
+      console.log('All attribute keys:', Object.keys(entity.attributes || {}));
+      
+      // Try alternative attribute names
+      items = entity.attributes?.todo_items || 
+              entity.attributes?.list || 
+              entity.attributes?.tasks ||
+              (Array.isArray(entity.state) ? entity.state : null);
+    }
+    
+    // Ensure items is an array
+    items = Array.isArray(items) ? items : [];
+    
+    console.log('Final items array:', items);
     const todoList = document.getElementById('todo-list');
     todoList.innerHTML = '';
     
