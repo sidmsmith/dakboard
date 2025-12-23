@@ -55,13 +55,12 @@ body {
   color: #fff;
 }
 
-/* Calendar - Large, spans 7 columns, row 1 */
+/* Calendar - Default position and size */
 .calendar-widget {
-  grid-column: 1 / 8;
-  grid-row: 1 / 2;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+  top: 20px;
+  left: 20px;
+  width: 800px;
+  height: 500px;
   overflow: hidden;
 }
 
