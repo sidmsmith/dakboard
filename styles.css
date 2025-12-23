@@ -17,8 +17,8 @@ body {
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  /* Use explicit row sizing to prevent overlap */
-  grid-template-rows: auto auto auto;
+  /* Use proportional row sizing - calendar gets more space, others share remaining */
+  grid-template-rows: 2fr 1fr 1fr;
   gap: 20px;
   /* Ensure the dashboard fits viewport height */
   height: 100vh;
