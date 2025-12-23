@@ -1089,9 +1089,7 @@ async function loadTodos() {
         entity: e
       }));
     
-    // Debug: log found entities
-      // Found todo entities
-    console.log('All entities (first 20):', allStates.slice(0, 20).map(e => e.entity_id));
+    // Found todo entities
     
     if (todoLists.length === 0) {
       // Try to find any entity with 'todo' in the name for debugging
@@ -1183,7 +1181,7 @@ async function loadTodoListItems(entityId) {
         const data = await response.json();
         // Todo API response received
         items = data.items || [];
-        console.log('Extracted items from data.items:', items);
+        // Extracted items from response
       } else {
         console.error('Failed to fetch todo items:', response.status, response.statusText);
         const errorText = await response.text();
@@ -1192,12 +1190,6 @@ async function loadTodoListItems(entityId) {
     }
     
     // Fetched todo items
-    console.log('Items count:', items.length);
-    if (items.length > 0) {
-      console.log('First item sample:', items[0]);
-    } else {
-      console.warn('No items found! Check the API response structure above.');
-    }
     
     const todoList = document.getElementById('todo-list');
     todoList.innerHTML = '';
