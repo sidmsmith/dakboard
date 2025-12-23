@@ -493,7 +493,10 @@ function showEventDetails(event) {
 
 // Close calendar event details modal
 function closeEventModal() {
-  document.getElementById('event-modal').classList.remove('active');
+  const modal = document.getElementById('event-modal');
+  if (modal) {
+    modal.classList.remove('active');
+  }
 }
 
 // Load hourly forecast for a specific day
@@ -1087,7 +1090,7 @@ async function loadTodos() {
       }));
     
     // Debug: log found entities
-    console.log('Found todo entities:', todoLists.map(l => ({ id: l.entityId, name: l.name })));
+      // Found todo entities
     console.log('All entities (first 20):', allStates.slice(0, 20).map(e => e.entity_id));
     
     if (todoLists.length === 0) {
@@ -1178,7 +1181,7 @@ async function loadTodoListItems(entityId) {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Todo API response data:', JSON.stringify(data, null, 2));
+        // Todo API response received
         items = data.items || [];
         console.log('Extracted items from data.items:', items);
       } else {
@@ -1188,7 +1191,7 @@ async function loadTodoListItems(entityId) {
       }
     }
     
-    console.log('Final fetched todo items:', items);
+    // Fetched todo items
     console.log('Items count:', items.length);
     if (items.length > 0) {
       console.log('First item sample:', items[0]);
