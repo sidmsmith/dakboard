@@ -631,12 +631,13 @@ body {
 }
 
 .garage-door-icon {
-  width: 120px;
-  height: 120px;
-  margin-bottom: 16px;
+  width: calc(120px * var(--scale-factor, 1));
+  height: calc(120px * var(--scale-factor, 1));
+  margin-bottom: calc(16px * var(--scale-factor, 1));
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .garage-door-icon svg,
@@ -659,9 +660,9 @@ body {
 }
 
 .garage-door-name {
-  font-size: 20px;
+  font-size: calc(20px * var(--scale-factor, 1));
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: calc(8px * var(--scale-factor, 1));
 }
 
 .garage-door-status {
@@ -730,9 +731,10 @@ body {
 }
 
 .alarm-icon {
-  font-size: 120px;
+  font-size: calc(120px * var(--scale-factor, 1));
   cursor: pointer;
   transition: transform 0.3s;
+  line-height: 1;
 }
 
 .alarm-icon:hover {
@@ -745,7 +747,7 @@ body {
 }
 
 .alarm-status-text {
-  font-size: 36px;
+  font-size: calc(36px * var(--scale-factor, 1));
   font-weight: 600;
 }
 

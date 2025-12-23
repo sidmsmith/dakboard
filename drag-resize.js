@@ -70,13 +70,32 @@ function saveWidgetLayout() {
 // Update widget content scale based on size
 function updateWidgetScale(widget) {
   const rect = widget.getBoundingClientRect();
-  const defaultWidth = 500; // Base width for scaling
-  const defaultHeight = 400; // Base height for scaling
   
-  // Calculate scale factor based on average of width and height scaling
+  // Get default size based on widget type
+  let defaultWidth = 500;
+  let defaultHeight = 400;
+  
+  if (widget.classList.contains('calendar-widget')) {
+    defaultWidth = 800;
+    defaultHeight = 500;
+  } else if (widget.classList.contains('weather-widget')) {
+    defaultWidth = 500;
+    defaultHeight = 400;
+  } else if (widget.classList.contains('todo-widget')) {
+    defaultWidth = 500;
+    defaultHeight = 300;
+  } else if (widget.classList.contains('garage-widget')) {
+    defaultWidth = 800;
+    defaultHeight = 200;
+  } else if (widget.classList.contains('alarm-widget')) {
+    defaultWidth = 500;
+    defaultHeight = 200;
+  }
+  
+  // Calculate scale factor based on the smaller dimension to maintain aspect ratio
   const widthScale = rect.width / defaultWidth;
   const heightScale = rect.height / defaultHeight;
-  const scaleFactor = Math.min(widthScale, heightScale, 1.5); // Cap at 1.5x
+  const scaleFactor = Math.max(0.4, Math.min(Math.min(widthScale, heightScale), 1.5)); // Between 0.4x and 1.5x
   
   widget.style.setProperty('--scale-factor', scaleFactor);
   widget.setAttribute('data-scale', 'true');
