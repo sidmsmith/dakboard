@@ -858,6 +858,13 @@ async function loadTodoListItems(entityId) {
       return;
     }
     
+    // Debug: log the entity structure
+    console.log('Todo entity:', entityId, entity);
+    console.log('Entity attributes:', entity.attributes);
+    console.log('Items:', entity.attributes?.items);
+    
+    // HA todo lists store items in attributes.items array
+    // Each item has: uid, summary, status (needs_action or completed)
     const items = entity.attributes?.items || [];
     const todoList = document.getElementById('todo-list');
     todoList.innerHTML = '';
@@ -868,8 +875,16 @@ async function loadTodoListItems(entityId) {
     }
     
     // Separate completed and incomplete items
-    const incomplete = items.filter(item => item.status === 'needs_action');
-    const completed = items.filter(item => item.status === 'completed');
+    const incomplete = items.filter(item => {
+      // Status can be 'needs_action', 'incomplete', or falsy for incomplete
+      return !item.status || item.status === 'needs_action' || item.status === 'incomplete';
+    });
+    const completed = items.filter(item => {
+      // Status is 'completed' for completed items
+      return item.status === 'completed';
+    });
+    
+    console.log(`Found ${incomplete.length} incomplete and ${completed.length} completed items`);
     
     // Show incomplete first (up to 5 visible, rest scrollable)
     incomplete.forEach(item => {
