@@ -143,10 +143,17 @@ export default async function (req, res) {
       if (!uid) {
         return res.status(400).json({ error: 'Missing required field: uid' });
       }
-      serviceEndpoint = `${action}_item`;
+      // Use todo.update_item service with status field
+      serviceEndpoint = 'update_item';
+      // Format: target.entity_id is an array, data has status and item
       body = {
-        entity_id: entity_id,
-        uid: uid
+        target: {
+          entity_id: [entity_id]
+        },
+        data: {
+          status: action === 'complete' ? 'completed' : 'needs_action',
+          item: uid
+        }
       };
     } else {
       return res.status(400).json({ error: 'Invalid action. Must be: add, complete, or uncomplete' });

@@ -970,16 +970,21 @@ async function toggleTodoItem(entityId, itemUid, complete) {
     
     let response;
     if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
-      // Direct HA API call for local development
-      response = await fetch(`${window.CONFIG.HA_URL}/api/services/todo/${action}_item`, {
+      // Direct HA API call for local development using todo.update_item
+      response = await fetch(`${window.CONFIG.HA_URL}/api/services/todo/update_item`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          entity_id: entityId,
-          uid: itemUid
+          target: {
+            entity_id: [entityId]
+          },
+          data: {
+            status: complete ? 'completed' : 'needs_action',
+            item: itemUid
+          }
         })
       });
     } else {
