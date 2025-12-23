@@ -50,12 +50,17 @@ export default async function (req, res) {
       console.log('Entity ID:', entity_id);
       console.log('Response keys:', Object.keys(serviceData || {}));
       
-      // Response structure: { "todo.entity_id": { "items": [...] } }
+      // Response structure with ?return_response=true:
+      // { "service_response": { "todo.entity_id": { "items": [...] } }, "changed_states": [] }
       // Extract items from the response
       let items = [];
       
-      // Check various possible response structures
-      if (serviceData && serviceData[entity_id]) {
+      // Check for service_response wrapper first (when using ?return_response=true)
+      if (serviceData && serviceData.service_response && serviceData.service_response[entity_id]) {
+        items = serviceData.service_response[entity_id].items || [];
+        console.log('Found items in serviceData.service_response[entity_id].items:', items);
+      } else if (serviceData && serviceData[entity_id]) {
+        // Direct structure: { "todo.entity_id": { "items": [...] } }
         items = serviceData[entity_id].items || [];
         console.log('Found items in serviceData[entity_id].items:', items);
       } else if (serviceData && serviceData[entity_id] && Array.isArray(serviceData[entity_id])) {
