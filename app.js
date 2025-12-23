@@ -199,47 +199,191 @@ async function loadWeather() {
   }
 }
 
-// Load weather forecast
-function loadWeatherForecast(attrs) {
+// Load weather forecast from Pirate Weather entities
+async function loadWeatherForecast(attrs) {
+  const forecastList = document.getElementById('weather-forecast-list');
+  forecastList.innerHTML = '<div style="color: #888; text-align: center; padding: 10px;">Loading forecast...</div>';
+  
+  try {
+    // Pirate Weather creates individual sensor entities for each day
+    // Format: sensor.pirateweather_day_1_high, sensor.pirateweather_day_1_low, sensor.pirateweather_day_1_condition, etc.
+    // Or: sensor.pirateweather_daily_1_high, etc.
+    
+    const forecastDays = [];
+    const daysToShow = 8; // Show 8 days like the HA card
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    // Try to fetch forecast entities - Pirate Weather uses different naming patterns
+    const baseEntityId = CONFIG.HA_WEATHER_ENTITY.replace('weather.', 'sensor.').replace('weather_', 'sensor.');
+    
+    // Try different naming patterns
+    const patterns = [
+      { high: `${baseEntityId}_day_`, low: `${baseEntityId}_day_`, condition: `${baseEntityId}_day_`, icon: `${baseEntityId}_day_` },
+      { high: `${baseEntityId}_daily_`, low: `${baseEntityId}_daily_`, condition: `${baseEntityId}_daily_`, icon: `${baseEntityId}_daily_` },
+      { high: `${baseEntityId.replace('pirateweather', 'pirateweather_daily')}_`, low: `${baseEntityId.replace('pirateweather', 'pirateweather_daily')}_`, condition: `${baseEntityId.replace('pirateweather', 'pirateweather_daily')}_`, icon: `${baseEntityId.replace('pirateweather', 'pirateweather_daily')}_` },
+    ];
+    
+    let foundPattern = null;
+    let forecastData = [];
+    
+    // Try each pattern
+    for (const pattern of patterns) {
+      try {
+        // Test if day 1 entities exist
+        const testHigh = await fetchHAEntity(`${pattern.high}1_high`);
+        if (testHigh && testHigh.state) {
+          foundPattern = pattern;
+          break;
+        }
+      } catch (e) {
+        // Try next pattern
+        continue;
+      }
+    }
+    
+    if (!foundPattern) {
+      // Try fetching all states and filtering for forecast entities
+      const allStates = await fetchAllHAStates();
+      if (allStates) {
+        const forecastEntities = allStates.filter(e => {
+          const id = e.entity_id.toLowerCase();
+          return (id.includes('pirate') || id.includes('weather')) && 
+                 (id.includes('day_') || id.includes('daily_')) &&
+                 (id.includes('high') || id.includes('low') || id.includes('condition') || id.includes('icon'));
+        });
+        
+        if (forecastEntities.length > 0) {
+          // Parse entities to build forecast
+          forecastData = parseForecastFromEntities(forecastEntities, daysToShow);
+        }
+      }
+    } else {
+      // Fetch forecast using found pattern
+      for (let day = 1; day <= daysToShow; day++) {
+        try {
+          const [highEntity, lowEntity, conditionEntity, iconEntity] = await Promise.all([
+            fetchHAEntity(`${foundPattern.high}${day}_high`).catch(() => null),
+            fetchHAEntity(`${foundPattern.low}${day}_low`).catch(() => null),
+            fetchHAEntity(`${foundPattern.condition}${day}_condition`).catch(() => null),
+            fetchHAEntity(`${foundPattern.icon}${day}_icon`).catch(() => null)
+          ]);
+          
+          if (highEntity && lowEntity) {
+            const high = Math.round(parseFloat(highEntity.state) || 0);
+            const low = Math.round(parseFloat(lowEntity.state) || 0);
+            const condition = conditionEntity ? (conditionEntity.state || conditionEntity.attributes?.condition || 'unknown') : 'unknown';
+            const icon = iconEntity ? iconEntity.state : getWeatherIcon(condition);
+            
+            // Calculate day name (today + day offset)
+            const forecastDate = new Date();
+            forecastDate.setDate(forecastDate.getDate() + (day - 1));
+            const dayName = dayNames[forecastDate.getDay()];
+            
+            forecastData.push({ day, dayName, high, low, condition, icon });
+          }
+        } catch (error) {
+          console.error(`Error fetching forecast day ${day}:`, error);
+        }
+      }
+    }
+    
+    if (forecastData.length === 0) {
+      forecastList.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Forecast data not available. Checking entity structure...</div>';
+      // Log available entities for debugging
+      console.log('No forecast data found. Available entities:', await getPirateWeatherEntities());
+      return;
+    }
+    
+    // Render forecast
+    renderForecast(forecastData, attrs);
+  } catch (error) {
+    console.error('Error loading forecast:', error);
+    forecastList.innerHTML = '<div style="color: #e74c3c; text-align: center; padding: 20px;">Error loading forecast</div>';
+  }
+}
+
+// Parse forecast from entity list
+function parseForecastFromEntities(entities, daysToShow) {
+  const forecastData = [];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  
+  // Group entities by day number
+  const dayMap = {};
+  
+  entities.forEach(entity => {
+    const id = entity.entity_id.toLowerCase();
+    // Extract day number from entity ID (e.g., "day_1_high" -> day 1)
+    const dayMatch = id.match(/(?:day_|daily_)(\d+)/);
+    if (dayMatch) {
+      const dayNum = parseInt(dayMatch[1]);
+      if (dayNum >= 1 && dayNum <= daysToShow) {
+        if (!dayMap[dayNum]) {
+          dayMap[dayNum] = {};
+        }
+        
+        if (id.includes('high')) {
+          dayMap[dayNum].high = Math.round(parseFloat(entity.state) || 0);
+        } else if (id.includes('low')) {
+          dayMap[dayNum].low = Math.round(parseFloat(entity.state) || 0);
+        } else if (id.includes('condition')) {
+          dayMap[dayNum].condition = entity.state || 'unknown';
+        } else if (id.includes('icon')) {
+          dayMap[dayNum].icon = entity.state;
+        }
+      }
+    }
+  });
+  
+  // Build forecast array
+  for (let day = 1; day <= daysToShow; day++) {
+    if (dayMap[day] && dayMap[day].high !== undefined && dayMap[day].low !== undefined) {
+      const forecastDate = new Date();
+      forecastDate.setDate(forecastDate.getDate() + (day - 1));
+      const dayName = dayNames[forecastDate.getDay()];
+      
+      forecastData.push({
+        day,
+        dayName,
+        high: dayMap[day].high,
+        low: dayMap[day].low,
+        condition: dayMap[day].condition || 'unknown',
+        icon: dayMap[day].icon || getWeatherIcon(dayMap[day].condition || 'unknown')
+      });
+    }
+  }
+  
+  return forecastData;
+}
+
+// Render forecast items
+function renderForecast(forecastData, attrs) {
   const forecastList = document.getElementById('weather-forecast-list');
   forecastList.innerHTML = '';
   
-  // Check for forecast data in attributes
-  // Pirate Weather typically provides forecast in attrs.forecast array
-  const forecast = attrs.forecast || [];
-  
-  if (!forecast || forecast.length === 0) {
-    forecastList.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Forecast data not available</div>';
+  if (forecastData.length === 0) {
+    forecastList.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No forecast data available</div>';
     return;
   }
   
-  // Show first 5 days of forecast
-  const daysToShow = Math.min(5, forecast.length);
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  // Calculate temperature range for bars
+  const allHighs = forecastData.map(d => d.high);
+  const allLows = forecastData.map(d => d.low);
+  const minTemp = Math.min(...allLows);
+  const maxTemp = Math.max(...allHighs);
+  const range = maxTemp - minTemp;
   
-  for (let i = 0; i < daysToShow; i++) {
-    const day = forecast[i];
-    const forecastDate = new Date(day.datetime || day.date);
-    const dayName = dayNames[forecastDate.getDay()];
-    
-    const low = Math.round(day.templow || day.temperature_low || day.low || 0);
-    const high = Math.round(day.temperature || day.temp || day.high || 0);
-    const condition = day.condition || day.weather || 'unknown';
-    const icon = getWeatherIcon(condition);
-    
-    // Calculate temperature range for bar
-    const minTemp = Math.min(...forecast.slice(0, daysToShow).map(d => Math.round(d.templow || d.temperature_low || d.low || 0)));
-    const maxTemp = Math.max(...forecast.slice(0, daysToShow).map(d => Math.round(d.temperature || d.temp || d.high || 0)));
-    const range = maxTemp - minTemp;
-    const lowPercent = range > 0 ? ((low - minTemp) / range) * 100 : 0;
-    const highPercent = range > 0 ? ((high - minTemp) / range) * 100 : 100;
+  // Current temp for marker
+  const currentTemp = attrs.temperature ? Math.round(attrs.temperature) : null;
+  
+  forecastData.forEach((day, index) => {
+    const lowPercent = range > 0 ? ((day.low - minTemp) / range) * 100 : 0;
+    const highPercent = range > 0 ? ((day.high - minTemp) / range) * 100 : 100;
     const barWidth = highPercent - lowPercent;
     const barLeft = lowPercent;
     
-    // Current temp marker (if available)
-    const currentTemp = attrs.temperature ? Math.round(attrs.temperature) : null;
+    // Current temp marker on first day
     let markerPercent = null;
-    if (currentTemp && i === 0 && currentTemp >= minTemp && currentTemp <= maxTemp) {
+    if (currentTemp && index === 0 && currentTemp >= minTemp && currentTemp <= maxTemp) {
       markerPercent = range > 0 ? ((currentTemp - minTemp) / range) * 100 : 50;
     }
     
@@ -247,21 +391,62 @@ function loadWeatherForecast(attrs) {
     forecastItem.className = 'weather-forecast-item';
     
     forecastItem.innerHTML = `
-      <div class="weather-forecast-day">${dayName}</div>
-      <div class="weather-forecast-icon">${icon}</div>
+      <div class="weather-forecast-day">${day.dayName}</div>
+      <div class="weather-forecast-icon">${day.icon}</div>
       <div class="weather-forecast-temps">
-        <div class="weather-forecast-low">${low}°</div>
+        <div class="weather-forecast-low">${day.low}°</div>
         <div class="weather-forecast-bar">
           <div class="weather-forecast-bar-fill" style="width: ${barWidth}%; left: ${barLeft}%;">
             ${markerPercent !== null ? `<div class="weather-forecast-bar-marker" style="left: ${markerPercent}%;"></div>` : ''}
           </div>
         </div>
-        <div class="weather-forecast-high">${high}°</div>
+        <div class="weather-forecast-high">${day.high}°</div>
       </div>
     `;
     
     forecastList.appendChild(forecastItem);
+  });
+}
+
+// Fetch all HA states (helper function)
+async function fetchAllHAStates() {
+  try {
+    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
+      const response = await fetch(`${window.CONFIG.HA_URL}/api/states`, {
+        headers: {
+          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) return await response.json();
+    } else {
+      // Use serverless function
+      const response = await fetch('/api/ha-list-entities');
+      if (response.ok) {
+        const data = await response.json();
+        return data.entities || [];
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching all states:', error);
   }
+  return null;
+}
+
+// Get Pirate Weather entities for debugging
+async function getPirateWeatherEntities() {
+  try {
+    const allStates = await fetchAllHAStates();
+    if (allStates) {
+      return allStates
+        .filter(e => e.entity_id.toLowerCase().includes('pirate') || e.entity_id.toLowerCase().includes('weather'))
+        .map(e => e.entity_id)
+        .slice(0, 50); // First 50 for debugging
+    }
+  } catch (error) {
+    console.error('Error getting Pirate Weather entities:', error);
+  }
+  return [];
 }
 
 // Get weather icon from condition
