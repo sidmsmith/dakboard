@@ -735,46 +735,222 @@ function getWeatherIcon(condition) {
   return '🌤️';
 }
 
-// Load todos from HA
+// Todo list state
+let todoLists = [];
+let activeTodoList = null;
+
+// Load todos from HA - discover all todo lists
 async function loadTodos() {
   try {
-    const entity = await fetchHAEntity(CONFIG.HA_TODO_ENTITY);
-    if (!entity) {
+    // Discover all todo list entities
+    const allStates = await fetchAllHAStates();
+    if (!allStates) {
       document.getElementById('todo-list').innerHTML = 
-        '<li class="todo-item"><span style="color: #888;">No todo list configured</span></li>';
+        '<li class="todo-item"><span style="color: #888;">Error discovering todo lists</span></li>';
       return;
     }
     
-    const todos = entity.state || '';
-    const todoList = document.getElementById('todo-list');
-    todoList.innerHTML = '';
+    // Filter for todo entities
+    todoLists = allStates
+      .filter(e => e.entity_id.startsWith('todo.'))
+      .map(e => ({
+        entityId: e.entity_id,
+        name: e.attributes?.friendly_name || e.entity_id.replace('todo.', '').replace(/_/g, ' '),
+        entity: e
+      }));
     
-    if (!todos || todos.trim() === '') {
-      todoList.innerHTML = '<li class="todo-item"><span style="color: #888;">No todos</span></li>';
+    if (todoLists.length === 0) {
+      document.getElementById('todo-list').innerHTML = 
+        '<li class="todo-item"><span style="color: #888;">No todo lists found</span></li>';
       return;
     }
     
-    // Parse todos (assuming comma-separated or newline-separated)
-    const todoItems = todos.split(/[,\n]/).filter(item => item.trim() !== '');
+    // Render tabs
+    renderTodoTabs();
     
-    todoItems.forEach(todo => {
-      const li = document.createElement('li');
-      li.className = 'todo-item';
-      
-      const checkbox = document.createElement('div');
-      checkbox.className = 'todo-checkbox';
-      
-      const text = document.createElement('span');
-      text.textContent = todo.trim();
-      
-      li.appendChild(checkbox);
-      li.appendChild(text);
-      todoList.appendChild(li);
-    });
+    // Load first list if none active
+    if (!activeTodoList && todoLists.length > 0) {
+      activeTodoList = todoLists[0].entityId;
+      await loadTodoListItems(activeTodoList);
+    }
   } catch (error) {
     console.error('Error loading todos:', error);
     document.getElementById('todo-list').innerHTML = 
       '<li class="todo-item"><span class="error">Error loading todos</span></li>';
+  }
+}
+
+// Render todo list tabs
+function renderTodoTabs() {
+  const tabsContainer = document.getElementById('todo-tabs');
+  tabsContainer.innerHTML = '';
+  
+  todoLists.forEach(list => {
+    const tab = document.createElement('button');
+    tab.className = 'todo-tab';
+    if (list.entityId === activeTodoList) {
+      tab.classList.add('active');
+    }
+    tab.textContent = list.name;
+    tab.addEventListener('click', () => {
+      activeTodoList = list.entityId;
+      renderTodoTabs();
+      loadTodoListItems(list.entityId);
+    });
+    tabsContainer.appendChild(tab);
+  });
+}
+
+// Load items for a specific todo list
+async function loadTodoListItems(entityId) {
+  try {
+    const entity = await fetchHAEntity(entityId);
+    if (!entity) {
+      document.getElementById('todo-list').innerHTML = 
+        '<li class="todo-item"><span style="color: #888;">Error loading todo list</span></li>';
+      return;
+    }
+    
+    const items = entity.attributes?.items || [];
+    const todoList = document.getElementById('todo-list');
+    todoList.innerHTML = '';
+    
+    if (items.length === 0) {
+      todoList.innerHTML = '<li class="todo-item"><span style="color: #888;">No todos</span></li>';
+      return;
+    }
+    
+    // Separate completed and incomplete items
+    const incomplete = items.filter(item => item.status === 'needs_action');
+    const completed = items.filter(item => item.status === 'completed');
+    
+    // Show incomplete first (up to 5 visible, rest scrollable)
+    incomplete.forEach(item => {
+      const li = createTodoItem(item, entityId);
+      todoList.appendChild(li);
+    });
+    
+    // Show completed at bottom (muted/strikethrough)
+    completed.forEach(item => {
+      const li = createTodoItem(item, entityId, true);
+      todoList.appendChild(li);
+    });
+  } catch (error) {
+    console.error('Error loading todo list items:', error);
+    document.getElementById('todo-list').innerHTML = 
+      '<li class="todo-item"><span class="error">Error loading items</span></li>';
+  }
+}
+
+// Create a todo item element
+function createTodoItem(item, entityId, isCompleted = false) {
+  const li = document.createElement('li');
+  li.className = 'todo-item';
+  if (isCompleted) {
+    li.classList.add('completed');
+  }
+  
+  const checkbox = document.createElement('div');
+  checkbox.className = 'todo-checkbox';
+  if (isCompleted) {
+    checkbox.classList.add('checked');
+  }
+  checkbox.addEventListener('click', () => {
+    toggleTodoItem(entityId, item.uid, !isCompleted);
+  });
+  
+  const text = document.createElement('span');
+  text.className = 'todo-text';
+  text.textContent = item.summary || 'Untitled';
+  
+  li.appendChild(checkbox);
+  li.appendChild(text);
+  
+  return li;
+}
+
+// Toggle todo item completion
+async function toggleTodoItem(entityId, itemUid, complete) {
+  try {
+    const action = complete ? 'complete' : 'uncomplete';
+    
+    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
+      // Direct HA API call for local development
+      await fetch(`${window.CONFIG.HA_URL}/api/services/todo/${action}_item`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          uid: itemUid
+        })
+      });
+    } else {
+      // Use serverless function (for Vercel production)
+      await fetch('/api/ha-todo-action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: action,
+          entity_id: entityId,
+          uid: itemUid
+        })
+      });
+    }
+    
+    // Reload items after a short delay
+    setTimeout(() => {
+      loadTodoListItems(entityId);
+    }, 300);
+  } catch (error) {
+    console.error('Error toggling todo item:', error);
+  }
+}
+
+// Add new todo item
+async function addTodoItem(entityId, summary) {
+  if (!summary || !summary.trim()) return;
+  
+  try {
+    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
+      // Direct HA API call for local development
+      await fetch(`${window.CONFIG.HA_URL}/api/services/todo/add_item`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          item: summary.trim()
+        })
+      });
+    } else {
+      // Use serverless function (for Vercel production)
+      await fetch('/api/ha-todo-action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'add',
+          entity_id: entityId,
+          item: summary.trim()
+        })
+      });
+    }
+    
+    // Clear input and reload
+    document.getElementById('todo-input').value = '';
+    setTimeout(() => {
+      loadTodoListItems(entityId);
+    }, 300);
+  } catch (error) {
+    console.error('Error adding todo item:', error);
   }
 }
 

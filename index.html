@@ -79,11 +79,20 @@
       <div class="widget-header">
         <div class="widget-title">✅ Todo List</div>
       </div>
-      <ul class="todo-list" id="todo-list">
-        <li class="todo-item">
-          <span>Loading todos...</span>
-        </li>
-      </ul>
+      <div class="todo-tabs" id="todo-tabs">
+        <!-- Tabs will be populated by JavaScript -->
+      </div>
+      <div class="todo-content">
+        <ul class="todo-list" id="todo-list">
+          <li class="todo-item">
+            <span>Loading todos...</span>
+          </li>
+        </ul>
+        <div class="todo-add">
+          <input type="text" id="todo-input" placeholder="Add new item..." />
+          <button id="todo-add-btn">Add</button>
+        </div>
+      </div>
     </div>
 
     <!-- Garage Doors - Bottom Left -->
