@@ -963,12 +963,15 @@ function createTodoItem(item, entityId, isCompleted = false) {
 
 // Toggle todo item completion
 async function toggleTodoItem(entityId, itemUid, complete) {
+  console.log('Toggling todo item:', { entityId, itemUid, complete });
+  
   try {
     const action = complete ? 'complete' : 'uncomplete';
     
+    let response;
     if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
       // Direct HA API call for local development
-      await fetch(`${window.CONFIG.HA_URL}/api/services/todo/${action}_item`, {
+      response = await fetch(`${window.CONFIG.HA_URL}/api/services/todo/${action}_item`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
@@ -981,7 +984,7 @@ async function toggleTodoItem(entityId, itemUid, complete) {
       });
     } else {
       // Use serverless function (for Vercel production)
-      await fetch('/api/ha-todo-action', {
+      response = await fetch('/api/ha-todo-action', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -994,10 +997,18 @@ async function toggleTodoItem(entityId, itemUid, complete) {
       });
     }
     
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Failed to toggle todo item:', response.status, errorText);
+      return;
+    }
+    
+    console.log('Successfully toggled todo item');
+    
     // Reload items after a short delay
     setTimeout(() => {
       loadTodoListItems(entityId);
-    }, 300);
+    }, 500);
   } catch (error) {
     console.error('Error toggling todo item:', error);
   }
