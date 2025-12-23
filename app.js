@@ -770,18 +770,34 @@ async function loadTodos() {
       return;
     }
     
-    // Filter for todo entities
+    // Filter for todo entities - check both 'todo.' prefix and entity type
     todoLists = allStates
-      .filter(e => e.entity_id.startsWith('todo.'))
+      .filter(e => {
+        const entityId = e.entity_id.toLowerCase();
+        const domain = e.entity_id.split('.')[0]?.toLowerCase();
+        // Check if it's a todo entity by prefix or domain
+        return entityId.startsWith('todo.') || domain === 'todo';
+      })
       .map(e => ({
         entityId: e.entity_id,
-        name: e.attributes?.friendly_name || e.entity_id.replace('todo.', '').replace(/_/g, ' '),
+        name: e.attributes?.friendly_name || e.attributes?.name || e.entity_id.replace(/^todo\./, '').replace(/_/g, ' '),
         entity: e
       }));
     
+    // Debug: log found entities
+    console.log('Found todo entities:', todoLists.map(l => ({ id: l.entityId, name: l.name })));
+    console.log('All entities (first 20):', allStates.slice(0, 20).map(e => e.entity_id));
+    
     if (todoLists.length === 0) {
+      // Try to find any entity with 'todo' in the name for debugging
+      const todoLike = allStates.filter(e => 
+        e.entity_id.toLowerCase().includes('todo') || 
+        (e.attributes?.friendly_name && e.attributes.friendly_name.toLowerCase().includes('todo'))
+      );
+      console.log('Entities with "todo" in name:', todoLike.map(e => ({ id: e.entity_id, name: e.attributes?.friendly_name })));
+      
       document.getElementById('todo-list').innerHTML = 
-        '<li class="todo-item"><span style="color: #888;">No todo lists found</span></li>';
+        '<li class="todo-item"><span style="color: #888;">No todo lists found. Check console for debug info.</span></li>';
       return;
     }
     
