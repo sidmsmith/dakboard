@@ -145,7 +145,57 @@ function renderCalendar() {
     
     const eventsDiv = document.createElement('div');
     eventsDiv.className = 'calendar-events';
-    // Events will be populated when calendar integration is added
+    
+    // Filter and display events for this day
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+    
+    const dayEvents = calendarEvents.filter(event => {
+      const eventStart = new Date(event.start);
+      const eventEnd = new Date(event.end || event.start);
+      
+      // Check if event overlaps with this day
+      return (eventStart <= dayEnd && eventEnd >= dayStart);
+    });
+    
+    // Sort events by start time
+    dayEvents.sort((a, b) => {
+      return new Date(a.start) - new Date(b.start);
+    });
+    
+    // Display events (limit to 3 visible, show "+X more" if needed)
+    const maxVisible = 3;
+    dayEvents.slice(0, maxVisible).forEach(event => {
+      const eventDiv = document.createElement('div');
+      eventDiv.className = 'calendar-event';
+      
+      const eventStart = new Date(event.start);
+      let eventText = event.title;
+      
+      // Add time if not all-day
+      if (!event.allDay && eventStart >= dayStart && eventStart <= dayEnd) {
+        const timeStr = eventStart.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        });
+        eventText = `${timeStr} ${eventText}`;
+      }
+      
+      eventDiv.textContent = eventText;
+      eventDiv.title = `${event.title}${event.location ? ` - ${event.location}` : ''}`;
+      eventsDiv.appendChild(eventDiv);
+    });
+    
+    // Show "+X more" if there are more events
+    if (dayEvents.length > maxVisible) {
+      const moreDiv = document.createElement('div');
+      moreDiv.className = 'calendar-event-more';
+      moreDiv.textContent = `+${dayEvents.length - maxVisible} more`;
+      eventsDiv.appendChild(moreDiv);
+    }
     
     dayDiv.appendChild(dayNumber);
     dayDiv.appendChild(eventsDiv);
