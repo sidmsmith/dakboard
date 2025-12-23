@@ -233,10 +233,12 @@ body {
   background: #333;
   border-radius: 6px;
   transition: background 0.2s;
+  cursor: pointer;
 }
 
 .weather-forecast-item:hover {
   background: #3a3a3a;
+  transform: translateX(2px);
 }
 
 .weather-forecast-day {
@@ -495,6 +497,11 @@ body {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
+.modal-large {
+  max-width: 1200px;
+  width: 95%;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -541,5 +548,66 @@ body {
   background: rgba(231, 76, 60, 0.1);
   border-radius: 6px;
   margin-top: 10px;
+}
+
+/* Hourly Forecast Styles */
+.hourly-forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.hourly-forecast-item {
+  background: #333;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.hourly-forecast-item:hover {
+  background: #3a3a3a;
+  transform: translateY(-2px);
+}
+
+.hourly-time {
+  font-size: 13px;
+  color: #aaa;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.hourly-icon {
+  font-size: 32px;
+  margin: 8px 0;
+}
+
+.hourly-temp {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  margin-top: 8px;
+}
+
+.hourly-details {
+  font-size: 11px;
+  color: #888;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hourly-loading {
+  text-align: center;
+  padding: 40px;
+  color: #888;
+}
+
+.hourly-error {
+  text-align: center;
+  padding: 40px;
+  color: #e74c3c;
 }
 

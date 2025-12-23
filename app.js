@@ -69,6 +69,17 @@ function initializeEventListeners() {
       closeMonthModal();
     }
   });
+  
+  // Hourly forecast modal
+  document.getElementById('close-hourly-modal').addEventListener('click', () => {
+    closeHourlyModal();
+  });
+  
+  document.getElementById('hourly-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'hourly-modal') {
+      closeHourlyModal();
+    }
+  });
 }
 
 // Render weekly calendar
@@ -136,6 +147,160 @@ function showMonthModal() {
 // Close monthly calendar modal
 function closeMonthModal() {
   document.getElementById('month-modal').classList.remove('active');
+}
+
+// Show hourly forecast modal
+function showHourlyForecast(dayOffset, dayName, high, low) {
+  const modal = document.getElementById('hourly-modal');
+  const title = document.getElementById('hourly-modal-title');
+  const content = document.getElementById('hourly-forecast-content');
+  
+  // Update title
+  const forecastDate = new Date();
+  forecastDate.setDate(forecastDate.getDate() + dayOffset);
+  const dateStr = forecastDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  title.textContent = `Hourly Forecast - ${dayName}, ${dateStr}`;
+  
+  // Show loading state
+  content.innerHTML = '<div class="hourly-loading">Loading hourly forecast...</div>';
+  
+  // Show modal
+  modal.classList.add('active');
+  
+  // Load hourly data
+  loadHourlyForecast(dayOffset, content);
+}
+
+// Close hourly forecast modal
+function closeHourlyModal() {
+  document.getElementById('hourly-modal').classList.remove('active');
+}
+
+// Load hourly forecast for a specific day
+async function loadHourlyForecast(dayOffset, contentElement) {
+  try {
+    // Pirate Weather hourly entities use pattern:
+    // sensor.pirateweather_temperature_0h, 1h, 2h, etc. (for current day)
+    // For future days, might be: sensor.pirateweather_temperature_24h, 25h, etc. (24h = tomorrow 0h)
+    
+    const hourlyData = [];
+    const hoursToShow = 24; // Show 24 hours
+    
+    // Calculate starting hour offset (0h = current hour, 24h = tomorrow 0h, etc.)
+    const startHour = dayOffset * 24;
+    
+    for (let hourOffset = 0; hourOffset < hoursToShow; hourOffset++) {
+      const totalHourOffset = startHour + hourOffset;
+      const hourSuffix = `${totalHourOffset}h`;
+      
+      try {
+        // Fetch hourly entities
+        const [tempEntity, iconEntity, conditionEntity, precipEntity] = await Promise.all([
+          fetchHAEntity(`sensor.pirateweather_temperature_${hourSuffix}`).catch(() => null),
+          fetchHAEntity(`sensor.pirateweather_icon_${hourSuffix}`).catch(() => null),
+          fetchHAEntity(`sensor.pirateweather_condition_${hourSuffix}`).catch(() => null),
+          fetchHAEntity(`sensor.pirateweather_precip_probability_${hourSuffix}`).catch(() => null)
+        ]);
+        
+        if (tempEntity && tempEntity.state) {
+          const temp = Math.round(parseFloat(tempEntity.state) || 0);
+          
+          // Get icon and condition
+          let condition = 'unknown';
+          let icon = '🌤️';
+          
+          if (iconEntity && iconEntity.state) {
+            const iconState = iconEntity.state;
+            if (/[\u{1F300}-\u{1F9FF}]/u.test(iconState)) {
+              icon = iconState;
+              condition = iconEntity.attributes?.condition || conditionEntity?.state || 'unknown';
+            } else {
+              condition = iconState;
+              icon = getWeatherIcon(iconState);
+            }
+          } else if (conditionEntity && conditionEntity.state) {
+            condition = conditionEntity.state;
+            icon = getWeatherIcon(condition);
+          }
+          
+          // Get precipitation probability
+          const precipProb = precipEntity ? Math.round(parseFloat(precipEntity.state) || 0) : null;
+          
+          // Calculate time
+          const hourTime = new Date();
+          hourTime.setHours(hourTime.getHours() + totalHourOffset);
+          const timeStr = hourTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          
+          hourlyData.push({
+            time: timeStr,
+            hour: hourTime.getHours(),
+            temp,
+            icon,
+            condition,
+            precipProb
+          });
+        }
+      } catch (error) {
+        console.error(`Error fetching hourly data for hour ${hourSuffix}:`, error);
+      }
+    }
+    
+    if (hourlyData.length === 0) {
+      contentElement.innerHTML = '<div class="hourly-error">Hourly forecast data not available for this day.</div>';
+      return;
+    }
+    
+    // Render hourly forecast
+    renderHourlyForecast(hourlyData, contentElement);
+  } catch (error) {
+    console.error('Error loading hourly forecast:', error);
+    contentElement.innerHTML = '<div class="hourly-error">Error loading hourly forecast. Please try again.</div>';
+  }
+}
+
+// Render hourly forecast
+function renderHourlyForecast(hourlyData, container) {
+  container.innerHTML = '';
+  
+  const grid = document.createElement('div');
+  grid.className = 'hourly-forecast-grid';
+  
+  hourlyData.forEach(hour => {
+    const item = document.createElement('div');
+    item.className = 'hourly-forecast-item';
+    
+    const time = document.createElement('div');
+    time.className = 'hourly-time';
+    time.textContent = hour.time;
+    
+    const icon = document.createElement('div');
+    icon.className = 'hourly-icon';
+    icon.textContent = hour.icon;
+    
+    const temp = document.createElement('div');
+    temp.className = 'hourly-temp';
+    temp.textContent = `${hour.temp}°`;
+    
+    const details = document.createElement('div');
+    details.className = 'hourly-details';
+    
+    if (hour.precipProb !== null && hour.precipProb > 0) {
+      const precip = document.createElement('div');
+      precip.textContent = `💧 ${hour.precipProb}%`;
+      details.appendChild(precip);
+    }
+    
+    item.appendChild(time);
+    item.appendChild(icon);
+    item.appendChild(temp);
+    if (details.children.length > 0) {
+      item.appendChild(details);
+    }
+    
+    grid.appendChild(item);
+  });
+  
+  container.appendChild(grid);
 }
 
 // Format date helper
@@ -426,6 +591,11 @@ function renderForecast(forecastData, attrs) {
     forecastItem.appendChild(dayDiv);
     forecastItem.appendChild(iconDiv);
     forecastItem.appendChild(tempsDiv);
+    
+    // Add click handler to load hourly forecast
+    forecastItem.addEventListener('click', () => {
+      showHourlyForecast(dayOffset, day.dayName, day.high, day.low);
+    });
     
     forecastList.appendChild(forecastItem);
   });
