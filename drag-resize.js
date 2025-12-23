@@ -208,10 +208,11 @@ function handleMouseMove(e) {
     let newX = e.clientX - dashboardRect.left - dragOffset.x;
     let newY = e.clientY - dashboardRect.top - dragOffset.y;
     
-    // Keep widget within dashboard bounds
+    // Keep widget within dashboard bounds (allow some overflow for partial visibility)
     const rect = draggedWidget.getBoundingClientRect();
-    newX = Math.max(0, Math.min(newX, dashboardRect.width - rect.width));
-    newY = Math.max(0, Math.min(newY, dashboardRect.height - rect.height));
+    const minVisible = 50; // Minimum pixels that must be visible
+    newX = Math.max(-rect.width + minVisible, Math.min(newX, dashboardRect.width - minVisible));
+    newY = Math.max(-rect.height + minVisible, Math.min(newY, dashboardRect.height - minVisible));
     
     // Snap to grid
     newX = snapToGridValue(newX);
