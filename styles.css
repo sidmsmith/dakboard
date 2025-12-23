@@ -317,7 +317,8 @@ body {
   gap: 4px;
   margin-bottom: 12px;
   border-bottom: 2px solid #333;
-  overflow-x: auto;
+  overflow-x: visible;
+  flex-wrap: wrap;
 }
 
 .todo-tab {
@@ -360,7 +361,8 @@ body {
   gap: 6px;
   overflow-y: auto;
   flex: 1;
-  max-height: 300px;
+  max-height: calc(5 * (var(--todo-item-height, 48px) + 6px)); /* Show exactly 5 items */
+  min-height: calc(5 * (var(--todo-item-height, 48px) + 6px));
 }
 
 .todo-item {
