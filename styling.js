@@ -1094,6 +1094,10 @@ function updatePreview() {
 function applyStyles() {
   if (!currentWidgetId) return;
 
+  // Update currentStyles from form inputs before applying
+  // This ensures we capture the latest form values even if event listeners didn't fire
+  updateCurrentStylesFromForm();
+
   // Get apply-to-all flags
   updateApplyToAllFlags();
 
@@ -1121,6 +1125,97 @@ function applyStyles() {
   
   // Close modal
   closeStylingModal();
+}
+
+// Update currentStyles from form inputs
+function updateCurrentStylesFromForm() {
+  // Background type
+  const bgType = document.getElementById('bg-type');
+  if (bgType) {
+    currentStyles.backgroundType = bgType.value;
+    
+    // Update values based on background type
+    if (bgType.value === 'solid') {
+      const bgColor = document.getElementById('bg-color');
+      if (bgColor) currentStyles.backgroundColor = bgColor.value;
+    } else if (bgType.value === 'gradient') {
+      const gradColor1 = document.getElementById('bg-gradient-color1');
+      const gradColor2 = document.getElementById('bg-gradient-color2');
+      const gradDir = document.getElementById('bg-gradient-direction');
+      if (gradColor1) currentStyles.gradientColor1 = gradColor1.value;
+      if (gradColor2) currentStyles.gradientColor2 = gradColor2.value;
+      if (gradDir) currentStyles.gradientDirection = gradDir.value;
+    } else if (bgType.value === 'image') {
+      const imgUrl = document.getElementById('bg-image-url');
+      const imgRepeat = document.getElementById('bg-image-repeat');
+      const imgPosition = document.getElementById('bg-image-position');
+      const imgSize = document.getElementById('bg-image-size');
+      const imgOpacity = document.getElementById('bg-image-opacity');
+      if (imgUrl) currentStyles.backgroundImageUrl = imgUrl.value;
+      if (imgRepeat) currentStyles.backgroundRepeat = imgRepeat.value;
+      if (imgPosition) currentStyles.backgroundPosition = imgPosition.value;
+      if (imgSize) currentStyles.backgroundSize = imgSize.value;
+      if (imgOpacity) currentStyles.backgroundImageOpacity = parseInt(imgOpacity.value);
+    } else if (bgType.value === 'pattern') {
+      const patType = document.getElementById('bg-pattern-type');
+      const patColor = document.getElementById('bg-pattern-color');
+      const patSize = document.getElementById('bg-pattern-size');
+      if (patType) currentStyles.patternType = patType.value;
+      if (patColor) currentStyles.patternColor = patColor.value;
+      if (patSize) currentStyles.patternSize = parseInt(patSize.value);
+    }
+  }
+  
+  // Other style properties
+  const bgColor = document.getElementById('bg-color');
+  if (bgColor) currentStyles.backgroundColor = bgColor.value;
+  
+  const opacity = document.getElementById('opacity');
+  if (opacity) currentStyles.opacity = parseInt(opacity.value);
+  
+  const borderColor = document.getElementById('border-color');
+  if (borderColor) currentStyles.borderColor = borderColor.value;
+  
+  const borderWidth = document.getElementById('border-width');
+  if (borderWidth) currentStyles.borderWidth = parseInt(borderWidth.value);
+  
+  const borderStyle = document.getElementById('border-style');
+  if (borderStyle) currentStyles.borderStyle = borderStyle.value;
+  
+  const borderRadius = document.getElementById('border-radius');
+  if (borderRadius) currentStyles.borderRadius = parseInt(borderRadius.value);
+  
+  const shadowColor = document.getElementById('shadow-color');
+  if (shadowColor) currentStyles.shadowColor = shadowColor.value;
+  
+  const shadowBlur = document.getElementById('shadow-blur');
+  if (shadowBlur) currentStyles.shadowBlur = parseInt(shadowBlur.value);
+  
+  const shadowX = document.getElementById('shadow-x');
+  if (shadowX) currentStyles.shadowX = parseInt(shadowX.value);
+  
+  const shadowY = document.getElementById('shadow-y');
+  if (shadowY) currentStyles.shadowY = parseInt(shadowY.value);
+  
+  const shadowSpread = document.getElementById('shadow-spread');
+  if (shadowSpread) currentStyles.shadowSpread = parseInt(shadowSpread.value);
+  
+  const textColor = document.getElementById('text-color');
+  if (textColor) currentStyles.textColor = textColor.value;
+  
+  const fontSize = document.getElementById('font-size');
+  if (fontSize) currentStyles.fontSize = parseInt(fontSize.value);
+  
+  const fontWeight = document.getElementById('font-weight');
+  if (fontWeight) currentStyles.fontWeight = fontWeight.value;
+  
+  const padding = document.getElementById('padding');
+  if (padding) currentStyles.padding = parseInt(padding.value);
+  
+  const widgetOpacity = document.getElementById('widget-opacity');
+  if (widgetOpacity) currentStyles.widgetOpacity = parseInt(widgetOpacity.value);
+  
+  console.log('updateCurrentStylesFromForm - Updated currentStyles:', currentStyles);
 }
 
 // Apply current styles to a single widget
