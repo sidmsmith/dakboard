@@ -2202,6 +2202,23 @@ async function loadGooglePhotos() {
   const container = document.getElementById('photos-content');
   if (!container) return;
   
+  // Check for demo mode (for verification video)
+  const demoMode = localStorage.getItem('google_photos_demo_mode') === 'true' || 
+                   new URLSearchParams(window.location.search).get('demo') === 'true';
+  
+  if (demoMode) {
+    // In demo mode, show placeholder photos immediately
+    displayRandomGooglePhoto();
+    // Set up auto-refresh for demo mode too
+    if (googlePhotosCache.updateInterval) {
+      clearInterval(googlePhotosCache.updateInterval);
+    }
+    googlePhotosCache.updateInterval = setInterval(() => {
+      displayRandomGooglePhoto();
+    }, 60 * 1000); // Every 1 minute
+    return;
+  }
+  
   // Check if authenticated
   if (!isGooglePhotosAuthenticated()) {
     showGooglePhotosAuthPrompt();
