@@ -1945,7 +1945,9 @@ const WIDGET_CONFIG = {
   'todo-widget': { name: 'Todo List', icon: '✅' },
   'garage-widget': { name: 'Garage Doors', icon: '🚗' },
   'alarm-widget': { name: 'Alarm Panel', icon: '🔒' },
-  'blank-widget': { name: 'Blank', icon: '⬜' }
+  'blank-widget': { name: 'Blank', icon: '⬜' },
+  'clock-widget': { name: 'Clock', icon: '🕐' },
+  'photos-widget': { name: 'Google Photos', icon: '📷' }
 };
 
 // Load widget visibility state from localStorage

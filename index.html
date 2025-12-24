@@ -160,6 +160,42 @@
       </div>
     </div>
 
+    <!-- Clock Widget -->
+    <div class="widget clock-widget">
+      <div class="widget-header">
+        <div class="widget-title">🕐 Clock</div>
+      </div>
+      <div class="clock-content" id="clock-content">
+        <div class="clock-time" id="clock-time">--:--:--</div>
+        <div class="clock-date" id="clock-date">-- --, ----</div>
+      </div>
+    </div>
+
+    <!-- Google Photos Widget -->
+    <div class="widget photos-widget">
+      <div class="widget-header">
+        <div class="widget-title">📷 Google Photos</div>
+      </div>
+      <div class="photos-content" id="photos-content">
+        <div class="photos-placeholder">
+          <div class="photos-icon">📷</div>
+          <h3>Google Photos Setup</h3>
+          <p>To connect your Google Photos account:</p>
+          <ol class="photos-instructions">
+            <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
+            <li>Create a new project or select an existing one</li>
+            <li>Enable the Google Photos Library API</li>
+            <li>Create OAuth 2.0 credentials (Web application)</li>
+            <li>Add your domain to authorized redirect URIs</li>
+            <li>Add your Client ID and Client Secret to config.js</li>
+            <li>Implement OAuth flow in <code>/api/google-photos-auth.js</code></li>
+            <li>Create <code>/api/google-photos.js</code> to fetch photos</li>
+          </ol>
+          <p class="photos-note">See README.md for detailed setup instructions.</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Blank Widget - Empty frame for customization -->
     <div class="widget blank-widget">
       <!-- No header, no content - completely blank -->
