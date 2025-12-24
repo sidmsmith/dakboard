@@ -25,6 +25,7 @@ export default async function (req, res) {
   // OAuth initiation - redirect to Google
   if (method === 'GET' && !query.code) {
     const state = query.state || Math.random().toString(36).substring(7);
+    // Request the full readonly scope for accessing all photos
     const scope = 'https://www.googleapis.com/auth/photoslibrary.readonly';
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${encodeURIComponent(CLIENT_ID)}&` +
@@ -32,7 +33,8 @@ export default async function (req, res) {
       `response_type=code&` +
       `scope=${encodeURIComponent(scope)}&` +
       `access_type=offline&` +
-      `prompt=consent&` +
+      `prompt=consent&` + // Force consent screen to ensure scope is granted
+      `include_granted_scopes=true&` + // Include previously granted scopes
       `state=${encodeURIComponent(state)}`;
     
     return res.redirect(authUrl);

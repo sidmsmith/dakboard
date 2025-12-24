@@ -2005,6 +2005,15 @@ async function fetchGooglePhotos() {
         const errorData = await response.json();
         errorMessage = errorData.message || errorData.error || errorMessage;
         console.error('Google Photos API error details:', errorData);
+        
+        // If it's a scope error (403), clear tokens and prompt for re-auth
+        if (response.status === 403 && (errorMessage.includes('insufficient authentication scopes') || 
+            errorMessage.includes('PERMISSION_DENIED'))) {
+          console.warn('Scope error detected - clearing tokens and prompting for re-authentication');
+          clearGooglePhotosTokens();
+          showGooglePhotosAuthPrompt();
+          return;
+        }
       } catch (e) {
         const errorText = await response.text();
         console.error('Google Photos API error text:', errorText);
@@ -2034,12 +2043,26 @@ async function fetchGooglePhotos() {
     console.error('Error fetching Google Photos:', error);
     const container = document.getElementById('photos-content');
     if (container) {
+      let errorMessage = error.message;
+      let showReconnect = true;
+      
+      // Check if it's a scope error
+      if (errorMessage.includes('insufficient authentication scopes') || 
+          errorMessage.includes('PERMISSION_DENIED')) {
+        errorMessage = 'Authentication scope error. Please reconnect to grant proper permissions.';
+        showReconnect = true;
+      }
+      
       container.innerHTML = `
         <div class="photos-placeholder">
           <div class="photos-icon">📷</div>
           <h3>Error Loading Photos</h3>
-          <p>${error.message}</p>
-          <button onclick="connectGooglePhotos()" class="photos-connect-btn">Reconnect</button>
+          <p>${errorMessage}</p>
+          ${showReconnect ? `
+            <button onclick="clearGooglePhotosTokens(); connectGooglePhotos();" class="photos-connect-btn">
+              Reconnect Google Photos
+            </button>
+          ` : ''}
         </div>
       `;
     }
@@ -2088,6 +2111,17 @@ function showGooglePhotosAuthPrompt() {
     </div>
   `;
 }
+
+// Clear Google Photos tokens (for re-authentication)
+function clearGooglePhotosTokens() {
+  localStorage.removeItem('google_photos_access_token');
+  localStorage.removeItem('google_photos_refresh_token');
+  localStorage.removeItem('google_photos_token_expiry');
+  console.log('Google Photos tokens cleared');
+}
+
+// Make function globally accessible
+window.clearGooglePhotosTokens = clearGooglePhotosTokens;
 
 // Load Google Photos
 async function loadGooglePhotos() {
