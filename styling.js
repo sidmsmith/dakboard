@@ -1050,7 +1050,8 @@ function applyCurrentStylesToWidget(widget) {
       break;
     case 'gradient':
       if (currentStyles.gradientColor1 && currentStyles.gradientColor2) {
-        if (!isApplyingToAll || applyToAllFlags.gradientColor1) {
+        // Always apply if not applying to all, or if apply-to-all flag is set
+        if (!isApplyingToAll || applyToAllFlags.gradientColor1 || applyToAllFlags.gradientColor2) {
           const direction = currentStyles.gradientDirection || 'to bottom';
           widget.style.backgroundImage = `linear-gradient(${direction}, ${currentStyles.gradientColor1}, ${currentStyles.gradientColor2})`;
         }
@@ -1058,6 +1059,7 @@ function applyCurrentStylesToWidget(widget) {
       break;
     case 'image':
       if (currentStyles.backgroundImageUrl) {
+        // Always apply if not applying to all, or if apply-to-all flag is set
         if (!isApplyingToAll || applyToAllFlags.backgroundImageUrl) {
           widget.style.backgroundImage = `url(${currentStyles.backgroundImageUrl})`;
           widget.style.backgroundRepeat = currentStyles.backgroundRepeat || 'no-repeat';
@@ -1068,6 +1070,7 @@ function applyCurrentStylesToWidget(widget) {
       break;
     case 'pattern':
       if (currentStyles.patternType && currentStyles.patternColor) {
+        // Always apply if not applying to all, or if apply-to-all flag is set
         if (!isApplyingToAll || applyToAllFlags.patternType || applyToAllFlags.patternColor) {
           const patternSize = currentStyles.patternSize || 20;
           const patternCSS = generatePatternCSS(currentStyles.patternType, currentStyles.patternColor, patternSize);
@@ -1080,6 +1083,8 @@ function applyCurrentStylesToWidget(widget) {
           if (bgSizeMatch) {
             widget.style.backgroundSize = bgSizeMatch[1].trim();
           }
+          // Set a default background color so the pattern is visible
+          widget.style.backgroundColor = '#1a1a1a';
         }
       }
       break;
