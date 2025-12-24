@@ -561,27 +561,38 @@ function generateAdvancedTab() {
 // Attach event listeners for current tab
 function attachTabEventListeners(tabName) {
   if (tabName === 'background') {
+    // Background type selector - must be first to set initial visibility
+    const bgType = document.getElementById('bg-type');
+    if (bgType) {
+      // Set initial section visibility based on current value
+      const initialType = bgType.value || 'solid';
+      showWidgetBackgroundSection(initialType);
+      
+      bgType.addEventListener('change', (e) => {
+        currentStyles.backgroundType = e.target.value;
+        showWidgetBackgroundSection(e.target.value);
+        updatePreview();
+      });
+    }
+    
     const bgColor = document.getElementById('bg-color');
     const bgColorText = document.getElementById('bg-color-text');
     
-    bgColor.addEventListener('input', (e) => {
-      bgColorText.value = e.target.value;
-      currentStyles.backgroundColor = e.target.value;
-      updatePreview();
-    });
-    
-    bgColorText.addEventListener('input', (e) => {
-      if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
-        bgColor.value = e.target.value;
+    if (bgColor && bgColorText) {
+      bgColor.addEventListener('input', (e) => {
+        bgColorText.value = e.target.value;
         currentStyles.backgroundColor = e.target.value;
         updatePreview();
-      }
-    });
-
-    document.getElementById('bg-type').addEventListener('change', (e) => {
-      currentStyles.backgroundType = e.target.value;
-      updatePreview();
-    });
+      });
+      
+      bgColorText.addEventListener('input', (e) => {
+        if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+          bgColor.value = e.target.value;
+          currentStyles.backgroundColor = e.target.value;
+          updatePreview();
+        }
+      });
+    }
 
     const opacity = document.getElementById('opacity');
     const opacityValue = document.getElementById('opacity-value');
