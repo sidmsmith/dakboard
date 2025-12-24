@@ -928,10 +928,23 @@ function updatePreview() {
       const gradColor1El = document.getElementById('bg-gradient-color1');
       const gradColor2El = document.getElementById('bg-gradient-color2');
       const gradDirEl = document.getElementById('bg-gradient-direction');
-      const gradColor1 = currentStyles.gradientColor1 || gradColor1El?.value || '#2a2a2a';
-      const gradColor2 = currentStyles.gradientColor2 || gradColor2El?.value || '#3a3a3a';
-      const gradDir = currentStyles.gradientDirection || gradDirEl?.value || 'to bottom';
-      console.log('Preview - Gradient:', { gradColor1, gradColor2, gradDir, gradColor1El: !!gradColor1El, gradColor2El: !!gradColor2El, gradDirEl: !!gradDirEl, currentStyles: currentStyles.gradientColor1 });
+      // Always read from form inputs first, then fall back to currentStyles, then defaults
+      const gradColor1 = gradColor1El?.value || currentStyles.gradientColor1 || '#2a2a2a';
+      const gradColor2 = gradColor2El?.value || currentStyles.gradientColor2 || '#3a3a3a';
+      const gradDir = gradDirEl?.value || currentStyles.gradientDirection || 'to bottom';
+      console.log('Preview - Gradient:', { 
+        gradColor1, 
+        gradColor2, 
+        gradDir, 
+        gradColor1El: !!gradColor1El,
+        gradColor1ElValue: gradColor1El?.value,
+        gradColor2El: !!gradColor2El,
+        gradColor2ElValue: gradColor2El?.value,
+        gradDirEl: !!gradDirEl,
+        gradDirElValue: gradDirEl?.value,
+        currentStylesGrad1: currentStyles.gradientColor1,
+        currentStylesGrad2: currentStyles.gradientColor2
+      });
       if (gradColor1 && gradColor2) {
         preview.style.backgroundImage = `linear-gradient(${gradDir}, ${gradColor1}, ${gradColor2})`;
         console.log('Preview - Applied gradient:', preview.style.backgroundImage);
