@@ -580,15 +580,24 @@ async function fetchMonthEvents(monthStart, monthEnd) {
               const serviceData = await serviceResponse.json();
               let events = [];
               
+              // Same parsing logic as weekly calendar
               if (serviceData.service_response && serviceData.service_response[calEntityId]) {
                 const calendarData = serviceData.service_response[calEntityId];
-                events = calendarData.events || (Array.isArray(calendarData) ? calendarData : []);
+                if (calendarData.events && Array.isArray(calendarData.events)) {
+                  events = calendarData.events;
+                } else if (Array.isArray(calendarData)) {
+                  events = calendarData;
+                }
               } else if (serviceData[calEntityId]) {
                 const calendarData = serviceData[calEntityId];
-                events = calendarData.events || (Array.isArray(calendarData) ? calendarData : []);
+                if (calendarData.events && Array.isArray(calendarData.events)) {
+                  events = calendarData.events;
+                } else if (Array.isArray(calendarData)) {
+                  events = calendarData;
+                }
               } else if (Array.isArray(serviceData)) {
                 events = serviceData;
-              } else if (serviceData.events) {
+              } else if (serviceData.events && Array.isArray(serviceData.events)) {
                 events = serviceData.events;
               }
               
