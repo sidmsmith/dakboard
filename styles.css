@@ -74,6 +74,42 @@ body {
   font-size: 18px;
   font-weight: 600;
   color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calendar-icon {
+  color: #4a90e2;
+  flex-shrink: 0;
+}
+
+.month-view-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px; /* 75% of 18px */
+  font-weight: 600;
+  color: #fff;
+  background: #3a3a3a;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.month-view-btn:hover {
+  background: #4a4a4a;
+}
+
+.month-icon {
+  color: #4a90e2;
+  flex-shrink: 0;
+}
+
+.month-text {
+  color: #fff;
 }
 
 /* Blank Widget - No padding, completely empty */
@@ -965,6 +1001,9 @@ body {
   grid-template-columns: repeat(7, 1fr);
   gap: 8px;
   margin-top: 16px;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .month-calendar-day-header {
@@ -978,7 +1017,8 @@ body {
 }
 
 .month-calendar-day {
-  min-height: 120px;
+  min-height: 0;
+  height: 100%;
   background: #1f1f1f;
   border: 1px solid #3a3a3a;
   border-radius: 8px;
@@ -986,6 +1026,7 @@ body {
   display: flex;
   flex-direction: column;
   transition: all 0.2s;
+  overflow: hidden;
 }
 
 .month-calendar-day:hover {

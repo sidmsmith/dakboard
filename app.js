@@ -609,8 +609,9 @@ async function fetchMonthEvents(monthStart, monthEnd) {
         }
         monthEvents = allEvents;
       }
-    } else if (window.CONFIG && window.CONFIG.API_URL) {
-      const response = await fetch(`${window.CONFIG.API_URL}/api/ha-calendar?start=${monthStart.toISOString()}&end=${monthEnd.toISOString()}`);
+    } else {
+      // Use serverless function (for Vercel production) - match weekly calendar format
+      const response = await fetch(`/api/ha-calendar?startDate=${monthStart.toISOString()}&endDate=${monthEnd.toISOString()}`);
       if (response.ok) {
         const data = await response.json();
         monthEvents = data.events || [];
