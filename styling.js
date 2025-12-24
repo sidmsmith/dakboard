@@ -1067,31 +1067,39 @@ function applyCurrentStylesToWidget(widget) {
       }
       break;
     case 'gradient':
-      if (currentStyles.gradientColor1 && currentStyles.gradientColor2) {
+      // Get values from form inputs if not in currentStyles
+      const gradColor1 = currentStyles.gradientColor1 || document.getElementById('bg-gradient-color1')?.value || '#2a2a2a';
+      const gradColor2 = currentStyles.gradientColor2 || document.getElementById('bg-gradient-color2')?.value || '#3a3a3a';
+      const gradDir = currentStyles.gradientDirection || document.getElementById('bg-gradient-direction')?.value || 'to bottom';
+      if (gradColor1 && gradColor2) {
         // Always apply if not applying to all, or if apply-to-all flag is set
         if (!isApplyingToAll || applyToAllFlags.gradientColor1 || applyToAllFlags.gradientColor2) {
-          const direction = currentStyles.gradientDirection || 'to bottom';
-          widget.style.backgroundImage = `linear-gradient(${direction}, ${currentStyles.gradientColor1}, ${currentStyles.gradientColor2})`;
+          widget.style.backgroundImage = `linear-gradient(${gradDir}, ${gradColor1}, ${gradColor2})`;
         }
       }
       break;
     case 'image':
-      if (currentStyles.backgroundImageUrl) {
+      // Get values from form inputs if not in currentStyles
+      const imgUrl = currentStyles.backgroundImageUrl || document.getElementById('bg-image-url')?.value || '';
+      if (imgUrl) {
         // Always apply if not applying to all, or if apply-to-all flag is set
         if (!isApplyingToAll || applyToAllFlags.backgroundImageUrl) {
-          widget.style.backgroundImage = `url(${currentStyles.backgroundImageUrl})`;
-          widget.style.backgroundRepeat = currentStyles.backgroundRepeat || 'no-repeat';
-          widget.style.backgroundPosition = currentStyles.backgroundPosition || 'center';
-          widget.style.backgroundSize = currentStyles.backgroundSize || 'cover';
+          widget.style.backgroundImage = `url(${imgUrl})`;
+          widget.style.backgroundRepeat = currentStyles.backgroundRepeat || document.getElementById('bg-image-repeat')?.value || 'no-repeat';
+          widget.style.backgroundPosition = currentStyles.backgroundPosition || document.getElementById('bg-image-position')?.value || 'center';
+          widget.style.backgroundSize = currentStyles.backgroundSize || document.getElementById('bg-image-size')?.value || 'cover';
         }
       }
       break;
     case 'pattern':
-      if (currentStyles.patternType && currentStyles.patternColor) {
+      // Get values from form inputs if not in currentStyles
+      const patType = currentStyles.patternType || document.getElementById('bg-pattern-type')?.value || 'dots';
+      const patColor = currentStyles.patternColor || document.getElementById('bg-pattern-color')?.value || '#3a3a3a';
+      const patSize = currentStyles.patternSize !== undefined ? currentStyles.patternSize : (parseInt(document.getElementById('bg-pattern-size')?.value || 20));
+      if (patType && patColor) {
         // Always apply if not applying to all, or if apply-to-all flag is set
         if (!isApplyingToAll || applyToAllFlags.patternType || applyToAllFlags.patternColor) {
-          const patternSize = currentStyles.patternSize || 20;
-          const patternCSS = generatePatternCSS(currentStyles.patternType, currentStyles.patternColor, patternSize);
+          const patternCSS = generatePatternCSS(patType, patColor, patSize);
           // Extract background-image and background-size from pattern CSS
           const bgImageMatch = patternCSS.match(/background-image:\s*([^;]+);/);
           const bgSizeMatch = patternCSS.match(/background-size:\s*([^;]+);/);
