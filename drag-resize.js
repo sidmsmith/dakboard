@@ -19,7 +19,7 @@ function loadWidgetLayout() {
       Object.keys(layout).forEach(widgetId => {
         const widget = document.querySelector(`.${widgetId}`);
         if (widget && layout[widgetId]) {
-          const { x, y, width, height } = layout[widgetId];
+          const { x, y, width, height, zIndex } = layout[widgetId];
           // Ensure widgets are within viewport
           const viewportWidth = window.innerWidth;
           const viewportHeight = window.innerHeight;
@@ -134,7 +134,7 @@ function initializeDragAndResize() {
       
       // Make widget draggable (only in edit mode)
       // In edit mode, entire widget is draggable; in normal mode, no dragging
-      cleanWidget.addEventListener('mousedown', (e) => {
+      widget.addEventListener('mousedown', (e) => {
         // Check if edit mode is active (check dashboard class or global variable)
         const dashboard = document.querySelector('.dashboard');
         const inEditMode = dashboard && dashboard.classList.contains('edit-mode');
@@ -159,7 +159,7 @@ function initializeDragAndResize() {
         }
         
         console.log('  - Drag started (edit mode)');
-        startDrag(cleanWidget, e);
+        startDrag(widget, e);
       });
       
       // Update scale on initial load
