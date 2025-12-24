@@ -1097,6 +1097,8 @@ function updateCurrentStylesFromForm() {
     if (bgType.value === 'solid') {
       const bgColor = stylingModal.querySelector('#bg-color');
       if (bgColor) currentStyles.backgroundColor = bgColor.value;
+    } else if (bgType.value === 'transparent') {
+      currentStyles.backgroundColor = 'transparent';
     } else if (bgType.value === 'gradient') {
       const gradColor1 = stylingModal.querySelector('#bg-gradient-color1');
       const gradColor2 = stylingModal.querySelector('#bg-gradient-color2');

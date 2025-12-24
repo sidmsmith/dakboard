@@ -32,8 +32,11 @@ function loadWidgetLayout() {
           widget.style.top = `${clampedY}px`;
           widget.style.width = `${width}px`;
           widget.style.height = `${height}px`;
+          if (zIndex !== undefined) {
+            widget.style.zIndex = zIndex;
+          }
           updateWidgetScale(widget);
-          console.log(`Loaded ${widgetId}: x=${clampedX}, y=${clampedY}, w=${width}, h=${height}`);
+          console.log(`Loaded ${widgetId}: x=${clampedX}, y=${clampedY}, w=${width}, h=${height}, z=${zIndex || 1}`);
         }
       });
     } else {
