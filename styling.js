@@ -48,6 +48,8 @@ function openStylingModal(widgetId) {
 
   // Load current styles
   loadWidgetStyles(widgetId);
+  
+  console.log('openStylingModal - Loaded styles:', currentStyles);
 
   // Show modal
   document.getElementById('styling-modal').classList.add('active');
@@ -55,8 +57,10 @@ function openStylingModal(widgetId) {
   // Switch to first tab
   switchTab('background');
   
-  // Update preview
-  updatePreview();
+  // Small delay to ensure DOM is ready, then update preview
+  setTimeout(() => {
+    updatePreview();
+  }, 100);
 }
 
 // Close styling modal
