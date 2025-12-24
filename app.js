@@ -9,6 +9,7 @@ const CONFIG = {
   HA_GARAGE_DOOR_2: 'binary_sensor.z_wave_garage_door_sensor_sensor_state_any_2',
   HA_GARAGE_DOOR_3: 'binary_sensor.z_wave_garage_door_sensor_sensor_state_any_3',
   HA_ALARM_ENTITY: 'alarm_control_panel.dev_ttyusb0_alarm_panel', // Update with your alarm entity ID
+  HA_GOOGLE_PHOTOS_ENTRY_ID: '01KD8GRF62D7Z5QN0RH0HSJNSA', // Google Photos Entry ID
   
   // Home Assistant Webhook IDs (for triggering actions)
   // Just the webhook ID, not the full URL - the code will handle the URL construction
@@ -961,6 +962,7 @@ async function loadAllData() {
       loadTodos(),
       loadGarageDoors(),
       loadAlarm(),
+      loadGooglePhotos(),
       loadCalendarEvents() // Reload calendar events on refresh
     ]);
   } catch (error) {
@@ -1881,6 +1883,106 @@ async function toggleAlarm() {
   }
 }
 
+// Find Google Photos entity by entry ID
+async function findGooglePhotosEntity(entryId) {
+  try {
+    const allStates = await fetchAllHAStates();
+    if (!allStates) return null;
+    
+    // Search for image entities that match the entry ID
+    const photoEntity = allStates.find(state => {
+      if (!state.entity_id) return false;
+      
+      // Check if it's an image entity (could be image.* or camera.*)
+      const isImageEntity = state.entity_id.startsWith('image.') || 
+                           state.entity_id.startsWith('camera.');
+      
+      if (isImageEntity) {
+        const attrs = state.attributes || {};
+        // Check various possible locations for the entry ID
+        return attrs.entry_id === entryId || 
+               attrs.entryId === entryId ||
+               attrs.google_photos_entry_id === entryId ||
+               attrs.googlePhotosEntryId === entryId ||
+               attrs.id === entryId ||
+               state.entity_id.includes(entryId) ||
+               (attrs.friendly_name && attrs.friendly_name.includes(entryId));
+      }
+      return false;
+    });
+    
+    return photoEntity || null;
+  } catch (error) {
+    console.error('Error finding Google Photos entity:', error);
+    return null;
+  }
+}
+
+// Load Google Photos from HA
+async function loadGooglePhotos() {
+  try {
+    const container = document.getElementById('photos-content');
+    if (!container) return;
+    
+    // Find the entity by entry ID
+    const photoEntity = await findGooglePhotosEntity(CONFIG.HA_GOOGLE_PHOTOS_ENTRY_ID);
+    
+    if (!photoEntity) {
+      // Show placeholder if entity not found
+      container.innerHTML = `
+        <div class="photos-placeholder">
+          <div class="photos-icon">📷</div>
+          <h3>Google Photos Not Found</h3>
+          <p>Entity with Entry ID "${CONFIG.HA_GOOGLE_PHOTOS_ENTRY_ID}" not found.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    // Get image URL from entity
+    const attrs = photoEntity.attributes || {};
+    let imageUrl = attrs.entity_picture || attrs.media_content_id || attrs.url;
+    
+    // If it's a relative URL, make it absolute using HA URL
+    if (imageUrl && imageUrl.startsWith('/')) {
+      if (window.CONFIG && window.CONFIG.HA_URL) {
+        imageUrl = `${window.CONFIG.HA_URL}${imageUrl}`;
+      } else {
+        // For production, we might need to proxy through an API endpoint
+        imageUrl = `/api/ha-proxy-image?url=${encodeURIComponent(imageUrl)}`;
+      }
+    }
+    
+    if (imageUrl) {
+      container.innerHTML = `
+        <div class="photos-display">
+          <img src="${imageUrl}" alt="Google Photo" class="photos-image" />
+        </div>
+      `;
+    } else {
+      container.innerHTML = `
+        <div class="photos-placeholder">
+          <div class="photos-icon">📷</div>
+          <h3>No Image Available</h3>
+          <p>Entity found but no image URL available.</p>
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error('Error loading Google Photos:', error);
+    const container = document.getElementById('photos-content');
+    if (container) {
+      container.innerHTML = `
+        <div class="photos-placeholder">
+          <div class="photos-icon">📷</div>
+          <h3>Error Loading Photos</h3>
+          <p>${error.message}</p>
+        </div>
+      `;
+    }
+  }
+}
+
 // Fetch HA entity via API (works both locally and in production)
 async function fetchHAEntity(entityId) {
   try {
@@ -2095,6 +2197,16 @@ function setEditMode(enabled) {
       dashboard.classList.add('edit-mode');
     } else {
       dashboard.classList.remove('edit-mode');
+    }
+  }
+  
+  // Toggle watermark visibility
+  const watermark = document.getElementById('edit-mode-watermark');
+  if (watermark) {
+    if (enabled) {
+      watermark.classList.add('show');
+    } else {
+      watermark.classList.remove('show');
     }
   }
   
