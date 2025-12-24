@@ -406,7 +406,9 @@ function renderCalendar() {
       // Add click handler to show event details
       eventDiv.addEventListener('click', (e) => {
         e.stopPropagation();
-        showEventDetails(event);
+        if (!isEditMode) {
+          showEventDetails(event);
+        }
       });
       
       eventsDiv.appendChild(eventDiv);
@@ -444,6 +446,9 @@ function closeMonthModal() {
 
 // Show hourly forecast modal
 function showHourlyForecast(dayOffset, dayName, high, low) {
+  // Don't allow interaction in edit mode
+  if (isEditMode) return;
+  
   const modal = document.getElementById('hourly-modal');
   const title = document.getElementById('hourly-modal-title');
   const content = document.getElementById('hourly-forecast-content');
@@ -471,6 +476,9 @@ function closeHourlyModal() {
 
 // Show calendar event details modal
 function showEventDetails(event) {
+  // Don't allow interaction in edit mode
+  if (isEditMode) return;
+  
   const modal = document.getElementById('event-modal');
   const title = document.getElementById('event-modal-title');
   const content = document.getElementById('event-details-content');
@@ -999,7 +1007,9 @@ function renderForecast(forecastData, attrs) {
     forecastItem.addEventListener('click', (function(offset, name, highTemp, lowTemp) {
       return function(e) {
         e.stopPropagation();
-        showHourlyForecast(offset, name, highTemp, lowTemp);
+        if (!isEditMode) {
+          showHourlyForecast(offset, name, highTemp, lowTemp);
+        }
       };
     })(dayOffsetForClick, day.dayName, day.high, day.low));
     
@@ -1303,8 +1313,10 @@ function createTodoItem(item, entityId, isCompleted = false) {
   }
   checkbox.addEventListener('click', (e) => {
     e.stopPropagation(); // Prevent event bubbling
-    // Checkbox clicked
-    toggleTodoItem(entityId, item.uid, !isCompleted);
+    if (!isEditMode) {
+      // Checkbox clicked
+      toggleTodoItem(entityId, item.uid, !isCompleted);
+    }
   });
   
   const text = document.createElement('span');
@@ -1319,6 +1331,8 @@ function createTodoItem(item, entityId, isCompleted = false) {
 
 // Toggle todo item completion
 async function toggleTodoItem(entityId, itemUid, complete) {
+  // Don't allow interaction in edit mode
+  if (isEditMode) return;
   
   try {
     const action = complete ? 'complete' : 'uncomplete';
@@ -1481,7 +1495,11 @@ async function loadGarageDoors() {
         <div class="garage-door-name">${door.name}</div>
       `;
       
-      doorDiv.addEventListener('click', () => toggleGarageDoor(doorDiv));
+      doorDiv.addEventListener('click', (e) => {
+        if (!isEditMode) {
+          toggleGarageDoor(doorDiv);
+        }
+      });
       container.appendChild(doorDiv);
     } catch (error) {
       console.error(`Error loading garage door ${door.id}:`, error);
@@ -1533,6 +1551,9 @@ function showToast(message, duration = 1000) {
 
 // Toggle garage door
 async function toggleGarageDoor(doorElement) {
+  // Don't allow interaction in edit mode
+  if (isEditMode) return;
+  
   const webhookId = doorElement.dataset.webhookId;
   if (!webhookId) {
     console.error('No webhook ID for garage door');
@@ -1596,6 +1617,9 @@ async function loadAlarm() {
 
 // Toggle alarm
 async function toggleAlarm() {
+  // Don't allow interaction in edit mode
+  if (isEditMode) return;
+  
   const icon = document.getElementById('alarm-icon');
   icon.classList.add('loading');
   
@@ -1752,11 +1776,15 @@ function toggleWidgetVisibility(widgetId) {
   }
 }
 
+// Edit mode state
+let isEditMode = false;
+
 // Initialize widget control panel
 function initializeWidgetControlPanel() {
   const toggleBtn = document.getElementById('widget-control-toggle');
   const panel = document.getElementById('widget-control-panel');
   const closeBtn = document.getElementById('close-widget-panel');
+  const editModeToggle = document.getElementById('edit-layout-toggle');
   
   if (!toggleBtn || !panel) {
     console.error('Widget control panel elements not found');
@@ -1778,6 +1806,17 @@ function initializeWidgetControlPanel() {
     });
   }
   
+  // Edit mode toggle
+  if (editModeToggle) {
+    editModeToggle.addEventListener('change', (e) => {
+      setEditMode(e.target.checked);
+    });
+    // Load saved edit mode state
+    const savedEditMode = localStorage.getItem('dakboard-edit-mode') === 'true';
+    editModeToggle.checked = savedEditMode;
+    setEditMode(savedEditMode);
+  }
+  
   // Close panel when clicking outside
   document.addEventListener('click', (e) => {
     if (panel && panel.classList.contains('open') && 
@@ -1793,6 +1832,37 @@ function initializeWidgetControlPanel() {
   });
   
   updateWidgetControlPanel();
+}
+
+// Set edit mode on/off
+function setEditMode(enabled) {
+  isEditMode = enabled;
+  localStorage.setItem('dakboard-edit-mode', enabled ? 'true' : 'false');
+  
+  const dashboard = document.querySelector('.dashboard');
+  if (dashboard) {
+    if (enabled) {
+      dashboard.classList.add('edit-mode');
+    } else {
+      dashboard.classList.remove('edit-mode');
+    }
+  }
+  
+  // Update all widgets
+  document.querySelectorAll('.widget').forEach(widget => {
+    if (enabled) {
+      widget.classList.add('edit-mode-active');
+      widget.style.pointerEvents = 'auto'; // Allow dragging
+    } else {
+      widget.classList.remove('edit-mode-active');
+      widget.style.pointerEvents = ''; // Reset to default
+    }
+  });
+  
+  // Reinitialize drag/resize if needed
+  if (enabled) {
+    initializeDragAndResize();
+  }
 }
 
 // Update widget control panel with current widget states
@@ -1869,9 +1939,9 @@ function updateWidgetControlPanel() {
       }
     });
     
-    // Z-index controls
+    // Z-index controls (promotion = green, demotion = red)
     const bringForwardBtn = document.createElement('button');
-    bringForwardBtn.className = 'widget-control-zindex-btn';
+    bringForwardBtn.className = 'widget-control-zindex-btn widget-control-zindex-promote';
     bringForwardBtn.innerHTML = '↑';
     bringForwardBtn.title = 'Bring Forward';
     bringForwardBtn.addEventListener('click', (e) => {
@@ -1880,7 +1950,7 @@ function updateWidgetControlPanel() {
     });
 
     const sendBackwardBtn = document.createElement('button');
-    sendBackwardBtn.className = 'widget-control-zindex-btn';
+    sendBackwardBtn.className = 'widget-control-zindex-btn widget-control-zindex-demote';
     sendBackwardBtn.innerHTML = '↓';
     sendBackwardBtn.title = 'Send Backward';
     sendBackwardBtn.addEventListener('click', (e) => {
@@ -1889,7 +1959,7 @@ function updateWidgetControlPanel() {
     });
 
     const bringToFrontBtn = document.createElement('button');
-    bringToFrontBtn.className = 'widget-control-zindex-btn';
+    bringToFrontBtn.className = 'widget-control-zindex-btn widget-control-zindex-promote';
     bringToFrontBtn.innerHTML = '⬆';
     bringToFrontBtn.title = 'Bring to Front';
     bringToFrontBtn.addEventListener('click', (e) => {
@@ -1898,7 +1968,7 @@ function updateWidgetControlPanel() {
     });
 
     const sendToBackBtn = document.createElement('button');
-    sendToBackBtn.className = 'widget-control-zindex-btn';
+    sendToBackBtn.className = 'widget-control-zindex-btn widget-control-zindex-demote';
     sendToBackBtn.innerHTML = '⬇';
     sendToBackBtn.title = 'Send to Back';
     sendToBackBtn.addEventListener('click', (e) => {

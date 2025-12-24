@@ -1329,9 +1329,6 @@ body {
 }
 
 .widget-control-zindex-btn {
-  background: transparent;
-  border: 2px solid #27ae60;
-  color: #27ae60;
   width: 28px;
   height: 28px;
   border-radius: 4px;
@@ -1344,10 +1341,27 @@ body {
   font-weight: bold;
   padding: 0;
   flex-shrink: 0;
+  border: 2px solid;
+  background: transparent;
 }
 
-.widget-control-zindex-btn:hover {
+.widget-control-zindex-promote {
+  border-color: #27ae60;
+  color: #27ae60;
+}
+
+.widget-control-zindex-promote:hover {
   background: #27ae60;
+  color: #fff;
+}
+
+.widget-control-zindex-demote {
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
+.widget-control-zindex-demote:hover {
+  background: #e74c3c;
   color: #fff;
 }
 

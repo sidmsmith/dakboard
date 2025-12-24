@@ -132,27 +132,35 @@ function initializeDragAndResize() {
       // Add resize handles
       addResizeHandles(widget);
       
-      // Make header draggable (or entire widget if no header)
-      const header = widget.querySelector('.widget-header');
-      if (header) {
-        console.log(`  - Header found, adding drag listener`);
-        header.addEventListener('mousedown', (e) => {
-          if (e.target.closest('.resize-handle')) return; // Don't drag if clicking resize handle
-          if (e.target.tagName === 'BUTTON') return; // Don't drag if clicking buttons
-          console.log('  - Drag started');
-          startDrag(widget, e);
-        });
-      } else {
-        // For widgets without headers (like blank widget), make the entire widget draggable
-        console.log(`  - No header found, making entire widget draggable`);
-        widget.addEventListener('mousedown', (e) => {
-          // Only start drag if not clicking on resize handles
-          if (!e.target.classList.contains('resize-handle') && !e.target.closest('.resize-handle')) {
-            console.log('  - Drag started (no header)');
-            startDrag(widget, e);
-          }
-        });
-      }
+      // Make widget draggable (only in edit mode)
+      // In edit mode, entire widget is draggable; in normal mode, no dragging
+      widget.addEventListener('mousedown', (e) => {
+        // Check if edit mode is active (check dashboard class or global variable)
+        const dashboard = document.querySelector('.dashboard');
+        const inEditMode = dashboard && dashboard.classList.contains('edit-mode');
+        
+        if (!inEditMode) {
+          return; // Don't allow dragging in normal mode
+        }
+        
+        // Don't drag if clicking on resize handles
+        if (e.target.classList.contains('resize-handle') || e.target.closest('.resize-handle')) {
+          return;
+        }
+        
+        // Don't drag if clicking on buttons or interactive elements
+        if (e.target.tagName === 'BUTTON' || 
+            e.target.tagName === 'INPUT' || 
+            e.target.tagName === 'SELECT' ||
+            e.target.closest('button') ||
+            e.target.closest('input') ||
+            e.target.closest('select')) {
+          return;
+        }
+        
+        console.log('  - Drag started (edit mode)');
+        startDrag(widget, e);
+      });
       
       // Update scale on initial load
       updateWidgetScale(widget);
