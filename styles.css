@@ -1245,6 +1245,17 @@ body {
   opacity: 0.6;
 }
 
+.widget-control-separator {
+  height: 1px;
+  background: #3a3a3a;
+  margin: 12px 0;
+}
+
+.dashboard-bg-item {
+  background: #1f1f1f;
+  border: 1px solid #3a3a3a;
+}
+
 .widget-control-toggle-btn {
   background: transparent;
   border: 2px solid #4a90e2;
