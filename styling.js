@@ -135,6 +135,7 @@ function generateBackgroundTab() {
           <div class="styling-form-control">
             <select id="bg-type">
               <option value="solid" ${bgType === 'solid' ? 'selected' : ''}>Solid Color</option>
+              <option value="transparent" ${bgType === 'transparent' ? 'selected' : ''}>Transparent</option>
               <option value="gradient" ${bgType === 'gradient' ? 'selected' : ''}>Gradient</option>
               <option value="pattern" ${bgType === 'pattern' ? 'selected' : ''}>Pattern</option>
               <option value="image" ${bgType === 'image' ? 'selected' : ''}>Image (URL)</option>

@@ -1833,8 +1833,15 @@ function updateWidgetControlPanel() {
   const separator = document.createElement('div');
   separator.className = 'widget-control-separator';
   list.appendChild(separator);
-  
-  Object.keys(WIDGET_CONFIG).forEach(widgetId => {
+
+  // Sort widgets alphabetically by name
+  const sortedWidgets = Object.keys(WIDGET_CONFIG).sort((a, b) => {
+    const nameA = WIDGET_CONFIG[a].name.toLowerCase();
+    const nameB = WIDGET_CONFIG[b].name.toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
+
+  sortedWidgets.forEach(widgetId => {
     const config = WIDGET_CONFIG[widgetId];
     const widget = document.querySelector(`.${widgetId}`);
     const isHidden = widget && widget.classList.contains('hidden');
@@ -1873,6 +1880,57 @@ function updateWidgetControlPanel() {
     
     list.appendChild(item);
   });
+}
+
+// Z-index control functions
+function bringWidgetForward(widgetId) {
+  const widget = document.querySelector(`.${widgetId}`);
+  if (!widget) return;
+  
+  const currentZ = parseInt(window.getComputedStyle(widget).zIndex) || 1;
+  const allWidgets = Array.from(document.querySelectorAll('.widget'));
+  const maxZ = Math.max(...allWidgets.map(w => parseInt(window.getComputedStyle(w).zIndex) || 1));
+  
+  if (currentZ < maxZ) {
+    widget.style.zIndex = currentZ + 1;
+    saveWidgetLayout(); // Save z-index changes
+  }
+}
+
+function sendWidgetBackward(widgetId) {
+  const widget = document.querySelector(`.${widgetId}`);
+  if (!widget) return;
+  
+  const currentZ = parseInt(window.getComputedStyle(widget).zIndex) || 1;
+  const allWidgets = Array.from(document.querySelectorAll('.widget'));
+  const minZ = Math.min(...allWidgets.map(w => parseInt(window.getComputedStyle(w).zIndex) || 1));
+  
+  if (currentZ > minZ) {
+    widget.style.zIndex = currentZ - 1;
+    saveWidgetLayout(); // Save z-index changes
+  }
+}
+
+function bringWidgetToFront(widgetId) {
+  const widget = document.querySelector(`.${widgetId}`);
+  if (!widget) return;
+  
+  const allWidgets = Array.from(document.querySelectorAll('.widget'));
+  const maxZ = Math.max(...allWidgets.map(w => parseInt(window.getComputedStyle(w).zIndex) || 1));
+  
+  widget.style.zIndex = maxZ + 1;
+  saveWidgetLayout(); // Save z-index changes
+}
+
+function sendWidgetToBack(widgetId) {
+  const widget = document.querySelector(`.${widgetId}`);
+  if (!widget) return;
+  
+  const allWidgets = Array.from(document.querySelectorAll('.widget'));
+  const minZ = Math.min(...allWidgets.map(w => parseInt(window.getComputedStyle(w).zIndex) || 1));
+  
+  widget.style.zIndex = minZ - 1;
+  saveWidgetLayout(); // Save z-index changes
 }
 
 // Start auto-refresh
