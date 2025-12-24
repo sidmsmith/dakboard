@@ -32,6 +32,27 @@ This guide will help you set up Google Photos API integration for the Dakboard.
 2. Search for "Google Photos Library API"
 3. Click on it and click **Enable**
 
+## Step 2.5: Configure OAuth Consent Screen Scopes (IMPORTANT!)
+
+**This is critical for the scope error!**
+
+1. In Google Cloud Console, go to **APIs & Services** > **OAuth consent screen**
+2. Click **Edit App** (if you haven't configured it yet, complete the initial setup first)
+3. Scroll down to the **Scopes** section
+4. Click **Add or Remove Scopes**
+5. In the filter/search box, type: `photoslibrary`
+6. Find and **check the box** for:
+   - `https://www.googleapis.com/auth/photoslibrary.readonly` 
+   - This should show as "See and download all your Google Photos library content"
+7. Click **Update** to save
+8. Click **Save and Continue** on the OAuth consent screen
+9. **Important:** If your app is in "Testing" mode:
+   - Go to **Test users** section
+   - Click **Add Users**
+   - Add your Google account email address
+   - Click **Add**
+10. Click **Save and Continue** to finish
+
 ## Step 3: Configure Vercel Environment Variables
 
 1. Go to your Vercel project dashboard
