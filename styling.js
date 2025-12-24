@@ -677,7 +677,7 @@ function applyStyles() {
   widgetsToStyle.forEach(widget => {
     if (!widget) return;
     
-    applyStylesToWidget(widget);
+    applyCurrentStylesToWidget(widget);
   });
 
   // Save styles
@@ -687,8 +687,8 @@ function applyStyles() {
   closeStylingModal();
 }
 
-// Apply styles to a single widget
-function applyStylesToWidget(widget) {
+// Apply current styles to a single widget
+function applyCurrentStylesToWidget(widget) {
   // Background
   if (currentStyles.backgroundColor && (!applyToAllFlags.backgroundColor || applyToAllFlags.global)) {
     widget.style.backgroundColor = currentStyles.backgroundColor;
