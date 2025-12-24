@@ -177,6 +177,68 @@
     </div>
   </div>
 
+  <!-- Styling Modal -->
+  <div id="styling-modal" class="styling-modal-overlay">
+    <div class="styling-modal">
+      <div class="styling-modal-left">
+        <div class="styling-modal-header">
+          <h2 id="styling-modal-title">🎨 Style Widget</h2>
+          <button id="close-styling-modal" class="styling-close-btn">&times;</button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="styling-tabs">
+          <button class="styling-tab active" data-tab="background">Background</button>
+          <button class="styling-tab" data-tab="border">Border</button>
+          <button class="styling-tab" data-tab="shadow">Shadow</button>
+          <button class="styling-tab" data-tab="text">Text</button>
+          <button class="styling-tab" data-tab="layout">Layout</button>
+          <button class="styling-tab" data-tab="advanced">Advanced</button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="styling-tab-content" id="styling-tab-content">
+          <!-- Content will be populated by JavaScript -->
+        </div>
+
+        <!-- Dashboard Background Section -->
+        <div class="dashboard-bg-section">
+          <div class="dashboard-bg-title">Dashboard Background</div>
+          <div class="styling-form-row">
+            <label class="styling-form-label">Color</label>
+            <div class="styling-form-control">
+              <input type="color" id="dashboard-bg-color" value="#1a1a1a">
+              <input type="text" id="dashboard-bg-color-text" value="#1a1a1a" placeholder="#1a1a1a">
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="styling-modal-actions">
+          <button class="styling-btn styling-btn-outline" id="reset-styles-btn">Reset</button>
+          <button class="styling-btn styling-btn-secondary" id="save-theme-btn">Save as Theme</button>
+          <button class="styling-btn styling-btn-primary" id="apply-styles-btn">Apply</button>
+        </div>
+      </div>
+
+      <!-- Right Side: Preview -->
+      <div class="styling-modal-right">
+        <div class="styling-preview-panel">
+          <div class="styling-preview-title">Live Preview</div>
+          <div class="styling-preview-widget" id="styling-preview-widget">
+            <div class="styling-preview-header">
+              <div class="styling-preview-title-text" id="styling-preview-title">Widget Title</div>
+            </div>
+            <div class="styling-preview-content">
+              Preview updates in real-time as you adjust settings
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
+  <script src="styling.js"></script>
 </body>
 </html>

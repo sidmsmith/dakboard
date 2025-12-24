@@ -45,6 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeCalendar();
   initializeEventListeners();
   
+  // Styling system will initialize itself via styling.js
+  
   // Initialize drag and resize - with retry if function not available
   if (typeof initializeDragAndResize === 'function') {
     initializeDragAndResize(); // Initialize drag and resize functionality
