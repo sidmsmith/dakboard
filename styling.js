@@ -1042,14 +1042,12 @@ function applyCurrentStylesToWidget(widget) {
   // Background
   const bgType = currentStyles.backgroundType || 'solid';
   
-  // Clear previous background styles
-  if (!isApplyingToAll || applyToAllFlags.backgroundType || applyToAllFlags.backgroundColor) {
-    widget.style.backgroundColor = '';
-    widget.style.backgroundImage = '';
-    widget.style.backgroundRepeat = '';
-    widget.style.backgroundPosition = '';
-    widget.style.backgroundSize = '';
-  }
+  // Clear previous background styles (always clear when applying)
+  widget.style.backgroundColor = '';
+  widget.style.backgroundImage = '';
+  widget.style.backgroundRepeat = '';
+  widget.style.backgroundPosition = '';
+  widget.style.backgroundSize = '';
   
   switch(bgType) {
     case 'solid':
