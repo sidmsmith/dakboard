@@ -1319,7 +1319,10 @@ function openBackgroundModal() {
   const modal = document.getElementById('background-modal');
   if (modal) {
     modal.classList.add('active');
+    modal.style.display = 'flex';
     updateBackgroundPreview();
+  } else {
+    console.error('Background modal element not found');
   }
 }
 
