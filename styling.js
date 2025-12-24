@@ -920,8 +920,12 @@ function updatePreview() {
   const preview = document.getElementById('styling-preview-widget');
   if (!preview) return;
 
-  // Apply background based on type - read directly from form inputs (same as dashboard background)
-  const bgType = document.getElementById('bg-type')?.value || 'solid';
+  // Scope queries to the styling modal to avoid conflicts with dashboard background modal
+  const stylingModal = document.getElementById('styling-modal');
+  if (!stylingModal) return;
+  
+  // Apply background based on type - read directly from form inputs within styling modal
+  const bgType = stylingModal.querySelector('#bg-type')?.value || 'solid';
   
   // Clear previous background styles
   preview.style.backgroundColor = '';
@@ -933,25 +937,25 @@ function updatePreview() {
   
   switch(bgType) {
     case 'solid':
-      const solidColor = document.getElementById('bg-color')?.value || '#2a2a2a';
+      const solidColor = stylingModal.querySelector('#bg-color')?.value || '#2a2a2a';
       preview.style.backgroundColor = solidColor;
       break;
       
     case 'gradient':
-      const color1 = document.getElementById('bg-gradient-color1')?.value || '#2a2a2a';
-      const color2 = document.getElementById('bg-gradient-color2')?.value || '#3a3a3a';
-      const direction = document.getElementById('bg-gradient-direction')?.value || 'to bottom';
+      const color1 = stylingModal.querySelector('#bg-gradient-color1')?.value || '#2a2a2a';
+      const color2 = stylingModal.querySelector('#bg-gradient-color2')?.value || '#3a3a3a';
+      const direction = stylingModal.querySelector('#bg-gradient-direction')?.value || 'to bottom';
       preview.style.backgroundImage = `linear-gradient(${direction}, ${color1}, ${color2})`;
       break;
       
     case 'image':
-      const imageUrl = document.getElementById('bg-image-url')?.value || '';
+      const imageUrl = stylingModal.querySelector('#bg-image-url')?.value || '';
       if (imageUrl) {
         preview.style.backgroundImage = `url(${imageUrl})`;
-        preview.style.backgroundRepeat = document.getElementById('bg-image-repeat')?.value || 'no-repeat';
-        preview.style.backgroundPosition = document.getElementById('bg-image-position')?.value || 'center';
-        preview.style.backgroundSize = document.getElementById('bg-image-size')?.value || 'cover';
-        const imgOpacity = parseInt(document.getElementById('bg-image-opacity')?.value || 100);
+        preview.style.backgroundRepeat = stylingModal.querySelector('#bg-image-repeat')?.value || 'no-repeat';
+        preview.style.backgroundPosition = stylingModal.querySelector('#bg-image-position')?.value || 'center';
+        preview.style.backgroundSize = stylingModal.querySelector('#bg-image-size')?.value || 'cover';
+        const imgOpacity = parseInt(stylingModal.querySelector('#bg-image-opacity')?.value || 100);
         if (imgOpacity < 100) {
           preview.style.opacity = imgOpacity / 100;
         }
@@ -961,9 +965,9 @@ function updatePreview() {
       break;
       
     case 'pattern':
-      const patternType = document.getElementById('bg-pattern-type')?.value || 'dots';
-      const patternColor = document.getElementById('bg-pattern-color')?.value || '#3a3a3a';
-      const patternSize = parseInt(document.getElementById('bg-pattern-size')?.value || 20);
+      const patternType = stylingModal.querySelector('#bg-pattern-type')?.value || 'dots';
+      const patternColor = stylingModal.querySelector('#bg-pattern-color')?.value || '#3a3a3a';
+      const patternSize = parseInt(stylingModal.querySelector('#bg-pattern-size')?.value || 20);
       const patternCSS = generatePatternCSS(patternType, patternColor, patternSize);
       // Extract background-image and background-size from pattern CSS
       const bgImageMatch = patternCSS.match(/background-image:\s*([^;]+);/);
@@ -1071,45 +1075,49 @@ function applyStyles() {
 
 // Update currentStyles from form inputs
 function updateCurrentStylesFromForm() {
+  // Scope queries to the styling modal to avoid conflicts with dashboard background modal
+  const stylingModal = document.getElementById('styling-modal');
+  if (!stylingModal) return;
+  
   // Background type
-  const bgType = document.getElementById('bg-type');
+  const bgType = stylingModal.querySelector('#bg-type');
   if (bgType) {
     currentStyles.backgroundType = bgType.value;
     
     // Update values based on background type
     if (bgType.value === 'solid') {
-      const bgColor = document.getElementById('bg-color');
+      const bgColor = stylingModal.querySelector('#bg-color');
       if (bgColor) currentStyles.backgroundColor = bgColor.value;
     } else if (bgType.value === 'gradient') {
-      const gradColor1 = document.getElementById('bg-gradient-color1');
-      const gradColor2 = document.getElementById('bg-gradient-color2');
-      const gradDir = document.getElementById('bg-gradient-direction');
+      const gradColor1 = stylingModal.querySelector('#bg-gradient-color1');
+      const gradColor2 = stylingModal.querySelector('#bg-gradient-color2');
+      const gradDir = stylingModal.querySelector('#bg-gradient-direction');
       if (gradColor1) currentStyles.gradientColor1 = gradColor1.value;
       if (gradColor2) currentStyles.gradientColor2 = gradColor2.value;
       if (gradDir) currentStyles.gradientDirection = gradDir.value;
     } else if (bgType.value === 'image') {
-      const imgUrl = document.getElementById('bg-image-url');
-      const imgRepeat = document.getElementById('bg-image-repeat');
-      const imgPosition = document.getElementById('bg-image-position');
-      const imgSize = document.getElementById('bg-image-size');
-      const imgOpacity = document.getElementById('bg-image-opacity');
+      const imgUrl = stylingModal.querySelector('#bg-image-url');
+      const imgRepeat = stylingModal.querySelector('#bg-image-repeat');
+      const imgPosition = stylingModal.querySelector('#bg-image-position');
+      const imgSize = stylingModal.querySelector('#bg-image-size');
+      const imgOpacity = stylingModal.querySelector('#bg-image-opacity');
       if (imgUrl) currentStyles.backgroundImageUrl = imgUrl.value;
       if (imgRepeat) currentStyles.backgroundRepeat = imgRepeat.value;
       if (imgPosition) currentStyles.backgroundPosition = imgPosition.value;
       if (imgSize) currentStyles.backgroundSize = imgSize.value;
       if (imgOpacity) currentStyles.backgroundImageOpacity = parseInt(imgOpacity.value);
     } else if (bgType.value === 'pattern') {
-      const patType = document.getElementById('bg-pattern-type');
-      const patColor = document.getElementById('bg-pattern-color');
-      const patSize = document.getElementById('bg-pattern-size');
+      const patType = stylingModal.querySelector('#bg-pattern-type');
+      const patColor = stylingModal.querySelector('#bg-pattern-color');
+      const patSize = stylingModal.querySelector('#bg-pattern-size');
       if (patType) currentStyles.patternType = patType.value;
       if (patColor) currentStyles.patternColor = patColor.value;
       if (patSize) currentStyles.patternSize = parseInt(patSize.value);
     }
   }
   
-  // Other style properties
-  const bgColor = document.getElementById('bg-color');
+  // Other style properties (scoped to styling modal)
+  const bgColor = stylingModal.querySelector('#bg-color');
   if (bgColor) currentStyles.backgroundColor = bgColor.value;
   
   const opacity = document.getElementById('opacity');
