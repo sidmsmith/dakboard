@@ -671,16 +671,24 @@ function applyStyles() {
 
   // Apply to current widget or all widgets
   const widgetsToStyle = applyToAllFlags.global ? 
-    document.querySelectorAll('.widget:not(.hidden)') : 
-    [document.querySelector(`.${currentWidgetId}`)];
+    Array.from(document.querySelectorAll('.widget:not(.hidden)')) : 
+    [document.querySelector(`.${currentWidgetId}`)].filter(w => w !== null);
 
   widgetsToStyle.forEach(widget => {
     if (!widget) return;
     
     applyCurrentStylesToWidget(widget);
+    
+    // If applying to all, save styles for each widget
+    if (applyToAllFlags.global) {
+      const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
+      if (widgetId) {
+        localStorage.setItem(`dakboard-widget-styles-${widgetId}`, JSON.stringify(currentStyles));
+      }
+    }
   });
 
-  // Save styles
+  // Save styles for current widget
   saveStyles();
   
   // Close modal
@@ -772,28 +780,48 @@ function updateApplyToAllFlags() {
 function resetStyles() {
   if (!currentWidgetId) return;
   
-  // Reset current styles
-  currentStyles = {};
+  // Reset current styles to defaults
+  currentStyles = {
+    backgroundColor: '#2a2a2a',
+    opacity: 100,
+    borderColor: '#3a3a3a',
+    borderWidth: 0,
+    borderStyle: 'none',
+    borderRadius: 12,
+    shadowColor: '#000000',
+    shadowBlur: 6,
+    shadowX: 0,
+    shadowY: 4,
+    shadowSpread: 0,
+    textColor: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    padding: 24,
+    widgetOpacity: 100
+  };
   
-  // Reset widget
+  // Reset widget to defaults
   const widget = document.querySelector(`.${currentWidgetId}`);
   if (widget) {
-    widget.style.backgroundColor = '';
+    widget.style.backgroundColor = '#2a2a2a';
     widget.style.borderColor = '';
     widget.style.borderWidth = '';
     widget.style.borderStyle = '';
-    widget.style.borderRadius = '';
+    widget.style.borderRadius = '12px';
     widget.style.boxShadow = '';
     widget.style.opacity = '';
-    widget.style.padding = '';
+    widget.style.padding = '24px';
     
     const title = widget.querySelector('.widget-title');
     if (title) {
-      title.style.color = '';
-      title.style.fontSize = '';
-      title.style.fontWeight = '';
+      title.style.color = '#fff';
+      title.style.fontSize = '18px';
+      title.style.fontWeight = '600';
     }
   }
+  
+  // Clear saved styles
+  localStorage.removeItem(`dakboard-widget-styles-${currentWidgetId}`);
   
   // Reload tab to show defaults
   const activeTab = document.querySelector('.styling-tab.active');
@@ -801,8 +829,8 @@ function resetStyles() {
     switchTab(activeTab.dataset.tab);
   }
   
-  // Save
-  saveStyles();
+  // Update preview
+  updatePreview();
 }
 
 // Save theme
@@ -830,7 +858,25 @@ function loadWidgetStyles(widgetId) {
   if (saved) {
     currentStyles = JSON.parse(saved);
   } else {
-    currentStyles = {};
+    // Set defaults
+    currentStyles = {
+      backgroundColor: '#2a2a2a',
+      opacity: 100,
+      borderColor: '#3a3a3a',
+      borderWidth: 0,
+      borderStyle: 'none',
+      borderRadius: 12,
+      shadowColor: '#000000',
+      shadowBlur: 6,
+      shadowX: 0,
+      shadowY: 4,
+      shadowSpread: 0,
+      textColor: '#fff',
+      fontSize: 18,
+      fontWeight: '600',
+      padding: 24,
+      widgetOpacity: 100
+    };
   }
 }
 
