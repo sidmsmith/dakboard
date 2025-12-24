@@ -1813,7 +1813,21 @@ function updateWidgetControlPanel() {
     toggleBtn.className = `widget-control-toggle-btn ${isHidden ? 'hidden' : ''}`;
     toggleBtn.innerHTML = isHidden ? '👁️' : '👁️‍🗨️';
     toggleBtn.title = isHidden ? 'Show widget' : 'Hide widget';
-    toggleBtn.addEventListener('click', () => toggleWidgetVisibility(widgetId));
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleWidgetVisibility(widgetId);
+    });
+    
+    const styleBtn = document.createElement('button');
+    styleBtn.className = 'widget-control-style-btn';
+    styleBtn.innerHTML = '🎨';
+    styleBtn.title = 'Style widget';
+    styleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof openStylingModal === 'function') {
+        openStylingModal(widgetId);
+      }
+    });
     
     item.innerHTML = `
       <div class="widget-control-item-info">
@@ -1822,6 +1836,7 @@ function updateWidgetControlPanel() {
       </div>
     `;
     item.appendChild(toggleBtn);
+    item.appendChild(styleBtn);
     
     list.appendChild(item);
   });
