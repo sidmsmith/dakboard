@@ -39,7 +39,6 @@ body {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
-  cursor: move;
   user-select: none;
   min-width: 200px;
   min-height: 150px;
@@ -1016,6 +1015,15 @@ body {
   display: none;
 }
 
+/* Only show move cursor in edit mode */
+.dashboard.edit-mode .widget {
+  cursor: move;
+}
+
+.dashboard:not(.edit-mode) .widget {
+  cursor: default;
+}
+
 .resize-handle:hover {
   background: rgba(74, 144, 226, 0.8);
   border-color: #5ba0f2;
@@ -1129,19 +1137,11 @@ body {
   transition: top 0.1s, left 0.1s;
 }
 
-/* Bottom Controls Container */
-.bottom-controls {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  z-index: 10001;
-}
-
 /* Widget Visibility Control Panel */
 .widget-control-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
   width: 50px;
   height: 50px;
   background: #4a90e2;
@@ -1153,8 +1153,8 @@ body {
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 10001;
   transition: all 0.3s;
-  flex-shrink: 0;
 }
 
 .widget-control-toggle:hover {
@@ -1192,6 +1192,12 @@ body {
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+}
+
+.widget-control-header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
 .widget-control-header h3 {
