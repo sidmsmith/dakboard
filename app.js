@@ -1801,6 +1801,33 @@ function updateWidgetControlPanel() {
   
   list.innerHTML = '';
   
+  // Add Dashboard Background at the top
+  const bgItem = document.createElement('div');
+  bgItem.className = 'widget-control-item dashboard-bg-item';
+  const bgStyleBtn = document.createElement('button');
+  bgStyleBtn.className = 'widget-control-style-btn';
+  bgStyleBtn.innerHTML = '🎨';
+  bgStyleBtn.title = 'Configure dashboard background';
+  bgStyleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (typeof openBackgroundModal === 'function') {
+      openBackgroundModal();
+    }
+  });
+  bgItem.innerHTML = `
+    <div class="widget-control-item-info">
+      <span class="widget-control-item-icon">🖼️</span>
+      <span class="widget-control-item-name">Background</span>
+    </div>
+  `;
+  bgItem.appendChild(bgStyleBtn);
+  list.appendChild(bgItem);
+  
+  // Add separator
+  const separator = document.createElement('div');
+  separator.className = 'widget-control-separator';
+  list.appendChild(separator);
+  
   Object.keys(WIDGET_CONFIG).forEach(widgetId => {
     const config = WIDGET_CONFIG[widgetId];
     const widget = document.querySelector(`.${widgetId}`);
