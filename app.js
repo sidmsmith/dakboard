@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadWidgetVisibility(); // Load widget visibility state
   initializeWidgetControlPanel(); // Initialize widget visibility panel
   initializeCalendar();
+  initializeClock(); // Initialize clock
   initializeEventListeners();
   
   // Styling system will initialize itself via styling.js
@@ -224,6 +225,33 @@ async function loadCalendarEvents() {
 function initializeCalendar() {
   renderCalendar();
   loadCalendarEvents(); // Load events from HA
+}
+
+// Initialize clock
+function initializeClock() {
+  function updateClock() {
+    const now = new Date();
+    const timeElement = document.getElementById('clock-time');
+    const dateElement = document.getElementById('clock-date');
+    
+    if (timeElement) {
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      timeElement.textContent = `${hours}:${minutes}:${seconds}`;
+    }
+    
+    if (dateElement) {
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      dateElement.textContent = now.toLocaleDateString('en-US', options);
+    }
+  }
+  
+  // Update immediately
+  updateClock();
+  
+  // Update every second
+  setInterval(updateClock, 1000);
 }
 
 // Initialize event listeners
