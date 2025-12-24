@@ -883,13 +883,8 @@ function loadStyles() {
     }
   });
   
-  // Load dashboard background
-  const dashboardBg = localStorage.getItem('dakboard-background-color');
-  if (dashboardBg) {
-    document.querySelector('.dashboard').style.backgroundColor = dashboardBg;
-    document.getElementById('dashboard-bg-color').value = dashboardBg;
-    document.getElementById('dashboard-bg-color-text').value = dashboardBg;
-  }
+  // Load dashboard background (new format)
+  loadBackgroundSettings();
 }
 
 // Load saved styles to widget (for page load)
@@ -923,11 +918,398 @@ function loadStylesToWidget(widget, styles) {
   if (styles.widgetOpacity !== undefined) widget.style.opacity = styles.widgetOpacity / 100;
 }
 
-// Update dashboard background
-function updateDashboardBackground() {
-  const color = document.getElementById('dashboard-bg-color').value;
-  document.querySelector('.dashboard').style.backgroundColor = color;
-  localStorage.setItem('dakboard-background-color', color);
+// Initialize background configuration modal
+function initBackgroundModal() {
+  const modal = document.getElementById('background-modal');
+  const closeBtn = document.getElementById('close-background-modal');
+  const applyBtn = document.getElementById('apply-background-btn');
+  const resetBtn = document.getElementById('reset-background-btn');
+  const typeSelect = document.getElementById('bg-type-select');
+  
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeBackgroundModal);
+  }
+  
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target.id === 'background-modal') {
+        closeBackgroundModal();
+      }
+    });
+  }
+  
+  if (applyBtn) {
+    applyBtn.addEventListener('click', applyBackground);
+  }
+  
+  if (resetBtn) {
+    resetBtn.addEventListener('click', resetBackground);
+  }
+  
+  if (typeSelect) {
+    typeSelect.addEventListener('change', (e) => {
+      showBackgroundSection(e.target.value);
+    });
+  }
+  
+  // Initialize background controls
+  initBackgroundControls();
+  
+  // Load saved background
+  loadBackgroundSettings();
+}
+
+// Show appropriate background section based on type
+function showBackgroundSection(type) {
+  const sections = {
+    'solid': document.getElementById('bg-solid-section'),
+    'gradient': document.getElementById('bg-gradient-section'),
+    'image': document.getElementById('bg-image-section'),
+    'pattern': document.getElementById('bg-pattern-section')
+  };
+  
+  Object.keys(sections).forEach(key => {
+    if (sections[key]) {
+      sections[key].style.display = key === type ? 'block' : 'none';
+    }
+  });
+  
+  updateBackgroundPreview();
+}
+
+// Initialize background control event listeners
+function initBackgroundControls() {
+  // Solid color
+  const solidColor = document.getElementById('bg-solid-color');
+  const solidColorText = document.getElementById('bg-solid-color-text');
+  if (solidColor && solidColorText) {
+    solidColor.addEventListener('input', (e) => {
+      solidColorText.value = e.target.value;
+      updateBackgroundPreview();
+    });
+    solidColorText.addEventListener('input', (e) => {
+      if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+        solidColor.value = e.target.value;
+        updateBackgroundPreview();
+      }
+    });
+  }
+  
+  // Gradient
+  const gradColor1 = document.getElementById('bg-gradient-color1');
+  const gradColor1Text = document.getElementById('bg-gradient-color1-text');
+  const gradColor2 = document.getElementById('bg-gradient-color2');
+  const gradColor2Text = document.getElementById('bg-gradient-color2-text');
+  const gradDirection = document.getElementById('bg-gradient-direction');
+  
+  if (gradColor1 && gradColor1Text) {
+    gradColor1.addEventListener('input', (e) => {
+      gradColor1Text.value = e.target.value;
+      updateBackgroundPreview();
+    });
+    gradColor1Text.addEventListener('input', (e) => {
+      if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+        gradColor1.value = e.target.value;
+        updateBackgroundPreview();
+      }
+    });
+  }
+  
+  if (gradColor2 && gradColor2Text) {
+    gradColor2.addEventListener('input', (e) => {
+      gradColor2Text.value = e.target.value;
+      updateBackgroundPreview();
+    });
+    gradColor2Text.addEventListener('input', (e) => {
+      if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+        gradColor2.value = e.target.value;
+        updateBackgroundPreview();
+      }
+    });
+  }
+  
+  if (gradDirection) {
+    gradDirection.addEventListener('change', updateBackgroundPreview);
+  }
+  
+  // Image
+  const imageUrl = document.getElementById('bg-image-url');
+  const imageRepeat = document.getElementById('bg-image-repeat');
+  const imagePosition = document.getElementById('bg-image-position');
+  const imageSize = document.getElementById('bg-image-size');
+  const imageOpacity = document.getElementById('bg-image-opacity');
+  const imageOpacityValue = document.getElementById('bg-image-opacity-value');
+  
+  if (imageUrl) imageUrl.addEventListener('input', updateBackgroundPreview);
+  if (imageRepeat) imageRepeat.addEventListener('change', updateBackgroundPreview);
+  if (imagePosition) imagePosition.addEventListener('change', updateBackgroundPreview);
+  if (imageSize) imageSize.addEventListener('change', updateBackgroundPreview);
+  if (imageOpacity && imageOpacityValue) {
+    imageOpacity.addEventListener('input', (e) => {
+      imageOpacityValue.textContent = e.target.value + '%';
+      updateBackgroundPreview();
+    });
+  }
+  
+  // Pattern
+  const patternType = document.getElementById('bg-pattern-type');
+  const patternColor = document.getElementById('bg-pattern-color');
+  const patternSize = document.getElementById('bg-pattern-size');
+  const patternSizeValue = document.getElementById('bg-pattern-size-value');
+  
+  if (patternType) patternType.addEventListener('change', updateBackgroundPreview);
+  if (patternColor) patternColor.addEventListener('input', updateBackgroundPreview);
+  if (patternSize && patternSizeValue) {
+    patternSize.addEventListener('input', (e) => {
+      patternSizeValue.textContent = e.target.value + 'px';
+      updateBackgroundPreview();
+    });
+  }
+}
+
+// Open background modal
+function openBackgroundModal() {
+  loadBackgroundSettings();
+  const modal = document.getElementById('background-modal');
+  if (modal) {
+    modal.classList.add('active');
+    updateBackgroundPreview();
+  }
+}
+
+// Close background modal
+function closeBackgroundModal() {
+  const modal = document.getElementById('background-modal');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
+// Update background preview
+function updateBackgroundPreview() {
+  const preview = document.getElementById('background-preview');
+  const dashboard = document.querySelector('.dashboard');
+  if (!preview || !dashboard) return;
+  
+  const type = document.getElementById('bg-type-select')?.value || 'solid';
+  let bgStyle = '';
+  
+  switch(type) {
+    case 'solid':
+      const solidColor = document.getElementById('bg-solid-color')?.value || '#1a1a1a';
+      bgStyle = `background-color: ${solidColor};`;
+      break;
+      
+    case 'gradient':
+      const color1 = document.getElementById('bg-gradient-color1')?.value || '#1a1a1a';
+      const color2 = document.getElementById('bg-gradient-color2')?.value || '#2a2a2a';
+      const direction = document.getElementById('bg-gradient-direction')?.value || 'to bottom';
+      bgStyle = `background: linear-gradient(${direction}, ${color1}, ${color2});`;
+      break;
+      
+    case 'image':
+      const imageUrl = document.getElementById('bg-image-url')?.value;
+      if (imageUrl) {
+        const repeat = document.getElementById('bg-image-repeat')?.value || 'no-repeat';
+        const position = document.getElementById('bg-image-position')?.value || 'center';
+        const size = document.getElementById('bg-image-size')?.value || 'cover';
+        const opacity = (document.getElementById('bg-image-opacity')?.value || 100) / 100;
+        bgStyle = `background-image: url(${imageUrl}); background-repeat: ${repeat}; background-position: ${position}; background-size: ${size}; opacity: ${opacity};`;
+      }
+      break;
+      
+    case 'pattern':
+      const patternType = document.getElementById('bg-pattern-type')?.value || 'dots';
+      const patternColor = document.getElementById('bg-pattern-color')?.value || '#3a3a3a';
+      const patternSize = document.getElementById('bg-pattern-size')?.value || 20;
+      bgStyle = generatePatternCSS(patternType, patternColor, patternSize);
+      break;
+  }
+  
+  preview.style.cssText = bgStyle;
+  dashboard.style.cssText = bgStyle;
+}
+
+// Generate pattern CSS
+function generatePatternCSS(type, color, size) {
+  const sizeNum = parseInt(size);
+  switch(type) {
+    case 'dots':
+      return `background-image: radial-gradient(circle, ${color} 1px, transparent 1px); background-size: ${sizeNum}px ${sizeNum}px;`;
+    case 'grid':
+      return `background-image: linear-gradient(${color} 1px, transparent 1px), linear-gradient(90deg, ${color} 1px, transparent 1px); background-size: ${sizeNum}px ${sizeNum}px;`;
+    case 'lines':
+      return `background-image: repeating-linear-gradient(0deg, transparent, transparent ${sizeNum - 1}px, ${color} ${sizeNum - 1}px, ${color} ${sizeNum}px);`;
+    case 'diagonal':
+      return `background-image: repeating-linear-gradient(45deg, transparent, transparent ${sizeNum}px, ${color} ${sizeNum}px, ${color} ${sizeNum * 2}px);`;
+    case 'crosshatch':
+      return `background-image: repeating-linear-gradient(0deg, ${color} 0px, ${color} 1px, transparent 1px, transparent ${sizeNum}px), repeating-linear-gradient(90deg, ${color} 0px, ${color} 1px, transparent 1px, transparent ${sizeNum}px);`;
+    default:
+      return '';
+  }
+}
+
+// Apply background
+function applyBackground() {
+  const type = document.getElementById('bg-type-select')?.value || 'solid';
+  const settings = { type: type };
+  
+  switch(type) {
+    case 'solid':
+      settings.color = document.getElementById('bg-solid-color')?.value || '#1a1a1a';
+      break;
+    case 'gradient':
+      settings.color1 = document.getElementById('bg-gradient-color1')?.value || '#1a1a1a';
+      settings.color2 = document.getElementById('bg-gradient-color2')?.value || '#2a2a2a';
+      settings.direction = document.getElementById('bg-gradient-direction')?.value || 'to bottom';
+      break;
+    case 'image':
+      settings.url = document.getElementById('bg-image-url')?.value || '';
+      settings.repeat = document.getElementById('bg-image-repeat')?.value || 'no-repeat';
+      settings.position = document.getElementById('bg-image-position')?.value || 'center';
+      settings.size = document.getElementById('bg-image-size')?.value || 'cover';
+      settings.opacity = parseInt(document.getElementById('bg-image-opacity')?.value || 100);
+      break;
+    case 'pattern':
+      settings.patternType = document.getElementById('bg-pattern-type')?.value || 'dots';
+      settings.color = document.getElementById('bg-pattern-color')?.value || '#3a3a3a';
+      settings.size = parseInt(document.getElementById('bg-pattern-size')?.value || 20);
+      break;
+  }
+  
+  applyBackgroundToDashboard(settings);
+  localStorage.setItem('dakboard-background', JSON.stringify(settings));
+  closeBackgroundModal();
+}
+
+// Apply background settings to dashboard
+function applyBackgroundToDashboard(settings) {
+  const dashboard = document.querySelector('.dashboard');
+  if (!dashboard) return;
+  
+  let bgStyle = '';
+  
+  switch(settings.type) {
+    case 'solid':
+      bgStyle = `background-color: ${settings.color};`;
+      break;
+    case 'gradient':
+      bgStyle = `background: linear-gradient(${settings.direction}, ${settings.color1}, ${settings.color2});`;
+      break;
+    case 'image':
+      if (settings.url) {
+        bgStyle = `background-image: url(${settings.url}); background-repeat: ${settings.repeat}; background-position: ${settings.position}; background-size: ${settings.size};`;
+        if (settings.opacity < 100) {
+          dashboard.style.setProperty('--bg-image-opacity', settings.opacity / 100);
+        }
+      }
+      break;
+    case 'pattern':
+      bgStyle = generatePatternCSS(settings.patternType, settings.color, settings.size);
+      break;
+  }
+  
+  dashboard.style.cssText = bgStyle;
+}
+
+// Reset background
+function resetBackground() {
+  const dashboard = document.querySelector('.dashboard');
+  if (dashboard) {
+    dashboard.style.cssText = 'background: #1a1a1a;';
+  }
+  
+  // Reset form to defaults
+  const typeSelect = document.getElementById('bg-type-select');
+  if (typeSelect) {
+    typeSelect.value = 'solid';
+    showBackgroundSection('solid');
+  }
+  
+  const solidColor = document.getElementById('bg-solid-color');
+  const solidColorText = document.getElementById('bg-solid-color-text');
+  if (solidColor) solidColor.value = '#1a1a1a';
+  if (solidColorText) solidColorText.value = '#1a1a1a';
+  
+  localStorage.removeItem('dakboard-background');
+  updateBackgroundPreview();
+}
+
+// Load background settings
+function loadBackgroundSettings() {
+  const saved = localStorage.getItem('dakboard-background');
+  if (saved) {
+    try {
+      const settings = JSON.parse(saved);
+      const typeSelect = document.getElementById('bg-type-select');
+      if (typeSelect) {
+        typeSelect.value = settings.type;
+        showBackgroundSection(settings.type);
+      }
+      
+      switch(settings.type) {
+        case 'solid':
+          const solidColor = document.getElementById('bg-solid-color');
+          const solidColorText = document.getElementById('bg-solid-color-text');
+          if (solidColor) solidColor.value = settings.color;
+          if (solidColorText) solidColorText.value = settings.color;
+          break;
+        case 'gradient':
+          const gradColor1 = document.getElementById('bg-gradient-color1');
+          const gradColor1Text = document.getElementById('bg-gradient-color1-text');
+          const gradColor2 = document.getElementById('bg-gradient-color2');
+          const gradColor2Text = document.getElementById('bg-gradient-color2-text');
+          const gradDirection = document.getElementById('bg-gradient-direction');
+          if (gradColor1) gradColor1.value = settings.color1;
+          if (gradColor1Text) gradColor1Text.value = settings.color1;
+          if (gradColor2) gradColor2.value = settings.color2;
+          if (gradColor2Text) gradColor2Text.value = settings.color2;
+          if (gradDirection) gradDirection.value = settings.direction;
+          break;
+        case 'image':
+          const imageUrl = document.getElementById('bg-image-url');
+          const imageRepeat = document.getElementById('bg-image-repeat');
+          const imagePosition = document.getElementById('bg-image-position');
+          const imageSize = document.getElementById('bg-image-size');
+          const imageOpacity = document.getElementById('bg-image-opacity');
+          const imageOpacityValue = document.getElementById('bg-image-opacity-value');
+          if (imageUrl) imageUrl.value = settings.url || '';
+          if (imageRepeat) imageRepeat.value = settings.repeat || 'no-repeat';
+          if (imagePosition) imagePosition.value = settings.position || 'center';
+          if (imageSize) imageSize.value = settings.size || 'cover';
+          if (imageOpacity) imageOpacity.value = settings.opacity || 100;
+          if (imageOpacityValue) imageOpacityValue.textContent = (settings.opacity || 100) + '%';
+          break;
+        case 'pattern':
+          const patternType = document.getElementById('bg-pattern-type');
+          const patternColor = document.getElementById('bg-pattern-color');
+          const patternSize = document.getElementById('bg-pattern-size');
+          const patternSizeValue = document.getElementById('bg-pattern-size-value');
+          if (patternType) patternType.value = settings.patternType;
+          if (patternColor) patternColor.value = settings.color;
+          if (patternSize) patternSize.value = settings.size;
+          if (patternSizeValue) patternSizeValue.textContent = settings.size + 'px';
+          break;
+      }
+      
+      applyBackgroundToDashboard(settings);
+    } catch (e) {
+      console.error('Error loading background settings:', e);
+    }
+  } else {
+    // Fallback to old format
+    const dashboardBg = localStorage.getItem('dakboard-background-color');
+    if (dashboardBg) {
+      const dashboard = document.querySelector('.dashboard');
+      if (dashboard) {
+        dashboard.style.backgroundColor = dashboardBg;
+      }
+    }
+    const typeSelect = document.getElementById('bg-type-select');
+    if (typeSelect) {
+      showBackgroundSection('solid');
+    }
+  }
 }
 
 // Initialize on DOM ready
