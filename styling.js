@@ -566,7 +566,11 @@ function generateAdvancedTab() {
 function attachTabEventListeners(tabName) {
   if (tabName === 'background') {
     // Background type selector - must be first to set initial visibility
-    const bgType = document.getElementById('bg-type');
+    // Scope all queries to the styling modal to avoid conflicts
+    const stylingModal = document.getElementById('styling-modal');
+    if (!stylingModal) return;
+    
+    const bgType = stylingModal.querySelector('#bg-type');
     if (bgType) {
       // Set initial section visibility based on current value
       const initialType = bgType.value || currentStyles.backgroundType || 'solid';
@@ -582,8 +586,8 @@ function attachTabEventListeners(tabName) {
       });
     }
     
-    const bgColor = document.getElementById('bg-color');
-    const bgColorText = document.getElementById('bg-color-text');
+    const bgColor = stylingModal.querySelector('#bg-color');
+    const bgColorText = stylingModal.querySelector('#bg-color-text');
     
     if (bgColor && bgColorText) {
       bgColor.addEventListener('input', (e) => {
@@ -601,8 +605,8 @@ function attachTabEventListeners(tabName) {
       });
     }
 
-    const opacity = document.getElementById('opacity');
-    const opacityValue = document.getElementById('opacity-value');
+    const opacity = stylingModal.querySelector('#opacity');
+    const opacityValue = stylingModal.querySelector('#opacity-value');
     if (opacity && opacityValue) {
       opacity.addEventListener('input', (e) => {
         const val = e.target.value;
@@ -613,11 +617,11 @@ function attachTabEventListeners(tabName) {
     }
     
     // Gradient controls
-    const gradColor1 = document.getElementById('bg-gradient-color1');
-    const gradColor1Text = document.getElementById('bg-gradient-color1-text');
-    const gradColor2 = document.getElementById('bg-gradient-color2');
-    const gradColor2Text = document.getElementById('bg-gradient-color2-text');
-    const gradDirection = document.getElementById('bg-gradient-direction');
+    const gradColor1 = stylingModal.querySelector('#bg-gradient-color1');
+    const gradColor1Text = stylingModal.querySelector('#bg-gradient-color1-text');
+    const gradColor2 = stylingModal.querySelector('#bg-gradient-color2');
+    const gradColor2Text = stylingModal.querySelector('#bg-gradient-color2-text');
+    const gradDirection = stylingModal.querySelector('#bg-gradient-direction');
     
     if (gradColor1 && gradColor1Text) {
       console.log('Attaching gradient color1 listeners');
@@ -679,12 +683,12 @@ function attachTabEventListeners(tabName) {
     }
     
     // Image controls
-    const imageUrl = document.getElementById('bg-image-url');
-    const imageRepeat = document.getElementById('bg-image-repeat');
-    const imagePosition = document.getElementById('bg-image-position');
-    const imageSize = document.getElementById('bg-image-size');
-    const imageOpacity = document.getElementById('bg-image-opacity');
-    const imageOpacityValue = document.getElementById('bg-image-opacity-value');
+    const imageUrl = stylingModal.querySelector('#bg-image-url');
+    const imageRepeat = stylingModal.querySelector('#bg-image-repeat');
+    const imagePosition = stylingModal.querySelector('#bg-image-position');
+    const imageSize = stylingModal.querySelector('#bg-image-size');
+    const imageOpacity = stylingModal.querySelector('#bg-image-opacity');
+    const imageOpacityValue = stylingModal.querySelector('#bg-image-opacity-value');
     
     if (imageUrl) {
       imageUrl.addEventListener('input', (e) => {
@@ -720,10 +724,10 @@ function attachTabEventListeners(tabName) {
     }
     
     // Pattern controls
-    const patternType = document.getElementById('bg-pattern-type');
-    const patternColor = document.getElementById('bg-pattern-color');
-    const patternSize = document.getElementById('bg-pattern-size');
-    const patternSizeValue = document.getElementById('bg-pattern-size-value');
+    const patternType = stylingModal.querySelector('#bg-pattern-type');
+    const patternColor = stylingModal.querySelector('#bg-pattern-color');
+    const patternSize = stylingModal.querySelector('#bg-pattern-size');
+    const patternSizeValue = stylingModal.querySelector('#bg-pattern-size-value');
     
     if (patternType) {
       patternType.addEventListener('change', (e) => {
