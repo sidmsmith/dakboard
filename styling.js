@@ -920,9 +920,8 @@ function updatePreview() {
   const preview = document.getElementById('styling-preview-widget');
   if (!preview) return;
 
-  // Apply background based on type
-  const bgType = currentStyles.backgroundType || document.getElementById('bg-type')?.value || 'solid';
-  console.log('Preview - Background type:', bgType, 'currentStyles.backgroundType:', currentStyles.backgroundType);
+  // Apply background based on type - read directly from form inputs (same as dashboard background)
+  const bgType = document.getElementById('bg-type')?.value || 'solid';
   
   // Clear previous background styles
   preview.style.backgroundColor = '';
@@ -930,109 +929,52 @@ function updatePreview() {
   preview.style.backgroundRepeat = '';
   preview.style.backgroundPosition = '';
   preview.style.backgroundSize = '';
+  preview.style.opacity = '';
   
   switch(bgType) {
     case 'solid':
-      if (currentStyles.backgroundColor) {
-        preview.style.backgroundColor = currentStyles.backgroundColor;
-      }
+      const solidColor = document.getElementById('bg-color')?.value || '#2a2a2a';
+      preview.style.backgroundColor = solidColor;
       break;
+      
     case 'gradient':
-      // Get values from form inputs if not in currentStyles
-      const gradColor1El = document.getElementById('bg-gradient-color1');
-      const gradColor2El = document.getElementById('bg-gradient-color2');
-      const gradDirEl = document.getElementById('bg-gradient-direction');
-      // Always read from form inputs first, then fall back to currentStyles, then defaults
-      const gradColor1 = gradColor1El?.value || currentStyles.gradientColor1 || '#2a2a2a';
-      const gradColor2 = gradColor2El?.value || currentStyles.gradientColor2 || '#3a3a3a';
-      const gradDir = gradDirEl?.value || currentStyles.gradientDirection || 'to bottom';
-      console.log('Preview - Gradient:', { 
-        gradColor1, 
-        gradColor2, 
-        gradDir, 
-        gradColor1El: !!gradColor1El,
-        gradColor1ElValue: gradColor1El?.value,
-        gradColor2El: !!gradColor2El,
-        gradColor2ElValue: gradColor2El?.value,
-        gradDirEl: !!gradDirEl,
-        gradDirElValue: gradDirEl?.value,
-        currentStylesGrad1: currentStyles.gradientColor1,
-        currentStylesGrad2: currentStyles.gradientColor2
-      });
-      if (gradColor1 && gradColor2) {
-        preview.style.backgroundImage = `linear-gradient(${gradDir}, ${gradColor1}, ${gradColor2})`;
-        console.log('Preview - Applied gradient:', preview.style.backgroundImage);
-      } else {
-        console.warn('Preview - Gradient colors missing:', { gradColor1, gradColor2 });
-      }
+      const color1 = document.getElementById('bg-gradient-color1')?.value || '#2a2a2a';
+      const color2 = document.getElementById('bg-gradient-color2')?.value || '#3a3a3a';
+      const direction = document.getElementById('bg-gradient-direction')?.value || 'to bottom';
+      preview.style.backgroundImage = `linear-gradient(${direction}, ${color1}, ${color2})`;
       break;
+      
     case 'image':
-      // Get values from form inputs first, then fall back to currentStyles, then defaults
-      const imgUrlEl = document.getElementById('bg-image-url');
-      const imgUrl = imgUrlEl?.value || currentStyles.backgroundImageUrl || '';
-      const imgRepeatEl = document.getElementById('bg-image-repeat');
-      const imgPositionEl = document.getElementById('bg-image-position');
-      const imgSizeEl = document.getElementById('bg-image-size');
-      const imgOpacityEl = document.getElementById('bg-image-opacity');
-      console.log('Preview - Image:', { 
-        imgUrl, 
-        imgUrlEl: !!imgUrlEl,
-        imgUrlElValue: imgUrlEl?.value,
-        currentStyles: currentStyles.backgroundImageUrl 
-      });
-      if (imgUrl) {
-        preview.style.backgroundImage = `url(${imgUrl})`;
-        preview.style.backgroundRepeat = imgRepeatEl?.value || currentStyles.backgroundRepeat || 'no-repeat';
-        preview.style.backgroundPosition = imgPositionEl?.value || currentStyles.backgroundPosition || 'center';
-        preview.style.backgroundSize = imgSizeEl?.value || currentStyles.backgroundSize || 'cover';
-        const imgOpacity = parseInt(imgOpacityEl?.value || currentStyles.backgroundImageOpacity || 100);
+      const imageUrl = document.getElementById('bg-image-url')?.value || '';
+      if (imageUrl) {
+        preview.style.backgroundImage = `url(${imageUrl})`;
+        preview.style.backgroundRepeat = document.getElementById('bg-image-repeat')?.value || 'no-repeat';
+        preview.style.backgroundPosition = document.getElementById('bg-image-position')?.value || 'center';
+        preview.style.backgroundSize = document.getElementById('bg-image-size')?.value || 'cover';
+        const imgOpacity = parseInt(document.getElementById('bg-image-opacity')?.value || 100);
         if (imgOpacity < 100) {
           preview.style.opacity = imgOpacity / 100;
         }
-        console.log('Preview - Applied image:', preview.style.backgroundImage);
       } else {
-        console.warn('Preview - Image URL missing');
+        preview.style.backgroundColor = '#1a1a1a';
       }
       break;
+      
     case 'pattern':
-      // Get values from form inputs first, then fall back to currentStyles, then defaults
-      const patTypeEl = document.getElementById('bg-pattern-type');
-      const patColorEl = document.getElementById('bg-pattern-color');
-      const patSizeEl = document.getElementById('bg-pattern-size');
-      const patType = patTypeEl?.value || currentStyles.patternType || 'dots';
-      const patColor = patColorEl?.value || currentStyles.patternColor || '#3a3a3a';
-      const patSize = parseInt(patSizeEl?.value || currentStyles.patternSize || 20);
-      console.log('Preview - Pattern:', { 
-        patType, 
-        patColor, 
-        patSize, 
-        patTypeEl: !!patTypeEl,
-        patTypeElValue: patTypeEl?.value,
-        patColorEl: !!patColorEl,
-        patColorElValue: patColorEl?.value,
-        patSizeEl: !!patSizeEl,
-        patSizeElValue: patSizeEl?.value,
-        currentStylesType: currentStyles.patternType,
-        currentStylesColor: currentStyles.patternColor
-      });
-      if (patType && patColor) {
-        const patternCSS = generatePatternCSS(patType, patColor, patSize);
-        console.log('Preview - Generated pattern CSS:', patternCSS);
-        // Extract background-image and background-size from pattern CSS
-        const bgImageMatch = patternCSS.match(/background-image:\s*([^;]+);/);
-        const bgSizeMatch = patternCSS.match(/background-size:\s*([^;]+);/);
-        if (bgImageMatch) {
-          preview.style.backgroundImage = bgImageMatch[1].trim();
-        }
-        if (bgSizeMatch) {
-          preview.style.backgroundSize = bgSizeMatch[1].trim();
-        }
-        // Set a default background color so the pattern is visible
-        preview.style.backgroundColor = '#1a1a1a';
-        console.log('Preview - Applied pattern:', { backgroundImage: preview.style.backgroundImage, backgroundSize: preview.style.backgroundSize });
-      } else {
-        console.warn('Preview - Pattern type or color missing:', { patType, patColor });
+      const patternType = document.getElementById('bg-pattern-type')?.value || 'dots';
+      const patternColor = document.getElementById('bg-pattern-color')?.value || '#3a3a3a';
+      const patternSize = parseInt(document.getElementById('bg-pattern-size')?.value || 20);
+      const patternCSS = generatePatternCSS(patternType, patternColor, patternSize);
+      // Extract background-image and background-size from pattern CSS
+      const bgImageMatch = patternCSS.match(/background-image:\s*([^;]+);/);
+      const bgSizeMatch = patternCSS.match(/background-size:\s*([^;]+);/);
+      if (bgImageMatch) {
+        preview.style.backgroundImage = bgImageMatch[1].trim();
       }
+      if (bgSizeMatch) {
+        preview.style.backgroundSize = bgSizeMatch[1].trim();
+      }
+      preview.style.backgroundColor = '#1a1a1a';
       break;
   }
   
