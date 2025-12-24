@@ -1279,17 +1279,32 @@ function applyCurrentStylesToWidget(widget) {
       }
       break;
     case 'image':
-      // Get values from form inputs if not in currentStyles
+      // Get values from form inputs first, then fall back to currentStyles, then defaults
       const imgUrlEl = document.getElementById('bg-image-url');
-      const imgUrl = currentStyles.backgroundImageUrl || imgUrlEl?.value || '';
-      console.log('Apply - Image:', { imgUrl, imgUrlEl: !!imgUrlEl, isApplyingToAll, applyToAllFlags });
+      const imgRepeatEl = document.getElementById('bg-image-repeat');
+      const imgPositionEl = document.getElementById('bg-image-position');
+      const imgSizeEl = document.getElementById('bg-image-size');
+      const imgOpacityEl = document.getElementById('bg-image-opacity');
+      const imgUrl = imgUrlEl?.value || currentStyles.backgroundImageUrl || '';
+      console.log('Apply - Image:', { 
+        imgUrl, 
+        imgUrlEl: !!imgUrlEl,
+        imgUrlElValue: imgUrlEl?.value,
+        isApplyingToAll, 
+        applyToAllFlags,
+        currentStyles: currentStyles.backgroundImageUrl 
+      });
       if (imgUrl) {
         // Always apply if not applying to all, or if apply-to-all flag is set
         if (!isApplyingToAll || applyToAllFlags.backgroundImageUrl) {
           widget.style.backgroundImage = `url(${imgUrl})`;
-          widget.style.backgroundRepeat = currentStyles.backgroundRepeat || document.getElementById('bg-image-repeat')?.value || 'no-repeat';
-          widget.style.backgroundPosition = currentStyles.backgroundPosition || document.getElementById('bg-image-position')?.value || 'center';
-          widget.style.backgroundSize = currentStyles.backgroundSize || document.getElementById('bg-image-size')?.value || 'cover';
+          widget.style.backgroundRepeat = imgRepeatEl?.value || currentStyles.backgroundRepeat || 'no-repeat';
+          widget.style.backgroundPosition = imgPositionEl?.value || currentStyles.backgroundPosition || 'center';
+          widget.style.backgroundSize = imgSizeEl?.value || currentStyles.backgroundSize || 'cover';
+          const imgOpacity = parseInt(imgOpacityEl?.value || currentStyles.backgroundImageOpacity || 100);
+          if (imgOpacity < 100) {
+            widget.style.opacity = imgOpacity / 100;
+          }
           console.log('Apply - Applied image:', widget.style.backgroundImage);
         } else {
           console.warn('Apply - Image skipped due to apply-to-all flags');
