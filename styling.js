@@ -1068,9 +1068,18 @@ function applyCurrentStylesToWidget(widget) {
       break;
     case 'pattern':
       if (currentStyles.patternType && currentStyles.patternColor) {
-        if (!isApplyingToAll || applyToAllFlags.patternType) {
+        if (!isApplyingToAll || applyToAllFlags.patternType || applyToAllFlags.patternColor) {
           const patternSize = currentStyles.patternSize || 20;
-          widget.style.backgroundImage = generatePatternCSS(currentStyles.patternType, currentStyles.patternColor, patternSize);
+          const patternCSS = generatePatternCSS(currentStyles.patternType, currentStyles.patternColor, patternSize);
+          // Extract background-image and background-size from pattern CSS
+          const bgImageMatch = patternCSS.match(/background-image:\s*([^;]+);/);
+          const bgSizeMatch = patternCSS.match(/background-size:\s*([^;]+);/);
+          if (bgImageMatch) {
+            widget.style.backgroundImage = bgImageMatch[1].trim();
+          }
+          if (bgSizeMatch) {
+            widget.style.backgroundSize = bgSizeMatch[1].trim();
+          }
         }
       }
       break;
