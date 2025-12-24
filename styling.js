@@ -565,10 +565,15 @@ function attachTabEventListeners(tabName) {
     const bgType = document.getElementById('bg-type');
     if (bgType) {
       // Set initial section visibility based on current value
-      const initialType = bgType.value || 'solid';
+      const initialType = bgType.value || currentStyles.backgroundType || 'solid';
       showWidgetBackgroundSection(initialType);
       
-      bgType.addEventListener('change', (e) => {
+      // Remove any existing listeners to avoid duplicates
+      const newBgType = bgType.cloneNode(true);
+      bgType.parentNode.replaceChild(newBgType, bgType);
+      
+      // Re-attach listener
+      document.getElementById('bg-type').addEventListener('change', (e) => {
         currentStyles.backgroundType = e.target.value;
         showWidgetBackgroundSection(e.target.value);
         updatePreview();
@@ -596,12 +601,17 @@ function attachTabEventListeners(tabName) {
 
     const opacity = document.getElementById('opacity');
     const opacityValue = document.getElementById('opacity-value');
-    opacity.addEventListener('input', (e) => {
-      const val = e.target.value;
-      opacityValue.textContent = val + '%';
-      currentStyles.opacity = parseInt(val);
-      updatePreview();
-    });
+    if (opacity && opacityValue) {
+      opacity.addEventListener('input', (e) => {
+        const val = e.target.value;
+        opacityValue.textContent = val + '%';
+        currentStyles.opacity = parseInt(val);
+        updatePreview();
+      });
+    }
+    
+    // Add listeners for gradient, image, and pattern controls
+    // (These are added in the full background tab event listener section below)
   }
   
   if (tabName === 'border') {
@@ -1348,11 +1358,19 @@ function closeBackgroundModal() {
 // Update background preview
 function updateBackgroundPreview() {
   const preview = document.getElementById('background-preview');
-  const dashboard = document.querySelector('.dashboard');
-  if (!preview || !dashboard) return;
+  if (!preview) return;
   
   const type = document.getElementById('bg-type-select')?.value || 'solid';
   let bgStyle = '';
+  
+  // Clear previous styles
+  preview.style.cssText = '';
+  preview.style.backgroundColor = '';
+  preview.style.backgroundImage = '';
+  preview.style.backgroundRepeat = '';
+  preview.style.backgroundPosition = '';
+  preview.style.backgroundSize = '';
+  preview.style.opacity = '';
   
   switch(type) {
     case 'solid':
@@ -1375,6 +1393,8 @@ function updateBackgroundPreview() {
         const size = document.getElementById('bg-image-size')?.value || 'cover';
         const opacity = (document.getElementById('bg-image-opacity')?.value || 100) / 100;
         bgStyle = `background-image: url(${imageUrl}); background-repeat: ${repeat}; background-position: ${position}; background-size: ${size}; opacity: ${opacity};`;
+      } else {
+        bgStyle = `background-color: #1a1a1a;`;
       }
       break;
       
@@ -1387,7 +1407,6 @@ function updateBackgroundPreview() {
   }
   
   preview.style.cssText = bgStyle;
-  dashboard.style.cssText = bgStyle;
 }
 
 // Generate pattern CSS
