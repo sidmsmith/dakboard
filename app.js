@@ -2022,6 +2022,10 @@ async function fetchGooglePhotos() {
     } else {
       const data = await response.json();
       googlePhotosCache.photos = data.photos || [];
+      console.log('Google Photos fetched:', {
+        count: googlePhotosCache.photos.length,
+        message: data.message || 'Success'
+      });
     }
     
     // If album is empty, fetch from all photos
@@ -2032,13 +2036,31 @@ async function fetchGooglePhotos() {
       if (allPhotosResponse.ok) {
         const allPhotosData = await allPhotosResponse.json();
         googlePhotosCache.photos = allPhotosData.photos || [];
+        console.log('Fetched all photos (fallback):', googlePhotosCache.photos.length);
       }
     }
     
     googlePhotosCache.lastUpdate = Date.now();
     
     // Display a random photo
-    displayRandomGooglePhoto();
+    if (googlePhotosCache.photos.length > 0) {
+      displayRandomGooglePhoto();
+    } else {
+      // Show message if no photos found
+      const container = document.getElementById('photos-content');
+      if (container) {
+        container.innerHTML = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">📷</div>
+            <h3>No Photos Found</h3>
+            <p>Your Google Photos library appears to be empty, or photos are not accessible.</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">
+              Check the browser console (F12) for more details.
+            </p>
+          </div>
+        `;
+      }
+    }
   } catch (error) {
     console.error('Error fetching Google Photos:', error);
     const container = document.getElementById('photos-content');
@@ -2080,6 +2102,9 @@ function displayRandomGooglePhoto() {
         <div class="photos-icon">📷</div>
         <h3>No Photos Found</h3>
         <p>No photos available in your Google Photos library.</p>
+        <p style="font-size: 12px; color: #888; margin-top: 8px;">
+          Make sure you have photos in your Google Photos account.
+        </p>
       </div>
     `;
     return;
@@ -2089,10 +2114,33 @@ function displayRandomGooglePhoto() {
   const randomIndex = Math.floor(Math.random() * googlePhotosCache.photos.length);
   const photo = googlePhotosCache.photos[randomIndex];
   
+  console.log('Displaying photo:', {
+    index: randomIndex,
+    id: photo.id,
+    filename: photo.filename,
+    hasMedium: !!photo.medium,
+    hasBaseUrl: !!photo.baseUrl
+  });
+  
+  // Use medium size if available, fallback to baseUrl
+  const imageUrl = photo.medium || photo.baseUrl;
+  
+  if (!imageUrl) {
+    console.error('Photo has no URL:', photo);
+    container.innerHTML = `
+      <div class="photos-placeholder">
+        <div class="photos-icon">📷</div>
+        <h3>Photo Error</h3>
+        <p>Photo found but URL is missing.</p>
+      </div>
+    `;
+    return;
+  }
+  
   container.innerHTML = `
     <div class="photos-display">
-      <img src="${photo.medium || photo.baseUrl}" alt="Google Photo" class="photos-image" 
-           onerror="this.src='${photo.baseUrl}'" />
+      <img src="${imageUrl}" alt="Google Photo" class="photos-image" 
+           onerror="console.error('Image load error:', this.src); this.src='${photo.baseUrl || imageUrl}'" />
     </div>
   `;
 }

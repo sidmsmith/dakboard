@@ -82,9 +82,20 @@ export default async function (req, res) {
     const responseData = await apiResponse.json();
     photos = responseData.mediaItems || [];
     
+    console.log('Google Photos API response:', {
+      totalPhotos: photos.length,
+      hasNextPage: responseData.nextPageToken ? true : false,
+      samplePhoto: photos.length > 0 ? {
+        id: photos[0].id,
+        filename: photos[0].filename,
+        hasBaseUrl: !!photos[0].baseUrl
+      } : null
+    });
+    
     // If no photos found in album, return empty array (frontend will randomize)
     if (photos.length === 0) {
-      return res.json({ photos: [], message: 'No photos found' });
+      console.warn('No photos returned from Google Photos API');
+      return res.json({ photos: [], message: 'No photos found in your Google Photos library' });
     }
     
     // Format photos for frontend
