@@ -1593,10 +1593,17 @@ function updateBackgroundPreview() {
       if (bgSizeMatch) {
         preview.style.backgroundSize = bgSizeMatch[1].trim();
       }
+      // Set a default background color so the pattern is visible
+      preview.style.backgroundColor = '#1a1a1a';
       return; // Don't set bgStyle, we've already applied it
   }
   
-  preview.style.cssText = bgStyle;
+  if (bgStyle) {
+    preview.style.cssText = bgStyle;
+  } else {
+    // Fallback: ensure preview has some background
+    preview.style.backgroundColor = preview.style.backgroundColor || '#1a1a1a';
+  }
 }
 
 // Generate pattern CSS
