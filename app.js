@@ -613,23 +613,27 @@ async function fetchMonthEvents(monthStart, monthEnd) {
             console.error(`Error fetching events from ${calEntityId}:`, err);
           }
         }
-      // Format events (same as weekly calendar)
-      monthEvents = allEvents.map(event => {
-        const startTime = event.start || event.start_time || event.dtstart;
-        const endTime = event.end || event.end_time || event.dtend;
-        const summary = event.summary || event.title || event.name || 'Untitled Event';
         
-        return {
-          id: event.uid || event.id || `${event.calendar}-${startTime}`,
-          title: summary,
-          start: startTime,
-          end: endTime,
-          location: event.location || null,
-          description: event.description || null,
-          calendar: event.calendar,
-          allDay: event.all_day || false
-        };
-      });
+        // Format events (same as weekly calendar)
+        monthEvents = allEvents.map(event => {
+          const startTime = event.start || event.start_time || event.dtstart;
+          const endTime = event.end || event.end_time || event.dtend;
+          const summary = event.summary || event.title || event.name || 'Untitled Event';
+          
+          return {
+            id: event.uid || event.id || `${event.calendar}-${startTime}`,
+            title: summary,
+            start: startTime,
+            end: endTime,
+            location: event.location || null,
+            description: event.description || null,
+            calendar: event.calendar,
+            allDay: event.all_day || false
+          };
+        });
+      } else {
+        monthEvents = [];
+      }
     } else {
       // Use serverless function (for Vercel production) - match weekly calendar format
       const response = await fetch(`/api/ha-calendar?startDate=${monthStart.toISOString()}&endDate=${monthEnd.toISOString()}`);
