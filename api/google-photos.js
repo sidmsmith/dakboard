@@ -4,6 +4,11 @@
 export default async function (req, res) {
   const { method, query } = req;
   
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
   if (method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -20,75 +25,62 @@ export default async function (req, res) {
   
   try {
     let photos = [];
+    let requestBody = {
+      pageSize: pageSize
+    };
     
     if (albumId) {
       // Fetch photos from specific album
-      const albumResponse = await fetch(
-        `https://photoslibrary.googleapis.com/v1/mediaItems:search`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            albumId: albumId,
-            pageSize: pageSize,
-          }),
-        }
-      );
-      
-      if (!albumResponse.ok) {
-        if (albumResponse.status === 401) {
-          return res.status(401).json({ error: 'Token expired', needsRefresh: true });
-        }
-        const errorText = await albumResponse.text();
-        let errorData;
-        try {
-          errorData = await albumResponse.json();
-        } catch (e) {
-          errorData = { error: errorText };
-        }
-        console.error('Google Photos Album API error:', {
-          status: albumResponse.status,
-          statusText: albumResponse.statusText,
-          error: errorData
-        });
-        throw new Error(`Album API error (${albumResponse.status}): ${JSON.stringify(errorData)}`);
-      }
-      
-      const albumData = await albumResponse.json();
-      photos = albumData.mediaItems || [];
-    } else {
-      // Fetch recent photos (or all photos)
-      const searchResponse = await fetch(
-        `https://photoslibrary.googleapis.com/v1/mediaItems:search`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            pageSize: pageSize,
-            filters: {
-              // No filters = get all photos
-            },
-          }),
-        }
-      );
-      
-      if (!searchResponse.ok) {
-        if (searchResponse.status === 401) {
-          return res.status(401).json({ error: 'Token expired', needsRefresh: true });
-        }
-        const error = await searchResponse.text();
-        throw new Error(`Search API error: ${error}`);
-      }
-      
-      const searchData = await searchResponse.json();
-      photos = searchData.mediaItems || [];
+      requestBody.albumId = albumId;
     }
+    // If no albumId, we'll search all photos (no filters needed - API allows empty request)
+    
+    console.log('Google Photos API request:', {
+      url: 'https://photoslibrary.googleapis.com/v1/mediaItems:search',
+      body: requestBody
+    });
+    
+    const apiResponse = await fetch(
+      `https://photoslibrary.googleapis.com/v1/mediaItems:search`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      }
+    );
+    
+    if (!apiResponse.ok) {
+      if (apiResponse.status === 401) {
+        return res.status(401).json({ error: 'Token expired', needsRefresh: true });
+      }
+      
+      const errorText = await apiResponse.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { error: errorText };
+      }
+      
+      console.error('Google Photos API error:', {
+        status: apiResponse.status,
+        statusText: apiResponse.statusText,
+        error: errorData,
+        requestBody: requestBody
+      });
+      
+      return res.status(apiResponse.status).json({ 
+        error: `Google Photos API error (${apiResponse.status})`,
+        details: errorData,
+        message: errorData.error?.message || errorData.error || 'Unknown error'
+      });
+    }
+    
+    const responseData = await apiResponse.json();
+    photos = responseData.mediaItems || [];
     
     // If no photos found in album, return empty array (frontend will randomize)
     if (photos.length === 0) {
@@ -117,4 +109,3 @@ export default async function (req, res) {
     });
   }
 }
-
