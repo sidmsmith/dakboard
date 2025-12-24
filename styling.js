@@ -620,8 +620,15 @@ function attachTabEventListeners(tabName) {
     const gradDirection = document.getElementById('bg-gradient-direction');
     
     if (gradColor1 && gradColor1Text) {
+      console.log('Attaching gradient color1 listeners');
       gradColor1.addEventListener('input', (e) => {
         console.log('Gradient Color1 changed:', e.target.value);
+        gradColor1Text.value = e.target.value;
+        currentStyles.gradientColor1 = e.target.value;
+        updatePreview();
+      });
+      gradColor1.addEventListener('change', (e) => {
+        console.log('Gradient Color1 changed (change event):', e.target.value);
         gradColor1Text.value = e.target.value;
         currentStyles.gradientColor1 = e.target.value;
         updatePreview();
@@ -639,8 +646,15 @@ function attachTabEventListeners(tabName) {
     }
     
     if (gradColor2 && gradColor2Text) {
+      console.log('Attaching gradient color2 listeners');
       gradColor2.addEventListener('input', (e) => {
         console.log('Gradient Color2 changed:', e.target.value);
+        gradColor2Text.value = e.target.value;
+        currentStyles.gradientColor2 = e.target.value;
+        updatePreview();
+      });
+      gradColor2.addEventListener('change', (e) => {
+        console.log('Gradient Color2 changed (change event):', e.target.value);
         gradColor2Text.value = e.target.value;
         currentStyles.gradientColor2 = e.target.value;
         updatePreview();
