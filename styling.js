@@ -617,32 +617,40 @@ function attachTabEventListeners(tabName) {
     
     if (gradColor1 && gradColor1Text) {
       gradColor1.addEventListener('input', (e) => {
+        console.log('Gradient Color1 changed:', e.target.value);
         gradColor1Text.value = e.target.value;
         currentStyles.gradientColor1 = e.target.value;
         updatePreview();
       });
       gradColor1Text.addEventListener('input', (e) => {
         if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+          console.log('Gradient Color1 text changed:', e.target.value);
           gradColor1.value = e.target.value;
           currentStyles.gradientColor1 = e.target.value;
           updatePreview();
         }
       });
+    } else {
+      console.warn('Gradient Color1 elements not found:', { gradColor1: !!gradColor1, gradColor1Text: !!gradColor1Text });
     }
     
     if (gradColor2 && gradColor2Text) {
       gradColor2.addEventListener('input', (e) => {
+        console.log('Gradient Color2 changed:', e.target.value);
         gradColor2Text.value = e.target.value;
         currentStyles.gradientColor2 = e.target.value;
         updatePreview();
       });
       gradColor2Text.addEventListener('input', (e) => {
         if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+          console.log('Gradient Color2 text changed:', e.target.value);
           gradColor2.value = e.target.value;
           currentStyles.gradientColor2 = e.target.value;
           updatePreview();
         }
       });
+    } else {
+      console.warn('Gradient Color2 elements not found:', { gradColor2: !!gradColor2, gradColor2Text: !!gradColor2Text });
     }
     
     if (gradDirection) {
@@ -1092,10 +1100,25 @@ function applyCurrentStylesToWidget(widget) {
       const gradColor1El = document.getElementById('bg-gradient-color1');
       const gradColor2El = document.getElementById('bg-gradient-color2');
       const gradDirEl = document.getElementById('bg-gradient-direction');
-      const gradColor1 = currentStyles.gradientColor1 || gradColor1El?.value || '#2a2a2a';
-      const gradColor2 = currentStyles.gradientColor2 || gradColor2El?.value || '#3a3a3a';
-      const gradDir = currentStyles.gradientDirection || gradDirEl?.value || 'to bottom';
-      console.log('Apply - Gradient:', { gradColor1, gradColor2, gradDir, gradColor1El: !!gradColor1El, gradColor2El: !!gradColor2El, gradDirEl: !!gradDirEl, isApplyingToAll, applyToAllFlags });
+      // Always read from form inputs first, then fall back to currentStyles, then defaults
+      const gradColor1 = gradColor1El?.value || currentStyles.gradientColor1 || '#2a2a2a';
+      const gradColor2 = gradColor2El?.value || currentStyles.gradientColor2 || '#3a3a3a';
+      const gradDir = gradDirEl?.value || currentStyles.gradientDirection || 'to bottom';
+      console.log('Apply - Gradient:', { 
+        gradColor1, 
+        gradColor2, 
+        gradDir, 
+        gradColor1El: !!gradColor1El,
+        gradColor1ElValue: gradColor1El?.value,
+        gradColor2El: !!gradColor2El,
+        gradColor2ElValue: gradColor2El?.value,
+        gradDirEl: !!gradDirEl,
+        gradDirElValue: gradDirEl?.value,
+        isApplyingToAll, 
+        applyToAllFlags,
+        currentStylesGrad1: currentStyles.gradientColor1,
+        currentStylesGrad2: currentStyles.gradientColor2
+      });
       if (gradColor1 && gradColor2) {
         // Always apply if not applying to all, or if apply-to-all flag is set
         if (!isApplyingToAll || applyToAllFlags.gradientColor1 || applyToAllFlags.gradientColor2) {
