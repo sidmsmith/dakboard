@@ -1869,6 +1869,43 @@ function updateWidgetControlPanel() {
       }
     });
     
+    // Z-index controls
+    const bringForwardBtn = document.createElement('button');
+    bringForwardBtn.className = 'widget-control-zindex-btn';
+    bringForwardBtn.innerHTML = '↑';
+    bringForwardBtn.title = 'Bring Forward';
+    bringForwardBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      bringWidgetForward(widgetId);
+    });
+
+    const sendBackwardBtn = document.createElement('button');
+    sendBackwardBtn.className = 'widget-control-zindex-btn';
+    sendBackwardBtn.innerHTML = '↓';
+    sendBackwardBtn.title = 'Send Backward';
+    sendBackwardBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sendWidgetBackward(widgetId);
+    });
+
+    const bringToFrontBtn = document.createElement('button');
+    bringToFrontBtn.className = 'widget-control-zindex-btn';
+    bringToFrontBtn.innerHTML = '⬆';
+    bringToFrontBtn.title = 'Bring to Front';
+    bringToFrontBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      bringWidgetToFront(widgetId);
+    });
+
+    const sendToBackBtn = document.createElement('button');
+    sendToBackBtn.className = 'widget-control-zindex-btn';
+    sendToBackBtn.innerHTML = '⬇';
+    sendToBackBtn.title = 'Send to Back';
+    sendToBackBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sendWidgetToBack(widgetId);
+    });
+    
     item.innerHTML = `
       <div class="widget-control-item-info">
         <span class="widget-control-item-icon">${config.icon}</span>
@@ -1877,6 +1914,15 @@ function updateWidgetControlPanel() {
     `;
     item.appendChild(toggleBtn);
     item.appendChild(styleBtn);
+    
+    // Add z-index controls in a group
+    const zIndexGroup = document.createElement('div');
+    zIndexGroup.className = 'widget-control-zindex-group';
+    zIndexGroup.appendChild(sendToBackBtn);
+    zIndexGroup.appendChild(sendBackwardBtn);
+    zIndexGroup.appendChild(bringForwardBtn);
+    zIndexGroup.appendChild(bringToFrontBtn);
+    item.appendChild(zIndexGroup);
     
     list.appendChild(item);
   });
