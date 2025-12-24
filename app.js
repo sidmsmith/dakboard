@@ -447,73 +447,7 @@ async function showMonthModal() {
   const monthEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
   
   // Fetch events for the entire month
-  let monthEvents = [];
-  try {
-    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
-      const haUrl = window.CONFIG.HA_URL;
-      const haToken = window.CONFIG.HA_TOKEN;
-      const calendarEntities = window.CONFIG.HA_CALENDAR_ENTITIES || [];
-      
-      if (calendarEntities.length > 0) {
-        const allEvents = [];
-        for (const calEntityId of calendarEntities) {
-          try {
-            const serviceResponse = await fetch(`${haUrl}/api/services/calendar/get_events`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${haToken}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                entity_id: calEntityId,
-                start_date_time: monthStart.toISOString(),
-                end_date_time: monthEnd.toISOString()
-              })
-            });
-            
-            if (serviceResponse.ok) {
-              const serviceData = await serviceResponse.json();
-              let events = [];
-              
-              if (serviceData.service_response && serviceData.service_response[calEntityId]) {
-                const calendarData = serviceData.service_response[calEntityId];
-                events = calendarData.events || (Array.isArray(calendarData) ? calendarData : []);
-              } else if (serviceData[calEntityId]) {
-                const calendarData = serviceData[calEntityId];
-                events = calendarData.events || (Array.isArray(calendarData) ? calendarData : []);
-              } else if (Array.isArray(serviceData)) {
-                events = serviceData;
-              } else if (serviceData.events) {
-                events = serviceData.events;
-              }
-              
-              allEvents.push(...events.map(event => ({
-                id: event.uid || event.id || `${calEntityId}-${event.start || event.start_time}`,
-                title: event.summary || event.title || event.name || 'Untitled Event',
-                start: event.start || event.start_time || event.dtstart,
-                end: event.end || event.end_time || event.dtend,
-                location: event.location || null,
-                description: event.description || null,
-                calendar: calEntityId,
-                color: event.color || '#4a90e2'
-              })));
-            }
-          } catch (err) {
-            console.error(`Error fetching events from ${calEntityId}:`, err);
-          }
-        }
-        monthEvents = allEvents;
-      }
-    } else if (window.CONFIG && window.CONFIG.API_URL) {
-      const response = await fetch(`${window.CONFIG.API_URL}/api/ha-calendar?start=${monthStart.toISOString()}&end=${monthEnd.toISOString()}`);
-      if (response.ok) {
-        const data = await response.json();
-        monthEvents = data.events || [];
-      }
-    }
-  } catch (error) {
-    console.error('Error loading month events:', error);
-  }
+  const monthEvents = await fetchMonthEvents(monthStart, monthEnd);
   
   // Render month calendar
   renderMonthCalendar(content, currentYear, currentMonth, monthEvents);
@@ -594,20 +528,98 @@ function renderMonthCalendar(container, year, month, events) {
   const nextBtn = document.getElementById('next-month-btn');
   
   if (prevBtn) {
-    prevBtn.addEventListener('click', () => {
+    prevBtn.onclick = async () => {
       const newMonth = month === 0 ? 11 : month - 1;
       const newYear = month === 0 ? year - 1 : year;
-      renderMonthCalendar(container, newYear, newMonth, monthEvents);
-    });
+      const newMonthStart = new Date(newYear, newMonth, 1);
+      const newMonthEnd = new Date(newYear, newMonth + 1, 0, 23, 59, 59, 999);
+      const newEvents = await fetchMonthEvents(newMonthStart, newMonthEnd);
+      renderMonthCalendar(container, newYear, newMonth, newEvents);
+    };
   }
   
   if (nextBtn) {
-    nextBtn.addEventListener('click', () => {
+    nextBtn.onclick = async () => {
       const newMonth = month === 11 ? 0 : month + 1;
       const newYear = month === 11 ? year + 1 : year;
-      renderMonthCalendar(container, newYear, newMonth, monthEvents);
-    });
+      const newMonthStart = new Date(newYear, newMonth, 1);
+      const newMonthEnd = new Date(newYear, newMonth + 1, 0, 23, 59, 59, 999);
+      const newEvents = await fetchMonthEvents(newMonthStart, newMonthEnd);
+      renderMonthCalendar(container, newYear, newMonth, newEvents);
+    };
   }
+}
+
+// Fetch events for a month range
+async function fetchMonthEvents(monthStart, monthEnd) {
+  let monthEvents = [];
+  try {
+    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
+      const haUrl = window.CONFIG.HA_URL;
+      const haToken = window.CONFIG.HA_TOKEN;
+      const calendarEntities = window.CONFIG.HA_CALENDAR_ENTITIES || [];
+      
+      if (calendarEntities.length > 0) {
+        const allEvents = [];
+        for (const calEntityId of calendarEntities) {
+          try {
+            const serviceResponse = await fetch(`${haUrl}/api/services/calendar/get_events`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${haToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                entity_id: calEntityId,
+                start_date_time: monthStart.toISOString(),
+                end_date_time: monthEnd.toISOString()
+              })
+            });
+            
+            if (serviceResponse.ok) {
+              const serviceData = await serviceResponse.json();
+              let events = [];
+              
+              if (serviceData.service_response && serviceData.service_response[calEntityId]) {
+                const calendarData = serviceData.service_response[calEntityId];
+                events = calendarData.events || (Array.isArray(calendarData) ? calendarData : []);
+              } else if (serviceData[calEntityId]) {
+                const calendarData = serviceData[calEntityId];
+                events = calendarData.events || (Array.isArray(calendarData) ? calendarData : []);
+              } else if (Array.isArray(serviceData)) {
+                events = serviceData;
+              } else if (serviceData.events) {
+                events = serviceData.events;
+              }
+              
+              allEvents.push(...events.map(event => ({
+                id: event.uid || event.id || `${calEntityId}-${event.start || event.start_time}`,
+                title: event.summary || event.title || event.name || 'Untitled Event',
+                start: event.start || event.start_time || event.dtstart,
+                end: event.end || event.end_time || event.dtend,
+                location: event.location || null,
+                description: event.description || null,
+                calendar: calEntityId,
+                color: event.color || '#4a90e2'
+              })));
+            }
+          } catch (err) {
+            console.error(`Error fetching events from ${calEntityId}:`, err);
+          }
+        }
+        monthEvents = allEvents;
+      }
+    } else if (window.CONFIG && window.CONFIG.API_URL) {
+      const response = await fetch(`${window.CONFIG.API_URL}/api/ha-calendar?start=${monthStart.toISOString()}&end=${monthEnd.toISOString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        monthEvents = data.events || [];
+      }
+    }
+  } catch (error) {
+    console.error('Error loading month events:', error);
+  }
+  return monthEvents;
 }
 
 // Close monthly calendar modal
