@@ -108,10 +108,43 @@ function generateTabContent(tabName) {
 // Generate Background Tab (for widget background styling)
 function generateBackgroundTab() {
   const bgColor = currentStyles.backgroundColor || '#2a2a2a';
+  const bgType = currentStyles.backgroundType || 'solid';
   const opacity = currentStyles.opacity !== undefined ? currentStyles.opacity : 100;
+  const gradientColor1 = currentStyles.gradientColor1 || '#2a2a2a';
+  const gradientColor2 = currentStyles.gradientColor2 || '#3a3a3a';
+  const gradientDirection = currentStyles.gradientDirection || 'to bottom';
+  const backgroundImageUrl = currentStyles.backgroundImageUrl || '';
+  const backgroundRepeat = currentStyles.backgroundRepeat || 'no-repeat';
+  const backgroundPosition = currentStyles.backgroundPosition || 'center';
+  const backgroundSize = currentStyles.backgroundSize || 'cover';
+  const backgroundImageOpacity = currentStyles.backgroundImageOpacity !== undefined ? currentStyles.backgroundImageOpacity : 100;
+  const patternType = currentStyles.patternType || 'dots';
+  const patternColor = currentStyles.patternColor || '#3a3a3a';
+  const patternSize = currentStyles.patternSize !== undefined ? currentStyles.patternSize : 20;
   
   return `
     <div class="styling-form-section">
+      <div class="styling-section-title">Background Type</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Type</label>
+          <div class="styling-form-control">
+            <select id="bg-type">
+              <option value="solid" ${bgType === 'solid' ? 'selected' : ''}>Solid Color</option>
+              <option value="gradient" ${bgType === 'gradient' ? 'selected' : ''}>Gradient</option>
+              <option value="pattern" ${bgType === 'pattern' ? 'selected' : ''}>Pattern</option>
+              <option value="image" ${bgType === 'image' ? 'selected' : ''}>Image (URL)</option>
+            </select>
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="bg-type-apply-all" ${applyToAllFlags.backgroundType ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Solid Color Section -->
+    <div class="styling-form-section" id="widget-bg-solid-section" style="display: ${bgType === 'solid' ? 'block' : 'none'};">
       <div class="styling-section-title">Background Color</div>
       <div class="styling-form-group">
         <div class="styling-form-row">
@@ -125,7 +158,166 @@ function generateBackgroundTab() {
           </div>
         </div>
       </div>
+    </div>
 
+    <!-- Gradient Section -->
+    <div class="styling-form-section" id="widget-bg-gradient-section" style="display: ${bgType === 'gradient' ? 'block' : 'none'};">
+      <div class="styling-section-title">Gradient</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Color 1</label>
+          <div class="styling-form-control">
+            <input type="color" id="bg-gradient-color1" value="${gradientColor1}">
+            <input type="text" id="bg-gradient-color1-text" value="${gradientColor1}">
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="bg-gradient-color1-apply-all" ${applyToAllFlags.gradientColor1 ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Color 2</label>
+          <div class="styling-form-control">
+            <input type="color" id="bg-gradient-color2" value="${gradientColor2}">
+            <input type="text" id="bg-gradient-color2-text" value="${gradientColor2}">
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="bg-gradient-color2-apply-all" ${applyToAllFlags.gradientColor2 ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Direction</label>
+          <div class="styling-form-control">
+            <select id="bg-gradient-direction">
+              <option value="to bottom" ${gradientDirection === 'to bottom' ? 'selected' : ''}>Top to Bottom</option>
+              <option value="to right" ${gradientDirection === 'to right' ? 'selected' : ''}>Left to Right</option>
+              <option value="to bottom right" ${gradientDirection === 'to bottom right' ? 'selected' : ''}>Diagonal (Top-Left to Bottom-Right)</option>
+              <option value="to top right" ${gradientDirection === 'to top right' ? 'selected' : ''}>Diagonal (Bottom-Left to Top-Right)</option>
+              <option value="135deg" ${gradientDirection === '135deg' ? 'selected' : ''}>135° Angle</option>
+              <option value="45deg" ${gradientDirection === '45deg' ? 'selected' : ''}>45° Angle</option>
+            </select>
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="bg-gradient-direction-apply-all" ${applyToAllFlags.gradientDirection ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Section -->
+    <div class="styling-form-section" id="widget-bg-image-section" style="display: ${bgType === 'image' ? 'block' : 'none'};">
+      <div class="styling-section-title">Background Image</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Image URL</label>
+          <div class="styling-form-control">
+            <input type="text" id="bg-image-url" value="${backgroundImageUrl}" placeholder="https://example.com/image.jpg">
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="bg-image-url-apply-all" ${applyToAllFlags.backgroundImageUrl ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Repeat</label>
+          <div class="styling-form-control">
+            <select id="bg-image-repeat">
+              <option value="no-repeat" ${backgroundRepeat === 'no-repeat' ? 'selected' : ''}>No Repeat</option>
+              <option value="repeat" ${backgroundRepeat === 'repeat' ? 'selected' : ''}>Repeat</option>
+              <option value="repeat-x" ${backgroundRepeat === 'repeat-x' ? 'selected' : ''}>Repeat X</option>
+              <option value="repeat-y" ${backgroundRepeat === 'repeat-y' ? 'selected' : ''}>Repeat Y</option>
+            </select>
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="bg-image-repeat-apply-all" ${applyToAllFlags.backgroundRepeat ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Position</label>
+          <div class="styling-form-control">
+            <select id="bg-image-position">
+              <option value="center" ${backgroundPosition === 'center' ? 'selected' : ''}>Center</option>
+              <option value="top" ${backgroundPosition === 'top' ? 'selected' : ''}>Top</option>
+              <option value="bottom" ${backgroundPosition === 'bottom' ? 'selected' : ''}>Bottom</option>
+              <option value="left" ${backgroundPosition === 'left' ? 'selected' : ''}>Left</option>
+              <option value="right" ${backgroundPosition === 'right' ? 'selected' : ''}>Right</option>
+              <option value="top left" ${backgroundPosition === 'top left' ? 'selected' : ''}>Top Left</option>
+              <option value="top right" ${backgroundPosition === 'top right' ? 'selected' : ''}>Top Right</option>
+              <option value="bottom left" ${backgroundPosition === 'bottom left' ? 'selected' : ''}>Bottom Left</option>
+              <option value="bottom right" ${backgroundPosition === 'bottom right' ? 'selected' : ''}>Bottom Right</option>
+            </select>
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="bg-image-position-apply-all" ${applyToAllFlags.backgroundPosition ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Size</label>
+          <div class="styling-form-control">
+            <select id="bg-image-size">
+              <option value="cover" ${backgroundSize === 'cover' ? 'selected' : ''}>Cover</option>
+              <option value="contain" ${backgroundSize === 'contain' ? 'selected' : ''}>Contain</option>
+              <option value="auto" ${backgroundSize === 'auto' ? 'selected' : ''}>Auto</option>
+              <option value="100% 100%" ${backgroundSize === '100% 100%' ? 'selected' : ''}>Stretch</option>
+            </select>
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="bg-image-size-apply-all" ${applyToAllFlags.backgroundSize ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Opacity</label>
+          <div class="styling-form-control">
+            <input type="range" id="bg-image-opacity" min="0" max="100" value="${backgroundImageOpacity}">
+            <span class="styling-range-value" id="bg-image-opacity-value">${backgroundImageOpacity}%</span>
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="bg-image-opacity-apply-all" ${applyToAllFlags.backgroundImageOpacity ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pattern Section -->
+    <div class="styling-form-section" id="widget-bg-pattern-section" style="display: ${bgType === 'pattern' ? 'block' : 'none'};">
+      <div class="styling-section-title">Pattern</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Pattern</label>
+          <div class="styling-form-control">
+            <select id="bg-pattern-type">
+              <option value="dots" ${patternType === 'dots' ? 'selected' : ''}>Dots</option>
+              <option value="grid" ${patternType === 'grid' ? 'selected' : ''}>Grid</option>
+              <option value="lines" ${patternType === 'lines' ? 'selected' : ''}>Horizontal Lines</option>
+              <option value="diagonal" ${patternType === 'diagonal' ? 'selected' : ''}>Diagonal Lines</option>
+              <option value="crosshatch" ${patternType === 'crosshatch' ? 'selected' : ''}>Crosshatch</option>
+            </select>
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="bg-pattern-type-apply-all" ${applyToAllFlags.patternType ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Color</label>
+          <div class="styling-form-control">
+            <input type="color" id="bg-pattern-color" value="${patternColor}">
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="bg-pattern-color-apply-all" ${applyToAllFlags.patternColor ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Size</label>
+          <div class="styling-form-control">
+            <input type="range" id="bg-pattern-size" min="5" max="50" value="${patternSize}">
+            <span class="styling-range-value" id="bg-pattern-size-value">${patternSize}px</span>
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="bg-pattern-size-apply-all" ${applyToAllFlags.patternSize ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="styling-form-section">
       <div class="styling-section-title">Transparency</div>
       <div class="styling-form-group">
         <div class="styling-form-row">
@@ -670,10 +862,51 @@ function applyCurrentStylesToWidget(widget) {
   const isApplyingToAll = applyToAllFlags.global;
   
   // Background
-  if (currentStyles.backgroundColor !== undefined) {
-    if (!isApplyingToAll || applyToAllFlags.backgroundColor) {
-      widget.style.backgroundColor = currentStyles.backgroundColor;
-    }
+  const bgType = currentStyles.backgroundType || 'solid';
+  
+  // Clear previous background styles
+  if (!isApplyingToAll || applyToAllFlags.backgroundType || applyToAllFlags.backgroundColor) {
+    widget.style.backgroundColor = '';
+    widget.style.backgroundImage = '';
+    widget.style.backgroundRepeat = '';
+    widget.style.backgroundPosition = '';
+    widget.style.backgroundSize = '';
+  }
+  
+  switch(bgType) {
+    case 'solid':
+      if (currentStyles.backgroundColor !== undefined) {
+        if (!isApplyingToAll || applyToAllFlags.backgroundColor) {
+          widget.style.backgroundColor = currentStyles.backgroundColor;
+        }
+      }
+      break;
+    case 'gradient':
+      if (currentStyles.gradientColor1 && currentStyles.gradientColor2) {
+        if (!isApplyingToAll || applyToAllFlags.gradientColor1) {
+          const direction = currentStyles.gradientDirection || 'to bottom';
+          widget.style.backgroundImage = `linear-gradient(${direction}, ${currentStyles.gradientColor1}, ${currentStyles.gradientColor2})`;
+        }
+      }
+      break;
+    case 'image':
+      if (currentStyles.backgroundImageUrl) {
+        if (!isApplyingToAll || applyToAllFlags.backgroundImageUrl) {
+          widget.style.backgroundImage = `url(${currentStyles.backgroundImageUrl})`;
+          widget.style.backgroundRepeat = currentStyles.backgroundRepeat || 'no-repeat';
+          widget.style.backgroundPosition = currentStyles.backgroundPosition || 'center';
+          widget.style.backgroundSize = currentStyles.backgroundSize || 'cover';
+        }
+      }
+      break;
+    case 'pattern':
+      if (currentStyles.patternType && currentStyles.patternColor) {
+        if (!isApplyingToAll || applyToAllFlags.patternType) {
+          const patternSize = currentStyles.patternSize || 20;
+          widget.style.backgroundImage = generatePatternCSS(currentStyles.patternType, currentStyles.patternColor, patternSize);
+        }
+      }
+      break;
   }
   
   if (currentStyles.opacity !== undefined) {
