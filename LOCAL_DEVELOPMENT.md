@@ -101,3 +101,5 @@ The dashboard will automatically detect local mode and use direct HA API calls.
 - **Use local mode only for development** - Production should use Vercel serverless functions
 - **Rotate tokens regularly** - Create new tokens if you suspect compromise
 
+
+

@@ -1788,6 +1788,8 @@ function initializeWidgetControlPanel() {
   const toggleBtn = document.getElementById('widget-control-toggle');
   const panel = document.getElementById('widget-control-panel');
   const closeBtn = document.getElementById('close-widget-panel');
+  
+  // Edit mode toggle is now in the bottom controls, initialize it separately
   const editModeToggle = document.getElementById('edit-layout-toggle');
   
   if (!toggleBtn || !panel) {
@@ -1810,7 +1812,7 @@ function initializeWidgetControlPanel() {
     });
   }
   
-  // Edit mode toggle
+  // Edit mode toggle (now in bottom controls)
   if (editModeToggle) {
     editModeToggle.addEventListener('change', (e) => {
       setEditMode(e.target.checked);
@@ -1863,9 +1865,13 @@ function setEditMode(enabled) {
     }
   });
   
-  // Reinitialize drag/resize if needed
+  // Reinitialize drag/resize when entering edit mode
+  // Remove resize handles when exiting edit mode
   if (enabled) {
     initializeDragAndResize();
+  } else {
+    // Remove all resize handles when exiting edit mode
+    document.querySelectorAll('.resize-handle').forEach(handle => handle.remove());
   }
 }
 

@@ -13,3 +13,5 @@ window.CONFIG = {
   HA_TOKEN: 'your_long_lived_access_token_here', // Update with your token
 };
 
+
+

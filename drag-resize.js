@@ -134,7 +134,7 @@ function initializeDragAndResize() {
       
       // Make widget draggable (only in edit mode)
       // In edit mode, entire widget is draggable; in normal mode, no dragging
-      widget.addEventListener('mousedown', (e) => {
+      cleanWidget.addEventListener('mousedown', (e) => {
         // Check if edit mode is active (check dashboard class or global variable)
         const dashboard = document.querySelector('.dashboard');
         const inEditMode = dashboard && dashboard.classList.contains('edit-mode');
@@ -159,7 +159,7 @@ function initializeDragAndResize() {
         }
         
         console.log('  - Drag started (edit mode)');
-        startDrag(widget, e);
+        startDrag(cleanWidget, e);
       });
       
       // Update scale on initial load
@@ -196,6 +196,13 @@ function addResizeHandles(widget) {
     handleEl.className = `resize-handle ${handle.class}`;
     handleEl.style.cursor = handle.cursor;
     handleEl.addEventListener('mousedown', (e) => {
+      // Only allow resize in edit mode
+      const dashboard = document.querySelector('.dashboard');
+      const inEditMode = dashboard && dashboard.classList.contains('edit-mode');
+      if (!inEditMode) {
+        return;
+      }
+      
       e.stopPropagation();
       console.log('Resize started:', handle.class);
       startResize(widget, handle.class, e);
