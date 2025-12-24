@@ -1228,7 +1228,7 @@ function initBackgroundModal() {
   loadBackgroundSettings();
 }
 
-// Show appropriate background section based on type
+// Show appropriate background section based on type (for dashboard background modal)
 function showBackgroundSection(type) {
   const sections = {
     'solid': document.getElementById('bg-solid-section'),
@@ -1244,6 +1244,22 @@ function showBackgroundSection(type) {
   });
   
   updateBackgroundPreview();
+}
+
+// Show appropriate widget background section based on type
+function showWidgetBackgroundSection(type) {
+  const sections = {
+    'solid': document.getElementById('widget-bg-solid-section'),
+    'gradient': document.getElementById('widget-bg-gradient-section'),
+    'image': document.getElementById('widget-bg-image-section'),
+    'pattern': document.getElementById('widget-bg-pattern-section')
+  };
+  
+  Object.keys(sections).forEach(key => {
+    if (sections[key]) {
+      sections[key].style.display = key === type ? 'block' : 'none';
+    }
+  });
 }
 
 // Initialize background control event listeners
