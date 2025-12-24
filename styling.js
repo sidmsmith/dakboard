@@ -895,7 +895,8 @@ function updatePreview() {
   if (!preview) return;
 
   // Apply background based on type
-  const bgType = currentStyles.backgroundType || 'solid';
+  const bgType = currentStyles.backgroundType || document.getElementById('bg-type')?.value || 'solid';
+  console.log('Preview - Background type:', bgType, 'currentStyles.backgroundType:', currentStyles.backgroundType);
   
   // Clear previous background styles
   preview.style.backgroundColor = '';
