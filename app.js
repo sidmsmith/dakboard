@@ -2096,6 +2096,22 @@ function displayRandomGooglePhoto() {
   const container = document.getElementById('photos-content');
   if (!container) return;
   
+  // Demo mode for verification video - show placeholder photos
+  const demoMode = localStorage.getItem('google_photos_demo_mode') === 'true' || 
+                   new URLSearchParams(window.location.search).get('demo') === 'true';
+  
+  if (demoMode && googlePhotosCache.photos.length === 0) {
+    // Use placeholder images for demo
+    const demoPhotos = [
+      { medium: 'https://picsum.photos/800/600?random=1', baseUrl: 'https://picsum.photos/800/600?random=1' },
+      { medium: 'https://picsum.photos/800/600?random=2', baseUrl: 'https://picsum.photos/800/600?random=2' },
+      { medium: 'https://picsum.photos/800/600?random=3', baseUrl: 'https://picsum.photos/800/600?random=3' },
+      { medium: 'https://picsum.photos/800/600?random=4', baseUrl: 'https://picsum.photos/800/600?random=4' },
+      { medium: 'https://picsum.photos/800/600?random=5', baseUrl: 'https://picsum.photos/800/600?random=5' }
+    ];
+    googlePhotosCache.photos = demoPhotos;
+  }
+  
   if (googlePhotosCache.photos.length === 0) {
     container.innerHTML = `
       <div class="photos-placeholder">
@@ -2144,6 +2160,16 @@ function displayRandomGooglePhoto() {
     </div>
   `;
 }
+
+// Enable demo mode for verification video
+// Call this function or add ?demo=true to URL, or set localStorage: localStorage.setItem('google_photos_demo_mode', 'true')
+function enableGooglePhotosDemoMode() {
+  localStorage.setItem('google_photos_demo_mode', 'true');
+  loadGooglePhotos();
+}
+
+// Make function globally accessible
+window.enableGooglePhotosDemoMode = enableGooglePhotosDemoMode;
 
 // Show authentication prompt
 function showGooglePhotosAuthPrompt() {
