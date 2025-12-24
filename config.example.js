@@ -11,6 +11,9 @@ window.CONFIG = {
   
   // Your Home Assistant long-lived access token (for local development)
   HA_TOKEN: 'your_long_lived_access_token_here', // Update with your token
+  
+  // Google Photos Configuration (optional)
+  // GOOGLE_PHOTOS_ALBUM_ID: 'your_album_id_here', // Leave null to randomize from all photos
 };
 
 

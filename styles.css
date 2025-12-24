@@ -1234,13 +1234,6 @@ body {
   height: 100%;
   pointer-events: none;
   z-index: 9999;
-  background: repeating-linear-gradient(
-    45deg,
-    transparent,
-    transparent 100px,
-    rgba(255, 0, 0, 0.1) 100px,
-    rgba(255, 0, 0, 0.1) 200px
-  );
   overflow: hidden;
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -1253,7 +1246,7 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(-45deg);
-  font-size: 15vw;
+  font-size: 11.25vw;
   color: rgba(255, 0, 0, 0.3);
   white-space: nowrap;
   font-weight: bold;
@@ -1461,6 +1454,27 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
   max-height: 100%;
   object-fit: contain;
   border-radius: 8px;
+}
+
+.photos-connect-btn {
+  background: #4285f4;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 16px;
+  transition: background 0.2s;
+}
+
+.photos-connect-btn:hover {
+  background: #357ae8;
+}
+
+.photos-connect-btn:active {
+  background: #2d6bc4;
 }
 
 .photos-placeholder h3 {

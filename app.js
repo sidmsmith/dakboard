@@ -9,7 +9,9 @@ const CONFIG = {
   HA_GARAGE_DOOR_2: 'binary_sensor.z_wave_garage_door_sensor_sensor_state_any_2',
   HA_GARAGE_DOOR_3: 'binary_sensor.z_wave_garage_door_sensor_sensor_state_any_3',
   HA_ALARM_ENTITY: 'alarm_control_panel.dev_ttyusb0_alarm_panel', // Update with your alarm entity ID
-  HA_GOOGLE_PHOTOS_ENTRY_ID: '01KD8GRF62D7Z5QN0RH0HSJNSA', // Google Photos Entry ID
+  
+  // Google Photos Configuration
+  GOOGLE_PHOTOS_ALBUM_ID: null, // Optional: Specific album ID to display photos from. If null or empty, randomizes from all photos.
   
   // Home Assistant Webhook IDs (for triggering actions)
   // Just the webhook ID, not the full URL - the code will handle the URL construction
@@ -962,7 +964,7 @@ async function loadAllData() {
       loadTodos(),
       loadGarageDoors(),
       loadAlarm(),
-      loadGooglePhotos(),
+      loadGooglePhotos(), // Load Google Photos
       loadCalendarEvents() // Reload calendar events on refresh
     ]);
   } catch (error) {
@@ -1883,93 +1885,143 @@ async function toggleAlarm() {
   }
 }
 
-// Find Google Photos entity by entry ID
-async function findGooglePhotosEntity(entryId) {
-  try {
-    const allStates = await fetchAllHAStates();
-    if (!allStates) return null;
-    
-    // Search for image entities that match the entry ID
-    const photoEntity = allStates.find(state => {
-      if (!state.entity_id) return false;
-      
-      // Check if it's an image entity (could be image.* or camera.*)
-      const isImageEntity = state.entity_id.startsWith('image.') || 
-                           state.entity_id.startsWith('camera.');
-      
-      if (isImageEntity) {
-        const attrs = state.attributes || {};
-        // Check various possible locations for the entry ID
-        return attrs.entry_id === entryId || 
-               attrs.entryId === entryId ||
-               attrs.google_photos_entry_id === entryId ||
-               attrs.googlePhotosEntryId === entryId ||
-               attrs.id === entryId ||
-               state.entity_id.includes(entryId) ||
-               (attrs.friendly_name && attrs.friendly_name.includes(entryId));
-      }
-      return false;
-    });
-    
-    return photoEntity || null;
-  } catch (error) {
-    console.error('Error finding Google Photos entity:', error);
-    return null;
-  }
+// Google Photos state
+let googlePhotosCache = {
+  photos: [],
+  currentIndex: 0,
+  lastUpdate: 0,
+  updateInterval: null
+};
+
+// Check if Google Photos is authenticated
+function isGooglePhotosAuthenticated() {
+  const accessToken = localStorage.getItem('google_photos_access_token');
+  const refreshToken = localStorage.getItem('google_photos_refresh_token');
+  return !!(accessToken || refreshToken);
 }
 
-// Load Google Photos from HA
-async function loadGooglePhotos() {
+// Get valid access token (refresh if needed)
+async function getGooglePhotosAccessToken() {
+  const accessToken = localStorage.getItem('google_photos_access_token');
+  const refreshToken = localStorage.getItem('google_photos_refresh_token');
+  const tokenExpiry = parseInt(localStorage.getItem('google_photos_token_expiry') || '0');
+  
+  // If token is still valid, return it
+  if (accessToken && Date.now() < tokenExpiry - 60000) { // Refresh 1 minute before expiry
+    return accessToken;
+  }
+  
+  // If we have a refresh token, use it to get a new access token
+  if (refreshToken) {
+    try {
+      const response = await fetch('/api/google-photos-refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      
+      if (response.ok) {
+        const tokens = await response.json();
+        localStorage.setItem('google_photos_access_token', tokens.access_token);
+        localStorage.setItem('google_photos_token_expiry', tokens.expiry.toString());
+        return tokens.access_token;
+      } else {
+        // Refresh token expired or invalid, need to re-authenticate
+        localStorage.removeItem('google_photos_access_token');
+        localStorage.removeItem('google_photos_refresh_token');
+        localStorage.removeItem('google_photos_token_expiry');
+        return null;
+      }
+    } catch (error) {
+      console.error('Error refreshing Google Photos token:', error);
+      return null;
+    }
+  }
+  
+  return null;
+}
+
+// Initiate Google Photos OAuth flow
+function connectGooglePhotos() {
+  window.open('/api/google-photos-auth', 'google-photos-auth', 'width=600,height=700');
+  
+  // Listen for auth success message
+  const messageHandler = (event) => {
+    if (event.data.type === 'GOOGLE_PHOTOS_AUTH_SUCCESS') {
+      // Reload photos after successful auth
+      loadGooglePhotos();
+      window.removeEventListener('message', messageHandler);
+    }
+  };
+  window.addEventListener('message', messageHandler);
+}
+
+// Make function globally accessible for onclick handlers
+window.connectGooglePhotos = connectGooglePhotos;
+
+// Fetch photos from Google Photos API
+async function fetchGooglePhotos() {
   try {
-    const container = document.getElementById('photos-content');
-    if (!container) return;
+    const accessToken = await getGooglePhotosAccessToken();
     
-    // Find the entity by entry ID
-    const photoEntity = await findGooglePhotosEntity(CONFIG.HA_GOOGLE_PHOTOS_ENTRY_ID);
-    
-    if (!photoEntity) {
-      // Show placeholder if entity not found
-      container.innerHTML = `
-        <div class="photos-placeholder">
-          <div class="photos-icon">📷</div>
-          <h3>Google Photos Not Found</h3>
-          <p>Entity with Entry ID "${CONFIG.HA_GOOGLE_PHOTOS_ENTRY_ID}" not found.</p>
-        </div>
-      `;
+    if (!accessToken) {
+      // Not authenticated, show connect button
+      showGooglePhotosAuthPrompt();
       return;
     }
     
-    // Get image URL from entity
-    const attrs = photoEntity.attributes || {};
-    let imageUrl = attrs.entity_picture || attrs.media_content_id || attrs.url;
+    // Build API URL
+    let apiUrl = `/api/google-photos?access_token=${encodeURIComponent(accessToken)}&page_size=100`;
+    if (CONFIG.GOOGLE_PHOTOS_ALBUM_ID) {
+      apiUrl += `&album_id=${encodeURIComponent(CONFIG.GOOGLE_PHOTOS_ALBUM_ID)}`;
+    }
     
-    // If it's a relative URL, make it absolute using HA URL
-    if (imageUrl && imageUrl.startsWith('/')) {
-      if (window.CONFIG && window.CONFIG.HA_URL) {
-        imageUrl = `${window.CONFIG.HA_URL}${imageUrl}`;
-      } else {
-        // For production, we might need to proxy through an API endpoint
-        imageUrl = `/api/ha-proxy-image?url=${encodeURIComponent(imageUrl)}`;
+    const response = await fetch(apiUrl);
+    
+    if (response.status === 401) {
+      // Token expired, try to refresh
+      const newToken = await getGooglePhotosAccessToken();
+      if (!newToken) {
+        showGooglePhotosAuthPrompt();
+        return;
+      }
+      // Retry with new token
+      apiUrl = `/api/google-photos?access_token=${encodeURIComponent(newToken)}&page_size=100`;
+      if (CONFIG.GOOGLE_PHOTOS_ALBUM_ID) {
+        apiUrl += `&album_id=${encodeURIComponent(CONFIG.GOOGLE_PHOTOS_ALBUM_ID)}`;
+      }
+      const retryResponse = await fetch(apiUrl);
+      if (!retryResponse.ok) {
+        throw new Error('Failed to fetch photos after token refresh');
+      }
+      const data = await retryResponse.json();
+      googlePhotosCache.photos = data.photos || [];
+    } else if (!response.ok) {
+      throw new Error(`Failed to fetch photos: ${response.statusText}`);
+    } else {
+      const data = await response.json();
+      googlePhotosCache.photos = data.photos || [];
+    }
+    
+    // If album is empty, fetch from all photos
+    if (googlePhotosCache.photos.length === 0 && CONFIG.GOOGLE_PHOTOS_ALBUM_ID) {
+      console.log('Album is empty, fetching from all photos');
+      const allPhotosUrl = `/api/google-photos?access_token=${encodeURIComponent(accessToken)}&page_size=100`;
+      const allPhotosResponse = await fetch(allPhotosUrl);
+      if (allPhotosResponse.ok) {
+        const allPhotosData = await allPhotosResponse.json();
+        googlePhotosCache.photos = allPhotosData.photos || [];
       }
     }
     
-    if (imageUrl) {
-      container.innerHTML = `
-        <div class="photos-display">
-          <img src="${imageUrl}" alt="Google Photo" class="photos-image" />
-        </div>
-      `;
-    } else {
-      container.innerHTML = `
-        <div class="photos-placeholder">
-          <div class="photos-icon">📷</div>
-          <h3>No Image Available</h3>
-          <p>Entity found but no image URL available.</p>
-        </div>
-      `;
-    }
+    googlePhotosCache.lastUpdate = Date.now();
+    
+    // Display a random photo
+    displayRandomGooglePhoto();
   } catch (error) {
-    console.error('Error loading Google Photos:', error);
+    console.error('Error fetching Google Photos:', error);
     const container = document.getElementById('photos-content');
     if (container) {
       container.innerHTML = `
@@ -1977,10 +2029,84 @@ async function loadGooglePhotos() {
           <div class="photos-icon">📷</div>
           <h3>Error Loading Photos</h3>
           <p>${error.message}</p>
+          <button onclick="connectGooglePhotos()" class="photos-connect-btn">Reconnect</button>
         </div>
       `;
     }
   }
+}
+
+// Display a random photo from cache
+function displayRandomGooglePhoto() {
+  const container = document.getElementById('photos-content');
+  if (!container) return;
+  
+  if (googlePhotosCache.photos.length === 0) {
+    container.innerHTML = `
+      <div class="photos-placeholder">
+        <div class="photos-icon">📷</div>
+        <h3>No Photos Found</h3>
+        <p>No photos available in your Google Photos library.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  // Select random photo
+  const randomIndex = Math.floor(Math.random() * googlePhotosCache.photos.length);
+  const photo = googlePhotosCache.photos[randomIndex];
+  
+  container.innerHTML = `
+    <div class="photos-display">
+      <img src="${photo.medium || photo.baseUrl}" alt="Google Photo" class="photos-image" 
+           onerror="this.src='${photo.baseUrl}'" />
+    </div>
+  `;
+}
+
+// Show authentication prompt
+function showGooglePhotosAuthPrompt() {
+  const container = document.getElementById('photos-content');
+  if (!container) return;
+  
+  container.innerHTML = `
+    <div class="photos-placeholder">
+      <div class="photos-icon">📷</div>
+      <h3>Connect Google Photos</h3>
+      <p>Click the button below to connect your Google Photos account.</p>
+      <button onclick="connectGooglePhotos()" class="photos-connect-btn">Connect Google Photos</button>
+    </div>
+  `;
+}
+
+// Load Google Photos
+async function loadGooglePhotos() {
+  const container = document.getElementById('photos-content');
+  if (!container) return;
+  
+  // Check if authenticated
+  if (!isGooglePhotosAuthenticated()) {
+    showGooglePhotosAuthPrompt();
+    return;
+  }
+  
+  // Fetch photos
+  await fetchGooglePhotos();
+  
+  // Set up auto-refresh every 1 minute
+  if (googlePhotosCache.updateInterval) {
+    clearInterval(googlePhotosCache.updateInterval);
+  }
+  
+  googlePhotosCache.updateInterval = setInterval(() => {
+    // Refresh photo cache every 5 minutes, but display new random photo every minute
+    if (Date.now() - googlePhotosCache.lastUpdate > 5 * 60 * 1000) {
+      fetchGooglePhotos();
+    } else {
+      // Just display a new random photo from cache
+      displayRandomGooglePhoto();
+    }
+  }, 60 * 1000); // Every 1 minute
 }
 
 // Fetch HA entity via API (works both locally and in production)
