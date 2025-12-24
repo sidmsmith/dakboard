@@ -162,15 +162,18 @@ body {
   gap: 0;
   row-gap: 4px;
   flex: 1;
+  align-content: start;
 }
 
 .calendar-day-header {
   text-align: center;
   font-weight: 600;
   color: #888;
-  padding: 8px;
+  padding: 4px 8px;
   font-size: 12px;
   text-transform: uppercase;
+  margin-bottom: 0;
+  align-self: start;
 }
 
 .calendar-day {
