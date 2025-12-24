@@ -568,15 +568,13 @@ function attachTabEventListeners(tabName) {
       const initialType = bgType.value || currentStyles.backgroundType || 'solid';
       showWidgetBackgroundSection(initialType);
       
-      // Remove any existing listeners to avoid duplicates
-      const newBgType = bgType.cloneNode(true);
-      bgType.parentNode.replaceChild(newBgType, bgType);
-      
-      // Re-attach listener
-      document.getElementById('bg-type').addEventListener('change', (e) => {
+      bgType.addEventListener('change', (e) => {
         currentStyles.backgroundType = e.target.value;
-        showWidgetBackgroundSection(e.target.value);
-        updatePreview();
+        // Use setTimeout to ensure DOM is updated
+        setTimeout(() => {
+          showWidgetBackgroundSection(e.target.value);
+          updatePreview();
+        }, 0);
       });
     }
     
@@ -1206,7 +1204,11 @@ function initBackgroundModal() {
   }
   
   if (applyBtn) {
-    applyBtn.addEventListener('click', applyBackground);
+    applyBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      applyBackground();
+    });
   }
   
   if (resetBtn) {
