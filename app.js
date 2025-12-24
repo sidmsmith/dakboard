@@ -1608,7 +1608,11 @@ async function loadAlarm() {
     }
     
     // Add click handler
-    icon.onclick = () => toggleAlarm();
+    icon.onclick = () => {
+      if (!isEditMode) {
+        toggleAlarm();
+      }
+    };
   } catch (error) {
     console.error('Error loading alarm:', error);
     document.getElementById('alarm-status-text').textContent = 'Error';
