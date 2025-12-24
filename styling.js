@@ -903,8 +903,13 @@ function updateDashboardBackground() {
 
 // Initialize on DOM ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initStyling);
+  document.addEventListener('DOMContentLoaded', () => {
+    initStyling();
+    // Load saved styles after a short delay to ensure widgets are rendered
+    setTimeout(loadStyles, 100);
+  });
 } else {
   initStyling();
+  setTimeout(loadStyles, 100);
 }
 
