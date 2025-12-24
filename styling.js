@@ -912,16 +912,25 @@ function updatePreview() {
       break;
     case 'gradient':
       // Get values from form inputs if not in currentStyles
-      const gradColor1 = currentStyles.gradientColor1 || document.getElementById('bg-gradient-color1')?.value || '#2a2a2a';
-      const gradColor2 = currentStyles.gradientColor2 || document.getElementById('bg-gradient-color2')?.value || '#3a3a3a';
-      const gradDir = currentStyles.gradientDirection || document.getElementById('bg-gradient-direction')?.value || 'to bottom';
+      const gradColor1El = document.getElementById('bg-gradient-color1');
+      const gradColor2El = document.getElementById('bg-gradient-color2');
+      const gradDirEl = document.getElementById('bg-gradient-direction');
+      const gradColor1 = currentStyles.gradientColor1 || gradColor1El?.value || '#2a2a2a';
+      const gradColor2 = currentStyles.gradientColor2 || gradColor2El?.value || '#3a3a3a';
+      const gradDir = currentStyles.gradientDirection || gradDirEl?.value || 'to bottom';
+      console.log('Preview - Gradient:', { gradColor1, gradColor2, gradDir, gradColor1El: !!gradColor1El, gradColor2El: !!gradColor2El, gradDirEl: !!gradDirEl, currentStyles: currentStyles.gradientColor1 });
       if (gradColor1 && gradColor2) {
         preview.style.backgroundImage = `linear-gradient(${gradDir}, ${gradColor1}, ${gradColor2})`;
+        console.log('Preview - Applied gradient:', preview.style.backgroundImage);
+      } else {
+        console.warn('Preview - Gradient colors missing:', { gradColor1, gradColor2 });
       }
       break;
     case 'image':
       // Get values from form inputs if not in currentStyles
-      const imgUrl = currentStyles.backgroundImageUrl || document.getElementById('bg-image-url')?.value || '';
+      const imgUrlEl = document.getElementById('bg-image-url');
+      const imgUrl = currentStyles.backgroundImageUrl || imgUrlEl?.value || '';
+      console.log('Preview - Image:', { imgUrl, imgUrlEl: !!imgUrlEl, currentStyles: currentStyles.backgroundImageUrl });
       if (imgUrl) {
         preview.style.backgroundImage = `url(${imgUrl})`;
         preview.style.backgroundRepeat = currentStyles.backgroundRepeat || document.getElementById('bg-image-repeat')?.value || 'no-repeat';
@@ -931,15 +940,23 @@ function updatePreview() {
         if (imgOpacity < 100) {
           preview.style.opacity = imgOpacity / 100;
         }
+        console.log('Preview - Applied image:', preview.style.backgroundImage);
+      } else {
+        console.warn('Preview - Image URL missing');
       }
       break;
     case 'pattern':
       // Get values from form inputs if not in currentStyles
-      const patType = currentStyles.patternType || document.getElementById('bg-pattern-type')?.value || 'dots';
-      const patColor = currentStyles.patternColor || document.getElementById('bg-pattern-color')?.value || '#3a3a3a';
-      const patSize = currentStyles.patternSize !== undefined ? currentStyles.patternSize : (parseInt(document.getElementById('bg-pattern-size')?.value || 20));
+      const patTypeEl = document.getElementById('bg-pattern-type');
+      const patColorEl = document.getElementById('bg-pattern-color');
+      const patSizeEl = document.getElementById('bg-pattern-size');
+      const patType = currentStyles.patternType || patTypeEl?.value || 'dots';
+      const patColor = currentStyles.patternColor || patColorEl?.value || '#3a3a3a';
+      const patSize = currentStyles.patternSize !== undefined ? currentStyles.patternSize : (parseInt(patSizeEl?.value || 20));
+      console.log('Preview - Pattern:', { patType, patColor, patSize, patTypeEl: !!patTypeEl, patColorEl: !!patColorEl, patSizeEl: !!patSizeEl, currentStyles: currentStyles.patternType });
       if (patType && patColor) {
         const patternCSS = generatePatternCSS(patType, patColor, patSize);
+        console.log('Preview - Generated pattern CSS:', patternCSS);
         // Extract background-image and background-size from pattern CSS
         const bgImageMatch = patternCSS.match(/background-image:\s*([^;]+);/);
         const bgSizeMatch = patternCSS.match(/background-size:\s*([^;]+);/);
@@ -951,6 +968,9 @@ function updatePreview() {
         }
         // Set a default background color so the pattern is visible
         preview.style.backgroundColor = '#1a1a1a';
+        console.log('Preview - Applied pattern:', { backgroundImage: preview.style.backgroundImage, backgroundSize: preview.style.backgroundSize });
+      } else {
+        console.warn('Preview - Pattern type or color missing:', { patType, patColor });
       }
       break;
   }
@@ -1068,19 +1088,30 @@ function applyCurrentStylesToWidget(widget) {
       break;
     case 'gradient':
       // Get values from form inputs if not in currentStyles
-      const gradColor1 = currentStyles.gradientColor1 || document.getElementById('bg-gradient-color1')?.value || '#2a2a2a';
-      const gradColor2 = currentStyles.gradientColor2 || document.getElementById('bg-gradient-color2')?.value || '#3a3a3a';
-      const gradDir = currentStyles.gradientDirection || document.getElementById('bg-gradient-direction')?.value || 'to bottom';
+      const gradColor1El = document.getElementById('bg-gradient-color1');
+      const gradColor2El = document.getElementById('bg-gradient-color2');
+      const gradDirEl = document.getElementById('bg-gradient-direction');
+      const gradColor1 = currentStyles.gradientColor1 || gradColor1El?.value || '#2a2a2a';
+      const gradColor2 = currentStyles.gradientColor2 || gradColor2El?.value || '#3a3a3a';
+      const gradDir = currentStyles.gradientDirection || gradDirEl?.value || 'to bottom';
+      console.log('Apply - Gradient:', { gradColor1, gradColor2, gradDir, gradColor1El: !!gradColor1El, gradColor2El: !!gradColor2El, gradDirEl: !!gradDirEl, isApplyingToAll, applyToAllFlags });
       if (gradColor1 && gradColor2) {
         // Always apply if not applying to all, or if apply-to-all flag is set
         if (!isApplyingToAll || applyToAllFlags.gradientColor1 || applyToAllFlags.gradientColor2) {
           widget.style.backgroundImage = `linear-gradient(${gradDir}, ${gradColor1}, ${gradColor2})`;
+          console.log('Apply - Applied gradient:', widget.style.backgroundImage);
+        } else {
+          console.warn('Apply - Gradient skipped due to apply-to-all flags');
         }
+      } else {
+        console.warn('Apply - Gradient colors missing:', { gradColor1, gradColor2 });
       }
       break;
     case 'image':
       // Get values from form inputs if not in currentStyles
-      const imgUrl = currentStyles.backgroundImageUrl || document.getElementById('bg-image-url')?.value || '';
+      const imgUrlEl = document.getElementById('bg-image-url');
+      const imgUrl = currentStyles.backgroundImageUrl || imgUrlEl?.value || '';
+      console.log('Apply - Image:', { imgUrl, imgUrlEl: !!imgUrlEl, isApplyingToAll, applyToAllFlags });
       if (imgUrl) {
         // Always apply if not applying to all, or if apply-to-all flag is set
         if (!isApplyingToAll || applyToAllFlags.backgroundImageUrl) {
@@ -1088,18 +1119,28 @@ function applyCurrentStylesToWidget(widget) {
           widget.style.backgroundRepeat = currentStyles.backgroundRepeat || document.getElementById('bg-image-repeat')?.value || 'no-repeat';
           widget.style.backgroundPosition = currentStyles.backgroundPosition || document.getElementById('bg-image-position')?.value || 'center';
           widget.style.backgroundSize = currentStyles.backgroundSize || document.getElementById('bg-image-size')?.value || 'cover';
+          console.log('Apply - Applied image:', widget.style.backgroundImage);
+        } else {
+          console.warn('Apply - Image skipped due to apply-to-all flags');
         }
+      } else {
+        console.warn('Apply - Image URL missing');
       }
       break;
     case 'pattern':
       // Get values from form inputs if not in currentStyles
-      const patType = currentStyles.patternType || document.getElementById('bg-pattern-type')?.value || 'dots';
-      const patColor = currentStyles.patternColor || document.getElementById('bg-pattern-color')?.value || '#3a3a3a';
-      const patSize = currentStyles.patternSize !== undefined ? currentStyles.patternSize : (parseInt(document.getElementById('bg-pattern-size')?.value || 20));
+      const patTypeEl = document.getElementById('bg-pattern-type');
+      const patColorEl = document.getElementById('bg-pattern-color');
+      const patSizeEl = document.getElementById('bg-pattern-size');
+      const patType = currentStyles.patternType || patTypeEl?.value || 'dots';
+      const patColor = currentStyles.patternColor || patColorEl?.value || '#3a3a3a';
+      const patSize = currentStyles.patternSize !== undefined ? currentStyles.patternSize : (parseInt(patSizeEl?.value || 20));
+      console.log('Apply - Pattern:', { patType, patColor, patSize, patTypeEl: !!patTypeEl, patColorEl: !!patColorEl, patSizeEl: !!patSizeEl, isApplyingToAll, applyToAllFlags });
       if (patType && patColor) {
         // Always apply if not applying to all, or if apply-to-all flag is set
         if (!isApplyingToAll || applyToAllFlags.patternType || applyToAllFlags.patternColor) {
           const patternCSS = generatePatternCSS(patType, patColor, patSize);
+          console.log('Apply - Generated pattern CSS:', patternCSS);
           // Extract background-image and background-size from pattern CSS
           const bgImageMatch = patternCSS.match(/background-image:\s*([^;]+);/);
           const bgSizeMatch = patternCSS.match(/background-size:\s*([^;]+);/);
@@ -1111,7 +1152,12 @@ function applyCurrentStylesToWidget(widget) {
           }
           // Set a default background color so the pattern is visible
           widget.style.backgroundColor = '#1a1a1a';
+          console.log('Apply - Applied pattern:', { backgroundImage: widget.style.backgroundImage, backgroundSize: widget.style.backgroundSize });
+        } else {
+          console.warn('Apply - Pattern skipped due to apply-to-all flags');
         }
+      } else {
+        console.warn('Apply - Pattern type or color missing:', { patType, patColor });
       }
       break;
   }
