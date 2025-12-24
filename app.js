@@ -1702,7 +1702,8 @@ const WIDGET_CONFIG = {
   'weather-widget': { name: 'Weather', icon: '🌤️' },
   'todo-widget': { name: 'Todo List', icon: '✅' },
   'garage-widget': { name: 'Garage Doors', icon: '🚗' },
-  'alarm-widget': { name: 'Alarm Panel', icon: '🔒' }
+  'alarm-widget': { name: 'Alarm Panel', icon: '🔒' },
+  'blank-widget': { name: 'Blank', icon: '⬜' }
 };
 
 // Load widget visibility state from localStorage

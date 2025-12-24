@@ -132,6 +132,22 @@ function initializeDragAndResize() {
       if (header) {
         console.log(`  - Header found, adding drag listener`);
         header.addEventListener('mousedown', (e) => {
+          startDrag(e, widget);
+        });
+      } else {
+        // For widgets without headers (like blank widget), make the entire widget draggable
+        console.log(`  - No header found, making entire widget draggable`);
+        widget.addEventListener('mousedown', (e) => {
+          // Only start drag if not clicking on resize handles
+          if (!e.target.classList.contains('resize-handle')) {
+            startDrag(e, widget);
+          }
+        });
+      }
+      
+      // Original header drag listener (kept for backward compatibility)
+      if (header) {
+        header.addEventListener('mousedown', (e) => {
           if (e.target.closest('.resize-handle')) return; // Don't drag if clicking resize handle
           if (e.target.tagName === 'BUTTON') return; // Don't drag if clicking buttons
           console.log('  - Drag started');

@@ -77,6 +77,13 @@ body {
   color: #fff;
 }
 
+/* Blank Widget - No padding, completely empty */
+.blank-widget {
+  padding: 0 !important;
+  min-width: 200px;
+  min-height: 150px;
+}
+
 /* Calendar - Default position and size */
 .calendar-widget {
   top: 20px;
