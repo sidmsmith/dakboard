@@ -946,6 +946,10 @@ function updatePreview() {
       preview.style.backgroundColor = solidColor;
       break;
       
+    case 'transparent':
+      preview.style.backgroundColor = 'transparent';
+      break;
+      
     case 'gradient':
       const color1 = stylingModal.querySelector('#bg-gradient-color1')?.value || '#2a2a2a';
       const color2 = stylingModal.querySelector('#bg-gradient-color2')?.value || '#3a3a3a';

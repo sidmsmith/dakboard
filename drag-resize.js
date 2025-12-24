@@ -54,11 +54,13 @@ function saveWidgetLayout() {
       const dashboard = document.querySelector('.dashboard');
       const dashboardRect = dashboard.getBoundingClientRect();
       
+      const zIndex = parseInt(window.getComputedStyle(widget).zIndex) || 1;
       layout[widgetId] = {
         x: rect.left - dashboardRect.left,
         y: rect.top - dashboardRect.top,
         width: rect.width,
-        height: rect.height
+        height: rect.height,
+        zIndex: zIndex
       };
     });
     localStorage.setItem('dakboard-widget-layout', JSON.stringify(layout));
