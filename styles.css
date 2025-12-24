@@ -1137,11 +1137,81 @@ body {
   transition: top 0.1s, left 0.1s;
 }
 
-/* Widget Visibility Control Panel */
-.widget-control-toggle {
+/* Bottom Controls Container */
+.bottom-controls {
   position: fixed;
   bottom: 20px;
   right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  z-index: 10001;
+}
+
+/* Modern Switch Toggle */
+.edit-mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  padding: 8px 16px;
+  background: rgba(42, 42, 42, 0.95);
+  border-radius: 25px;
+  border: 2px solid #3a3a3a;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.edit-mode-toggle:hover {
+  background: rgba(58, 58, 58, 0.95);
+  border-color: #4a90e2;
+}
+
+.edit-mode-toggle input[type="checkbox"] {
+  display: none;
+}
+
+.edit-mode-switch {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  background: #555;
+  border-radius: 13px;
+  transition: background 0.3s;
+  flex-shrink: 0;
+}
+
+.edit-mode-switch::before {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.edit-mode-toggle input[type="checkbox"]:checked + .edit-mode-switch {
+  background: #4a90e2;
+}
+
+.edit-mode-toggle input[type="checkbox"]:checked + .edit-mode-switch::before {
+  transform: translateX(22px);
+}
+
+.edit-mode-label {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Widget Visibility Control Panel */
+.widget-control-toggle {
   width: 50px;
   height: 50px;
   background: #4a90e2;
@@ -1153,8 +1223,8 @@ body {
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  z-index: 10001;
   transition: all 0.3s;
+  flex-shrink: 0;
 }
 
 .widget-control-toggle:hover {
@@ -1194,11 +1264,6 @@ body {
   flex-shrink: 0;
 }
 
-.widget-control-header-right {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
 
 .widget-control-header h3 {
   margin: 0;
