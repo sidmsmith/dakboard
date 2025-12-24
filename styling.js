@@ -849,7 +849,7 @@ function loadStyles() {
       const saved = localStorage.getItem(`dakboard-widget-styles-${widgetId}`);
       if (saved) {
         const styles = JSON.parse(saved);
-        applyStylesToWidget(widget, styles);
+        loadStylesToWidget(widget, styles);
       }
     }
   });
@@ -863,8 +863,8 @@ function loadStyles() {
   }
 }
 
-// Apply styles to widget (for loading)
-function applyStylesToWidget(widget, styles) {
+// Load saved styles to widget (for page load)
+function loadStylesToWidget(widget, styles) {
   if (!styles) return;
   
   if (styles.backgroundColor) widget.style.backgroundColor = styles.backgroundColor;
