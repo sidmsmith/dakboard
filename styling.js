@@ -608,8 +608,117 @@ function attachTabEventListeners(tabName) {
       });
     }
     
-    // Add listeners for gradient, image, and pattern controls
-    // (These are added in the full background tab event listener section below)
+    // Gradient controls
+    const gradColor1 = document.getElementById('bg-gradient-color1');
+    const gradColor1Text = document.getElementById('bg-gradient-color1-text');
+    const gradColor2 = document.getElementById('bg-gradient-color2');
+    const gradColor2Text = document.getElementById('bg-gradient-color2-text');
+    const gradDirection = document.getElementById('bg-gradient-direction');
+    
+    if (gradColor1 && gradColor1Text) {
+      gradColor1.addEventListener('input', (e) => {
+        gradColor1Text.value = e.target.value;
+        currentStyles.gradientColor1 = e.target.value;
+        updatePreview();
+      });
+      gradColor1Text.addEventListener('input', (e) => {
+        if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+          gradColor1.value = e.target.value;
+          currentStyles.gradientColor1 = e.target.value;
+          updatePreview();
+        }
+      });
+    }
+    
+    if (gradColor2 && gradColor2Text) {
+      gradColor2.addEventListener('input', (e) => {
+        gradColor2Text.value = e.target.value;
+        currentStyles.gradientColor2 = e.target.value;
+        updatePreview();
+      });
+      gradColor2Text.addEventListener('input', (e) => {
+        if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+          gradColor2.value = e.target.value;
+          currentStyles.gradientColor2 = e.target.value;
+          updatePreview();
+        }
+      });
+    }
+    
+    if (gradDirection) {
+      gradDirection.addEventListener('change', (e) => {
+        currentStyles.gradientDirection = e.target.value;
+        updatePreview();
+      });
+    }
+    
+    // Image controls
+    const imageUrl = document.getElementById('bg-image-url');
+    const imageRepeat = document.getElementById('bg-image-repeat');
+    const imagePosition = document.getElementById('bg-image-position');
+    const imageSize = document.getElementById('bg-image-size');
+    const imageOpacity = document.getElementById('bg-image-opacity');
+    const imageOpacityValue = document.getElementById('bg-image-opacity-value');
+    
+    if (imageUrl) {
+      imageUrl.addEventListener('input', (e) => {
+        currentStyles.backgroundImageUrl = e.target.value;
+        updatePreview();
+      });
+    }
+    if (imageRepeat) {
+      imageRepeat.addEventListener('change', (e) => {
+        currentStyles.backgroundRepeat = e.target.value;
+        updatePreview();
+      });
+    }
+    if (imagePosition) {
+      imagePosition.addEventListener('change', (e) => {
+        currentStyles.backgroundPosition = e.target.value;
+        updatePreview();
+      });
+    }
+    if (imageSize) {
+      imageSize.addEventListener('change', (e) => {
+        currentStyles.backgroundSize = e.target.value;
+        updatePreview();
+      });
+    }
+    if (imageOpacity && imageOpacityValue) {
+      imageOpacity.addEventListener('input', (e) => {
+        const val = e.target.value;
+        imageOpacityValue.textContent = val + '%';
+        currentStyles.backgroundImageOpacity = parseInt(val);
+        updatePreview();
+      });
+    }
+    
+    // Pattern controls
+    const patternType = document.getElementById('bg-pattern-type');
+    const patternColor = document.getElementById('bg-pattern-color');
+    const patternSize = document.getElementById('bg-pattern-size');
+    const patternSizeValue = document.getElementById('bg-pattern-size-value');
+    
+    if (patternType) {
+      patternType.addEventListener('change', (e) => {
+        currentStyles.patternType = e.target.value;
+        updatePreview();
+      });
+    }
+    if (patternColor) {
+      patternColor.addEventListener('input', (e) => {
+        currentStyles.patternColor = e.target.value;
+        updatePreview();
+      });
+    }
+    if (patternSize && patternSizeValue) {
+      patternSize.addEventListener('input', (e) => {
+        const val = e.target.value;
+        patternSizeValue.textContent = val + 'px';
+        currentStyles.patternSize = parseInt(val);
+        updatePreview();
+      });
+    }
   }
   
   if (tabName === 'border') {
@@ -785,14 +894,53 @@ function updatePreview() {
   const preview = document.getElementById('styling-preview-widget');
   if (!preview) return;
 
-  // Apply background
-  if (currentStyles.backgroundColor) {
-    preview.style.backgroundColor = currentStyles.backgroundColor;
+  // Apply background based on type
+  const bgType = currentStyles.backgroundType || 'solid';
+  
+  // Clear previous background styles
+  preview.style.backgroundColor = '';
+  preview.style.backgroundImage = '';
+  preview.style.backgroundRepeat = '';
+  preview.style.backgroundPosition = '';
+  preview.style.backgroundSize = '';
+  
+  switch(bgType) {
+    case 'solid':
+      if (currentStyles.backgroundColor) {
+        preview.style.backgroundColor = currentStyles.backgroundColor;
+      }
+      break;
+    case 'gradient':
+      if (currentStyles.gradientColor1 && currentStyles.gradientColor2) {
+        const direction = currentStyles.gradientDirection || 'to bottom';
+        preview.style.backgroundImage = `linear-gradient(${direction}, ${currentStyles.gradientColor1}, ${currentStyles.gradientColor2})`;
+      }
+      break;
+    case 'image':
+      if (currentStyles.backgroundImageUrl) {
+        preview.style.backgroundImage = `url(${currentStyles.backgroundImageUrl})`;
+        preview.style.backgroundRepeat = currentStyles.backgroundRepeat || 'no-repeat';
+        preview.style.backgroundPosition = currentStyles.backgroundPosition || 'center';
+        preview.style.backgroundSize = currentStyles.backgroundSize || 'cover';
+        if (currentStyles.backgroundImageOpacity !== undefined && currentStyles.backgroundImageOpacity < 100) {
+          preview.style.opacity = currentStyles.backgroundImageOpacity / 100;
+        }
+      }
+      break;
+    case 'pattern':
+      if (currentStyles.patternType && currentStyles.patternColor) {
+        const patternSize = currentStyles.patternSize || 20;
+        preview.style.backgroundImage = generatePatternCSS(currentStyles.patternType, currentStyles.patternColor, patternSize);
+      }
+      break;
   }
   
-  if (currentStyles.opacity !== undefined) {
+  // Apply opacity (for solid/gradient/pattern, not image which has its own opacity)
+  if (currentStyles.opacity !== undefined && bgType !== 'image') {
     const opacity = currentStyles.opacity / 100;
     preview.style.opacity = opacity;
+  } else if (bgType !== 'image') {
+    preview.style.opacity = '1';
   }
 
   // Apply border
@@ -1370,6 +1518,7 @@ function closeBackgroundModal() {
   const modal = document.getElementById('background-modal');
   if (modal) {
     modal.classList.remove('active');
+    modal.style.display = 'none';
   }
 }
 
