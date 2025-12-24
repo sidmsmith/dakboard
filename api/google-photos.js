@@ -42,8 +42,19 @@ export default async function (req, res) {
         if (albumResponse.status === 401) {
           return res.status(401).json({ error: 'Token expired', needsRefresh: true });
         }
-        const error = await albumResponse.text();
-        throw new Error(`Album API error: ${error}`);
+        const errorText = await albumResponse.text();
+        let errorData;
+        try {
+          errorData = await albumResponse.json();
+        } catch (e) {
+          errorData = { error: errorText };
+        }
+        console.error('Google Photos Album API error:', {
+          status: albumResponse.status,
+          statusText: albumResponse.statusText,
+          error: errorData
+        });
+        throw new Error(`Album API error (${albumResponse.status}): ${JSON.stringify(errorData)}`);
       }
       
       const albumData = await albumResponse.json();
@@ -99,7 +110,11 @@ export default async function (req, res) {
     return res.json({ photos: formattedPhotos });
   } catch (error) {
     console.error('Google Photos API error:', error);
-    return res.status(500).json({ error: error.message || 'Failed to fetch photos' });
+    console.error('Error stack:', error.stack);
+    return res.status(500).json({ 
+      error: error.message || 'Failed to fetch photos',
+      details: error.stack 
+    });
   }
 }
 

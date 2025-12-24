@@ -1999,7 +1999,17 @@ async function fetchGooglePhotos() {
       const data = await retryResponse.json();
       googlePhotosCache.photos = data.photos || [];
     } else if (!response.ok) {
-      throw new Error(`Failed to fetch photos: ${response.statusText}`);
+      // Try to get error details from response
+      let errorMessage = `Failed to fetch photos: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+        console.error('Google Photos API error details:', errorData);
+      } catch (e) {
+        const errorText = await response.text();
+        console.error('Google Photos API error text:', errorText);
+      }
+      throw new Error(errorMessage);
     } else {
       const data = await response.json();
       googlePhotosCache.photos = data.photos || [];
