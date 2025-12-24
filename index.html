@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Dashboard</title>
+  <title>Personal Dashboard</title>
+  <meta name="application-name" content="Personal Dashboard">
+  <meta name="description" content="Personal Dashboard - Smart home dashboard with calendar, weather, todo lists, and Google Photos">
+  <meta property="og:title" content="Personal Dashboard">
+  <meta property="og:description" content="Personal Dashboard - Smart home dashboard with calendar, weather, todo lists, and Google Photos">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://dakboard-smith.vercel.app/">
   <link rel="stylesheet" href="styles.css">
   <!-- Local config for development (gitignored) -->
   <script src="config.js" defer onerror="console.log('config.js not found (expected in production)')"></script>
@@ -40,6 +46,9 @@
       <line x1="15" y1="3" x2="15" y2="21"></line>
     </svg>
   </button>
+  
+  <!-- App Name (visible for Google verification) -->
+  <h1 style="position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden;">Personal Dashboard</h1>
   
   <div class="dashboard">
     <!-- Calendar - Large, Left Side -->
