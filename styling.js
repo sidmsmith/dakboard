@@ -1651,11 +1651,22 @@ function applyBackgroundToDashboard(settings) {
       }
       break;
     case 'pattern':
-      bgStyle = generatePatternCSS(settings.patternType, settings.color, settings.size);
+      const patternCSS = generatePatternCSS(settings.patternType, settings.color, settings.size);
+      // Extract background-image and background-size from pattern CSS
+      const bgImageMatch = patternCSS.match(/background-image:\s*([^;]+);/);
+      const bgSizeMatch = patternCSS.match(/background-size:\s*([^;]+);/);
+      if (bgImageMatch) {
+        dashboard.style.backgroundImage = bgImageMatch[1].trim();
+      }
+      if (bgSizeMatch) {
+        dashboard.style.backgroundSize = bgSizeMatch[1].trim();
+      }
       break;
   }
   
-  dashboard.style.cssText = bgStyle;
+  if (bgStyle) {
+    dashboard.style.cssText = bgStyle;
+  }
 }
 
 // Reset background
