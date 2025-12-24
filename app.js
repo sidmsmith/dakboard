@@ -1810,8 +1810,13 @@ function updateWidgetControlPanel() {
   bgStyleBtn.title = 'Configure dashboard background';
   bgStyleBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (typeof openBackgroundModal === 'function') {
+    // Call the background modal function - it should be available globally from styling.js
+    if (typeof window.openBackgroundModal === 'function') {
+      window.openBackgroundModal();
+    } else if (typeof openBackgroundModal === 'function') {
       openBackgroundModal();
+    } else {
+      console.error('openBackgroundModal function not found');
     }
   });
   bgItem.innerHTML = `

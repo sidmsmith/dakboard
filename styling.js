@@ -105,13 +105,39 @@ function generateTabContent(tabName) {
   }
 }
 
-// Generate Background Tab (removed - background is now separate)
+// Generate Background Tab (for widget background styling)
 function generateBackgroundTab() {
+  const bgColor = currentStyles.backgroundColor || '#2a2a2a';
+  const opacity = currentStyles.opacity !== undefined ? currentStyles.opacity : 100;
+  
   return `
     <div class="styling-form-section">
-      <div class="styling-section-title">Note</div>
+      <div class="styling-section-title">Background Color</div>
       <div class="styling-form-group">
-        <p style="color: #888; font-size: 14px;">Dashboard background configuration has been moved to the "Background" option in the widget control panel.</p>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Color</label>
+          <div class="styling-form-control">
+            <input type="color" id="bg-color" value="${bgColor}">
+            <input type="text" id="bg-color-text" value="${bgColor}" placeholder="#2a2a2a">
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="bg-color-apply-all" ${applyToAllFlags.backgroundColor ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="styling-section-title">Transparency</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Opacity</label>
+          <div class="styling-form-control">
+            <input type="range" id="opacity" min="0" max="100" value="${opacity}">
+            <span class="styling-range-value" id="opacity-value">${opacity}%</span>
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="opacity-apply-all" ${applyToAllFlags.opacity ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
       </div>
     </div>
   `;
