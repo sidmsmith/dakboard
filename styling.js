@@ -1205,6 +1205,12 @@ function applyCurrentStylesToWidget(widget) {
       }
       break;
       
+    case 'transparent':
+      if (!isApplyingToAll || applyToAllFlags.backgroundColor) {
+        widget.style.backgroundColor = 'transparent';
+      }
+      break;
+      
     case 'gradient':
       const color1 = stylingModal.querySelector('#bg-gradient-color1')?.value || '#2a2a2a';
       const color2 = stylingModal.querySelector('#bg-gradient-color2')?.value || '#3a3a3a';
