@@ -102,6 +102,15 @@ export default async function (req, res) {
     // If we have a nextPageToken but no photos, try fetching the next page
     if (photos.length === 0 && responseData.nextPageToken) {
       console.log('No photos but has nextPageToken, fetching next page...');
+      const nextPageRequest = {
+        pageSize: pageSize,
+        pageToken: responseData.nextPageToken
+      };
+      
+      if (albumId) {
+        nextPageRequest.albumId = albumId;
+      }
+      
       const nextPageResponse = await fetch(
         `https://photoslibrary.googleapis.com/v1/mediaItems:search`,
         {
@@ -110,17 +119,75 @@ export default async function (req, res) {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            ...requestBody,
-            pageToken: responseData.nextPageToken
-          }),
+          body: JSON.stringify(nextPageRequest),
         }
       );
       
       if (nextPageResponse.ok) {
         const nextPageData = await nextPageResponse.json();
+        console.log('Next page full response:', JSON.stringify(nextPageData, null, 2));
         photos = nextPageData.mediaItems || [];
         console.log('Next page returned:', photos.length, 'photos');
+        
+        // If still no photos but there's another page token, try one more page
+        if (photos.length === 0 && nextPageData.nextPageToken) {
+          console.log('Still no photos, trying one more page...');
+          const thirdPageRequest = {
+            pageSize: pageSize,
+            pageToken: nextPageData.nextPageToken
+          };
+          
+          if (albumId) {
+            thirdPageRequest.albumId = albumId;
+          }
+          
+          const thirdPageResponse = await fetch(
+            `https://photoslibrary.googleapis.com/v1/mediaItems:search`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(thirdPageRequest),
+            }
+          );
+          
+          if (thirdPageResponse.ok) {
+            const thirdPageData = await thirdPageResponse.json();
+            console.log('Third page full response:', JSON.stringify(thirdPageData, null, 2));
+            photos = thirdPageData.mediaItems || [];
+            console.log('Third page returned:', photos.length, 'photos');
+          }
+        }
+      } else {
+        const nextPageError = await nextPageResponse.text();
+        console.error('Next page error:', nextPageResponse.status, nextPageError);
+      }
+    }
+    
+    // If still no photos, try using mediaItems.list endpoint instead
+    if (photos.length === 0 && !albumId) {
+      console.log('Trying mediaItems.list endpoint as alternative...');
+      const listResponse = await fetch(
+        `https://photoslibrary.googleapis.com/v1/mediaItems?pageSize=${pageSize}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      if (listResponse.ok) {
+        const listData = await listResponse.json();
+        console.log('mediaItems.list response:', JSON.stringify(listData, null, 2));
+        photos = listData.mediaItems || [];
+        console.log('mediaItems.list returned:', photos.length, 'photos');
+      } else {
+        const listError = await listResponse.text();
+        console.error('mediaItems.list error:', listResponse.status, listError);
       }
     }
     
