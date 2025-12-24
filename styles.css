@@ -1329,8 +1329,9 @@ body {
   backdrop-filter: blur(4px);
 }
 
-.styling-modal-overlay.active {
-  display: flex;
+.styling-modal-overlay.active,
+#background-modal.active {
+  display: flex !important;
 }
 
 .styling-modal {
