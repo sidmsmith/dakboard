@@ -893,6 +893,15 @@ body {
 .modal-header h2 {
   font-size: 24px;
   color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+
+.modal-icon {
+  color: #4a90e2;
+  flex-shrink: 0;
 }
 
 .modal-close {

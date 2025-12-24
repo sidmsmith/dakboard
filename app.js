@@ -429,14 +429,185 @@ function renderCalendar() {
 }
 
 // Show monthly calendar modal
-function showMonthModal() {
+async function showMonthModal() {
   const modal = document.getElementById('month-modal');
   const content = document.getElementById('month-calendar-content');
   
-  // For now, show placeholder
-  content.innerHTML = '<p style="text-align: center; padding: 40px; color: #888;">Monthly calendar view coming soon...</p>';
-  
+  // Show loading state
+  content.innerHTML = '<p style="text-align: center; padding: 40px; color: #888;">Loading calendar...</p>';
   modal.classList.add('active');
+  
+  // Get current month
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  
+  // Calculate month start and end
+  const monthStart = new Date(currentYear, currentMonth, 1);
+  const monthEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
+  
+  // Fetch events for the entire month
+  let monthEvents = [];
+  try {
+    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
+      const haUrl = window.CONFIG.HA_URL;
+      const haToken = window.CONFIG.HA_TOKEN;
+      const calendarEntities = window.CONFIG.HA_CALENDAR_ENTITIES || [];
+      
+      if (calendarEntities.length > 0) {
+        const allEvents = [];
+        for (const calEntityId of calendarEntities) {
+          try {
+            const serviceResponse = await fetch(`${haUrl}/api/services/calendar/get_events`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${haToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                entity_id: calEntityId,
+                start_date_time: monthStart.toISOString(),
+                end_date_time: monthEnd.toISOString()
+              })
+            });
+            
+            if (serviceResponse.ok) {
+              const serviceData = await serviceResponse.json();
+              let events = [];
+              
+              if (serviceData.service_response && serviceData.service_response[calEntityId]) {
+                const calendarData = serviceData.service_response[calEntityId];
+                events = calendarData.events || (Array.isArray(calendarData) ? calendarData : []);
+              } else if (serviceData[calEntityId]) {
+                const calendarData = serviceData[calEntityId];
+                events = calendarData.events || (Array.isArray(calendarData) ? calendarData : []);
+              } else if (Array.isArray(serviceData)) {
+                events = serviceData;
+              } else if (serviceData.events) {
+                events = serviceData.events;
+              }
+              
+              allEvents.push(...events.map(event => ({
+                id: event.uid || event.id || `${calEntityId}-${event.start || event.start_time}`,
+                title: event.summary || event.title || event.name || 'Untitled Event',
+                start: event.start || event.start_time || event.dtstart,
+                end: event.end || event.end_time || event.dtend,
+                location: event.location || null,
+                description: event.description || null,
+                calendar: calEntityId,
+                color: event.color || '#4a90e2'
+              })));
+            }
+          } catch (err) {
+            console.error(`Error fetching events from ${calEntityId}:`, err);
+          }
+        }
+        monthEvents = allEvents;
+      }
+    } else if (window.CONFIG && window.CONFIG.API_URL) {
+      const response = await fetch(`${window.CONFIG.API_URL}/api/ha-calendar?start=${monthStart.toISOString()}&end=${monthEnd.toISOString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        monthEvents = data.events || [];
+      }
+    }
+  } catch (error) {
+    console.error('Error loading month events:', error);
+  }
+  
+  // Render month calendar
+  renderMonthCalendar(content, currentYear, currentMonth, monthEvents);
+}
+
+// Render month calendar view
+function renderMonthCalendar(container, year, month, events) {
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  const startingDayOfWeek = firstDay.getDay();
+  
+  let html = `
+    <div class="month-calendar-header">
+      <button class="month-nav-btn" id="prev-month-btn">←</button>
+      <h3>${monthNames[month]} ${year}</h3>
+      <button class="month-nav-btn" id="next-month-btn">→</button>
+    </div>
+    <div class="month-calendar-grid">
+      <div class="month-calendar-day-header">${dayNames.join('</div><div class="month-calendar-day-header">')}</div>
+  `;
+  
+  // Add empty cells for days before month starts
+  for (let i = 0; i < startingDayOfWeek; i++) {
+    html += '<div class="month-calendar-day empty"></div>';
+  }
+  
+  // Add days of the month
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month, day);
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+    
+    // Find events for this day
+    const dayEvents = events.filter(event => {
+      const eventStart = new Date(event.start);
+      const eventEnd = new Date(event.end || event.start);
+      return (eventStart <= dayEnd && eventEnd >= dayStart);
+    });
+    
+    const isToday = date.toDateString() === new Date().toDateString();
+    const dayClass = isToday ? 'month-calendar-day today' : 'month-calendar-day';
+    
+    html += `<div class="${dayClass}">
+      <div class="month-day-number">${day}</div>
+      <div class="month-day-events">`;
+    
+    // Show up to 3 events, with indicator for more
+    const eventsToShow = dayEvents.slice(0, 3);
+    const moreCount = dayEvents.length - 3;
+    
+    eventsToShow.forEach(event => {
+      const eventStart = new Date(event.start);
+      const timeStr = eventStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      html += `<div class="month-event" style="border-left-color: ${event.color || '#4a90e2'}" title="${event.title} - ${timeStr}">
+        <span class="month-event-time">${timeStr}</span>
+        <span class="month-event-title">${event.title}</span>
+      </div>`;
+    });
+    
+    if (moreCount > 0) {
+      html += `<div class="month-event-more">+${moreCount} more</div>`;
+    }
+    
+    html += `</div></div>`;
+  }
+  
+  html += '</div>';
+  container.innerHTML = html;
+  
+  // Add navigation listeners
+  const prevBtn = document.getElementById('prev-month-btn');
+  const nextBtn = document.getElementById('next-month-btn');
+  
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      const newMonth = month === 0 ? 11 : month - 1;
+      const newYear = month === 0 ? year - 1 : year;
+      renderMonthCalendar(container, newYear, newMonth, monthEvents);
+    });
+  }
+  
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      const newMonth = month === 11 ? 0 : month + 1;
+      const newYear = month === 11 ? year + 1 : year;
+      renderMonthCalendar(container, newYear, newMonth, monthEvents);
+    });
+  }
 }
 
 // Close monthly calendar modal
