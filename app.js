@@ -592,33 +592,50 @@ async function fetchMonthEvents(monthStart, monthEnd) {
                 events = serviceData.events;
               }
               
-              allEvents.push(...events.map(event => ({
-                id: event.uid || event.id || `${calEntityId}-${event.start || event.start_time}`,
-                title: event.summary || event.title || event.name || 'Untitled Event',
-                start: event.start || event.start_time || event.dtstart,
-                end: event.end || event.end_time || event.dtend,
-                location: event.location || null,
-                description: event.description || null,
-                calendar: calEntityId,
-                color: event.color || '#4a90e2'
-              })));
+              // Add calendar source to each event (same as weekly calendar)
+              if (Array.isArray(events)) {
+                events.forEach(event => {
+                  event.calendar = calEntityId;
+                  allEvents.push(event);
+                });
+              }
             }
           } catch (err) {
             console.error(`Error fetching events from ${calEntityId}:`, err);
           }
         }
-        monthEvents = allEvents;
-      }
+      // Format events (same as weekly calendar)
+      monthEvents = allEvents.map(event => {
+        const startTime = event.start || event.start_time || event.dtstart;
+        const endTime = event.end || event.end_time || event.dtend;
+        const summary = event.summary || event.title || event.name || 'Untitled Event';
+        
+        return {
+          id: event.uid || event.id || `${event.calendar}-${startTime}`,
+          title: summary,
+          start: startTime,
+          end: endTime,
+          location: event.location || null,
+          description: event.description || null,
+          calendar: event.calendar,
+          allDay: event.all_day || false
+        };
+      });
     } else {
       // Use serverless function (for Vercel production) - match weekly calendar format
       const response = await fetch(`/api/ha-calendar?startDate=${monthStart.toISOString()}&endDate=${monthEnd.toISOString()}`);
+      
       if (response.ok) {
         const data = await response.json();
         monthEvents = data.events || [];
+      } else {
+        console.error('Failed to fetch month calendar events:', response.status);
+        monthEvents = [];
       }
     }
   } catch (error) {
     console.error('Error loading month events:', error);
+    monthEvents = [];
   }
   return monthEvents;
 }
