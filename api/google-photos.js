@@ -80,21 +80,53 @@ export default async function (req, res) {
     }
     
     const responseData = await apiResponse.json();
+    
+    // Log full response for debugging
+    console.log('Google Photos API full response:', JSON.stringify(responseData, null, 2));
+    
     photos = responseData.mediaItems || [];
     
-    console.log('Google Photos API response:', {
+    console.log('Google Photos API parsed:', {
       totalPhotos: photos.length,
-      hasNextPage: responseData.nextPageToken ? true : false,
+      hasNextPage: !!responseData.nextPageToken,
+      nextPageToken: responseData.nextPageToken ? responseData.nextPageToken.substring(0, 20) + '...' : null,
+      responseKeys: Object.keys(responseData),
       samplePhoto: photos.length > 0 ? {
         id: photos[0].id,
         filename: photos[0].filename,
-        hasBaseUrl: !!photos[0].baseUrl
+        hasBaseUrl: !!photos[0].baseUrl,
+        mimeType: photos[0].mimeType
       } : null
     });
     
-    // If no photos found in album, return empty array (frontend will randomize)
+    // If we have a nextPageToken but no photos, try fetching the next page
+    if (photos.length === 0 && responseData.nextPageToken) {
+      console.log('No photos but has nextPageToken, fetching next page...');
+      const nextPageResponse = await fetch(
+        `https://photoslibrary.googleapis.com/v1/mediaItems:search`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...requestBody,
+            pageToken: responseData.nextPageToken
+          }),
+        }
+      );
+      
+      if (nextPageResponse.ok) {
+        const nextPageData = await nextPageResponse.json();
+        photos = nextPageData.mediaItems || [];
+        console.log('Next page returned:', photos.length, 'photos');
+      }
+    }
+    
+    // If no photos found, return empty array (frontend will randomize)
     if (photos.length === 0) {
-      console.warn('No photos returned from Google Photos API');
+      console.warn('No photos returned from Google Photos API after pagination check');
       return res.json({ photos: [], message: 'No photos found in your Google Photos library' });
     }
     

@@ -36,7 +36,7 @@ function loadWidgetLayout() {
             widget.style.zIndex = zIndex;
           }
           updateWidgetScale(widget);
-          console.log(`Loaded ${widgetId}: x=${clampedX}, y=${clampedY}, w=${width}, h=${height}, z=${zIndex || 1}`);
+          // Log removed to reduce console noise
         }
       });
     } else {
@@ -114,12 +114,9 @@ function snapToGridValue(value) {
 
 // Initialize drag and resize for all widgets
 function initializeDragAndResize() {
-  console.log('initializeDragAndResize called');
-  
   // Wait a bit for widgets to be rendered
   setTimeout(() => {
     const widgets = document.querySelectorAll('.widget');
-    console.log(`Found ${widgets.length} widgets`);
     
     if (widgets.length === 0) {
       console.error('No widgets found! Check HTML structure.');
@@ -127,8 +124,6 @@ function initializeDragAndResize() {
     }
     
     widgets.forEach((widget, index) => {
-      console.log(`Initializing widget ${index + 1}:`, widget.className);
-      
       // Add resize handles
       addResizeHandles(widget);
       
@@ -158,15 +153,12 @@ function initializeDragAndResize() {
           return;
         }
         
-        console.log('  - Drag started (edit mode)');
         startDrag(widget, e);
       });
       
       // Update scale on initial load
       updateWidgetScale(widget);
     });
-    
-    console.log('Drag and resize initialization complete');
   }, 100);
   
   // Global mouse events
@@ -204,13 +196,12 @@ function addResizeHandles(widget) {
       }
       
       e.stopPropagation();
-      console.log('Resize started:', handle.class);
       startResize(widget, handle.class, e);
     });
     widget.appendChild(handleEl);
   });
   
-  console.log(`  - Added ${handles.length} resize handles`);
+  // Resize handles added (logging removed to reduce console noise)
 }
 
 // Start dragging widget
