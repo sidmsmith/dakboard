@@ -697,61 +697,89 @@ function applyStyles() {
 
 // Apply current styles to a single widget
 function applyCurrentStylesToWidget(widget) {
+  // When applying to all widgets, only apply if the "apply to all" checkbox is checked for that property
+  // When applying to a single widget, always apply (checkbox doesn't matter)
+  const isApplyingToAll = applyToAllFlags.global;
+  
   // Background
-  if (currentStyles.backgroundColor && (!applyToAllFlags.backgroundColor || applyToAllFlags.global)) {
-    widget.style.backgroundColor = currentStyles.backgroundColor;
+  if (currentStyles.backgroundColor !== undefined) {
+    if (!isApplyingToAll || applyToAllFlags.backgroundColor) {
+      widget.style.backgroundColor = currentStyles.backgroundColor;
+    }
   }
   
-  if (currentStyles.opacity !== undefined && (!applyToAllFlags.opacity || applyToAllFlags.global)) {
-    widget.style.opacity = currentStyles.opacity / 100;
+  if (currentStyles.opacity !== undefined) {
+    if (!isApplyingToAll || applyToAllFlags.opacity) {
+      widget.style.opacity = currentStyles.opacity / 100;
+    }
   }
 
   // Border
-  if (currentStyles.borderColor && (!applyToAllFlags.borderColor || applyToAllFlags.global)) {
-    widget.style.borderColor = currentStyles.borderColor;
+  if (currentStyles.borderColor !== undefined) {
+    if (!isApplyingToAll || applyToAllFlags.borderColor) {
+      widget.style.borderColor = currentStyles.borderColor;
+    }
   }
-  if (currentStyles.borderWidth !== undefined && (!applyToAllFlags.borderWidth || applyToAllFlags.global)) {
-    widget.style.borderWidth = currentStyles.borderWidth + 'px';
+  if (currentStyles.borderWidth !== undefined) {
+    if (!isApplyingToAll || applyToAllFlags.borderWidth) {
+      widget.style.borderWidth = currentStyles.borderWidth + 'px';
+    }
   }
-  if (currentStyles.borderStyle && (!applyToAllFlags.borderStyle || applyToAllFlags.global)) {
-    widget.style.borderStyle = currentStyles.borderStyle;
+  if (currentStyles.borderStyle !== undefined) {
+    if (!isApplyingToAll || applyToAllFlags.borderStyle) {
+      widget.style.borderStyle = currentStyles.borderStyle;
+    }
   }
-  if (currentStyles.borderRadius !== undefined && (!applyToAllFlags.borderRadius || applyToAllFlags.global)) {
-    widget.style.borderRadius = currentStyles.borderRadius + 'px';
+  if (currentStyles.borderRadius !== undefined) {
+    if (!isApplyingToAll || applyToAllFlags.borderRadius) {
+      widget.style.borderRadius = currentStyles.borderRadius + 'px';
+    }
   }
 
   // Shadow
-  if ((currentStyles.shadowBlur !== undefined || currentStyles.shadowX !== undefined) && (!applyToAllFlags.shadowColor || applyToAllFlags.global)) {
-    const x = currentStyles.shadowX || 0;
-    const y = currentStyles.shadowY || 0;
-    const blur = currentStyles.shadowBlur || 0;
-    const spread = currentStyles.shadowSpread || 0;
-    const color = currentStyles.shadowColor || 'rgba(0, 0, 0, 0.3)';
-    widget.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
+  if (currentStyles.shadowBlur !== undefined || currentStyles.shadowX !== undefined || currentStyles.shadowY !== undefined) {
+    if (!isApplyingToAll || applyToAllFlags.shadowColor || applyToAllFlags.shadowBlur) {
+      const x = currentStyles.shadowX !== undefined ? currentStyles.shadowX : 0;
+      const y = currentStyles.shadowY !== undefined ? currentStyles.shadowY : 4;
+      const blur = currentStyles.shadowBlur !== undefined ? currentStyles.shadowBlur : 6;
+      const spread = currentStyles.shadowSpread !== undefined ? currentStyles.shadowSpread : 0;
+      const color = currentStyles.shadowColor || 'rgba(0, 0, 0, 0.3)';
+      widget.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
+    }
   }
 
   // Text (widget title)
   const title = widget.querySelector('.widget-title');
   if (title) {
-    if (currentStyles.textColor && (!applyToAllFlags.textColor || applyToAllFlags.global)) {
-      title.style.color = currentStyles.textColor;
+    if (currentStyles.textColor !== undefined) {
+      if (!isApplyingToAll || applyToAllFlags.textColor) {
+        title.style.color = currentStyles.textColor;
+      }
     }
-    if (currentStyles.fontSize && (!applyToAllFlags.fontSize || applyToAllFlags.global)) {
-      title.style.fontSize = currentStyles.fontSize + 'px';
+    if (currentStyles.fontSize !== undefined) {
+      if (!isApplyingToAll || applyToAllFlags.fontSize) {
+        title.style.fontSize = currentStyles.fontSize + 'px';
+      }
     }
-    if (currentStyles.fontWeight && (!applyToAllFlags.fontWeight || applyToAllFlags.global)) {
-      title.style.fontWeight = currentStyles.fontWeight;
+    if (currentStyles.fontWeight !== undefined) {
+      if (!isApplyingToAll || applyToAllFlags.fontWeight) {
+        title.style.fontWeight = currentStyles.fontWeight;
+      }
     }
   }
 
   // Padding
-  if (currentStyles.padding !== undefined && (!applyToAllFlags.padding || applyToAllFlags.global)) {
-    widget.style.padding = currentStyles.padding + 'px';
+  if (currentStyles.padding !== undefined) {
+    if (!isApplyingToAll || applyToAllFlags.padding) {
+      widget.style.padding = currentStyles.padding + 'px';
+    }
   }
 
-  // Widget opacity
-  if (currentStyles.widgetOpacity !== undefined && (!applyToAllFlags.widgetOpacity || applyToAllFlags.global)) {
-    widget.style.opacity = (currentStyles.widgetOpacity / 100);
+  // Widget opacity (overrides background opacity if both are set)
+  if (currentStyles.widgetOpacity !== undefined) {
+    if (!isApplyingToAll || applyToAllFlags.widgetOpacity) {
+      widget.style.opacity = (currentStyles.widgetOpacity / 100);
+    }
   }
 }
 
