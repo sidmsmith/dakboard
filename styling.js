@@ -1569,8 +1569,17 @@ function updateBackgroundPreview() {
       const patternType = document.getElementById('bg-pattern-type')?.value || 'dots';
       const patternColor = document.getElementById('bg-pattern-color')?.value || '#3a3a3a';
       const patternSize = document.getElementById('bg-pattern-size')?.value || 20;
-      bgStyle = generatePatternCSS(patternType, patternColor, patternSize);
-      break;
+      const patternCSS = generatePatternCSS(patternType, patternColor, patternSize);
+      // Extract background-image and background-size from pattern CSS
+      const bgImageMatch = patternCSS.match(/background-image:\s*([^;]+);/);
+      const bgSizeMatch = patternCSS.match(/background-size:\s*([^;]+);/);
+      if (bgImageMatch) {
+        preview.style.backgroundImage = bgImageMatch[1].trim();
+      }
+      if (bgSizeMatch) {
+        preview.style.backgroundSize = bgSizeMatch[1].trim();
+      }
+      return; // Don't set bgStyle, we've already applied it
   }
   
   preview.style.cssText = bgStyle;
