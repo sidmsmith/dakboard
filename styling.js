@@ -29,21 +29,8 @@ function initStyling() {
   // Save theme button
   document.getElementById('save-theme-btn').addEventListener('click', saveTheme);
 
-  // Dashboard background color sync
-  const dashboardBgColor = document.getElementById('dashboard-bg-color');
-  const dashboardBgColorText = document.getElementById('dashboard-bg-color-text');
-  
-  dashboardBgColor.addEventListener('input', (e) => {
-    dashboardBgColorText.value = e.target.value;
-    updateDashboardBackground();
-  });
-  
-  dashboardBgColorText.addEventListener('input', (e) => {
-    if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
-      dashboardBgColor.value = e.target.value;
-      updateDashboardBackground();
-    }
-  });
+  // Initialize background modal
+  initBackgroundModal();
 
   // Load saved styles
   loadStyles();
