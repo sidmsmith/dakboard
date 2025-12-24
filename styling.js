@@ -1174,8 +1174,11 @@ function applyCurrentStylesToWidget(widget) {
   // When applying to a single widget, always apply (checkbox doesn't matter)
   const isApplyingToAll = applyToAllFlags.global;
   
-  // Background - read directly from form inputs (same as dashboard background)
-  const bgType = document.getElementById('bg-type')?.value || 'solid';
+  // Background - read directly from form inputs within styling modal (scoped to avoid conflicts)
+  const stylingModal = document.getElementById('styling-modal');
+  if (!stylingModal) return;
+  
+  const bgType = stylingModal.querySelector('#bg-type')?.value || 'solid';
   
   // Clear previous background styles
   widget.style.backgroundColor = '';
@@ -1187,29 +1190,29 @@ function applyCurrentStylesToWidget(widget) {
   
   switch(bgType) {
     case 'solid':
-      const solidColor = document.getElementById('bg-color')?.value || '#2a2a2a';
+      const solidColor = stylingModal.querySelector('#bg-color')?.value || '#2a2a2a';
       if (!isApplyingToAll || applyToAllFlags.backgroundColor) {
         widget.style.backgroundColor = solidColor;
       }
       break;
       
     case 'gradient':
-      const color1 = document.getElementById('bg-gradient-color1')?.value || '#2a2a2a';
-      const color2 = document.getElementById('bg-gradient-color2')?.value || '#3a3a3a';
-      const direction = document.getElementById('bg-gradient-direction')?.value || 'to bottom';
+      const color1 = stylingModal.querySelector('#bg-gradient-color1')?.value || '#2a2a2a';
+      const color2 = stylingModal.querySelector('#bg-gradient-color2')?.value || '#3a3a3a';
+      const direction = stylingModal.querySelector('#bg-gradient-direction')?.value || 'to bottom';
       if (!isApplyingToAll || applyToAllFlags.gradientColor1 || applyToAllFlags.gradientColor2) {
         widget.style.backgroundImage = `linear-gradient(${direction}, ${color1}, ${color2})`;
       }
       break;
       
     case 'image':
-      const imageUrl = document.getElementById('bg-image-url')?.value || '';
+      const imageUrl = stylingModal.querySelector('#bg-image-url')?.value || '';
       if (imageUrl && (!isApplyingToAll || applyToAllFlags.backgroundImageUrl)) {
         widget.style.backgroundImage = `url(${imageUrl})`;
-        widget.style.backgroundRepeat = document.getElementById('bg-image-repeat')?.value || 'no-repeat';
-        widget.style.backgroundPosition = document.getElementById('bg-image-position')?.value || 'center';
-        widget.style.backgroundSize = document.getElementById('bg-image-size')?.value || 'cover';
-        const imgOpacity = parseInt(document.getElementById('bg-image-opacity')?.value || 100);
+        widget.style.backgroundRepeat = stylingModal.querySelector('#bg-image-repeat')?.value || 'no-repeat';
+        widget.style.backgroundPosition = stylingModal.querySelector('#bg-image-position')?.value || 'center';
+        widget.style.backgroundSize = stylingModal.querySelector('#bg-image-size')?.value || 'cover';
+        const imgOpacity = parseInt(stylingModal.querySelector('#bg-image-opacity')?.value || 100);
         if (imgOpacity < 100) {
           widget.style.opacity = imgOpacity / 100;
         }
@@ -1217,9 +1220,9 @@ function applyCurrentStylesToWidget(widget) {
       break;
       
     case 'pattern':
-      const patternType = document.getElementById('bg-pattern-type')?.value || 'dots';
-      const patternColor = document.getElementById('bg-pattern-color')?.value || '#3a3a3a';
-      const patternSize = parseInt(document.getElementById('bg-pattern-size')?.value || 20);
+      const patternType = stylingModal.querySelector('#bg-pattern-type')?.value || 'dots';
+      const patternColor = stylingModal.querySelector('#bg-pattern-color')?.value || '#3a3a3a';
+      const patternSize = parseInt(stylingModal.querySelector('#bg-pattern-size')?.value || 20);
       if (!isApplyingToAll || applyToAllFlags.patternType || applyToAllFlags.patternColor) {
         const patternCSS = generatePatternCSS(patternType, patternColor, patternSize);
         // Extract background-image and background-size from pattern CSS
