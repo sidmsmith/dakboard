@@ -1604,6 +1604,14 @@ body {
   min-height: 300px;
 }
 
+.styling-preview-background {
+  flex: 1;
+  min-height: 300px;
+  border-radius: 12px;
+  border: 2px solid #3a3a3a;
+  background: #1a1a1a;
+}
+
 .styling-preview-header {
   padding-bottom: 12px;
   border-bottom: 2px solid #3a3a3a;
