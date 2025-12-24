@@ -911,26 +911,35 @@ function updatePreview() {
       }
       break;
     case 'gradient':
-      if (currentStyles.gradientColor1 && currentStyles.gradientColor2) {
-        const direction = currentStyles.gradientDirection || 'to bottom';
-        preview.style.backgroundImage = `linear-gradient(${direction}, ${currentStyles.gradientColor1}, ${currentStyles.gradientColor2})`;
+      // Get values from form inputs if not in currentStyles
+      const gradColor1 = currentStyles.gradientColor1 || document.getElementById('bg-gradient-color1')?.value || '#2a2a2a';
+      const gradColor2 = currentStyles.gradientColor2 || document.getElementById('bg-gradient-color2')?.value || '#3a3a3a';
+      const gradDir = currentStyles.gradientDirection || document.getElementById('bg-gradient-direction')?.value || 'to bottom';
+      if (gradColor1 && gradColor2) {
+        preview.style.backgroundImage = `linear-gradient(${gradDir}, ${gradColor1}, ${gradColor2})`;
       }
       break;
     case 'image':
-      if (currentStyles.backgroundImageUrl) {
-        preview.style.backgroundImage = `url(${currentStyles.backgroundImageUrl})`;
-        preview.style.backgroundRepeat = currentStyles.backgroundRepeat || 'no-repeat';
-        preview.style.backgroundPosition = currentStyles.backgroundPosition || 'center';
-        preview.style.backgroundSize = currentStyles.backgroundSize || 'cover';
-        if (currentStyles.backgroundImageOpacity !== undefined && currentStyles.backgroundImageOpacity < 100) {
-          preview.style.opacity = currentStyles.backgroundImageOpacity / 100;
+      // Get values from form inputs if not in currentStyles
+      const imgUrl = currentStyles.backgroundImageUrl || document.getElementById('bg-image-url')?.value || '';
+      if (imgUrl) {
+        preview.style.backgroundImage = `url(${imgUrl})`;
+        preview.style.backgroundRepeat = currentStyles.backgroundRepeat || document.getElementById('bg-image-repeat')?.value || 'no-repeat';
+        preview.style.backgroundPosition = currentStyles.backgroundPosition || document.getElementById('bg-image-position')?.value || 'center';
+        preview.style.backgroundSize = currentStyles.backgroundSize || document.getElementById('bg-image-size')?.value || 'cover';
+        const imgOpacity = currentStyles.backgroundImageOpacity !== undefined ? currentStyles.backgroundImageOpacity : (parseInt(document.getElementById('bg-image-opacity')?.value || 100));
+        if (imgOpacity < 100) {
+          preview.style.opacity = imgOpacity / 100;
         }
       }
       break;
     case 'pattern':
-      if (currentStyles.patternType && currentStyles.patternColor) {
-        const patternSize = currentStyles.patternSize || 20;
-        const patternCSS = generatePatternCSS(currentStyles.patternType, currentStyles.patternColor, patternSize);
+      // Get values from form inputs if not in currentStyles
+      const patType = currentStyles.patternType || document.getElementById('bg-pattern-type')?.value || 'dots';
+      const patColor = currentStyles.patternColor || document.getElementById('bg-pattern-color')?.value || '#3a3a3a';
+      const patSize = currentStyles.patternSize !== undefined ? currentStyles.patternSize : (parseInt(document.getElementById('bg-pattern-size')?.value || 20));
+      if (patType && patColor) {
+        const patternCSS = generatePatternCSS(patType, patColor, patSize);
         // Extract background-image and background-size from pattern CSS
         const bgImageMatch = patternCSS.match(/background-image:\s*([^;]+);/);
         const bgSizeMatch = patternCSS.match(/background-size:\s*([^;]+);/);
