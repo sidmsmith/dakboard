@@ -936,16 +936,25 @@ function updatePreview() {
       }
       break;
     case 'image':
-      // Get values from form inputs if not in currentStyles
+      // Get values from form inputs first, then fall back to currentStyles, then defaults
       const imgUrlEl = document.getElementById('bg-image-url');
-      const imgUrl = currentStyles.backgroundImageUrl || imgUrlEl?.value || '';
-      console.log('Preview - Image:', { imgUrl, imgUrlEl: !!imgUrlEl, currentStyles: currentStyles.backgroundImageUrl });
+      const imgUrl = imgUrlEl?.value || currentStyles.backgroundImageUrl || '';
+      const imgRepeatEl = document.getElementById('bg-image-repeat');
+      const imgPositionEl = document.getElementById('bg-image-position');
+      const imgSizeEl = document.getElementById('bg-image-size');
+      const imgOpacityEl = document.getElementById('bg-image-opacity');
+      console.log('Preview - Image:', { 
+        imgUrl, 
+        imgUrlEl: !!imgUrlEl,
+        imgUrlElValue: imgUrlEl?.value,
+        currentStyles: currentStyles.backgroundImageUrl 
+      });
       if (imgUrl) {
         preview.style.backgroundImage = `url(${imgUrl})`;
-        preview.style.backgroundRepeat = currentStyles.backgroundRepeat || document.getElementById('bg-image-repeat')?.value || 'no-repeat';
-        preview.style.backgroundPosition = currentStyles.backgroundPosition || document.getElementById('bg-image-position')?.value || 'center';
-        preview.style.backgroundSize = currentStyles.backgroundSize || document.getElementById('bg-image-size')?.value || 'cover';
-        const imgOpacity = currentStyles.backgroundImageOpacity !== undefined ? currentStyles.backgroundImageOpacity : (parseInt(document.getElementById('bg-image-opacity')?.value || 100));
+        preview.style.backgroundRepeat = imgRepeatEl?.value || currentStyles.backgroundRepeat || 'no-repeat';
+        preview.style.backgroundPosition = imgPositionEl?.value || currentStyles.backgroundPosition || 'center';
+        preview.style.backgroundSize = imgSizeEl?.value || currentStyles.backgroundSize || 'cover';
+        const imgOpacity = parseInt(imgOpacityEl?.value || currentStyles.backgroundImageOpacity || 100);
         if (imgOpacity < 100) {
           preview.style.opacity = imgOpacity / 100;
         }
@@ -955,14 +964,26 @@ function updatePreview() {
       }
       break;
     case 'pattern':
-      // Get values from form inputs if not in currentStyles
+      // Get values from form inputs first, then fall back to currentStyles, then defaults
       const patTypeEl = document.getElementById('bg-pattern-type');
       const patColorEl = document.getElementById('bg-pattern-color');
       const patSizeEl = document.getElementById('bg-pattern-size');
-      const patType = currentStyles.patternType || patTypeEl?.value || 'dots';
-      const patColor = currentStyles.patternColor || patColorEl?.value || '#3a3a3a';
-      const patSize = currentStyles.patternSize !== undefined ? currentStyles.patternSize : (parseInt(patSizeEl?.value || 20));
-      console.log('Preview - Pattern:', { patType, patColor, patSize, patTypeEl: !!patTypeEl, patColorEl: !!patColorEl, patSizeEl: !!patSizeEl, currentStyles: currentStyles.patternType });
+      const patType = patTypeEl?.value || currentStyles.patternType || 'dots';
+      const patColor = patColorEl?.value || currentStyles.patternColor || '#3a3a3a';
+      const patSize = parseInt(patSizeEl?.value || currentStyles.patternSize || 20);
+      console.log('Preview - Pattern:', { 
+        patType, 
+        patColor, 
+        patSize, 
+        patTypeEl: !!patTypeEl,
+        patTypeElValue: patTypeEl?.value,
+        patColorEl: !!patColorEl,
+        patColorElValue: patColorEl?.value,
+        patSizeEl: !!patSizeEl,
+        patSizeElValue: patSizeEl?.value,
+        currentStylesType: currentStyles.patternType,
+        currentStylesColor: currentStyles.patternColor
+      });
       if (patType && patColor) {
         const patternCSS = generatePatternCSS(patType, patColor, patSize);
         console.log('Preview - Generated pattern CSS:', patternCSS);
@@ -1152,14 +1173,28 @@ function applyCurrentStylesToWidget(widget) {
       }
       break;
     case 'pattern':
-      // Get values from form inputs if not in currentStyles
+      // Get values from form inputs first, then fall back to currentStyles, then defaults
       const patTypeEl = document.getElementById('bg-pattern-type');
       const patColorEl = document.getElementById('bg-pattern-color');
       const patSizeEl = document.getElementById('bg-pattern-size');
-      const patType = currentStyles.patternType || patTypeEl?.value || 'dots';
-      const patColor = currentStyles.patternColor || patColorEl?.value || '#3a3a3a';
-      const patSize = currentStyles.patternSize !== undefined ? currentStyles.patternSize : (parseInt(patSizeEl?.value || 20));
-      console.log('Apply - Pattern:', { patType, patColor, patSize, patTypeEl: !!patTypeEl, patColorEl: !!patColorEl, patSizeEl: !!patSizeEl, isApplyingToAll, applyToAllFlags });
+      const patType = patTypeEl?.value || currentStyles.patternType || 'dots';
+      const patColor = patColorEl?.value || currentStyles.patternColor || '#3a3a3a';
+      const patSize = parseInt(patSizeEl?.value || currentStyles.patternSize || 20);
+      console.log('Apply - Pattern:', { 
+        patType, 
+        patColor, 
+        patSize, 
+        patTypeEl: !!patTypeEl,
+        patTypeElValue: patTypeEl?.value,
+        patColorEl: !!patColorEl,
+        patColorElValue: patColorEl?.value,
+        patSizeEl: !!patSizeEl,
+        patSizeElValue: patSizeEl?.value,
+        isApplyingToAll, 
+        applyToAllFlags,
+        currentStylesType: currentStyles.patternType,
+        currentStylesColor: currentStyles.patternColor
+      });
       if (patType && patColor) {
         // Always apply if not applying to all, or if apply-to-all flag is set
         if (!isApplyingToAll || applyToAllFlags.patternType || applyToAllFlags.patternColor) {
