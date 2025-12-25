@@ -3290,8 +3290,11 @@ function updateWidgetControlPanel() {
 
   sortedWidgets.forEach(widgetId => {
     const config = WIDGET_CONFIG[widgetId];
-    const widget = document.querySelector(`.${widgetId}`);
-    const isHidden = widget && widget.classList.contains('hidden');
+    // Find widget on current page only
+    const pageElement = getPageElement(currentPageIndex);
+    const widget = pageElement ? pageElement.querySelector(`.${widgetId}`) : null;
+    // Widget is hidden if it doesn't exist on current page OR if it has the 'hidden' class
+    const isHidden = !widget || widget.classList.contains('hidden');
     
     const item = document.createElement('div');
     item.className = `widget-control-item ${isHidden ? 'hidden' : ''}`;
