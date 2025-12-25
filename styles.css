@@ -54,7 +54,7 @@ body {
   font-size: 32px;
   opacity: 0;
   transition: opacity 0.3s ease;
-  pointer-events: none;
+  pointer-events: auto;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -64,12 +64,8 @@ body {
   user-select: none;
 }
 
-body:hover .page-nav-arrow {
-  opacity: 1;
-  pointer-events: auto;
-}
-
 .page-nav-arrow:hover {
+  opacity: 1;
   background: rgba(66, 66, 66, 0.9);
   border-color: #5a5a5a;
   color: #fff;
