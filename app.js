@@ -3436,8 +3436,8 @@ function initializePages() {
   // Setup swipe gestures
   setupSwipeGestures();
   
-  // Setup page management (add/delete)
-  setupPageManagement();
+  // Setup page management (add/delete) - only once
+  // Don't call here, it's called in initializeWidgetControlPanel after panel is ready
   
   // Show current page
   showPage(currentPageIndex);
