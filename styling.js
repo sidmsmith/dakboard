@@ -1414,7 +1414,6 @@ function resetStyles() {
   }
   
   // Clear saved styles (page-specific)
-  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
   localStorage.removeItem(`dakboard-widget-styles-${currentWidgetId}-page-${currentPageIndex}`);
   
   // Reload tab to show defaults

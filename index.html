@@ -12,7 +12,19 @@
   <meta property="og:url" content="https://dakboard-smith.vercel.app/">
   <link rel="stylesheet" href="styles.css">
   <!-- Local config for development (gitignored) -->
-  <script src="config.js" defer onerror="console.log('config.js not found (expected in production)')"></script>
+  <script>
+    // Try to load config.js, but don't fail if it doesn't exist (expected in production)
+    (function() {
+      const script = document.createElement('script');
+      script.src = 'config.js';
+      script.defer = true;
+      script.onerror = function() {
+        // config.js not found - this is expected in production
+        // window.CONFIG will be undefined, which is handled by the code
+      };
+      document.head.appendChild(script);
+    })();
+  </script>
   <script src="drag-resize.js" defer></script>
   <link rel="icon" href="data:,">
 </head>

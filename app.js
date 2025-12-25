@@ -2660,9 +2660,6 @@ function initializeWhiteboard() {
     resizeObserver.observe(widget);
   }
   
-  // Get current page index for page-specific storage
-  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
-  
   // Set default background color (page-specific)
   const bgColor = localStorage.getItem(`whiteboard-bg-color-page-${currentPageIndex}`) || '#ffffff';
   whiteboardCtx.fillStyle = bgColor;
