@@ -1962,7 +1962,7 @@ function loadBackgroundSettings() {
     currentPageIndex = 0;
   }
   
-  const pageBgKey = `dakboard-background-page-${currentPageIndex}`;
+  const pageBgKey = `dakboard-page-background-${currentPageIndex}`;
   let saved = localStorage.getItem(pageBgKey);
   
   // Fallback to legacy key if page-specific not found
