@@ -82,6 +82,17 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Now load layout - this will position visible widgets correctly
   loadWidgetLayout(); // Load saved positions/sizes
+  
+  // Ensure current page is fully loaded after all initialization
+  // This fixes the issue where initial page display is incorrect after import/refresh
+  if (typeof loadCurrentPage === 'function') {
+    loadCurrentPage();
+  }
+  // Also ensure styles are loaded for current page
+  if (typeof loadStyles === 'function') {
+    loadStyles();
+  }
+  
   initializeWidgetControlPanel(); // Initialize widget visibility panel
   initializeCalendar();
   initializeClock(); // Initialize clock
