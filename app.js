@@ -18,7 +18,7 @@ const CONFIG = {
   HA_GARAGE_WEBHOOK_1: 'garage1toggle', // Update with your webhook IDs
   HA_GARAGE_WEBHOOK_2: 'garage2toggle',
   HA_GARAGE_WEBHOOK_3: 'garage3toggle',
-  HA_ALARM_WEBHOOK: 'alarm_toggle', // Update with your alarm webhook ID
+  HA_ALARM_WEBHOOK: 'http://sidmsmith.zapto.org:8123/api/webhook/setalarm', // Alarm set webhook (only used when disarmed)
   
   // Refresh interval (milliseconds)
   REFRESH_INTERVAL: 30000, // 30 seconds
@@ -1859,34 +1859,76 @@ async function loadAlarm() {
       text.textContent = 'DISARMED';
     }
     
-    // Add click handler
-    icon.onclick = () => {
-      if (!isEditMode) {
-        toggleAlarm();
-      }
-    };
+    // Add click handler - only clickable when DISARMED
+    if (state === 'disarmed' || state === 'disarming' || (!state.includes('armed'))) {
+      // Only allow clicking when disarmed
+      icon.style.cursor = 'pointer';
+      icon.onclick = () => {
+        if (!isEditMode) {
+          setAlarm();
+        }
+      };
+    } else {
+      // Armed states are not clickable
+      icon.style.cursor = 'not-allowed';
+      icon.onclick = null;
+    }
   } catch (error) {
     console.error('Error loading alarm:', error);
     document.getElementById('alarm-status-text').textContent = 'Error';
   }
 }
 
-// Toggle alarm
-async function toggleAlarm() {
+// Set alarm (only works when disarmed)
+async function setAlarm() {
   // Don't allow interaction in edit mode
   if (isEditMode) return;
+  
+  // Check current state - only allow if disarmed
+  const statusDiv = document.getElementById('alarm-status');
+  if (statusDiv && statusDiv.classList.contains('armed')) {
+    console.log('Alarm is already armed - cannot set alarm');
+    return;
+  }
   
   const icon = document.getElementById('alarm-icon');
   icon.classList.add('loading');
   
   try {
-    await triggerHAWebhook(CONFIG.HA_ALARM_WEBHOOK);
+    // Call the setalarm webhook directly
+    const webhookUrl = CONFIG.HA_ALARM_WEBHOOK;
+    
+    // Check if it's a full URL or just a webhook ID
+    if (webhookUrl.startsWith('http://') || webhookUrl.startsWith('https://')) {
+      // Full URL - call directly
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } else {
+      // Webhook ID - use existing function
+      await triggerHAWebhook(webhookUrl);
+    }
+    
+    // Show toast notification
+    showToast('Setting Alarm...', 1500);
+    
     // Reload alarm after a short delay
     setTimeout(() => {
       loadAlarm();
     }, 1000);
   } catch (error) {
-    console.error('Error toggling alarm:', error);
+    console.error('Error setting alarm:', error);
+    icon.classList.remove('loading');
+    showToast('Error setting alarm', 2000);
+  } finally {
     icon.classList.remove('loading');
   }
 }
