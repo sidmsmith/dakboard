@@ -155,20 +155,19 @@ function initializeDragAndResize() {
       // Remove existing resize handles first (in case we're re-initializing)
       widget.querySelectorAll('.resize-handle').forEach(h => h.remove());
       
-      // Remove data attribute to allow re-initialization when switching pages
-      widget.removeAttribute('data-drag-resize-initialized');
+      // Remove any existing mousedown listeners by cloning the widget
+      // This prevents duplicate event listeners when switching pages
+      const newWidget = widget.cloneNode(true);
+      widget.parentNode.replaceChild(newWidget, widget);
       
-      // Mark as initialized
-      widget.setAttribute('data-drag-resize-initialized', 'true');
-      
-      // Add resize handles
-      addResizeHandles(widget);
+      // Add resize handles to the new widget
+      addResizeHandles(newWidget);
       
       // Make widget draggable (only in edit mode)
       // In edit mode, entire widget is draggable; in normal mode, no dragging
-      widget.addEventListener('mousedown', (e) => {
+      newWidget.addEventListener('mousedown', (e) => {
         // Check if edit mode is active on the current page
-        const dashboard = widget.closest('.dashboard.page');
+        const dashboard = newWidget.closest('.dashboard.page');
         const inEditMode = dashboard && dashboard.classList.contains('edit-mode');
         
         if (!inEditMode) {
@@ -190,11 +189,11 @@ function initializeDragAndResize() {
           return;
         }
         
-        startDrag(widget, e);
+        startDrag(newWidget, e);
       });
       
       // Update scale on initial load
-      updateWidgetScale(widget);
+      updateWidgetScale(newWidget);
     });
   }, 100);
   
