@@ -3925,11 +3925,32 @@ function updatePageList() {
     
     const pageLabel = document.createElement('span');
     pageLabel.className = 'page-list-label';
-    pageLabel.textContent = `Page ${i + 1}`;
+    
+    // Load saved page name or use default
+    const pageNameKey = `dakboard-page-name-${i}`;
+    const savedName = localStorage.getItem(pageNameKey);
+    pageLabel.textContent = savedName || `Page ${i + 1}`;
     pageLabel.style.cursor = 'pointer';
+    
+    // Single click to switch page
+    let clickTimeout;
     pageLabel.addEventListener('click', () => {
-      showPage(i);
-      updatePageList();
+      // Clear any pending timeout
+      clearTimeout(clickTimeout);
+      // Set timeout to allow for double-click detection
+      clickTimeout = setTimeout(() => {
+        if (!pageLabel.classList.contains('editing')) {
+          showPage(i);
+          updatePageList();
+        }
+      }, 250); // 250ms delay to detect double-click
+    });
+    
+    // Double click to rename
+    pageLabel.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      clearTimeout(clickTimeout); // Cancel single click
+      renamePage(i, pageLabel);
     });
     
     const deleteBtn = document.createElement('button');
@@ -3960,12 +3981,74 @@ function updatePageList() {
   }
 }
 
+// Rename a page
+function renamePage(pageIndex, labelElement) {
+  const pageNameKey = `dakboard-page-name-${pageIndex}`;
+  const currentName = localStorage.getItem(pageNameKey) || `Page ${pageIndex + 1}`;
+  
+  // Create input field
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentName;
+  input.className = 'page-name-input';
+  input.style.cssText = `
+    background: #444;
+    border: 1px solid #666;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+    outline: none;
+  `;
+  
+  // Replace label with input
+  const parent = labelElement.parentNode;
+  labelElement.classList.add('editing');
+  labelElement.style.display = 'none';
+  parent.insertBefore(input, labelElement);
+  input.focus();
+  input.select();
+  
+  // Save on Enter or blur
+  const saveName = () => {
+    const newName = input.value.trim() || `Page ${pageIndex + 1}`;
+    localStorage.setItem(pageNameKey, newName);
+    labelElement.textContent = newName;
+    labelElement.classList.remove('editing');
+    labelElement.style.display = '';
+    parent.removeChild(input);
+    updatePageList(); // Refresh to show new name
+  };
+  
+  const cancelRename = () => {
+    labelElement.classList.remove('editing');
+    labelElement.style.display = '';
+    parent.removeChild(input);
+  };
+  
+  input.addEventListener('blur', saveName);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveName();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelRename();
+    }
+  });
+}
+
 // Setup page management event listeners
 function setupPageManagement() {
   const addPageBtn = document.getElementById('add-page-btn');
   if (addPageBtn) {
+    // Remove any existing listeners by cloning and replacing
+    const newBtn = addPageBtn.cloneNode(true);
+    addPageBtn.parentNode.replaceChild(newBtn, addPageBtn);
+    
     console.log('Setting up add page button listener');
-    addPageBtn.addEventListener('click', (e) => {
+    newBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
       console.log('Add page button clicked!');
