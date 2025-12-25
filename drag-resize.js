@@ -286,6 +286,8 @@ function handleMouseMove(e) {
       newHeight = resizeStart.height + deltaY;
     }
     if (resizeDirection.includes('top')) {
+      // When dragging top handle up (negative deltaY), height increases and top moves up
+      // When dragging top handle down (positive deltaY), height decreases and top moves down
       newHeight = resizeStart.height - deltaY;
       newTop = resizeStart.top + deltaY;
     }
