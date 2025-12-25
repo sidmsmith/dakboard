@@ -62,8 +62,22 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('initializePages function not found!');
   }
   
-  loadWidgetLayout(); // Load saved positions/sizes first
-  // loadWidgetVisibility() is now called in loadCurrentPage() for page-specific loading
+  // Load visibility for all pages first - this ensures widgets are hidden before layout is applied
+  // This prevents widgets from appearing on wrong pages
+  const savedTotalPages = parseInt(localStorage.getItem('dakboard-total-pages')) || 1;
+  for (let i = 0; i < savedTotalPages; i++) {
+    const tempPageIndex = currentPageIndex;
+    currentPageIndex = i;
+    window.currentPageIndex = i;
+    if (typeof loadWidgetVisibility === 'function') {
+      loadWidgetVisibility();
+    }
+    currentPageIndex = tempPageIndex;
+    window.currentPageIndex = tempPageIndex;
+  }
+  
+  // Now load layout - this will position visible widgets correctly
+  loadWidgetLayout(); // Load saved positions/sizes
   initializeWidgetControlPanel(); // Initialize widget visibility panel
   initializeCalendar();
   initializeClock(); // Initialize clock
@@ -3076,8 +3090,9 @@ function loadWidgetVisibility() {
       // Find widget on current page only
       let widget = pageElement.querySelector(`.${widgetId}`);
       
-      // If widget should be visible but doesn't exist, create it
-      if (!widget && visibility[widgetId] !== false) {
+      // Only create widget if visibility is explicitly true
+      // Don't create if false or undefined (not configured for this page)
+      if (!widget && visibility[widgetId] === true) {
         // Find the widget template (usually on page 0)
         const templateWidget = document.querySelector(`.${widgetId}`);
         if (templateWidget) {
@@ -3095,12 +3110,15 @@ function loadWidgetVisibility() {
         }
       }
       
-      // Now set visibility for existing widgets
+      // Set visibility for existing widgets
       if (widget) {
         if (visibility[widgetId] === false) {
           widget.classList.add('hidden');
-        } else {
+        } else if (visibility[widgetId] === true) {
           widget.classList.remove('hidden');
+        } else {
+          // If visibility not set for this page, hide the widget (it shouldn't be here)
+          widget.classList.add('hidden');
         }
       }
     });
@@ -3804,6 +3822,9 @@ function loadCurrentPage() {
   const pageElement = getPageElement(currentPageIndex);
   if (!pageElement) return;
   
+  // Load widget visibility FIRST - this ensures widgets are created/hidden before layout is applied
+  loadWidgetVisibility();
+  
   // Load page-specific edit mode
   const editModeKey = `dakboard-edit-mode-page-${currentPageIndex}`;
   const savedEditMode = localStorage.getItem(editModeKey);
@@ -3839,7 +3860,7 @@ function loadCurrentPage() {
       const layout = JSON.parse(saved);
       Object.keys(layout).forEach(widgetId => {
         const widget = pageElement.querySelector(`.${widgetId}`);
-        if (widget && layout[widgetId]) {
+        if (widget && layout[widgetId] && !widget.classList.contains('hidden')) {
           const { x, y, width, height, zIndex } = layout[widgetId];
           const viewportWidth = window.innerWidth;
           const viewportHeight = window.innerHeight;
@@ -4463,18 +4484,18 @@ function importConfiguration(file) {
           importedCount++;
         }
         
-        // Build complete visibility map - include ALL widgets, not just those in the export
-        const visibility = {};
-        // First, mark all widgets as hidden by default
-        Object.keys(WIDGET_CONFIG).forEach(widgetId => {
-          visibility[widgetId] = false;
-        });
-        // Then, set visibility from imported data
-        page.widgets.forEach(widget => {
-          visibility[widget.widgetId] = widget.visible !== false;
-        });
-        localStorage.setItem(`dakboard-widget-visibility-page-${pageIndex}`, JSON.stringify(visibility));
-        importedCount++;
+          // Build complete visibility map - include ALL widgets
+          const visibility = {};
+          // First, mark all widgets as hidden by default (not on this page)
+          Object.keys(WIDGET_CONFIG).forEach(widgetId => {
+            visibility[widgetId] = false;
+          });
+          // Then, set visibility from imported data - only mark as true if explicitly visible
+          page.widgets.forEach(widget => {
+            visibility[widget.widgetId] = widget.visible === true;
+          });
+          localStorage.setItem(`dakboard-widget-visibility-page-${pageIndex}`, JSON.stringify(visibility));
+          importedCount++;
         
         // Import widget layouts
         const layout = {};
@@ -4510,6 +4531,35 @@ function importConfiguration(file) {
       });
       
       console.log(`Configuration imported successfully. ${importedCount} items restored.`);
+      
+      // Move widgets to their correct pages based on visibility
+      // This ensures widgets are on the right pages after import
+      config.pages.forEach((page, pageIndex) => {
+        const pageElement = getPageElement(pageIndex);
+        if (!pageElement) return;
+        
+        page.widgets.forEach(widget => {
+          const widgetElement = document.querySelector(`.${widget.widgetId}`);
+          if (!widgetElement) return;
+          
+          // Find which page the widget is currently on
+          const currentPage = widgetElement.closest('.dashboard.page');
+          const currentPageId = currentPage ? parseInt(currentPage.getAttribute('data-page-id')) : -1;
+          
+          // If widget should be visible on this page, move it here
+          if (widget.visible === true && currentPageId !== pageIndex) {
+            // Remove from current page
+            if (currentPage) {
+              widgetElement.remove();
+            }
+            // Add to correct page
+            pageElement.appendChild(widgetElement);
+          } else if (widget.visible === false && currentPageId === pageIndex) {
+            // Widget shouldn't be on this page, hide it
+            widgetElement.classList.add('hidden');
+          }
+        });
+      });
       
       // Reload the page to apply the new configuration
       alert('Configuration imported successfully! The page will reload to apply changes.');
