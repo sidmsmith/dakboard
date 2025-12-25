@@ -4348,68 +4348,27 @@ function exportConfiguration() {
       config.pages.push(page);
     }
     
-    // Helper function to convert hex color to human-readable description
-    function getColorDescription(hex) {
-      if (!hex || typeof hex !== 'string') return '';
-      hex = hex.replace('#', '').toLowerCase();
-      if (hex.length !== 6) return '';
-      
-      const r = parseInt(hex.substr(0, 2), 16);
-      const g = parseInt(hex.substr(2, 2), 16);
-      const b = parseInt(hex.substr(4, 2), 16);
-      
-      // Calculate brightness
-      const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-      
-      // Simple color name mapping
-      if (brightness < 50) return 'black';
-      if (brightness > 250) return 'white';
-      if (brightness > 200) return 'light grey';
-      if (brightness < 100) return 'dark grey';
-      
-      // Color detection
-      if (r > g && r > b) {
-        if (r > 200 && g > 150 && b < 100) return 'light yellow';
-        if (r > 200 && g < 150 && b < 100) return 'orange';
-        if (r > 150 && g < 100 && b < 100) return 'red';
-        return 'reddish';
-      }
-      if (g > r && g > b) {
-        if (g > 200 && r > 150 && b > 150) return 'light green';
-        if (g > 150 && r < 100 && b < 100) return 'green';
-        return 'greenish';
-      }
-      if (b > r && b > g) {
-        if (b > 200 && r > 150 && g > 150) return 'light blue';
-        if (b > 150 && r < 100 && g < 100) return 'blue';
-        return 'bluish';
-      }
-      if (r > 150 && g > 150 && b < 100) return 'yellow';
-      if (r > 150 && g < 100 && b > 150) return 'purple';
-      if (r < 100 && g > 150 && b > 150) return 'cyan';
-      
-      return 'grey';
-    }
-    
-    // Add color descriptions as comments in JSON string (non-standard but readable)
-    // Comments are placed on the line before the property for easier parsing
-    function addColorComments(jsonStr) {
-      const colorProps = ['backgroundColor', 'borderColor', 'shadowColor', 'textColor', 'gradientColor1', 'gradientColor2'];
-      colorProps.forEach(prop => {
-        // Match: "propertyName": "#RRGGBB" with optional whitespace/indentation
-        const regex = new RegExp(`(\\s*)("${prop}"\\s*:\\s*")(#[0-9a-fA-F]{6})(")`, 'gi');
-        jsonStr = jsonStr.replace(regex, (match, indent, prefix, hex, suffix) => {
-          const desc = getColorDescription(hex);
-          // Add comment on line before the property
-          return desc ? `${indent}// ${prop}: ${desc}\n${indent}${prefix}${hex}${suffix}` : match;
-        });
+    // Clean up styles before export - only include gradient properties if backgroundType is gradient
+    config.pages.forEach(page => {
+      page.widgets.forEach(widget => {
+        if (widget.styles) {
+          const bgType = widget.styles.backgroundType || 'solid';
+          // Remove gradient properties if not using gradient
+          if (bgType !== 'gradient') {
+            delete widget.styles.gradientColor1;
+            delete widget.styles.gradientColor2;
+            delete widget.styles.gradientDirection;
+          }
+          // Remove backgroundColor if using transparent
+          if (bgType === 'transparent') {
+            delete widget.styles.backgroundColor;
+          }
+        }
       });
-      return jsonStr;
-    }
+    });
     
     // Create JSON blob and trigger download
-    let jsonStr = JSON.stringify(config, null, 2);
-    jsonStr = addColorComments(jsonStr);
+    const jsonStr = JSON.stringify(config, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -4437,13 +4396,7 @@ function importConfiguration(file) {
   
   reader.onload = (e) => {
     try {
-      // Strip comments from JSON (non-standard but we add them for readability)
-      let jsonText = e.target.result;
-      // Remove line comments (both standalone comment lines and inline comments)
-      jsonText = jsonText.replace(/^\s*\/\/.*$/gm, ''); // Remove standalone comment lines
-      jsonText = jsonText.replace(/\s*\/\/.*$/gm, ''); // Remove inline comments
-      
-      const config = JSON.parse(jsonText);
+      const config = JSON.parse(e.target.result);
       
       // Confirm before importing (will overwrite existing data)
       const confirmed = confirm(
