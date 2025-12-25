@@ -309,6 +309,7 @@ function handleMouseMove(e) {
       minHeight = 150; // Allow smaller whiteboard
     }
     
+    // Apply minimum constraints BEFORE boundary checks
     if (newWidth < minWidth) {
       if (resizeDirection.includes('left')) {
         newLeft = resizeStart.left + resizeStart.width - minWidth;
@@ -318,14 +319,33 @@ function handleMouseMove(e) {
     
     if (newHeight < minHeight) {
       if (resizeDirection.includes('top')) {
+        // When constrained to min height, adjust top to keep bottom in place
         newTop = resizeStart.top + resizeStart.height - minHeight;
       }
       newHeight = minHeight;
     }
     
-    // Keep within dashboard bounds
-    newLeft = Math.max(0, Math.min(newLeft, dashboardRect.width - newWidth));
-    newTop = Math.max(0, Math.min(newTop, dashboardRect.height - newHeight));
+    // Keep within dashboard bounds - but allow some flexibility for resizing
+    // Allow widget to go slightly outside bounds during resize for better UX
+    const minVisible = 50; // Minimum pixels that must be visible
+    newLeft = Math.max(-newWidth + minVisible, Math.min(newLeft, dashboardRect.width - minVisible));
+    newTop = Math.max(-newHeight + minVisible, Math.min(newTop, dashboardRect.height - minVisible));
+    
+    // If top was constrained, recalculate height to maintain bottom position
+    if (resizeDirection.includes('top')) {
+      const constrainedTop = Math.max(-newHeight + minVisible, Math.min(newTop, dashboardRect.height - minVisible));
+      if (constrainedTop !== newTop) {
+        // Top was constrained, so adjust height to maintain the intended resize
+        const topDelta = constrainedTop - newTop;
+        newHeight = newHeight - topDelta;
+        newTop = constrainedTop;
+        // Re-apply minimum height after adjustment
+        if (newHeight < minHeight) {
+          newHeight = minHeight;
+          newTop = resizeStart.top + resizeStart.height - minHeight;
+        }
+      }
+    }
     
     // Snap to grid
     newWidth = snapToGridValue(newWidth);
