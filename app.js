@@ -55,6 +55,13 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('initializeDragAndResize function NOT found! Check drag-resize.js loading.');
   }
   
+  // Initialize pages system first (creates page structure)
+  if (typeof initializePages === 'function') {
+    initializePages();
+  } else {
+    console.error('initializePages function not found!');
+  }
+  
   loadWidgetLayout(); // Load saved positions/sizes first
   loadWidgetVisibility(); // Load widget visibility state
   initializeWidgetControlPanel(); // Initialize widget visibility panel
