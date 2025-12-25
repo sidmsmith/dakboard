@@ -72,6 +72,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof loadWidgetVisibility === 'function') {
       loadWidgetVisibility();
     }
+    // Also load styles for all pages
+    if (typeof loadStyles === 'function') {
+      loadStyles();
+    }
     currentPageIndex = tempPageIndex;
     window.currentPageIndex = tempPageIndex;
   }
