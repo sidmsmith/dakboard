@@ -1897,14 +1897,17 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
   min-height: 0; /* Allow container to shrink below content */
 }
 
+.whiteboard-widget .widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
 .whiteboard-toolbar {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px;
-  background: #3a3a3a;
-  border-radius: 6px;
-  margin-bottom: 8px;
   flex-shrink: 0;
 }
 

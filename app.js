@@ -2603,11 +2603,10 @@ function initializeWhiteboard() {
     const resizeCanvas = () => {
       // Get the actual container dimensions
       const containerRect = container.getBoundingClientRect();
-      const toolbarHeight = container.querySelector('.whiteboard-toolbar')?.offsetHeight || 50;
       
-      // Calculate available space for canvas
+      // Calculate available space for canvas (no toolbar in container anymore)
       const availableWidth = containerRect.width - 2; // Account for border
-      const availableHeight = Math.max(50, containerRect.height - toolbarHeight - 8); // Account for toolbar and margin
+      const availableHeight = Math.max(50, containerRect.height - 2); // Account for border
       
       // Only resize if dimensions actually changed to avoid unnecessary redraws
       if (canvas.width !== availableWidth || canvas.height !== availableHeight) {
