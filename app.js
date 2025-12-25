@@ -238,10 +238,14 @@ function initializeClock() {
     const dateElement = document.getElementById('clock-date');
     
     if (timeElement) {
-      const hours = String(now.getHours()).padStart(2, '0');
+      // 12-hour format with AM/PM
+      let hours = now.getHours();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // 0 should be 12
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const seconds = String(now.getSeconds()).padStart(2, '0');
-      timeElement.textContent = `${hours}:${minutes}:${seconds}`;
+      timeElement.textContent = `${hours}:${minutes}:${seconds} ${ampm}`;
     }
     
     if (dateElement) {
@@ -985,22 +989,24 @@ async function loadWeather() {
     const icon = getWeatherIcon(attrs.condition || state);
     document.getElementById('weather-icon').textContent = icon;
     
-    const temp = attrs.temperature || attrs.temp || '--';
-    document.getElementById('weather-temp').textContent = `${Math.round(temp)}°F`;
+    // Primary temp is now "Feels Like" (apparent temperature)
+    const feelsLike = attrs.apparent_temperature || attrs.temperature || attrs.temp || '--';
+    document.getElementById('weather-temp').textContent = `${Math.round(feelsLike)}°F`;
     
     // Update condition text
     const condition = attrs.condition || state || '--';
     document.getElementById('weather-conditions').textContent = condition;
     
-    // Update current time
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    const dateStr = now.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
-    document.getElementById('weather-time').textContent = `${timeStr} • ${dateStr}`;
+    // Hide date/time (removed since we have clock widget)
+    const weatherTimeElement = document.getElementById('weather-time');
+    if (weatherTimeElement) {
+      weatherTimeElement.style.display = 'none';
+    }
     
-    // Update details
+    // Update details - "Actual Temperature" shows the current temp
+    const actualTemp = attrs.temperature || attrs.temp || '--';
     document.getElementById('weather-feels-like').textContent = 
-      attrs.apparent_temperature ? `${Math.round(attrs.apparent_temperature)}°F` : '--°F';
+      actualTemp !== '--' ? `${Math.round(actualTemp)}°F` : '--°F';
     document.getElementById('weather-humidity').textContent = 
       attrs.humidity ? `${Math.round(attrs.humidity)}%` : '--%';
     document.getElementById('weather-wind').textContent = 
