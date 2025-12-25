@@ -1507,13 +1507,66 @@ function loadStyles() {
 function loadStylesToWidget(widget, styles) {
   if (!styles) return;
   
-  if (styles.backgroundColor) widget.style.backgroundColor = styles.backgroundColor;
-  if (styles.opacity !== undefined) widget.style.opacity = styles.opacity / 100;
+  // Clear previous background styles
+  widget.style.backgroundColor = '';
+  widget.style.backgroundImage = '';
+  widget.style.backgroundRepeat = '';
+  widget.style.backgroundPosition = '';
+  widget.style.backgroundSize = '';
+  
+  // Apply background based on type
+  const bgType = styles.backgroundType || 'solid';
+  switch(bgType) {
+    case 'solid':
+      if (styles.backgroundColor) {
+        widget.style.backgroundColor = styles.backgroundColor;
+      }
+      break;
+      
+    case 'transparent':
+      widget.style.backgroundColor = 'transparent';
+      break;
+      
+    case 'gradient':
+      const color1 = styles.gradientColor1 || '#2a2a2a';
+      const color2 = styles.gradientColor2 || '#3a3a3a';
+      const direction = styles.gradientDirection || 'to bottom';
+      widget.style.backgroundImage = `linear-gradient(${direction}, ${color1}, ${color2})`;
+      break;
+      
+    case 'image':
+      if (styles.backgroundImageUrl) {
+        widget.style.backgroundImage = `url(${styles.backgroundImageUrl})`;
+        widget.style.backgroundRepeat = styles.backgroundImageRepeat || 'no-repeat';
+        widget.style.backgroundPosition = styles.backgroundImagePosition || 'center';
+        widget.style.backgroundSize = styles.backgroundImageSize || 'cover';
+        if (styles.backgroundImageOpacity !== undefined && styles.backgroundImageOpacity < 100) {
+          widget.style.opacity = styles.backgroundImageOpacity / 100;
+        }
+      }
+      break;
+      
+    case 'pattern':
+      if (styles.patternType && styles.patternColor) {
+        // Pattern handling would need generatePatternCSS function
+        // For now, just set a background color
+        widget.style.backgroundColor = styles.patternColor || '#1a1a1a';
+      }
+      break;
+  }
+  
+  // Opacity (only if not already set by background image)
+  if (styles.opacity !== undefined && bgType !== 'image') {
+    widget.style.opacity = styles.opacity / 100;
+  }
+  
+  // Border
   if (styles.borderColor) widget.style.borderColor = styles.borderColor;
   if (styles.borderWidth !== undefined) widget.style.borderWidth = styles.borderWidth + 'px';
   if (styles.borderStyle) widget.style.borderStyle = styles.borderStyle;
   if (styles.borderRadius !== undefined) widget.style.borderRadius = styles.borderRadius + 'px';
   
+  // Shadow
   if (styles.shadowBlur !== undefined || styles.shadowX !== undefined) {
     const x = styles.shadowX || 0;
     const y = styles.shadowY || 0;
@@ -1523,6 +1576,7 @@ function loadStylesToWidget(widget, styles) {
     widget.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
   }
   
+  // Text (widget title)
   const title = widget.querySelector('.widget-title');
   if (title) {
     if (styles.textColor) title.style.color = styles.textColor;
@@ -1530,8 +1584,13 @@ function loadStylesToWidget(widget, styles) {
     if (styles.fontWeight) title.style.fontWeight = styles.fontWeight;
   }
   
+  // Padding
   if (styles.padding !== undefined) widget.style.padding = styles.padding + 'px';
-  if (styles.widgetOpacity !== undefined) widget.style.opacity = styles.widgetOpacity / 100;
+  
+  // Widget opacity (overrides background opacity if both are set)
+  if (styles.widgetOpacity !== undefined) {
+    widget.style.opacity = styles.widgetOpacity / 100;
+  }
 }
 
 // Initialize background configuration modal
