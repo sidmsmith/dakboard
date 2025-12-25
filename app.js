@@ -3568,6 +3568,16 @@ function showPage(pageIndex) {
   // Load page-specific layout (includes edit mode, background, widgets)
   loadCurrentPage();
   
+  // Show/hide app-purpose-box based on page (only show on Page 0 for Google verification)
+  const appPurposeBox = document.querySelector('.app-purpose-box');
+  if (appPurposeBox) {
+    if (pageIndex === 0) {
+      appPurposeBox.style.display = 'block';
+    } else {
+      appPurposeBox.style.display = 'none';
+    }
+  }
+  
   // Reload background settings in modal if it's open
   if (typeof loadBackgroundSettings === 'function') {
     loadBackgroundSettings();
