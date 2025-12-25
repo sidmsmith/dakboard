@@ -3997,6 +3997,10 @@ function updatePageList() {
         if (!pageLabel.classList.contains('editing')) {
           showPage(i);
           updatePageList();
+          // Refresh widget control panel to show correct visibility for new page
+          if (typeof updateWidgetControlPanel === 'function') {
+            updateWidgetControlPanel();
+          }
         }
       }, 250); // 250ms delay to detect double-click
     });
