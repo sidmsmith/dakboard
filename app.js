@@ -268,24 +268,23 @@ function initializeCalendar() {
 function initializeClock() {
   function updateClock() {
     const now = new Date();
-    const timeElement = document.getElementById('clock-time');
-    const dateElement = document.getElementById('clock-date');
+    const timeElements = document.querySelectorAll('#clock-time');
+    const dateElements = document.querySelectorAll('#clock-date');
     
-    if (timeElement) {
-      // 12-hour format with AM/PM
-      let hours = now.getHours();
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12;
-      hours = hours ? hours : 12; // 0 should be 12
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
-      timeElement.textContent = `${hours}:${minutes}:${seconds} ${ampm}`;
-    }
+    // 12-hour format with AM/PM
+    let hours = now.getHours();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // 0 should be 12
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const timeText = `${hours}:${minutes}:${seconds} ${ampm}`;
     
-    if (dateElement) {
-      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-      dateElement.textContent = now.toLocaleDateString('en-US', options);
-    }
+    timeElements.forEach(el => el.textContent = timeText);
+    
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const dateText = now.toLocaleDateString('en-US', options);
+    dateElements.forEach(el => el.textContent = dateText);
   }
   
   // Update immediately
@@ -389,23 +388,30 @@ function initializeEventListeners() {
 
 // Render weekly calendar
 function renderCalendar() {
-  const grid = document.getElementById('calendar-grid');
-  const weekRange = document.getElementById('week-range');
+  const grids = document.querySelectorAll('#calendar-grid');
+  const weekRanges = document.querySelectorAll('#week-range');
+  if (grids.length === 0) return;
+  
+  // Update all calendar widgets across all pages
+  grids.forEach((grid, index) => {
+    const weekRange = weekRanges[index];
   
   // Clear existing days (keep headers)
   const headers = Array.from(grid.querySelectorAll('.calendar-day-header'));
   grid.innerHTML = '';
   headers.forEach(header => grid.appendChild(header));
   
-  // Calculate week dates
-  const weekStart = new Date(currentWeekStart);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  
-  // Update week range display
-  weekRange.textContent = `Week of ${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
-  
-  // Get today's date for highlighting
+    // Calculate week dates
+    const weekStart = new Date(currentWeekStart);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    
+    // Update week range display
+    if (weekRange) {
+      weekRange.textContent = `Week of ${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
+    }
+    
+    // Get today's date for highlighting
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
@@ -491,10 +497,15 @@ function renderCalendar() {
       eventsDiv.appendChild(moreDiv);
     }
     
-    dayDiv.appendChild(dayNumber);
-    dayDiv.appendChild(eventsDiv);
-    grid.appendChild(dayDiv);
-  }
+      dayDiv.appendChild(dayNumber);
+      dayDiv.appendChild(eventsDiv);
+      grid.appendChild(dayDiv);
+    }
+    
+    if (weekRange) {
+      weekRange.textContent = `Week of ${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
+    }
+  });
 }
 
 // Show monthly calendar modal
@@ -1022,45 +1033,54 @@ async function loadWeather() {
     const state = entity.state;
     const attrs = entity.attributes;
     
+    // Find all weather widgets across all pages
+    const icons = document.querySelectorAll('#weather-icon');
+    const temps = document.querySelectorAll('#weather-temp');
+    const conditions = document.querySelectorAll('#weather-conditions');
+    const feelsLikes = document.querySelectorAll('#weather-feels-like');
+    const humidities = document.querySelectorAll('#weather-humidity');
+    const winds = document.querySelectorAll('#weather-wind');
+    const weatherTimes = document.querySelectorAll('#weather-time');
+    
     // Update current conditions
     const icon = getWeatherIcon(attrs.condition || state);
-    document.getElementById('weather-icon').textContent = icon;
+    icons.forEach(el => el.textContent = icon);
     
     // Primary temp is now "Feels Like" (apparent temperature)
     const feelsLike = attrs.apparent_temperature || attrs.temperature || attrs.temp || '--';
-    document.getElementById('weather-temp').textContent = `${Math.round(feelsLike)}°F`;
+    temps.forEach(el => el.textContent = `${Math.round(feelsLike)}°F`);
     
     // Update condition text
     const condition = attrs.condition || state || '--';
-    document.getElementById('weather-conditions').textContent = condition;
+    conditions.forEach(el => el.textContent = condition);
     
     // Hide date/time (removed since we have clock widget)
-    const weatherTimeElement = document.getElementById('weather-time');
-    if (weatherTimeElement) {
-      weatherTimeElement.style.display = 'none';
-    }
+    weatherTimes.forEach(el => el.style.display = 'none');
     
     // Update details - "Actual Temperature" shows the current temp
     const actualTemp = attrs.temperature || attrs.temp || '--';
-    document.getElementById('weather-feels-like').textContent = 
-      actualTemp !== '--' ? `${Math.round(actualTemp)}°F` : '--°F';
-    document.getElementById('weather-humidity').textContent = 
-      attrs.humidity ? `${Math.round(attrs.humidity)}%` : '--%';
-    document.getElementById('weather-wind').textContent = 
-      attrs.wind_speed ? `${Math.round(attrs.wind_speed)} mph` : '-- mph';
+    const actualTempText = actualTemp !== '--' ? `${Math.round(actualTemp)}°F` : '--°F';
+    feelsLikes.forEach(el => el.textContent = actualTempText);
+    humidities.forEach(el => el.textContent = attrs.humidity ? `${Math.round(attrs.humidity)}%` : '--%');
+    winds.forEach(el => el.textContent = attrs.wind_speed ? `${Math.round(attrs.wind_speed)} mph` : '-- mph');
     
     // Load forecast
     loadWeatherForecast(attrs);
   } catch (error) {
     console.error('Error loading weather:', error);
-    document.getElementById('weather-conditions').textContent = 'Error loading weather';
+    const conditions = document.querySelectorAll('#weather-conditions');
+    conditions.forEach(el => el.textContent = 'Error loading weather');
   }
 }
 
 // Load weather forecast from Pirate Weather entities
 async function loadWeatherForecast(attrs) {
-  const forecastList = document.getElementById('weather-forecast-list');
-  forecastList.innerHTML = '<div style="color: #888; text-align: center; padding: 10px;">Loading forecast...</div>';
+  const forecastLists = document.querySelectorAll('#weather-forecast-list');
+  if (forecastLists.length === 0) return;
+  
+  forecastLists.forEach(list => {
+    list.innerHTML = '<div style="color: #888; text-align: center; padding: 10px;">Loading forecast...</div>';
+  });
   
   try {
     const daysToShow = 5; // Only show 5 days (0d-4d) - entities beyond don't exist
@@ -1205,11 +1225,12 @@ function parseForecastFromEntities(entities, daysToShow) {
 
 // Render forecast items
 function renderForecast(forecastData, attrs) {
-  const forecastList = document.getElementById('weather-forecast-list');
-  forecastList.innerHTML = '';
+  const forecastLists = document.querySelectorAll('#weather-forecast-list');
+  if (forecastLists.length === 0) return;
   
   if (forecastData.length === 0) {
-    forecastList.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No forecast data available</div>';
+    const noDataHtml = '<div style="color: #888; text-align: center; padding: 20px;">No forecast data available</div>';
+    forecastLists.forEach(list => list.innerHTML = noDataHtml);
     return;
   }
   
@@ -1223,7 +1244,11 @@ function renderForecast(forecastData, attrs) {
   // Current temp for marker
   const currentTemp = attrs.temperature ? Math.round(attrs.temperature) : null;
   
-  forecastData.forEach((day, index) => {
+  // Update all forecast lists
+  forecastLists.forEach(forecastList => {
+    forecastList.innerHTML = '';
+    
+    forecastData.forEach((day, index) => {
     const lowPercent = range > 0 ? ((day.low - minTemp) / range) * 100 : 0;
     const highPercent = range > 0 ? ((day.high - minTemp) / range) * 100 : 100;
     const barWidth = highPercent - lowPercent;
@@ -1302,7 +1327,8 @@ function renderForecast(forecastData, attrs) {
       };
     })(dayOffsetForClick, day.dayName, day.high, day.low));
     
-    forecastList.appendChild(forecastItem);
+      forecastList.appendChild(forecastItem);
+    });
   });
 }
 
@@ -1425,11 +1451,15 @@ let activeTodoList = null;
 // Load todos from HA - discover all todo lists
 async function loadTodos() {
   try {
+    // Find all todo widgets across all pages
+    const todoLists = document.querySelectorAll('#todo-list');
+    if (todoLists.length === 0) return;
+    
     // Discover all todo list entities
     const allStates = await fetchAllHAStates();
     if (!allStates) {
-      document.getElementById('todo-list').innerHTML = 
-        '<li class="todo-item"><span style="color: #888;">Error discovering todo lists</span></li>';
+      const errorHtml = '<li class="todo-item"><span style="color: #888;">Error discovering todo lists</span></li>';
+      todoLists.forEach(list => list.innerHTML = errorHtml);
       return;
     }
     
@@ -1458,8 +1488,8 @@ async function loadTodos() {
       );
       // Filtered todo-like entities for debugging
       
-      document.getElementById('todo-list').innerHTML = 
-        '<li class="todo-item"><span style="color: #888;">No todo lists found. Check console for debug info.</span></li>';
+      const noListHtml = '<li class="todo-item"><span style="color: #888;">No todo lists found. Check console for debug info.</span></li>';
+      todoLists.forEach(list => list.innerHTML = noListHtml);
       return;
     }
     
@@ -1473,15 +1503,19 @@ async function loadTodos() {
     }
   } catch (error) {
     console.error('Error loading todos:', error);
-    document.getElementById('todo-list').innerHTML = 
-      '<li class="todo-item"><span class="error">Error loading todos</span></li>';
+    const errorHtml = '<li class="todo-item"><span class="error">Error loading todos</span></li>';
+    const todoLists = document.querySelectorAll('#todo-list');
+    todoLists.forEach(list => list.innerHTML = errorHtml);
   }
 }
 
 // Render todo list tabs
 function renderTodoTabs() {
-  const tabsContainer = document.getElementById('todo-tabs');
-  tabsContainer.innerHTML = '';
+  const tabsContainers = document.querySelectorAll('#todo-tabs');
+  if (tabsContainers.length === 0) return;
+  
+  tabsContainers.forEach(tabsContainer => {
+    tabsContainer.innerHTML = '';
   
   todoLists.forEach(list => {
     const tab = document.createElement('button');
@@ -1496,6 +1530,7 @@ function renderTodoTabs() {
       loadTodoListItems(list.entityId);
     });
     tabsContainer.appendChild(tab);
+  });
   });
 }
 
@@ -1550,11 +1585,12 @@ async function loadTodoListItems(entityId) {
     
     // Fetched todo items
     
-    const todoList = document.getElementById('todo-list');
-    todoList.innerHTML = '';
+    const todoLists = document.querySelectorAll('#todo-list');
+    if (todoLists.length === 0) return;
     
     if (!items || items.length === 0) {
-      todoList.innerHTML = '<li class="todo-item"><span style="color: #888;">No todos</span></li>';
+      const noTodosHtml = '<li class="todo-item"><span style="color: #888;">No todos</span></li>';
+      todoLists.forEach(list => list.innerHTML = noTodosHtml);
       return;
     }
     
@@ -1567,23 +1603,27 @@ async function loadTodoListItems(entityId) {
       return item.status === 'completed';
     });
     
-    // Found incomplete and completed items
-    
-    // Show incomplete first (up to 5 visible, rest scrollable)
-    incomplete.forEach(item => {
-      const li = createTodoItem(item, entityId);
-      todoList.appendChild(li);
-    });
-    
-    // Show completed at bottom (muted/strikethrough)
-    completed.forEach(item => {
-      const li = createTodoItem(item, entityId, true);
-      todoList.appendChild(li);
+    // Update all todo lists across all pages
+    todoLists.forEach(todoList => {
+      todoList.innerHTML = '';
+      
+      // Show incomplete first (up to 5 visible, rest scrollable)
+      incomplete.forEach(item => {
+        const li = createTodoItem(item, entityId);
+        todoList.appendChild(li);
+      });
+      
+      // Show completed at bottom (muted/strikethrough)
+      completed.forEach(item => {
+        const li = createTodoItem(item, entityId, true);
+        todoList.appendChild(li);
+      });
     });
   } catch (error) {
     console.error('Error loading todo list items:', error);
-    document.getElementById('todo-list').innerHTML = 
-      '<li class="todo-item"><span class="error">Error loading items</span></li>';
+    const errorHtml = '<li class="todo-item"><span class="error">Error loading items</span></li>';
+    const todoLists = document.querySelectorAll('#todo-list');
+    todoLists.forEach(list => list.innerHTML = errorHtml);
   }
 }
 
@@ -1748,8 +1788,8 @@ async function loadGarageDoors() {
     { id: 3, entity: CONFIG.HA_GARAGE_DOOR_3, webhook: CONFIG.HA_GARAGE_WEBHOOK_3, name: 'Garage 3: Sidney' },
   ];
   
-  const container = document.getElementById('garage-doors');
-  container.innerHTML = '';
+  const containers = document.querySelectorAll('#garage-doors');
+  if (containers.length === 0) return;
   
   // Pre-fetch both icons
   const [garageIcon, garageOpenIcon] = await Promise.all([
@@ -1789,7 +1829,7 @@ async function loadGarageDoors() {
           toggleGarageDoor(doorDiv);
         }
       });
-      container.appendChild(doorDiv);
+      containers.forEach(container => container.appendChild(doorDiv.cloneNode(true)));
     } catch (error) {
       console.error(`Error loading garage door ${door.id}:`, error);
       // Still create the door element but show error state
@@ -1802,7 +1842,7 @@ async function loadGarageDoors() {
         </div>
         <div class="garage-door-name">${door.name}</div>
       `;
-      container.appendChild(doorDiv);
+      containers.forEach(container => container.appendChild(doorDiv.cloneNode(true)));
     }
   }
 }
@@ -1874,45 +1914,56 @@ async function loadAlarm() {
   try {
     const entity = await fetchHAEntity(CONFIG.HA_ALARM_ENTITY);
     if (!entity) {
-      document.getElementById('alarm-status-text').textContent = 'Not Available';
+      const statusTexts = document.querySelectorAll('#alarm-status-text');
+      statusTexts.forEach(el => el.textContent = 'Not Available');
       return;
     }
     
     const state = entity.state;
-    const statusDiv = document.getElementById('alarm-status');
-    const icon = document.getElementById('alarm-icon');
-    const text = document.getElementById('alarm-status-text');
+    const statusDivs = document.querySelectorAll('#alarm-status');
+    const icons = document.querySelectorAll('#alarm-icon');
+    const texts = document.querySelectorAll('#alarm-status-text');
     
-    // Remove existing state classes
-    statusDiv.classList.remove('armed', 'disarmed');
+    if (statusDivs.length === 0) return;
     
-    if (state === 'armed_away' || state === 'armed_home' || state === 'armed_night') {
-      statusDiv.classList.add('armed');
-      icon.textContent = '🔒';
-      text.textContent = 'ARMED';
-    } else {
-      statusDiv.classList.add('disarmed');
-      icon.textContent = '🔓';
-      text.textContent = 'DISARMED';
-    }
-    
-    // Add click handler - only clickable when DISARMED
-    if (state === 'disarmed' || state === 'disarming' || (!state.includes('armed'))) {
-      // Only allow clicking when disarmed
-      icon.style.cursor = 'pointer';
-      icon.onclick = () => {
-        if (!isEditMode) {
-          setAlarm();
-        }
-      };
-    } else {
-      // Armed states are not clickable
-      icon.style.cursor = 'not-allowed';
-      icon.onclick = null;
-    }
+    // Update all alarm widgets across all pages
+    statusDivs.forEach((statusDiv, index) => {
+      const icon = icons[index];
+      const text = texts[index];
+      if (!icon || !text) return;
+      
+      // Remove existing state classes
+      statusDiv.classList.remove('armed', 'disarmed');
+      
+      if (state === 'armed_away' || state === 'armed_home' || state === 'armed_night') {
+        statusDiv.classList.add('armed');
+        icon.textContent = '🔒';
+        text.textContent = 'ARMED';
+      } else {
+        statusDiv.classList.add('disarmed');
+        icon.textContent = '🔓';
+        text.textContent = 'DISARMED';
+      }
+      
+      // Add click handler - only clickable when DISARMED
+      if (state === 'disarmed' || state === 'disarming' || (!state.includes('armed'))) {
+        // Only allow clicking when disarmed
+        icon.style.cursor = 'pointer';
+        icon.onclick = () => {
+          if (!isEditMode) {
+            setAlarm();
+          }
+        };
+      } else {
+        // Armed states are not clickable
+        icon.style.cursor = 'not-allowed';
+        icon.onclick = null;
+      }
+    });
   } catch (error) {
     console.error('Error loading alarm:', error);
-    document.getElementById('alarm-status-text').textContent = 'Error';
+    const statusTexts = document.querySelectorAll('#alarm-status-text');
+    statusTexts.forEach(el => el.textContent = 'Error');
   }
 }
 
@@ -2132,24 +2183,23 @@ async function fetchGooglePhotos() {
       displayRandomGooglePhoto();
     } else {
       // Show message if no photos found
-      const container = document.getElementById('photos-content');
-      if (container) {
-        container.innerHTML = `
-          <div class="photos-placeholder">
-            <div class="photos-icon">📷</div>
-            <h3>No Photos Found</h3>
-            <p>Your Google Photos library appears to be empty, or photos are not accessible.</p>
-            <p style="font-size: 12px; color: #888; margin-top: 8px;">
-              Check the browser console (F12) for more details.
-            </p>
-          </div>
-        `;
-      }
+      const containers = document.querySelectorAll('#photos-content');
+      const noPhotosHtml = `
+        <div class="photos-placeholder">
+          <div class="photos-icon">📷</div>
+          <h3>No Photos Found</h3>
+          <p>Your Google Photos library appears to be empty, or photos are not accessible.</p>
+          <p style="font-size: 12px; color: #888; margin-top: 8px;">
+            Check the browser console (F12) for more details.
+          </p>
+        </div>
+      `;
+      containers.forEach(container => container.innerHTML = noPhotosHtml);
     }
   } catch (error) {
     console.error('Error fetching Google Photos:', error);
-    const container = document.getElementById('photos-content');
-    if (container) {
+    const containers = document.querySelectorAll('#photos-content');
+    if (containers.length > 0) {
       let errorMessage = error.message;
       let showReconnect = true;
       
@@ -2160,7 +2210,7 @@ async function fetchGooglePhotos() {
         showReconnect = true;
       }
       
-      container.innerHTML = `
+      const errorHtml = `
         <div class="photos-placeholder">
           <div class="photos-icon">📷</div>
           <h3>Error Loading Photos</h3>
@@ -2172,14 +2222,15 @@ async function fetchGooglePhotos() {
           ` : ''}
         </div>
       `;
+      containers.forEach(container => container.innerHTML = errorHtml);
     }
   }
 }
 
 // Display a random photo from cache
 function displayRandomGooglePhoto() {
-  const container = document.getElementById('photos-content');
-  if (!container) return;
+  const containers = document.querySelectorAll('#photos-content');
+  if (containers.length === 0) return;
   
   // Demo mode for verification video - show placeholder photos
   const demoMode = localStorage.getItem('google_photos_demo_mode') === 'true' || 
@@ -2198,7 +2249,7 @@ function displayRandomGooglePhoto() {
   }
   
   if (googlePhotosCache.photos.length === 0) {
-    container.innerHTML = `
+    const noPhotosHtml = `
       <div class="photos-placeholder">
         <div class="photos-icon">📷</div>
         <h3>No Photos Found</h3>
@@ -2208,6 +2259,7 @@ function displayRandomGooglePhoto() {
         </p>
       </div>
     `;
+    containers.forEach(container => container.innerHTML = noPhotosHtml);
     return;
   }
   
@@ -2228,22 +2280,24 @@ function displayRandomGooglePhoto() {
   
   if (!imageUrl) {
     console.error('Photo has no URL:', photo);
-    container.innerHTML = `
+    const errorHtml = `
       <div class="photos-placeholder">
         <div class="photos-icon">📷</div>
         <h3>Photo Error</h3>
         <p>Photo found but URL is missing.</p>
       </div>
     `;
+    containers.forEach(container => container.innerHTML = errorHtml);
     return;
   }
   
-  container.innerHTML = `
+  const photoHtml = `
     <div class="photos-display">
       <img src="${imageUrl}" alt="Google Photo" class="photos-image" 
            onerror="console.error('Image load error:', this.src); this.src='${photo.baseUrl || imageUrl}'" />
     </div>
   `;
+  containers.forEach(container => container.innerHTML = photoHtml);
 }
 
 // Enable demo mode for verification video
@@ -2923,10 +2977,10 @@ function saveWhiteboard() {
 
 // Show authentication prompt
 function showGooglePhotosAuthPrompt() {
-  const container = document.getElementById('photos-content');
-  if (!container) return;
+  const containers = document.querySelectorAll('#photos-content');
+  if (containers.length === 0) return;
   
-  container.innerHTML = `
+  const authHtml = `
     <div class="photos-placeholder">
       <div class="photos-icon">📷</div>
       <h3>Connect Google Photos</h3>
@@ -2934,6 +2988,7 @@ function showGooglePhotosAuthPrompt() {
       <button onclick="connectGooglePhotos()" class="photos-connect-btn">Connect Google Photos</button>
     </div>
   `;
+  containers.forEach(container => container.innerHTML = authHtml);
 }
 
 // Clear Google Photos tokens (for re-authentication)
@@ -2949,8 +3004,8 @@ window.clearGooglePhotosTokens = clearGooglePhotosTokens;
 
 // Load Google Photos
 async function loadGooglePhotos() {
-  const container = document.getElementById('photos-content');
-  if (!container) return;
+  const containers = document.querySelectorAll('#photos-content');
+  if (containers.length === 0) return;
   
   // Check for demo mode (for verification video)
   const demoMode = localStorage.getItem('google_photos_demo_mode') === 'true' || 
