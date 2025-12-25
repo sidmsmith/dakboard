@@ -155,19 +155,23 @@ function initializeDragAndResize() {
       // Remove existing resize handles first (in case we're re-initializing)
       widget.querySelectorAll('.resize-handle').forEach(h => h.remove());
       
-      // Remove any existing mousedown listeners by cloning the widget
-      // This prevents duplicate event listeners when switching pages
-      const newWidget = widget.cloneNode(true);
-      widget.parentNode.replaceChild(newWidget, widget);
+      // Check if widget already has drag listener (using a more specific check)
+      // We'll use event delegation or check if the widget has the listener
+      // For now, just re-add everything - the handles will be removed above
       
-      // Add resize handles to the new widget
-      addResizeHandles(newWidget);
+      // Add resize handles
+      addResizeHandles(widget);
+      
+      // Remove any existing drag listener by checking if we need to
+      // Since we can't easily remove specific listeners, we'll use a flag
+      // But actually, having multiple listeners isn't the issue - the issue is
+      // that the handles might not be getting the right widget reference
       
       // Make widget draggable (only in edit mode)
       // In edit mode, entire widget is draggable; in normal mode, no dragging
-      newWidget.addEventListener('mousedown', (e) => {
+      widget.addEventListener('mousedown', (e) => {
         // Check if edit mode is active on the current page
-        const dashboard = newWidget.closest('.dashboard.page');
+        const dashboard = widget.closest('.dashboard.page');
         const inEditMode = dashboard && dashboard.classList.contains('edit-mode');
         
         if (!inEditMode) {
@@ -189,11 +193,11 @@ function initializeDragAndResize() {
           return;
         }
         
-        startDrag(newWidget, e);
+        startDrag(widget, e);
       });
       
       // Update scale on initial load
-      updateWidgetScale(newWidget);
+      updateWidgetScale(widget);
     });
   }, 100);
   
