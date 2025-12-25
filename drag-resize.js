@@ -9,8 +9,15 @@ let dragOffset = { x: 0, y: 0 };
 let resizeStart = { x: 0, y: 0, width: 0, height: 0 };
 let resizeDirection = '';
 
-// Load saved widget layout from localStorage
+// Load saved widget layout from localStorage (page-specific)
 function loadWidgetLayout() {
+  // Use page-specific load function if available
+  if (typeof loadCurrentPage === 'function') {
+    loadCurrentPage();
+    return;
+  }
+  
+  // Fallback to old method for backward compatibility
   try {
     const saved = localStorage.getItem('dakboard-widget-layout');
     if (saved) {
@@ -54,7 +61,8 @@ function saveWidgetLayout() {
     document.querySelectorAll('.widget').forEach(widget => {
       const widgetId = widget.classList[1]; // Get second class (e.g., 'calendar-widget')
       const rect = widget.getBoundingClientRect();
-      const dashboard = document.querySelector('.dashboard');
+      const dashboard = draggedWidget.closest('.dashboard');
+      if (!dashboard) return;
       const dashboardRect = dashboard.getBoundingClientRect();
       
       const zIndex = parseInt(window.getComputedStyle(widget).zIndex) || 1;
@@ -263,7 +271,8 @@ function handleMouseMove(e) {
   }
   
   if (resizeWidget) {
-    const dashboard = document.querySelector('.dashboard');
+    const dashboard = resizeWidget.closest('.dashboard');
+    if (!dashboard) return;
     const dashboardRect = dashboard.getBoundingClientRect();
     
     const deltaX = e.clientX - resizeStart.x;

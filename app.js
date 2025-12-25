@@ -36,6 +36,14 @@ const CONFIG = {
 let currentWeekStart = new Date();
 currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay()); // Start of week (Sunday)
 
+// Page Management
+let currentPageIndex = 0;
+let totalPages = 1;
+let pagesContainer = null;
+let swipeStartX = 0;
+let swipeStartY = 0;
+let isSwiping = false;
+
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOMContentLoaded - Starting initialization');
@@ -3358,5 +3366,367 @@ function startAutoRefresh() {
   setInterval(() => {
     loadAllData();
   }, CONFIG.REFRESH_INTERVAL);
+}
+
+// ==================== PAGE MANAGEMENT ====================
+
+// Initialize pages system
+function initializePages() {
+  pagesContainer = document.getElementById('pages-container');
+  if (!pagesContainer) {
+    console.error('Pages container not found!');
+    return;
+  }
+  
+  // Move existing dashboard into pages container if it exists
+  const existingDashboard = document.querySelector('.dashboard');
+  if (existingDashboard && !existingDashboard.closest('#pages-container')) {
+    pagesContainer.appendChild(existingDashboard);
+    existingDashboard.classList.add('page');
+    existingDashboard.setAttribute('data-page-id', '0');
+  }
+  
+  // Load page configuration
+  const savedPageIndex = localStorage.getItem('dakboard-current-page');
+  if (savedPageIndex !== null) {
+    currentPageIndex = parseInt(savedPageIndex) || 0;
+  }
+  
+  const savedTotalPages = localStorage.getItem('dakboard-total-pages');
+  if (savedTotalPages !== null) {
+    totalPages = parseInt(savedTotalPages) || 1;
+  }
+  
+  // Ensure we have at least one page
+  if (totalPages === 0) {
+    totalPages = 1;
+  }
+  
+  // Create pages if they don't exist
+  for (let i = 0; i < totalPages; i++) {
+    if (!getPageElement(i)) {
+      createPage(i);
+    }
+  }
+  
+  // Setup navigation
+  setupPageNavigation();
+  
+  // Setup swipe gestures
+  setupSwipeGestures();
+  
+  // Show current page
+  showPage(currentPageIndex);
+}
+
+// Get page element by index
+function getPageElement(pageIndex) {
+  return document.querySelector(`.dashboard.page[data-page-id="${pageIndex}"]`);
+}
+
+// Create a new page
+function createPage(pageIndex) {
+  const page = document.createElement('div');
+  page.className = 'dashboard page';
+  page.setAttribute('data-page-id', pageIndex);
+  
+  // Load page background
+  const pageBg = getPageBackground(pageIndex);
+  applyBackgroundToPage(page, pageBg);
+  
+  pagesContainer.appendChild(page);
+  
+  // If this is page 0 and it's the first page, copy widgets from existing dashboard
+  if (pageIndex === 0) {
+    const existingDashboard = document.querySelector('.dashboard:not(.page)');
+    if (existingDashboard) {
+      // Move all widgets to the new page
+      const widgets = existingDashboard.querySelectorAll('.widget');
+      widgets.forEach(widget => {
+        page.appendChild(widget);
+      });
+      existingDashboard.remove();
+    }
+  }
+  
+  return page;
+}
+
+// Show a specific page
+function showPage(pageIndex) {
+  if (pageIndex < 0 || pageIndex >= totalPages) {
+    console.warn(`Invalid page index: ${pageIndex}`);
+    return;
+  }
+  
+  currentPageIndex = pageIndex;
+  localStorage.setItem('dakboard-current-page', pageIndex.toString());
+  
+  // Update page positions
+  const pages = document.querySelectorAll('.dashboard.page');
+  pages.forEach((page, index) => {
+    const offset = (index - pageIndex) * 100;
+    page.style.transform = `translateX(${offset}vw)`;
+  });
+  
+  // Update navigation arrows visibility
+  updateNavigationArrows();
+  
+  // Load page-specific layout
+  loadCurrentPage();
+  
+  // Reinitialize drag and resize for current page
+  if (typeof initializeDragAndResize === 'function') {
+    initializeDragAndResize();
+  }
+}
+
+// Navigate to next page (circular)
+function nextPage() {
+  const nextIndex = (currentPageIndex + 1) % totalPages;
+  showPage(nextIndex);
+}
+
+// Navigate to previous page (circular)
+function previousPage() {
+  const prevIndex = (currentPageIndex - 1 + totalPages) % totalPages;
+  showPage(prevIndex);
+}
+
+// Setup page navigation buttons
+function setupPageNavigation() {
+  const leftArrow = document.getElementById('page-nav-left');
+  const rightArrow = document.getElementById('page-nav-right');
+  
+  if (leftArrow) {
+    leftArrow.addEventListener('click', previousPage);
+  }
+  
+  if (rightArrow) {
+    rightArrow.addEventListener('click', nextPage);
+  }
+  
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' && !isEditMode) {
+      previousPage();
+    } else if (e.key === 'ArrowRight' && !isEditMode) {
+      nextPage();
+    }
+  });
+  
+  updateNavigationArrows();
+}
+
+// Update navigation arrows visibility
+function updateNavigationArrows() {
+  const leftArrow = document.getElementById('page-nav-left');
+  const rightArrow = document.getElementById('page-nav-right');
+  
+  // Show arrows if more than one page, hide if only one
+  if (totalPages <= 1) {
+    if (leftArrow) leftArrow.classList.add('hidden');
+    if (rightArrow) rightArrow.classList.add('hidden');
+  } else {
+    if (leftArrow) leftArrow.classList.remove('hidden');
+    if (rightArrow) rightArrow.classList.remove('hidden');
+  }
+}
+
+// Setup swipe gestures
+function setupSwipeGestures() {
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchEndX = 0;
+  let touchEndY = 0;
+  
+  pagesContainer.addEventListener('touchstart', (e) => {
+    if (isEditMode) return; // Disable swipe in edit mode
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+  }, { passive: true });
+  
+  pagesContainer.addEventListener('touchend', (e) => {
+    if (isEditMode) return; // Disable swipe in edit mode
+    touchEndX = e.changedTouches[0].screenX;
+    touchEndY = e.changedTouches[0].screenY;
+    handleSwipe();
+  }, { passive: true });
+  
+  // Mouse drag for desktop
+  let mouseDownX = 0;
+  let mouseDownY = 0;
+  let isMouseDown = false;
+  
+  pagesContainer.addEventListener('mousedown', (e) => {
+    if (isEditMode) return; // Disable swipe in edit mode
+    if (e.target.closest('.widget') || e.target.closest('.page-nav-arrow')) return; // Don't swipe if clicking widget or arrow
+    mouseDownX = e.clientX;
+    mouseDownY = e.clientY;
+    isMouseDown = true;
+  });
+  
+  pagesContainer.addEventListener('mousemove', (e) => {
+    if (!isMouseDown || isEditMode) return;
+    // Track mouse movement for potential swipe
+  });
+  
+  pagesContainer.addEventListener('mouseup', (e) => {
+    if (!isMouseDown || isEditMode) return;
+    const mouseUpX = e.clientX;
+    const mouseUpY = e.clientY;
+    const deltaX = mouseUpX - mouseDownX;
+    const deltaY = mouseUpY - mouseDownY;
+    
+    // Only trigger swipe if horizontal movement is greater than vertical (swipe, not scroll)
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+      if (deltaX > 0) {
+        previousPage();
+      } else {
+        nextPage();
+      }
+    }
+    
+    isMouseDown = false;
+  });
+  
+  function handleSwipe() {
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+    
+    // Only trigger swipe if horizontal movement is greater than vertical (swipe, not scroll)
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+      if (deltaX > 0) {
+        previousPage();
+      } else {
+        nextPage();
+      }
+    }
+  }
+}
+
+// Load current page layout
+function loadCurrentPage() {
+  const pageElement = getPageElement(currentPageIndex);
+  if (!pageElement) return;
+  
+  // Load page-specific widget layout
+  const layoutKey = `dakboard-widget-layout-page-${currentPageIndex}`;
+  const saved = localStorage.getItem(layoutKey);
+  
+  if (saved) {
+    try {
+      const layout = JSON.parse(saved);
+      Object.keys(layout).forEach(widgetId => {
+        const widget = pageElement.querySelector(`.${widgetId}`);
+        if (widget && layout[widgetId]) {
+          const { x, y, width, height, zIndex } = layout[widgetId];
+          const viewportWidth = window.innerWidth;
+          const viewportHeight = window.innerHeight;
+          
+          const clampedX = Math.max(0, Math.min(x, viewportWidth - width));
+          const clampedY = Math.max(0, Math.min(y, viewportHeight - height));
+          
+          widget.style.left = `${clampedX}px`;
+          widget.style.top = `${clampedY}px`;
+          widget.style.width = `${width}px`;
+          widget.style.height = `${height}px`;
+          if (zIndex !== undefined) {
+            widget.style.zIndex = zIndex;
+          }
+          if (typeof updateWidgetScale === 'function') {
+            updateWidgetScale(widget);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error loading page layout:', error);
+    }
+  }
+}
+
+// Save current page layout
+function saveCurrentPageLayout() {
+  const pageElement = getPageElement(currentPageIndex);
+  if (!pageElement) return;
+  
+  try {
+    const layout = {};
+    pageElement.querySelectorAll('.widget').forEach(widget => {
+      const widgetId = widget.classList[1]; // Get second class (e.g., 'calendar-widget')
+      const rect = widget.getBoundingClientRect();
+      const dashboardRect = pageElement.getBoundingClientRect();
+      
+      const zIndex = parseInt(window.getComputedStyle(widget).zIndex) || 1;
+      layout[widgetId] = {
+        x: rect.left - dashboardRect.left,
+        y: rect.top - dashboardRect.top,
+        width: rect.width,
+        height: rect.height,
+        zIndex: zIndex
+      };
+    });
+    
+    const layoutKey = `dakboard-widget-layout-page-${currentPageIndex}`;
+    localStorage.setItem(layoutKey, JSON.stringify(layout));
+  } catch (error) {
+    console.error('Error saving page layout:', error);
+  }
+}
+
+// Get page background
+function getPageBackground(pageIndex) {
+  const bgKey = `dakboard-page-background-${pageIndex}`;
+  const saved = localStorage.getItem(bgKey);
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (error) {
+      console.error('Error loading page background:', error);
+    }
+  }
+  return null; // Default background
+}
+
+// Apply background to page
+function applyBackgroundToPage(pageElement, background) {
+  if (!background) {
+    pageElement.style.background = '#1a1a1a';
+    return;
+  }
+  
+  // Apply background based on type (same logic as widget backgrounds)
+  if (background.type === 'solid') {
+    pageElement.style.background = background.color || '#1a1a1a';
+  } else if (background.type === 'gradient') {
+    const direction = background.direction || 'to bottom';
+    const color1 = background.color1 || '#1a1a1a';
+    const color2 = background.color2 || '#2a2a2a';
+    pageElement.style.background = `linear-gradient(${direction}, ${color1}, ${color2})`;
+  } else if (background.type === 'image') {
+    pageElement.style.backgroundImage = `url(${background.url})`;
+    pageElement.style.backgroundRepeat = background.repeat || 'no-repeat';
+    pageElement.style.backgroundPosition = background.position || 'center';
+    pageElement.style.backgroundSize = background.size || 'cover';
+  } else if (background.type === 'pattern') {
+    // Pattern backgrounds would need special handling
+    pageElement.style.background = background.pattern || '#1a1a1a';
+  } else if (background.type === 'transparent') {
+    pageElement.style.background = 'transparent';
+  } else {
+    pageElement.style.background = '#1a1a1a';
+  }
+}
+
+// Save page background
+function savePageBackground(pageIndex, background) {
+  const bgKey = `dakboard-page-background-${pageIndex}`;
+  localStorage.setItem(bgKey, JSON.stringify(background));
+  
+  // Apply to page element
+  const pageElement = getPageElement(pageIndex);
+  if (pageElement) {
+    applyBackgroundToPage(pageElement, background);
+  }
 }
 

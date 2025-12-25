@@ -20,6 +20,15 @@
   <!-- Edit Mode Watermark -->
   <div class="diagonal-watermark" id="edit-mode-watermark"></div>
   
+  <!-- Page Navigation Arrows -->
+  <button id="page-nav-left" class="page-nav-arrow page-nav-left" title="Previous Page">‹</button>
+  <button id="page-nav-right" class="page-nav-arrow page-nav-right" title="Next Page">›</button>
+  
+  <!-- Page Container -->
+  <div id="pages-container" class="pages-container">
+    <!-- Pages will be dynamically created here -->
+  </div>
+  
   <!-- Widget Visibility Control Panel -->
   <div id="widget-control-panel" class="widget-control-panel">
     <div class="widget-control-header">
@@ -55,7 +64,10 @@
     </p>
   </div>
   
-  <div class="dashboard">
+  <!-- Pages will be dynamically created, starting with page 0 -->
+  <!-- The first page (page 0) will be created on load with all widgets -->
+  
+  <div class="dashboard page" data-page-id="0">
     <!-- Calendar - Large, Left Side -->
     <div class="widget calendar-widget">
       <div class="widget-header">
