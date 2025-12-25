@@ -2605,7 +2605,12 @@ let lastY = 0;
 
 // Initialize whiteboard
 function initializeWhiteboard() {
-  const canvas = document.getElementById('whiteboard-canvas');
+  // Find whiteboard canvas on current page
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
+    ? window.currentPageIndex 
+    : 0;
+  const currentPage = document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
+  const canvas = currentPage ? currentPage.querySelector('#whiteboard-canvas') : document.getElementById('whiteboard-canvas');
   if (!canvas) return;
   
   whiteboardCanvas = canvas;

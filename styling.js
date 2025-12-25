@@ -39,7 +39,13 @@ function initStyling() {
 // Open styling modal for a widget
 function openStylingModal(widgetId) {
   currentWidgetId = widgetId;
-  const widget = document.querySelector(`.${widgetId}`);
+  
+  // Find widget on current page
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
+    ? window.currentPageIndex 
+    : 0;
+  const currentPage = document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
+  const widget = currentPage ? currentPage.querySelector(`.${widgetId}`) : document.querySelector(`.${widgetId}`);
   if (!widget) return;
 
   const config = WIDGET_CONFIG[widgetId];
@@ -1056,10 +1062,15 @@ function applyStyles() {
   // Get apply-to-all flags
   updateApplyToAllFlags();
 
-  // Apply to current widget or all widgets
+  // Apply to current widget or all widgets on current page
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
+    ? window.currentPageIndex 
+    : 0;
+  const currentPage = document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
+  
   const widgetsToStyle = applyToAllFlags.global ? 
-    Array.from(document.querySelectorAll('.widget:not(.hidden)')) : 
-    [document.querySelector(`.${currentWidgetId}`)].filter(w => w !== null);
+    (currentPage ? Array.from(currentPage.querySelectorAll('.widget:not(.hidden)')) : []) : 
+    (currentPage ? [currentPage.querySelector(`.${currentWidgetId}`)].filter(w => w !== null) : []);
 
   widgetsToStyle.forEach(widget => {
     if (!widget) return;
@@ -1377,7 +1388,12 @@ function resetStyles() {
   };
   
   // Reset widget to defaults
-  const widget = document.querySelector(`.${currentWidgetId}`);
+  // Find widget on current page
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
+    ? window.currentPageIndex 
+    : 0;
+  const currentPage = document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
+  const widget = currentPage ? currentPage.querySelector(`.${currentWidgetId}`) : document.querySelector(`.${currentWidgetId}`);
   if (widget) {
     widget.style.backgroundColor = '#2a2a2a';
     widget.style.borderColor = '';
