@@ -23,7 +23,7 @@ const CONFIG = {
   HA_GARAGE_WEBHOOK_1: 'garage1toggle', // Update with your webhook IDs
   HA_GARAGE_WEBHOOK_2: 'garage2toggle',
   HA_GARAGE_WEBHOOK_3: 'garage3toggle',
-  HA_ALARM_WEBHOOK: 'http://sidmsmith.zapto.org:8123/api/webhook/setalarm', // Alarm set webhook (only used when disarmed)
+  HA_ALARM_WEBHOOK: 'setalarm', // Alarm set webhook (only used when disarmed)
   
   // Refresh interval (milliseconds)
   REFRESH_INTERVAL: 30000, // 30 seconds
@@ -3088,7 +3088,11 @@ async function triggerHAWebhook(webhookId) {
     // Handle both formats: "webhook_id" or "http://url/api/webhook/webhook_id"
     let actualWebhookId = webhookId;
     if (webhookId.includes('/api/webhook/')) {
-      actualWebhookId = webhookId.split('/api/webhook/')[1];
+      // Extract the webhook ID from the URL
+      const parts = webhookId.split('/api/webhook/');
+      if (parts.length > 1) {
+        actualWebhookId = parts[1].split('?')[0].split('#')[0]; // Remove query params and fragments
+      }
     }
     
     // Check if we have local config (for local development)
