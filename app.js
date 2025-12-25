@@ -3781,3 +3781,179 @@ function savePageBackground(pageIndex, background) {
   }
 }
 
+// Add a new page
+function addPage() {
+  const newPageIndex = totalPages;
+  totalPages++;
+  window.totalPages = totalPages;
+  localStorage.setItem('dakboard-total-pages', totalPages.toString());
+  
+  // Create the new page
+  const newPage = createPage(newPageIndex);
+  
+  // Set default background
+  newPage.style.background = '#1a1a1a';
+  
+  // Update page list UI
+  updatePageList();
+  
+  // Update navigation arrows
+  updateNavigationArrows();
+  
+  // Switch to the new page
+  showPage(newPageIndex);
+  
+  return newPageIndex;
+}
+
+// Delete a page
+function deletePage(pageIndex) {
+  // Can't delete if only one page exists
+  if (totalPages <= 1) {
+    if (typeof showToast === 'function') {
+      showToast('Cannot delete the last page. At least one page must exist.', 2000);
+    } else {
+      alert('Cannot delete the last page. At least one page must exist.');
+    }
+    return false;
+  }
+  
+  // Remove page element
+  const pageElement = getPageElement(pageIndex);
+  if (pageElement) {
+    pageElement.remove();
+  }
+  
+  // Delete page data from localStorage
+  localStorage.removeItem(`dakboard-widget-layout-page-${pageIndex}`);
+  localStorage.removeItem(`dakboard-background-page-${pageIndex}`);
+  localStorage.removeItem(`dakboard-edit-mode-page-${pageIndex}`);
+  
+  // Renumber pages after the deleted one
+  for (let i = pageIndex + 1; i < totalPages; i++) {
+    const oldLayoutKey = `dakboard-widget-layout-page-${i}`;
+    const oldBgKey = `dakboard-background-page-${i}`;
+    const oldEditKey = `dakboard-edit-mode-page-${i}`;
+    
+    const newLayoutKey = `dakboard-widget-layout-page-${i - 1}`;
+    const newBgKey = `dakboard-background-page-${i - 1}`;
+    const newEditKey = `dakboard-edit-mode-page-${i - 1}`;
+    
+    // Move layout data
+    const layoutData = localStorage.getItem(oldLayoutKey);
+    if (layoutData) {
+      localStorage.setItem(newLayoutKey, layoutData);
+      localStorage.removeItem(oldLayoutKey);
+    }
+    
+    // Move background data
+    const bgData = localStorage.getItem(oldBgKey);
+    if (bgData) {
+      localStorage.setItem(newBgKey, bgData);
+      localStorage.removeItem(oldBgKey);
+    }
+    
+    // Move edit mode data
+    const editData = localStorage.getItem(oldEditKey);
+    if (editData) {
+      localStorage.setItem(newEditKey, editData);
+      localStorage.removeItem(oldEditKey);
+    }
+    
+    // Update page element data-page-id
+    const pageToRenumber = getPageElement(i);
+    if (pageToRenumber) {
+      pageToRenumber.setAttribute('data-page-id', (i - 1).toString());
+    }
+  }
+  
+  // Decrease total pages
+  totalPages--;
+  window.totalPages = totalPages;
+  localStorage.setItem('dakboard-total-pages', totalPages.toString());
+  
+  // Adjust current page index if needed
+  if (currentPageIndex >= totalPages) {
+    currentPageIndex = totalPages - 1;
+    window.currentPageIndex = currentPageIndex;
+    localStorage.setItem('dakboard-current-page', currentPageIndex.toString());
+  } else if (currentPageIndex > pageIndex) {
+    // If we deleted a page before the current one, adjust index
+    currentPageIndex--;
+    window.currentPageIndex = currentPageIndex;
+    localStorage.setItem('dakboard-current-page', currentPageIndex.toString());
+  }
+  
+  // Update page list UI
+  updatePageList();
+  
+  // Update navigation arrows
+  updateNavigationArrows();
+  
+  // Show the current page (which may have changed)
+  showPage(currentPageIndex);
+  
+  return true;
+}
+
+// Update page list in control panel
+function updatePageList() {
+  const pageList = document.getElementById('page-list');
+  if (!pageList) return;
+  
+  pageList.innerHTML = '';
+  
+  for (let i = 0; i < totalPages; i++) {
+    const pageItem = document.createElement('div');
+    pageItem.className = 'page-list-item';
+    if (i === currentPageIndex) {
+      pageItem.classList.add('active');
+    }
+    
+    const pageLabel = document.createElement('span');
+    pageLabel.className = 'page-list-label';
+    pageLabel.textContent = `Page ${i + 1}`;
+    pageLabel.style.cursor = 'pointer';
+    pageLabel.addEventListener('click', () => {
+      showPage(i);
+      updatePageList();
+    });
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'page-delete-btn';
+    deleteBtn.textContent = '×';
+    deleteBtn.title = 'Delete Page';
+    deleteBtn.disabled = totalPages <= 1; // Disable if only one page
+    
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (totalPages <= 1) {
+        if (typeof showToast === 'function') {
+          showToast('Cannot delete the last page.', 2000);
+        } else {
+          alert('Cannot delete the last page.');
+        }
+        return;
+      }
+      
+      if (confirm(`Delete Page ${i + 1}? This will permanently remove all widgets and settings on this page.`)) {
+        deletePage(i);
+      }
+    });
+    
+    pageItem.appendChild(pageLabel);
+    pageItem.appendChild(deleteBtn);
+    pageList.appendChild(pageItem);
+  }
+}
+
+// Setup page management event listeners
+function setupPageManagement() {
+  const addPageBtn = document.getElementById('add-page-btn');
+  if (addPageBtn) {
+    addPageBtn.addEventListener('click', () => {
+      addPage();
+    });
+  }
+}
+
