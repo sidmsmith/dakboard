@@ -85,12 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Ensure current page is fully loaded after all initialization
   // This fixes the issue where initial page display is incorrect after import/refresh
-  if (typeof loadCurrentPage === 'function') {
-    loadCurrentPage();
-  }
-  // Also ensure styles are loaded for current page
-  if (typeof loadStyles === 'function') {
-    loadStyles();
+  // showPage() will call loadCurrentPage() which loads visibility, layout, styles, etc.
+  if (typeof showPage === 'function') {
+    showPage(currentPageIndex);
   }
   
   initializeWidgetControlPanel(); // Initialize widget visibility panel
