@@ -1077,13 +1077,14 @@ function applyStyles() {
     
     applyCurrentStylesToWidget(widget);
     
-    // If applying to all, save styles for each widget
-    if (applyToAllFlags.global) {
-      const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
-      if (widgetId) {
-        localStorage.setItem(`dakboard-widget-styles-${widgetId}`, JSON.stringify(currentStyles));
+      // If applying to all, save styles for each widget on current page
+      if (applyToAllFlags.global) {
+        const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
+        if (widgetId) {
+          const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+          localStorage.setItem(`dakboard-widget-styles-${widgetId}-page-${currentPageIndex}`, JSON.stringify(currentStyles));
+        }
       }
-    }
   });
 
   // Save styles for current widget
@@ -1412,8 +1413,9 @@ function resetStyles() {
     }
   }
   
-  // Clear saved styles
-  localStorage.removeItem(`dakboard-widget-styles-${currentWidgetId}`);
+  // Clear saved styles (page-specific)
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+  localStorage.removeItem(`dakboard-widget-styles-${currentWidgetId}-page-${currentPageIndex}`);
   
   // Reload tab to show defaults
   const activeTab = document.querySelector('.styling-tab.active');
@@ -1444,9 +1446,10 @@ function saveTheme() {
   alert(`Theme "${themeName}" saved!`);
 }
 
-// Load widget styles
+// Load widget styles (page-specific)
 function loadWidgetStyles(widgetId) {
-  const saved = localStorage.getItem(`dakboard-widget-styles-${widgetId}`);
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+  const saved = localStorage.getItem(`dakboard-widget-styles-${widgetId}-page-${currentPageIndex}`);
   if (saved) {
     currentStyles = JSON.parse(saved);
   } else {
@@ -1472,19 +1475,24 @@ function loadWidgetStyles(widgetId) {
   }
 }
 
-// Save styles
+// Save styles (page-specific)
 function saveStyles() {
   if (currentWidgetId) {
-    localStorage.setItem(`dakboard-widget-styles-${currentWidgetId}`, JSON.stringify(currentStyles));
+    const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+    localStorage.setItem(`dakboard-widget-styles-${currentWidgetId}-page-${currentPageIndex}`, JSON.stringify(currentStyles));
   }
 }
 
-// Load all styles on page load
+// Load all styles on page load (page-specific)
 function loadStyles() {
-  document.querySelectorAll('.widget').forEach(widget => {
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+  const currentPage = document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
+  if (!currentPage) return;
+  
+  currentPage.querySelectorAll('.widget').forEach(widget => {
     const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
     if (widgetId) {
-      const saved = localStorage.getItem(`dakboard-widget-styles-${widgetId}`);
+      const saved = localStorage.getItem(`dakboard-widget-styles-${widgetId}-page-${currentPageIndex}`);
       if (saved) {
         const styles = JSON.parse(saved);
         loadStylesToWidget(widget, styles);

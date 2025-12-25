@@ -2644,7 +2644,8 @@ function initializeWhiteboard() {
           };
           img.src = oldImage;
         } else {
-          const bgColor = localStorage.getItem('whiteboard-bg-color') || '#ffffff';
+          const pageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+          const bgColor = localStorage.getItem(`whiteboard-bg-color-page-${pageIndex}`) || '#ffffff';
           whiteboardCtx.fillStyle = bgColor;
           whiteboardCtx.fillRect(0, 0, canvas.width, canvas.height);
         }
@@ -2659,14 +2660,27 @@ function initializeWhiteboard() {
     resizeObserver.observe(widget);
   }
   
-  // Set default background color
-  const bgColor = localStorage.getItem('whiteboard-bg-color') || '#ffffff';
+  // Get current page index for page-specific storage
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+  
+  // Set default background color (page-specific)
+  const bgColor = localStorage.getItem(`whiteboard-bg-color-page-${currentPageIndex}`) || '#ffffff';
   whiteboardCtx.fillStyle = bgColor;
   whiteboardCtx.fillRect(0, 0, canvas.width, canvas.height);
   
-  // Load saved settings
-  const savedInkColor = localStorage.getItem('whiteboard-ink-color') || '#000000';
-  const savedBrushSize = localStorage.getItem('whiteboard-brush-size') || '3';
+  // Load saved drawing (page-specific) - must be done after canvas is sized
+  const savedDrawing = localStorage.getItem(`whiteboard-drawing-page-${currentPageIndex}`);
+  if (savedDrawing) {
+    const img = new Image();
+    img.onload = () => {
+      whiteboardCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    };
+    img.src = savedDrawing;
+  }
+  
+  // Load saved settings (page-specific)
+  const savedInkColor = localStorage.getItem(`whiteboard-ink-color-page-${currentPageIndex}`) || '#000000';
+  const savedBrushSize = localStorage.getItem(`whiteboard-brush-size-page-${currentPageIndex}`) || '3';
   
   // Find controls on current page (whiteboard controls are in the widget header)
   const whiteboardWidget = canvas.closest('.whiteboard-widget');
@@ -2690,14 +2704,14 @@ function initializeWhiteboard() {
   
   if (inkColorInput) {
     inkColorInput.addEventListener('change', (e) => {
-      localStorage.setItem('whiteboard-ink-color', e.target.value);
+      localStorage.setItem(`whiteboard-ink-color-page-${currentPageIndex}`, e.target.value);
     });
   }
   
   if (bgColorInput) {
     bgColorInput.addEventListener('change', (e) => {
       const newBgColor = e.target.value;
-      localStorage.setItem('whiteboard-bg-color', newBgColor);
+      localStorage.setItem(`whiteboard-bg-color-page-${currentPageIndex}`, newBgColor);
       // Redraw canvas with new background
       const currentImage = canvas.toDataURL();
       whiteboardCtx.fillStyle = newBgColor;
@@ -2715,7 +2729,7 @@ function initializeWhiteboard() {
     brushSizeInput.addEventListener('input', (e) => {
       const size = e.target.value;
       brushSizeLabel.textContent = `${size}px`;
-      localStorage.setItem('whiteboard-brush-size', size);
+      localStorage.setItem(`whiteboard-brush-size-page-${currentPageIndex}`, size);
     });
   }
   
@@ -2782,8 +2796,11 @@ function draw(e) {
   const currentX = e.clientX - rect.left;
   const currentY = e.clientY - rect.top;
   
-  const inkColor = document.getElementById('whiteboard-ink-color')?.value || '#000000';
-  const brushSize = parseInt(document.getElementById('whiteboard-brush-size')?.value || '3');
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+  const inkColorInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-ink-color') || document.getElementById('whiteboard-ink-color');
+  const brushSizeInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-brush-size') || document.getElementById('whiteboard-brush-size');
+  const inkColor = inkColorInput?.value || localStorage.getItem(`whiteboard-ink-color-page-${currentPageIndex}`) || '#000000';
+  const brushSize = parseInt(brushSizeInput?.value || localStorage.getItem(`whiteboard-brush-size-page-${currentPageIndex}`) || '3');
   
   whiteboardCtx.strokeStyle = inkColor;
   whiteboardCtx.lineWidth = brushSize;
@@ -2797,6 +2814,9 @@ function draw(e) {
   
   lastX = currentX;
   lastY = currentY;
+  
+  // Save drawing immediately after each stroke segment
+  saveWhiteboard();
   
   saveWhiteboard();
 }
@@ -2811,8 +2831,11 @@ function drawTouch(e) {
   const currentX = touch.clientX - rect.left;
   const currentY = touch.clientY - rect.top;
   
-  const inkColor = document.getElementById('whiteboard-ink-color')?.value || '#000000';
-  const brushSize = parseInt(document.getElementById('whiteboard-brush-size')?.value || '3');
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+  const inkColorInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-ink-color') || document.getElementById('whiteboard-ink-color');
+  const brushSizeInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-brush-size') || document.getElementById('whiteboard-brush-size');
+  const inkColor = inkColorInput?.value || localStorage.getItem(`whiteboard-ink-color-page-${currentPageIndex}`) || '#000000';
+  const brushSize = parseInt(brushSizeInput?.value || localStorage.getItem(`whiteboard-brush-size-page-${currentPageIndex}`) || '3');
   
   whiteboardCtx.strokeStyle = inkColor;
   whiteboardCtx.lineWidth = brushSize;
@@ -2826,6 +2849,9 @@ function drawTouch(e) {
   
   lastX = currentX;
   lastY = currentY;
+  
+  // Save drawing immediately after each stroke segment
+  saveWhiteboard();
   
   saveWhiteboard();
 }
@@ -2842,21 +2868,24 @@ function stopDrawing() {
 function clearWhiteboard() {
   if (!whiteboardCanvas || !whiteboardCtx) return;
   
-  const bgColor = document.getElementById('whiteboard-bg-color')?.value || '#ffffff';
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+  const bgColorInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-bg-color') || document.getElementById('whiteboard-bg-color');
+  const bgColor = bgColorInput?.value || localStorage.getItem(`whiteboard-bg-color-page-${currentPageIndex}`) || '#ffffff';
   whiteboardCtx.fillStyle = bgColor;
   whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
   
-  localStorage.removeItem('whiteboard-drawing');
+  localStorage.removeItem(`whiteboard-drawing-page-${currentPageIndex}`);
   saveWhiteboard();
 }
 
-// Save whiteboard to localStorage
+// Save whiteboard to localStorage (page-specific)
 function saveWhiteboard() {
   if (!whiteboardCanvas) return;
   
   try {
+    const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
     const dataURL = whiteboardCanvas.toDataURL('image/png');
-    localStorage.setItem('whiteboard-drawing', dataURL);
+    localStorage.setItem(`whiteboard-drawing-page-${currentPageIndex}`, dataURL);
   } catch (error) {
     console.error('Error saving whiteboard:', error);
   }
@@ -3608,6 +3637,11 @@ function showPage(pageIndex) {
   // Reinitialize whiteboard for current page
   if (typeof initializeWhiteboard === 'function') {
     initializeWhiteboard();
+  }
+  
+  // Reload widget styles for current page
+  if (typeof loadStyles === 'function') {
+    loadStyles();
   }
 }
 
