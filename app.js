@@ -3069,20 +3069,41 @@ function loadWidgetVisibility() {
     
     const visibilityKey = `dakboard-widget-visibility-page-${currentPageIndex}`;
     const saved = localStorage.getItem(visibilityKey);
-    if (saved) {
-      const visibility = JSON.parse(saved);
-      Object.keys(visibility).forEach(widgetId => {
-        // Find widget on current page only
-        const widget = pageElement.querySelector(`.${widgetId}`);
-        if (widget) {
-          if (visibility[widgetId] === false) {
-            widget.classList.add('hidden');
-          } else {
-            widget.classList.remove('hidden');
+    const visibility = saved ? JSON.parse(saved) : {};
+    
+    // Process all widgets in WIDGET_CONFIG
+    Object.keys(WIDGET_CONFIG).forEach(widgetId => {
+      // Find widget on current page only
+      let widget = pageElement.querySelector(`.${widgetId}`);
+      
+      // If widget should be visible but doesn't exist, create it
+      if (!widget && visibility[widgetId] !== false) {
+        // Find the widget template (usually on page 0)
+        const templateWidget = document.querySelector(`.${widgetId}`);
+        if (templateWidget) {
+          // Clone the widget to the current page
+          widget = templateWidget.cloneNode(true);
+          widget.classList.remove('hidden'); // Ensure it's visible
+          pageElement.appendChild(widget);
+          
+          // Initialize widget-specific functionality if needed
+          if (typeof initializeDragAndResize === 'function') {
+            setTimeout(() => {
+              initializeDragAndResize();
+            }, 100);
           }
         }
-      });
-    }
+      }
+      
+      // Now set visibility for existing widgets
+      if (widget) {
+        if (visibility[widgetId] === false) {
+          widget.classList.add('hidden');
+        } else {
+          widget.classList.remove('hidden');
+        }
+      }
+    });
   } catch (error) {
     console.error('Error loading widget visibility:', error);
   }
@@ -3121,14 +3142,14 @@ function toggleWidgetVisibility(widgetId) {
   // Find widget on current page
   let widget = pageElement.querySelector(`.${widgetId}`);
   
-  // If widget doesn't exist on current page and we're showing it, create it
+  // If widget doesn't exist on current page, create it
   if (!widget) {
     // Find the widget template (usually on page 0 or in the original HTML)
     const templateWidget = document.querySelector(`.${widgetId}`);
     if (templateWidget) {
       // Clone the widget to the current page
       widget = templateWidget.cloneNode(true);
-      widget.classList.remove('hidden'); // Ensure it's visible
+      // Don't set visibility here - let the toggle handle it
       pageElement.appendChild(widget);
       
       // Initialize widget-specific functionality if needed
@@ -3145,9 +3166,18 @@ function toggleWidgetVisibility(widgetId) {
   }
   
   if (widget) {
-    widget.classList.toggle('hidden');
+    // Toggle visibility - if it's hidden, show it; if it's visible, hide it
+    const isCurrentlyHidden = widget.classList.contains('hidden');
+    if (isCurrentlyHidden) {
+      widget.classList.remove('hidden');
+    } else {
+      widget.classList.add('hidden');
+    }
     saveWidgetVisibility();
-    updateWidgetControlPanel();
+    // Update panel after a brief delay to ensure DOM is updated
+    setTimeout(() => {
+      updateWidgetControlPanel();
+    }, 10);
   }
 }
 
@@ -4265,14 +4295,14 @@ function exportConfiguration() {
         }
       }
       
-      // Organize widgets for this page
+      // Organize widgets for this page - include ALL widgets
       Object.keys(WIDGET_CONFIG).forEach(widgetId => {
         const widgetInfo = WIDGET_CONFIG[widgetId];
         const widget = {
           widgetId: widgetId,
           name: widgetInfo.name,
           icon: widgetInfo.icon,
-          visible: visibility[widgetId] !== false, // Default to true if not explicitly false
+          visible: visibility.hasOwnProperty(widgetId) ? visibility[widgetId] !== false : true, // Use saved visibility or default to true
           layout: layout[widgetId] || null,
           styles: null
         };
@@ -4288,12 +4318,8 @@ function exportConfiguration() {
           }
         }
         
-        // Include widget if it has any configuration (visibility setting, layout, or styles)
-        // This ensures we capture all widgets that have been configured, even if hidden
-        const hasVisibilitySetting = visibility.hasOwnProperty(widgetId);
-        if (hasVisibilitySetting || widget.layout || widget.styles) {
-          page.widgets.push(widget);
-        }
+        // Always include widget in export - this ensures complete configuration
+        page.widgets.push(widget);
       });
       
       // Get whiteboard data for this page
@@ -4322,13 +4348,74 @@ function exportConfiguration() {
       config.pages.push(page);
     }
     
+    // Helper function to convert hex color to human-readable description
+    function getColorDescription(hex) {
+      if (!hex || typeof hex !== 'string') return '';
+      hex = hex.replace('#', '').toLowerCase();
+      if (hex.length !== 6) return '';
+      
+      const r = parseInt(hex.substr(0, 2), 16);
+      const g = parseInt(hex.substr(2, 2), 16);
+      const b = parseInt(hex.substr(4, 2), 16);
+      
+      // Calculate brightness
+      const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+      
+      // Simple color name mapping
+      if (brightness < 50) return 'black';
+      if (brightness > 250) return 'white';
+      if (brightness > 200) return 'light grey';
+      if (brightness < 100) return 'dark grey';
+      
+      // Color detection
+      if (r > g && r > b) {
+        if (r > 200 && g > 150 && b < 100) return 'light yellow';
+        if (r > 200 && g < 150 && b < 100) return 'orange';
+        if (r > 150 && g < 100 && b < 100) return 'red';
+        return 'reddish';
+      }
+      if (g > r && g > b) {
+        if (g > 200 && r > 150 && b > 150) return 'light green';
+        if (g > 150 && r < 100 && b < 100) return 'green';
+        return 'greenish';
+      }
+      if (b > r && b > g) {
+        if (b > 200 && r > 150 && g > 150) return 'light blue';
+        if (b > 150 && r < 100 && g < 100) return 'blue';
+        return 'bluish';
+      }
+      if (r > 150 && g > 150 && b < 100) return 'yellow';
+      if (r > 150 && g < 100 && b > 150) return 'purple';
+      if (r < 100 && g > 150 && b > 150) return 'cyan';
+      
+      return 'grey';
+    }
+    
+    // Add color descriptions as comments in JSON string (non-standard but readable)
+    function addColorComments(jsonStr) {
+      const colorProps = ['backgroundColor', 'borderColor', 'shadowColor', 'textColor', 'gradientColor1', 'gradientColor2'];
+      colorProps.forEach(prop => {
+        // Match: "propertyName": "#RRGGBB"
+        const regex = new RegExp(`("${prop}"\\s*:\\s*")(#[0-9a-fA-F]{6})(")`, 'gi');
+        jsonStr = jsonStr.replace(regex, (match, prefix, hex, suffix) => {
+          const desc = getColorDescription(hex);
+          return desc ? `${prefix}${hex}${suffix} // ${desc}` : match;
+        });
+      });
+      return jsonStr;
+    }
+    
     // Create JSON blob and trigger download
-    const jsonStr = JSON.stringify(config, null, 2);
+    let jsonStr = JSON.stringify(config, null, 2);
+    jsonStr = addColorComments(jsonStr);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `dakboard-config-${new Date().toISOString().split('T')[0]}.json`;
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].substring(0, 5).replace(':', '-');
+    a.download = `dakboard-config-${dateStr}_${timeStr}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -4348,7 +4435,11 @@ function importConfiguration(file) {
   
   reader.onload = (e) => {
     try {
-      const config = JSON.parse(e.target.result);
+      // Strip comments from JSON (non-standard but we add them for readability)
+      let jsonText = e.target.result;
+      jsonText = jsonText.replace(/\/\/.*$/gm, ''); // Remove line comments
+      
+      const config = JSON.parse(jsonText);
       
       // Confirm before importing (will overwrite existing data)
       const confirmed = confirm(
@@ -4371,109 +4462,95 @@ function importConfiguration(file) {
       
       let importedCount = 0;
       
-      // Check if this is the new organized format (v2.0) or old format (v1.0)
-      if (config.pages && Array.isArray(config.pages)) {
-        // New organized format (v2.0)
-        console.log('Importing configuration in organized format (v2.0)');
+      // Only support new organized format (v2.0)
+      if (!config.pages || !Array.isArray(config.pages)) {
+        throw new Error('Invalid configuration format. Expected "pages" array.');
+      }
+      
+      console.log('Importing configuration in organized format (v2.0)');
+      
+      // Import metadata
+      if (config.metadata) {
+        if (config.metadata.totalPages !== undefined) {
+          localStorage.setItem('dakboard-total-pages', config.metadata.totalPages.toString());
+          importedCount++;
+        }
+        if (config.metadata.currentPage !== undefined) {
+          localStorage.setItem('dakboard-current-page', config.metadata.currentPage.toString());
+          importedCount++;
+        }
+      }
+      
+      // Import each page
+      config.pages.forEach(page => {
+        const pageIndex = page.pageIndex;
         
-        // Import metadata
-        if (config.metadata) {
-          if (config.metadata.totalPages !== undefined) {
-            localStorage.setItem('dakboard-total-pages', config.metadata.totalPages.toString());
-            importedCount++;
-          }
-          if (config.metadata.currentPage !== undefined) {
-            localStorage.setItem('dakboard-current-page', config.metadata.currentPage.toString());
-            importedCount++;
-          }
+        // Import page name
+        if (page.name) {
+          localStorage.setItem(`dakboard-page-name-${pageIndex}`, page.name);
+          importedCount++;
         }
         
-        // Import each page
-        config.pages.forEach(page => {
-          const pageIndex = page.pageIndex;
-          
-          // Import page name
-          if (page.name) {
-            localStorage.setItem(`dakboard-page-name-${pageIndex}`, page.name);
-            importedCount++;
-          }
-          
-          // Import page background
-          if (page.background) {
-            const bgValue = typeof page.background === 'object' 
-              ? JSON.stringify(page.background) 
-              : page.background;
-            localStorage.setItem(`dakboard-page-background-${pageIndex}`, bgValue);
-            importedCount++;
-          }
-          
-          // Import edit mode
-          if (page.editMode !== undefined) {
-            localStorage.setItem(`dakboard-edit-mode-page-${pageIndex}`, page.editMode.toString());
-            importedCount++;
-          }
-          
-          // Import widget visibility
-          const visibility = {};
-          page.widgets.forEach(widget => {
-            visibility[widget.widgetId] = widget.visible !== false;
-          });
-          localStorage.setItem(`dakboard-widget-visibility-page-${pageIndex}`, JSON.stringify(visibility));
+        // Import page background
+        if (page.background) {
+          const bgValue = typeof page.background === 'object' 
+            ? JSON.stringify(page.background) 
+            : page.background;
+          localStorage.setItem(`dakboard-page-background-${pageIndex}`, bgValue);
           importedCount++;
-          
-          // Import widget layouts
-          const layout = {};
-          page.widgets.forEach(widget => {
-            if (widget.layout) {
-              layout[widget.widgetId] = widget.layout;
-            }
-          });
-          if (Object.keys(layout).length > 0) {
-            localStorage.setItem(`dakboard-widget-layout-page-${pageIndex}`, JSON.stringify(layout));
-            importedCount++;
+        }
+        
+        // Import edit mode
+        if (page.editMode !== undefined) {
+          localStorage.setItem(`dakboard-edit-mode-page-${pageIndex}`, page.editMode.toString());
+          importedCount++;
+        }
+        
+        // Build complete visibility map - include ALL widgets, not just those in the export
+        const visibility = {};
+        // First, mark all widgets as hidden by default
+        Object.keys(WIDGET_CONFIG).forEach(widgetId => {
+          visibility[widgetId] = false;
+        });
+        // Then, set visibility from imported data
+        page.widgets.forEach(widget => {
+          visibility[widget.widgetId] = widget.visible !== false;
+        });
+        localStorage.setItem(`dakboard-widget-visibility-page-${pageIndex}`, JSON.stringify(visibility));
+        importedCount++;
+        
+        // Import widget layouts
+        const layout = {};
+        page.widgets.forEach(widget => {
+          if (widget.layout) {
+            layout[widget.widgetId] = widget.layout;
           }
-          
-          // Import widget styles
-          page.widgets.forEach(widget => {
-            if (widget.styles) {
-              localStorage.setItem(
-                `dakboard-widget-styles-${widget.widgetId}-page-${pageIndex}`,
-                JSON.stringify(widget.styles)
-              );
-              importedCount++;
-            }
-          });
-          
-          // Import whiteboard data
-          if (page.whiteboard) {
-            Object.keys(page.whiteboard).forEach(key => {
-              const whiteboardKey = `whiteboard-${key}-page-${pageIndex}`;
-              localStorage.setItem(whiteboardKey, page.whiteboard[key]);
-              importedCount++;
-            });
+        });
+        if (Object.keys(layout).length > 0) {
+          localStorage.setItem(`dakboard-widget-layout-page-${pageIndex}`, JSON.stringify(layout));
+          importedCount++;
+        }
+        
+        // Import widget styles
+        page.widgets.forEach(widget => {
+          if (widget.styles) {
+            localStorage.setItem(
+              `dakboard-widget-styles-${widget.widgetId}-page-${pageIndex}`,
+              JSON.stringify(widget.styles)
+            );
+            importedCount++;
           }
         });
         
-      } else if (config.data && typeof config.data === 'object') {
-        // Old format (v1.0) - backward compatibility
-        console.log('Importing configuration in legacy format (v1.0)');
-        
-        Object.keys(config.data).forEach(key => {
-          try {
-            const value = config.data[key];
-            if (typeof value === 'object') {
-              localStorage.setItem(key, JSON.stringify(value));
-            } else {
-              localStorage.setItem(key, value);
-            }
+        // Import whiteboard data
+        if (page.whiteboard) {
+          Object.keys(page.whiteboard).forEach(key => {
+            const whiteboardKey = `whiteboard-${key}-page-${pageIndex}`;
+            localStorage.setItem(whiteboardKey, page.whiteboard[key]);
             importedCount++;
-          } catch (error) {
-            console.warn(`Error importing key ${key}:`, error);
-          }
-        });
-      } else {
-        throw new Error('Invalid configuration format. Expected "pages" array or "data" object.');
-      }
+          });
+        }
+      });
       
       console.log(`Configuration imported successfully. ${importedCount} items restored.`);
       
