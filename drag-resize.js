@@ -127,26 +127,43 @@ function snapToGridValue(value) {
   return Math.round(value / GRID_SIZE) * GRID_SIZE;
 }
 
-// Initialize drag and resize for all widgets
+// Initialize drag and resize for all widgets on current page
 function initializeDragAndResize() {
   // Wait a bit for widgets to be rendered
   setTimeout(() => {
-    const widgets = document.querySelectorAll('.widget');
+    // Get current page index (from app.js)
+    const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
+      ? window.currentPageIndex 
+      : 0;
+    
+    // Get current page element
+    const currentPage = document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
+    if (!currentPage) {
+      console.warn('Current page not found for drag/resize initialization');
+      return;
+    }
+    
+    // Only get widgets on the current page
+    const widgets = currentPage.querySelectorAll('.widget');
     
     if (widgets.length === 0) {
-      console.error('No widgets found! Check HTML structure.');
+      console.log('No widgets found on current page.');
       return;
     }
     
     widgets.forEach((widget, index) => {
+      // Remove any existing event listeners by cloning (prevents duplicates)
+      const newWidget = widget.cloneNode(true);
+      widget.parentNode.replaceChild(newWidget, widget);
+      
       // Add resize handles
-      addResizeHandles(widget);
+      addResizeHandles(newWidget);
       
       // Make widget draggable (only in edit mode)
       // In edit mode, entire widget is draggable; in normal mode, no dragging
-      widget.addEventListener('mousedown', (e) => {
-        // Check if edit mode is active (check dashboard class or global variable)
-        const dashboard = document.querySelector('.dashboard');
+      newWidget.addEventListener('mousedown', (e) => {
+        // Check if edit mode is active on the current page
+        const dashboard = newWidget.closest('.dashboard.page');
         const inEditMode = dashboard && dashboard.classList.contains('edit-mode');
         
         if (!inEditMode) {
@@ -168,11 +185,11 @@ function initializeDragAndResize() {
           return;
         }
         
-        startDrag(widget, e);
+        startDrag(newWidget, e);
       });
       
       // Update scale on initial load
-      updateWidgetScale(widget);
+      updateWidgetScale(newWidget);
     });
   }, 100);
   
@@ -203,8 +220,8 @@ function addResizeHandles(widget) {
     handleEl.className = `resize-handle ${handle.class}`;
     handleEl.style.cursor = handle.cursor;
     handleEl.addEventListener('mousedown', (e) => {
-      // Only allow resize in edit mode
-      const dashboard = document.querySelector('.dashboard');
+      // Only allow resize in edit mode - check the widget's parent dashboard
+      const dashboard = widget.closest('.dashboard.page');
       const inEditMode = dashboard && dashboard.classList.contains('edit-mode');
       if (!inEditMode) {
         return;
@@ -238,7 +255,8 @@ function startResize(widget, direction, e) {
   widget.classList.add('resizing');
   
   const rect = widget.getBoundingClientRect();
-  const dashboard = document.querySelector('.dashboard');
+  const dashboard = widget.closest('.dashboard.page');
+  if (!dashboard) return;
   const dashboardRect = dashboard.getBoundingClientRect();
   
   resizeStart.x = e.clientX;
@@ -255,7 +273,8 @@ function startResize(widget, direction, e) {
 // Handle mouse move for drag and resize
 function handleMouseMove(e) {
   if (draggedWidget) {
-    const dashboard = document.querySelector('.dashboard');
+    const dashboard = draggedWidget.closest('.dashboard.page');
+    if (!dashboard) return;
     const dashboardRect = dashboard.getBoundingClientRect();
     
     let newX = e.clientX - dashboardRect.left - dragOffset.x;
