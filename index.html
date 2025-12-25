@@ -221,9 +221,9 @@
       <div class="thermostat-content">
         <div class="thermostat-selector">
           <select id="thermostat-selector" class="thermostat-dropdown">
-            <option value="1">Thermostat 1</option>
-            <option value="2">Thermostat 2</option>
-            <option value="3">Thermostat 3</option>
+            <option value="1">Basement</option>
+            <option value="2">Living Room</option>
+            <option value="3">Master Bedroom</option>
           </select>
         </div>
         <div class="thermostat-display" id="thermostat-display">
@@ -239,6 +239,25 @@
       </div>
       <div class="news-content" id="news-content">
         <div class="news-loading">Loading news...</div>
+      </div>
+    </div>
+
+    <!-- Whiteboard Widget -->
+    <div class="widget whiteboard-widget">
+      <div class="widget-header">
+        <div class="widget-title">🖊️ Whiteboard</div>
+      </div>
+      <div class="whiteboard-container">
+        <div class="whiteboard-toolbar">
+          <button class="whiteboard-tool-btn" id="whiteboard-clear" title="Clear">
+            🗑️
+          </button>
+          <input type="color" id="whiteboard-ink-color" class="whiteboard-color-picker" value="#000000" title="Ink Color">
+          <input type="color" id="whiteboard-bg-color" class="whiteboard-color-picker" value="#ffffff" title="Background Color">
+          <input type="range" id="whiteboard-brush-size" class="whiteboard-brush-size" min="1" max="20" value="3" title="Brush Size">
+          <span class="whiteboard-brush-size-label" id="whiteboard-brush-size-label">3px</span>
+        </div>
+        <canvas id="whiteboard-canvas"></canvas>
       </div>
     </div>
 

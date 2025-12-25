@@ -13,10 +13,11 @@ export default async function (req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   
-  // Get API key from query or environment variable
-  const apiKey = query.apiKey || (typeof process !== 'undefined' && process.env ? process.env.NEWS_API_KEY : null);
+  // Get API key from environment variable (should be set in Vercel)
+  // Default to provided key for now, but should be moved to Vercel env vars
+  const apiKey = process.env.NEWS_API_KEY || 'f4d09e4ceabe48a99ccb5320796b2bbb';
   
-  if (!apiKey || apiKey === 'demo') {
+  if (!apiKey) {
     return res.status(400).json({ error: 'News API key required. Get one at https://newsapi.org/' });
   }
   

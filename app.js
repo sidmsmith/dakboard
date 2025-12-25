@@ -10,10 +10,10 @@ const CONFIG = {
   HA_GARAGE_DOOR_3: 'binary_sensor.z_wave_garage_door_sensor_sensor_state_any_3',
   HA_ALARM_ENTITY: 'alarm_control_panel.dev_ttyusb0_alarm_panel', // Update with your alarm entity ID
   
-  // Thermostat Configuration (add your 3 thermostat entity IDs)
-  HA_THERMOSTAT_1: 'climate.thermostat_1', // Update with your first thermostat entity ID
-  HA_THERMOSTAT_2: 'climate.thermostat_2', // Update with your second thermostat entity ID
-  HA_THERMOSTAT_3: 'climate.thermostat_3', // Update with your third thermostat entity ID
+  // Thermostat Configuration
+  HA_THERMOSTAT_1: 'climate.trane_z_wave_programmable_thermostat', // Basement
+  HA_THERMOSTAT_2: 'climate.trane_z_wave_programmable_thermostat_2', // Living Room
+  HA_THERMOSTAT_3: 'climate.trane_z_wave_programmable_thermostat_3', // Master Bedroom
   
   // Google Photos Configuration
   GOOGLE_PHOTOS_ALBUM_ID: null, // Optional: Specific album ID to display photos from. If null or empty, randomizes from all photos.
@@ -976,6 +976,7 @@ async function loadAllData() {
       loadGooglePhotos(), // Load Google Photos
       loadThermostat(), // Load thermostat
       loadNews(), // Load news feed
+      initializeWhiteboard(), // Initialize whiteboard
       loadCalendarEvents() // Reload calendar events on refresh
     ]);
   } catch (error) {
@@ -2580,6 +2581,262 @@ function formatNewsDate(dateString) {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+// Whiteboard state
+let whiteboardCanvas = null;
+let whiteboardCtx = null;
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+
+// Initialize whiteboard
+function initializeWhiteboard() {
+  const canvas = document.getElementById('whiteboard-canvas');
+  if (!canvas) return;
+  
+  whiteboardCanvas = canvas;
+  whiteboardCtx = canvas.getContext('2d');
+  
+  // Set canvas size to match container
+  const container = canvas.closest('.whiteboard-container');
+  if (container) {
+    const resizeCanvas = () => {
+      const rect = container.getBoundingClientRect();
+      canvas.width = rect.width - 2; // Account for border
+      canvas.height = rect.height - 50; // Account for toolbar
+      
+      // Restore saved drawing if exists
+      const savedDrawing = localStorage.getItem('whiteboard-drawing');
+      if (savedDrawing) {
+        const img = new Image();
+        img.onload = () => {
+          whiteboardCtx.drawImage(img, 0, 0);
+        };
+        img.src = savedDrawing;
+      } else {
+        // Set default background
+        const bgColor = localStorage.getItem('whiteboard-bg-color') || '#ffffff';
+        whiteboardCtx.fillStyle = bgColor;
+        whiteboardCtx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    };
+    
+    resizeCanvas();
+    
+    // Resize on window resize
+    const resizeObserver = new ResizeObserver(resizeCanvas);
+    resizeObserver.observe(container);
+  }
+  
+  // Set default background color
+  const bgColor = localStorage.getItem('whiteboard-bg-color') || '#ffffff';
+  whiteboardCtx.fillStyle = bgColor;
+  whiteboardCtx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Load saved settings
+  const savedInkColor = localStorage.getItem('whiteboard-ink-color') || '#000000';
+  const savedBrushSize = localStorage.getItem('whiteboard-brush-size') || '3';
+  
+  const inkColorInput = document.getElementById('whiteboard-ink-color');
+  const bgColorInput = document.getElementById('whiteboard-bg-color');
+  const brushSizeInput = document.getElementById('whiteboard-brush-size');
+  const brushSizeLabel = document.getElementById('whiteboard-brush-size-label');
+  const clearBtn = document.getElementById('whiteboard-clear');
+  
+  if (inkColorInput) inkColorInput.value = savedInkColor;
+  if (bgColorInput) bgColorInput.value = bgColor;
+  if (brushSizeInput) {
+    brushSizeInput.value = savedBrushSize;
+    if (brushSizeLabel) brushSizeLabel.textContent = `${savedBrushSize}px`;
+  }
+  
+  // Event listeners
+  if (clearBtn) {
+    clearBtn.addEventListener('click', clearWhiteboard);
+  }
+  
+  if (inkColorInput) {
+    inkColorInput.addEventListener('change', (e) => {
+      localStorage.setItem('whiteboard-ink-color', e.target.value);
+    });
+  }
+  
+  if (bgColorInput) {
+    bgColorInput.addEventListener('change', (e) => {
+      const newBgColor = e.target.value;
+      localStorage.setItem('whiteboard-bg-color', newBgColor);
+      // Redraw canvas with new background
+      const currentImage = canvas.toDataURL();
+      whiteboardCtx.fillStyle = newBgColor;
+      whiteboardCtx.fillRect(0, 0, canvas.width, canvas.height);
+      const img = new Image();
+      img.onload = () => {
+        whiteboardCtx.drawImage(img, 0, 0);
+      };
+      img.src = currentImage;
+      saveWhiteboard();
+    });
+  }
+  
+  if (brushSizeInput && brushSizeLabel) {
+    brushSizeInput.addEventListener('input', (e) => {
+      const size = e.target.value;
+      brushSizeLabel.textContent = `${size}px`;
+      localStorage.setItem('whiteboard-brush-size', size);
+    });
+  }
+  
+  // Drawing event listeners (only in normal mode)
+  setupWhiteboardDrawing();
+  
+  // Update drawing when edit mode changes
+  const originalSetEditMode = window.setEditMode;
+  if (originalSetEditMode) {
+    window.setEditMode = function(enabled) {
+      originalSetEditMode(enabled);
+      setupWhiteboardDrawing();
+    };
+  }
+}
+
+// Setup whiteboard drawing
+function setupWhiteboardDrawing() {
+  if (!whiteboardCanvas) return;
+  
+  // Remove existing listeners
+  whiteboardCanvas.removeEventListener('mousedown', startDrawing);
+  whiteboardCanvas.removeEventListener('mousemove', draw);
+  whiteboardCanvas.removeEventListener('mouseup', stopDrawing);
+  whiteboardCanvas.removeEventListener('mouseout', stopDrawing);
+  whiteboardCanvas.removeEventListener('touchstart', startDrawingTouch);
+  whiteboardCanvas.removeEventListener('touchmove', drawTouch);
+  whiteboardCanvas.removeEventListener('touchend', stopDrawing);
+  
+  // Only enable drawing in normal mode
+  if (!isEditMode) {
+    whiteboardCanvas.addEventListener('mousedown', startDrawing);
+    whiteboardCanvas.addEventListener('mousemove', draw);
+    whiteboardCanvas.addEventListener('mouseup', stopDrawing);
+    whiteboardCanvas.addEventListener('mouseout', stopDrawing);
+    
+    // Touch events for mobile
+    whiteboardCanvas.addEventListener('touchstart', startDrawingTouch, { passive: false });
+    whiteboardCanvas.addEventListener('touchmove', drawTouch, { passive: false });
+    whiteboardCanvas.addEventListener('touchend', stopDrawing);
+    
+    whiteboardCanvas.style.cursor = 'crosshair';
+  } else {
+    whiteboardCanvas.style.cursor = 'default';
+  }
+}
+
+// Start drawing
+function startDrawing(e) {
+  if (isEditMode) return;
+  isDrawing = true;
+  const rect = whiteboardCanvas.getBoundingClientRect();
+  lastX = e.clientX - rect.left;
+  lastY = e.clientY - rect.top;
+}
+
+// Start drawing (touch)
+function startDrawingTouch(e) {
+  if (isEditMode) return;
+  e.preventDefault();
+  isDrawing = true;
+  const touch = e.touches[0];
+  const rect = whiteboardCanvas.getBoundingClientRect();
+  lastX = touch.clientX - rect.left;
+  lastY = touch.clientY - rect.top;
+}
+
+// Draw
+function draw(e) {
+  if (!isDrawing || isEditMode) return;
+  
+  const rect = whiteboardCanvas.getBoundingClientRect();
+  const currentX = e.clientX - rect.left;
+  const currentY = e.clientY - rect.top;
+  
+  const inkColor = document.getElementById('whiteboard-ink-color')?.value || '#000000';
+  const brushSize = parseInt(document.getElementById('whiteboard-brush-size')?.value || '3');
+  
+  whiteboardCtx.strokeStyle = inkColor;
+  whiteboardCtx.lineWidth = brushSize;
+  whiteboardCtx.lineCap = 'round';
+  whiteboardCtx.lineJoin = 'round';
+  
+  whiteboardCtx.beginPath();
+  whiteboardCtx.moveTo(lastX, lastY);
+  whiteboardCtx.lineTo(currentX, currentY);
+  whiteboardCtx.stroke();
+  
+  lastX = currentX;
+  lastY = currentY;
+  
+  saveWhiteboard();
+}
+
+// Draw (touch)
+function drawTouch(e) {
+  if (!isDrawing || isEditMode) return;
+  e.preventDefault();
+  
+  const touch = e.touches[0];
+  const rect = whiteboardCanvas.getBoundingClientRect();
+  const currentX = touch.clientX - rect.left;
+  const currentY = touch.clientY - rect.top;
+  
+  const inkColor = document.getElementById('whiteboard-ink-color')?.value || '#000000';
+  const brushSize = parseInt(document.getElementById('whiteboard-brush-size')?.value || '3');
+  
+  whiteboardCtx.strokeStyle = inkColor;
+  whiteboardCtx.lineWidth = brushSize;
+  whiteboardCtx.lineCap = 'round';
+  whiteboardCtx.lineJoin = 'round';
+  
+  whiteboardCtx.beginPath();
+  whiteboardCtx.moveTo(lastX, lastY);
+  whiteboardCtx.lineTo(currentX, currentY);
+  whiteboardCtx.stroke();
+  
+  lastX = currentX;
+  lastY = currentY;
+  
+  saveWhiteboard();
+}
+
+// Stop drawing
+function stopDrawing() {
+  if (isDrawing) {
+    isDrawing = false;
+    saveWhiteboard();
+  }
+}
+
+// Clear whiteboard
+function clearWhiteboard() {
+  if (!whiteboardCanvas || !whiteboardCtx) return;
+  
+  const bgColor = document.getElementById('whiteboard-bg-color')?.value || '#ffffff';
+  whiteboardCtx.fillStyle = bgColor;
+  whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+  
+  localStorage.removeItem('whiteboard-drawing');
+  saveWhiteboard();
+}
+
+// Save whiteboard to localStorage
+function saveWhiteboard() {
+  if (!whiteboardCanvas) return;
+  
+  try {
+    const dataURL = whiteboardCanvas.toDataURL('image/png');
+    localStorage.setItem('whiteboard-drawing', dataURL);
+  } catch (error) {
+    console.error('Error saving whiteboard:', error);
+  }
+}
+
 // Show authentication prompt
 function showGooglePhotosAuthPrompt() {
   const container = document.getElementById('photos-content');
@@ -2749,7 +3006,8 @@ const WIDGET_CONFIG = {
   'clock-widget': { name: 'Clock', icon: '🕐' },
   'photos-widget': { name: 'Google Photos', icon: '📷' },
   'thermostat-widget': { name: 'Thermostat', icon: '🌡️' },
-  'news-widget': { name: 'News', icon: '📰' }
+  'news-widget': { name: 'News', icon: '📰' },
+  'whiteboard-widget': { name: 'Whiteboard', icon: '🖊️' }
 };
 
 // Load widget visibility state from localStorage
