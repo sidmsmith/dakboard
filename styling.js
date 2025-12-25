@@ -1835,8 +1835,17 @@ function applyBackground() {
       break;
   }
   
-  applyBackgroundToDashboard(settings);
-  localStorage.setItem('dakboard-background', JSON.stringify(settings));
+  // Check if "Apply to all pages" is checked
+  const applyToAllPages = document.getElementById('apply-background-to-all-pages')?.checked || false;
+  
+  // Apply background to dashboard (current page or all pages)
+  applyBackgroundToDashboard(settings, applyToAllPages);
+  
+  // Only save to global key if applying to all pages (for backward compatibility)
+  if (applyToAllPages) {
+    localStorage.setItem('dakboard-background', JSON.stringify(settings));
+  }
+  
   closeBackgroundModal();
 }
 
