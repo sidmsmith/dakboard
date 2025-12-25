@@ -3958,9 +3958,15 @@ function updatePageList() {
 function setupPageManagement() {
   const addPageBtn = document.getElementById('add-page-btn');
   if (addPageBtn) {
-    addPageBtn.addEventListener('click', () => {
+    console.log('Setting up add page button listener');
+    addPageBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Add page button clicked!');
       addPage();
     });
+  } else {
+    console.error('add-page-btn not found!');
   }
 }
 
