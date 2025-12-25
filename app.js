@@ -1456,14 +1456,14 @@ let activeTodoList = null;
 async function loadTodos() {
   try {
     // Find all todo widgets across all pages
-    const todoLists = document.querySelectorAll('#todo-list');
-    if (todoLists.length === 0) return;
+    const todoListElements = document.querySelectorAll('#todo-list');
+    if (todoListElements.length === 0) return;
     
     // Discover all todo list entities
     const allStates = await fetchAllHAStates();
     if (!allStates) {
       const errorHtml = '<li class="todo-item"><span style="color: #888;">Error discovering todo lists</span></li>';
-      todoLists.forEach(list => list.innerHTML = errorHtml);
+      todoListElements.forEach(list => list.innerHTML = errorHtml);
       return;
     }
     
@@ -1493,7 +1493,7 @@ async function loadTodos() {
       // Filtered todo-like entities for debugging
       
       const noListHtml = '<li class="todo-item"><span style="color: #888;">No todo lists found. Check console for debug info.</span></li>';
-      todoLists.forEach(list => list.innerHTML = noListHtml);
+      todoListElements.forEach(list => list.innerHTML = noListHtml);
       return;
     }
     
@@ -1508,8 +1508,8 @@ async function loadTodos() {
   } catch (error) {
     console.error('Error loading todos:', error);
     const errorHtml = '<li class="todo-item"><span class="error">Error loading todos</span></li>';
-    const todoLists = document.querySelectorAll('#todo-list');
-    todoLists.forEach(list => list.innerHTML = errorHtml);
+    const todoListElements = document.querySelectorAll('#todo-list');
+    todoListElements.forEach(list => list.innerHTML = errorHtml);
   }
 }
 
@@ -1794,6 +1794,9 @@ async function loadGarageDoors() {
   
   const containers = document.querySelectorAll('#garage-doors');
   if (containers.length === 0) return;
+  
+  // Clear all containers first to prevent duplicate rows
+  containers.forEach(container => container.innerHTML = '');
   
   // Pre-fetch both icons
   const [garageIcon, garageOpenIcon] = await Promise.all([
