@@ -10,6 +10,11 @@ const CONFIG = {
   HA_GARAGE_DOOR_3: 'binary_sensor.z_wave_garage_door_sensor_sensor_state_any_3',
   HA_ALARM_ENTITY: 'alarm_control_panel.dev_ttyusb0_alarm_panel', // Update with your alarm entity ID
   
+  // Thermostat Configuration (add your 3 thermostat entity IDs)
+  HA_THERMOSTAT_1: 'climate.thermostat_1', // Update with your first thermostat entity ID
+  HA_THERMOSTAT_2: 'climate.thermostat_2', // Update with your second thermostat entity ID
+  HA_THERMOSTAT_3: 'climate.thermostat_3', // Update with your third thermostat entity ID
+  
   // Google Photos Configuration
   GOOGLE_PHOTOS_ALBUM_ID: null, // Optional: Specific album ID to display photos from. If null or empty, randomizes from all photos.
   
@@ -969,6 +974,8 @@ async function loadAllData() {
       loadGarageDoors(),
       loadAlarm(),
       loadGooglePhotos(), // Load Google Photos
+      loadThermostat(), // Load thermostat
+      loadNews(), // Load news feed
       loadCalendarEvents() // Reload calendar events on refresh
     ]);
   } catch (error) {
@@ -2219,6 +2226,360 @@ function enableGooglePhotosDemoMode() {
 // Make function globally accessible
 window.enableGooglePhotosDemoMode = enableGooglePhotosDemoMode;
 
+// Thermostat state
+let currentThermostat = 1;
+
+// Load thermostat data
+async function loadThermostat() {
+  const selector = document.getElementById('thermostat-selector');
+  const display = document.getElementById('thermostat-display');
+  
+  if (!selector || !display) return;
+  
+  // Get selected thermostat
+  currentThermostat = parseInt(selector.value) || 1;
+  const thermostatEntity = CONFIG[`HA_THERMOSTAT_${currentThermostat}`];
+  
+  if (!thermostatEntity) {
+    display.innerHTML = `
+      <div class="thermostat-error">
+        <p>Thermostat ${currentThermostat} not configured</p>
+        <p style="font-size: 12px; color: #888;">Update CONFIG.HA_THERMOSTAT_${currentThermostat} in app.js</p>
+      </div>
+    `;
+    return;
+  }
+  
+  try {
+    const entity = await fetchHAEntity(thermostatEntity);
+    if (!entity) {
+      display.innerHTML = '<div class="thermostat-error">Thermostat not found</div>';
+      return;
+    }
+    
+    const state = entity.state;
+    const attrs = entity.attributes || {};
+    
+    // Get temperature values
+    const currentTemp = attrs.current_temperature || attrs.temperature || '--';
+    const targetTemp = attrs.temperature || attrs.target_temp_high || attrs.target_temp_low || '--';
+    const mode = attrs.hvac_modes && attrs.hvac_modes.length > 0 ? state : 'off';
+    const fanMode = attrs.fan_mode || 'auto';
+    const fanModes = attrs.fan_modes || ['auto', 'on'];
+    
+    // Determine if heating or cooling
+    const isHeating = mode === 'heat' || (mode === 'auto' && currentTemp < targetTemp);
+    const isCooling = mode === 'cool' || (mode === 'auto' && currentTemp > targetTemp);
+    
+    display.innerHTML = `
+      <div class="thermostat-main">
+        <div class="thermostat-temp-display">
+          <div class="thermostat-current-temp">${Math.round(currentTemp)}°</div>
+          <div class="thermostat-target-temp">
+            <span class="thermostat-target-label">Target:</span>
+            <span class="thermostat-target-value" id="thermostat-target-value">${Math.round(targetTemp)}°</span>
+          </div>
+        </div>
+        <div class="thermostat-controls">
+          <div class="thermostat-mode">
+            <label>Mode:</label>
+            <select id="thermostat-mode-select" class="thermostat-control-select" ${isEditMode ? 'disabled' : ''}>
+              ${(attrs.hvac_modes || ['off']).map(m => 
+                `<option value="${m}" ${m === mode ? 'selected' : ''}>${m.charAt(0).toUpperCase() + m.slice(1)}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="thermostat-fan">
+            <label>Fan:</label>
+            <select id="thermostat-fan-select" class="thermostat-control-select" ${isEditMode ? 'disabled' : ''}>
+              ${fanModes.map(f => 
+                `<option value="${f}" ${f === fanMode ? 'selected' : ''}>${f.charAt(0).toUpperCase() + f.slice(1)}</option>`
+              ).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="thermostat-temp-control">
+          <button class="thermostat-temp-btn" id="thermostat-temp-down" ${isEditMode ? 'disabled' : ''}>−</button>
+          <input type="number" id="thermostat-temp-input" class="thermostat-temp-input" 
+                 value="${Math.round(targetTemp)}" min="50" max="90" step="1" ${isEditMode ? 'disabled' : ''}>
+          <button class="thermostat-temp-btn" id="thermostat-temp-up" ${isEditMode ? 'disabled' : ''}>+</button>
+        </div>
+        <div class="thermostat-status">
+          <span class="thermostat-status-indicator ${isHeating ? 'heating' : isCooling ? 'cooling' : 'idle'}">
+            ${isHeating ? '🔥 Heating' : isCooling ? '❄️ Cooling' : '⚪ Idle'}
+          </span>
+        </div>
+      </div>
+    `;
+    
+    // Add event listeners (only if not in edit mode)
+    if (!isEditMode) {
+      setupThermostatControls(thermostatEntity);
+    }
+  } catch (error) {
+    console.error('Error loading thermostat:', error);
+    display.innerHTML = `<div class="thermostat-error">Error: ${error.message}</div>`;
+  }
+}
+
+// Setup thermostat controls
+function setupThermostatControls(entityId) {
+  // Temperature input
+  const tempInput = document.getElementById('thermostat-temp-input');
+  const tempDown = document.getElementById('thermostat-temp-down');
+  const tempUp = document.getElementById('thermostat-temp-up');
+  const targetValue = document.getElementById('thermostat-target-value');
+  
+  if (tempInput) {
+    tempInput.addEventListener('change', async () => {
+      const newTemp = parseFloat(tempInput.value);
+      await setThermostatTemperature(entityId, newTemp);
+    });
+  }
+  
+  if (tempDown) {
+    tempDown.addEventListener('click', async () => {
+      const current = parseFloat(tempInput.value);
+      const newTemp = Math.max(50, current - 1);
+      tempInput.value = newTemp;
+      targetValue.textContent = `${newTemp}°`;
+      await setThermostatTemperature(entityId, newTemp);
+    });
+  }
+  
+  if (tempUp) {
+    tempUp.addEventListener('click', async () => {
+      const current = parseFloat(tempInput.value);
+      const newTemp = Math.min(90, current + 1);
+      tempInput.value = newTemp;
+      targetValue.textContent = `${newTemp}°`;
+      await setThermostatTemperature(entityId, newTemp);
+    });
+  }
+  
+  // Mode select
+  const modeSelect = document.getElementById('thermostat-mode-select');
+  if (modeSelect) {
+    modeSelect.addEventListener('change', async () => {
+      await setThermostatMode(entityId, modeSelect.value);
+    });
+  }
+  
+  // Fan select
+  const fanSelect = document.getElementById('thermostat-fan-select');
+  if (fanSelect) {
+    fanSelect.addEventListener('change', async () => {
+      await setThermostatFanMode(entityId, fanSelect.value);
+    });
+  }
+  
+  // Thermostat selector dropdown
+  const selector = document.getElementById('thermostat-selector');
+  if (selector) {
+    selector.addEventListener('change', () => {
+      loadThermostat();
+    });
+  }
+}
+
+// Set thermostat temperature
+async function setThermostatTemperature(entityId, temperature) {
+  if (isEditMode) return;
+  
+  try {
+    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
+      await fetch(`${window.CONFIG.HA_URL}/api/services/climate/set_temperature`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          temperature: temperature
+        })
+      });
+    } else {
+      // Use serverless function
+      await fetch('/api/ha-climate-set-temp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          temperature: temperature
+        })
+      });
+    }
+    
+    showToast(`Temperature set to ${temperature}°F`, 1000);
+    setTimeout(() => loadThermostat(), 500);
+  } catch (error) {
+    console.error('Error setting temperature:', error);
+    showToast('Error setting temperature', 2000);
+  }
+}
+
+// Set thermostat mode
+async function setThermostatMode(entityId, mode) {
+  if (isEditMode) return;
+  
+  try {
+    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
+      await fetch(`${window.CONFIG.HA_URL}/api/services/climate/set_hvac_mode`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          hvac_mode: mode
+        })
+      });
+    } else {
+      await fetch('/api/ha-climate-set-mode', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          hvac_mode: mode
+        })
+      });
+    }
+    
+    showToast(`Mode set to ${mode}`, 1000);
+    setTimeout(() => loadThermostat(), 500);
+  } catch (error) {
+    console.error('Error setting mode:', error);
+    showToast('Error setting mode', 2000);
+  }
+}
+
+// Set thermostat fan mode
+async function setThermostatFanMode(entityId, fanMode) {
+  if (isEditMode) return;
+  
+  try {
+    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
+      await fetch(`${window.CONFIG.HA_URL}/api/services/climate/set_fan_mode`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          fan_mode: fanMode
+        })
+      });
+    } else {
+      await fetch('/api/ha-climate-set-fan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          fan_mode: fanMode
+        })
+      });
+    }
+    
+    showToast(`Fan set to ${fanMode}`, 1000);
+    setTimeout(() => loadThermostat(), 500);
+  } catch (error) {
+    console.error('Error setting fan mode:', error);
+    showToast('Error setting fan mode', 2000);
+  }
+}
+
+// Load news feed
+async function loadNews() {
+  const container = document.getElementById('news-content');
+  if (!container) return;
+  
+  try {
+    // Use NewsAPI (free tier available)
+    // You'll need to add NEWS_API_KEY to Vercel environment variables
+    const response = await fetch('/api/news');
+    
+    if (!response.ok) {
+      if (response.status === 400) {
+        // Show setup instructions if API key is missing
+        const errorData = await response.json();
+        if (errorData.error && errorData.error.includes('News API key required')) {
+          container.innerHTML = `
+            <div class="news-placeholder">
+              <div class="news-icon">📰</div>
+              <h3>News Feed Setup</h3>
+              <p>To enable news feed:</p>
+              <ol class="news-instructions">
+                <li>Get a free API key from <a href="https://newsapi.org/" target="_blank">NewsAPI.org</a></li>
+                <li>Add <code>NEWS_API_KEY</code> to Vercel environment variables</li>
+                <li>Redeploy your application</li>
+              </ol>
+              <p style="font-size: 12px; color: #888; margin-top: 12px;">
+                Free tier: 100 requests/day
+              </p>
+            </div>
+          `;
+          return;
+        }
+      }
+      throw new Error(`Failed to fetch news: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.articles && data.articles.length > 0) {
+      container.innerHTML = `
+        <div class="news-list">
+          ${data.articles.slice(0, 5).map((article, index) => `
+            <div class="news-item">
+              <div class="news-item-title">
+                <a href="${article.url}" target="_blank" rel="noopener noreferrer">
+                  ${article.title}
+                </a>
+              </div>
+              <div class="news-item-source">${article.source?.name || 'Unknown'} • ${formatNewsDate(article.publishedAt)}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } else {
+      container.innerHTML = '<div class="news-error">No news articles found</div>';
+    }
+  } catch (error) {
+    console.error('Error loading news:', error);
+    container.innerHTML = `
+      <div class="news-error">
+        <p>Error loading news</p>
+        <p style="font-size: 12px; color: #888;">${error.message}</p>
+      </div>
+    `;
+  }
+}
+
+// Format news date
+function formatNewsDate(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 // Show authentication prompt
 function showGooglePhotosAuthPrompt() {
   const container = document.getElementById('photos-content');
@@ -2386,7 +2747,9 @@ const WIDGET_CONFIG = {
   'alarm-widget': { name: 'Alarm Panel', icon: '🔒' },
   'blank-widget': { name: 'Blank', icon: '⬜' },
   'clock-widget': { name: 'Clock', icon: '🕐' },
-  'photos-widget': { name: 'Google Photos', icon: '📷' }
+  'photos-widget': { name: 'Google Photos', icon: '📷' },
+  'thermostat-widget': { name: 'Thermostat', icon: '🌡️' },
+  'news-widget': { name: 'News', icon: '📰' }
 };
 
 // Load widget visibility state from localStorage
