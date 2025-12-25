@@ -861,13 +861,22 @@ body {
 
 .alarm-icon {
   font-size: calc(120px * var(--scale-factor, 1));
-  cursor: pointer;
-  transition: transform 0.3s;
+  transition: transform 0.3s, opacity 0.3s;
   line-height: 1;
 }
 
-.alarm-icon:hover {
+.alarm-icon[style*="cursor: pointer"] {
+  cursor: pointer;
+}
+
+.alarm-icon[style*="cursor: pointer"]:hover {
   transform: scale(1.1);
+  opacity: 0.8;
+}
+
+.alarm-icon[style*="cursor: not-allowed"] {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .alarm-icon.loading {
