@@ -340,10 +340,12 @@ function handleMouseMove(e) {
       
       if (constrainedTop !== originalNewTop) {
         // Top was constrained, so adjust height to maintain the intended resize effect
-        // The difference between intended and constrained top should be added to height
-        // so the full mouse movement is reflected in the height change
-        const topConstraintDelta = originalNewTop - constrainedTop;
-        newHeight = newHeight + topConstraintDelta;
+        // Calculate the bottom position based on the original resize calculation
+        const originalBottom = resizeStart.top + resizeStart.height;
+        // The new bottom should be: original bottom + (how much we wanted to move the top)
+        // But since top is constrained, adjust height to reach that bottom position
+        const intendedBottom = originalBottom + (originalNewTop - resizeStart.top);
+        newHeight = intendedBottom - constrainedTop;
         newTop = constrainedTop;
         
         // Re-apply minimum height after adjustment
@@ -354,6 +356,27 @@ function handleMouseMove(e) {
           // But still respect dashboard bounds
           newTop = Math.max(-newHeight + minVisible, Math.min(newTop, dashboardRect.height - minVisible));
         }
+        
+        // Enforce maximum height (prevent widget from growing too large)
+        const maxHeight = dashboardRect.height + 100; // Allow slight overflow
+        if (newHeight > maxHeight) {
+          newHeight = maxHeight;
+          // Adjust top to keep bottom in reasonable position
+          newTop = Math.max(-newHeight + minVisible, Math.min(newTop, dashboardRect.height - minVisible));
+        }
+      }
+    }
+    
+    // Enforce maximum height for all resize directions
+    const maxHeight = dashboardRect.height + 100; // Allow slight overflow
+    if (newHeight > maxHeight) {
+      newHeight = maxHeight;
+      // If resizing from bottom, adjust position
+      if (resizeDirection.includes('bottom')) {
+        // Keep top in place, just limit height
+      } else if (resizeDirection.includes('top')) {
+        // Adjust top to keep bottom reasonable
+        newTop = Math.max(-newHeight + minVisible, Math.min(newTop, dashboardRect.height - minVisible));
       }
     }
     
