@@ -3560,6 +3560,11 @@ function showPage(pageIndex) {
     updatePageList();
   }
   
+  // Refresh widget control panel to show correct visibility for current page
+  if (typeof updateWidgetControlPanel === 'function') {
+    updateWidgetControlPanel();
+  }
+  
   // Reinitialize drag and resize for current page
   if (typeof initializeDragAndResize === 'function') {
     initializeDragAndResize();
