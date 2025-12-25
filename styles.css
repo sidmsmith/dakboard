@@ -2412,11 +2412,16 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
   margin-bottom: 8px;
   background: #333;
   border-radius: 8px;
-  transition: background 0.2s;
+  transition: background 0.2s, opacity 0.2s;
 }
 
 .widget-control-item:hover {
   background: #3a3a3a;
+}
+
+.widget-control-item.hidden {
+  background: #2a2a2a;
+  opacity: 0.5;
 }
 
 .widget-control-item-info {
