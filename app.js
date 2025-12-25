@@ -3464,6 +3464,7 @@ function showPage(pageIndex) {
   }
   
   currentPageIndex = pageIndex;
+  window.currentPageIndex = pageIndex; // Make available globally for styling.js
   localStorage.setItem('dakboard-current-page', pageIndex.toString());
   
   // Update page positions
@@ -3476,8 +3477,13 @@ function showPage(pageIndex) {
   // Update navigation arrows visibility
   updateNavigationArrows();
   
-  // Load page-specific layout
+  // Load page-specific layout (includes edit mode, background, widgets)
   loadCurrentPage();
+  
+  // Reload background settings in modal if it's open
+  if (typeof loadBackgroundSettings === 'function') {
+    loadBackgroundSettings();
+  }
   
   // Reinitialize drag and resize for current page
   if (typeof initializeDragAndResize === 'function') {
