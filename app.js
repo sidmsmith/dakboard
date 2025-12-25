@@ -4392,14 +4392,16 @@ function exportConfiguration() {
     }
     
     // Add color descriptions as comments in JSON string (non-standard but readable)
+    // Comments are placed on the line before the property for easier parsing
     function addColorComments(jsonStr) {
       const colorProps = ['backgroundColor', 'borderColor', 'shadowColor', 'textColor', 'gradientColor1', 'gradientColor2'];
       colorProps.forEach(prop => {
-        // Match: "propertyName": "#RRGGBB"
-        const regex = new RegExp(`("${prop}"\\s*:\\s*")(#[0-9a-fA-F]{6})(")`, 'gi');
-        jsonStr = jsonStr.replace(regex, (match, prefix, hex, suffix) => {
+        // Match: "propertyName": "#RRGGBB" with optional whitespace/indentation
+        const regex = new RegExp(`(\\s*)("${prop}"\\s*:\\s*")(#[0-9a-fA-F]{6})(")`, 'gi');
+        jsonStr = jsonStr.replace(regex, (match, indent, prefix, hex, suffix) => {
           const desc = getColorDescription(hex);
-          return desc ? `${prefix}${hex}${suffix} // ${desc}` : match;
+          // Add comment on line before the property
+          return desc ? `${indent}// ${prop}: ${desc}\n${indent}${prefix}${hex}${suffix}` : match;
         });
       });
       return jsonStr;
@@ -4437,7 +4439,9 @@ function importConfiguration(file) {
     try {
       // Strip comments from JSON (non-standard but we add them for readability)
       let jsonText = e.target.result;
-      jsonText = jsonText.replace(/\/\/.*$/gm, ''); // Remove line comments
+      // Remove line comments (both standalone comment lines and inline comments)
+      jsonText = jsonText.replace(/^\s*\/\/.*$/gm, ''); // Remove standalone comment lines
+      jsonText = jsonText.replace(/\s*\/\/.*$/gm, ''); // Remove inline comments
       
       const config = JSON.parse(jsonText);
       
