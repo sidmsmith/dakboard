@@ -4206,28 +4206,120 @@ function initializeConfigExportImport() {
 // Export all dashboard configuration to JSON file
 function exportConfiguration() {
   try {
+    // Get total pages and current page
+    const totalPages = parseInt(localStorage.getItem('dakboard-total-pages')) || 1;
+    const currentPage = parseInt(localStorage.getItem('dakboard-current-page')) || 0;
+    
     const config = {
-      version: '1.0',
+      version: '2.0',
       exportDate: new Date().toISOString(),
-      data: {}
+      metadata: {
+        totalPages: totalPages,
+        currentPage: currentPage
+      },
+      pages: []
     };
     
-    // Collect all localStorage keys related to dashboard
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && (key.startsWith('dakboard-') || key.startsWith('whiteboard-'))) {
+    // Organize data by page
+    for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+      const page = {
+        pageIndex: pageIndex,
+        name: localStorage.getItem(`dakboard-page-name-${pageIndex}`) || `Page ${pageIndex + 1}`,
+        background: null,
+        editMode: localStorage.getItem(`dakboard-edit-mode-page-${pageIndex}`) === 'true',
+        widgets: []
+      };
+      
+      // Get page background
+      const bgKey = `dakboard-page-background-${pageIndex}`;
+      const bgValue = localStorage.getItem(bgKey);
+      if (bgValue) {
         try {
-          const value = localStorage.getItem(key);
-          // Try to parse JSON, if it fails, store as string
-          try {
-            config.data[key] = JSON.parse(value);
-          } catch {
-            config.data[key] = value;
-          }
-        } catch (error) {
-          console.warn(`Error exporting key ${key}:`, error);
+          page.background = JSON.parse(bgValue);
+        } catch {
+          page.background = bgValue;
         }
       }
+      
+      // Get widget visibility for this page
+      const visibilityKey = `dakboard-widget-visibility-page-${pageIndex}`;
+      const visibilityValue = localStorage.getItem(visibilityKey);
+      let visibility = {};
+      if (visibilityValue) {
+        try {
+          visibility = JSON.parse(visibilityValue);
+        } catch (e) {
+          console.warn(`Error parsing visibility for page ${pageIndex}:`, e);
+        }
+      }
+      
+      // Get widget layout for this page
+      const layoutKey = `dakboard-widget-layout-page-${pageIndex}`;
+      const layoutValue = localStorage.getItem(layoutKey);
+      let layout = {};
+      if (layoutValue) {
+        try {
+          layout = JSON.parse(layoutValue);
+        } catch (e) {
+          console.warn(`Error parsing layout for page ${pageIndex}:`, e);
+        }
+      }
+      
+      // Organize widgets for this page
+      Object.keys(WIDGET_CONFIG).forEach(widgetId => {
+        const widgetInfo = WIDGET_CONFIG[widgetId];
+        const widget = {
+          widgetId: widgetId,
+          name: widgetInfo.name,
+          icon: widgetInfo.icon,
+          visible: visibility[widgetId] !== false, // Default to true if not explicitly false
+          layout: layout[widgetId] || null,
+          styles: null
+        };
+        
+        // Get widget styles for this page
+        const stylesKey = `dakboard-widget-styles-${widgetId}-page-${pageIndex}`;
+        const stylesValue = localStorage.getItem(stylesKey);
+        if (stylesValue) {
+          try {
+            widget.styles = JSON.parse(stylesValue);
+          } catch (e) {
+            console.warn(`Error parsing styles for ${widgetId} on page ${pageIndex}:`, e);
+          }
+        }
+        
+        // Include widget if it has any configuration (visibility setting, layout, or styles)
+        // This ensures we capture all widgets that have been configured, even if hidden
+        const hasVisibilitySetting = visibility.hasOwnProperty(widgetId);
+        if (hasVisibilitySetting || widget.layout || widget.styles) {
+          page.widgets.push(widget);
+        }
+      });
+      
+      // Get whiteboard data for this page
+      const whiteboardKeys = [
+        `whiteboard-drawing-page-${pageIndex}`,
+        `whiteboard-bg-color-page-${pageIndex}`,
+        `whiteboard-ink-color-page-${pageIndex}`,
+        `whiteboard-brush-size-page-${pageIndex}`
+      ];
+      
+      const whiteboardData = {};
+      let hasWhiteboardData = false;
+      whiteboardKeys.forEach(key => {
+        const value = localStorage.getItem(key);
+        if (value) {
+          const propName = key.replace(`whiteboard-`, '').replace(`-page-${pageIndex}`, '');
+          whiteboardData[propName] = value;
+          hasWhiteboardData = true;
+        }
+      });
+      
+      if (hasWhiteboardData) {
+        page.whiteboard = whiteboardData;
+      }
+      
+      config.pages.push(page);
     }
     
     // Create JSON blob and trigger download
@@ -4243,6 +4335,7 @@ function exportConfiguration() {
     URL.revokeObjectURL(url);
     
     console.log('Configuration exported successfully');
+    console.log(`Exported ${config.pages.length} pages with ${config.pages.reduce((sum, p) => sum + p.widgets.length, 0)} widgets total`);
   } catch (error) {
     console.error('Error exporting configuration:', error);
     alert('Error exporting configuration. Please check the console for details.');
@@ -4256,10 +4349,6 @@ function importConfiguration(file) {
   reader.onload = (e) => {
     try {
       const config = JSON.parse(e.target.result);
-      
-      if (!config.data || typeof config.data !== 'object') {
-        throw new Error('Invalid configuration format');
-      }
       
       // Confirm before importing (will overwrite existing data)
       const confirmed = confirm(
@@ -4280,21 +4369,111 @@ function importConfiguration(file) {
       }
       keysToRemove.forEach(key => localStorage.removeItem(key));
       
-      // Import new data
       let importedCount = 0;
-      Object.keys(config.data).forEach(key => {
-        try {
-          const value = config.data[key];
-          if (typeof value === 'object') {
-            localStorage.setItem(key, JSON.stringify(value));
-          } else {
-            localStorage.setItem(key, value);
+      
+      // Check if this is the new organized format (v2.0) or old format (v1.0)
+      if (config.pages && Array.isArray(config.pages)) {
+        // New organized format (v2.0)
+        console.log('Importing configuration in organized format (v2.0)');
+        
+        // Import metadata
+        if (config.metadata) {
+          if (config.metadata.totalPages !== undefined) {
+            localStorage.setItem('dakboard-total-pages', config.metadata.totalPages.toString());
+            importedCount++;
           }
-          importedCount++;
-        } catch (error) {
-          console.warn(`Error importing key ${key}:`, error);
+          if (config.metadata.currentPage !== undefined) {
+            localStorage.setItem('dakboard-current-page', config.metadata.currentPage.toString());
+            importedCount++;
+          }
         }
-      });
+        
+        // Import each page
+        config.pages.forEach(page => {
+          const pageIndex = page.pageIndex;
+          
+          // Import page name
+          if (page.name) {
+            localStorage.setItem(`dakboard-page-name-${pageIndex}`, page.name);
+            importedCount++;
+          }
+          
+          // Import page background
+          if (page.background) {
+            const bgValue = typeof page.background === 'object' 
+              ? JSON.stringify(page.background) 
+              : page.background;
+            localStorage.setItem(`dakboard-page-background-${pageIndex}`, bgValue);
+            importedCount++;
+          }
+          
+          // Import edit mode
+          if (page.editMode !== undefined) {
+            localStorage.setItem(`dakboard-edit-mode-page-${pageIndex}`, page.editMode.toString());
+            importedCount++;
+          }
+          
+          // Import widget visibility
+          const visibility = {};
+          page.widgets.forEach(widget => {
+            visibility[widget.widgetId] = widget.visible !== false;
+          });
+          localStorage.setItem(`dakboard-widget-visibility-page-${pageIndex}`, JSON.stringify(visibility));
+          importedCount++;
+          
+          // Import widget layouts
+          const layout = {};
+          page.widgets.forEach(widget => {
+            if (widget.layout) {
+              layout[widget.widgetId] = widget.layout;
+            }
+          });
+          if (Object.keys(layout).length > 0) {
+            localStorage.setItem(`dakboard-widget-layout-page-${pageIndex}`, JSON.stringify(layout));
+            importedCount++;
+          }
+          
+          // Import widget styles
+          page.widgets.forEach(widget => {
+            if (widget.styles) {
+              localStorage.setItem(
+                `dakboard-widget-styles-${widget.widgetId}-page-${pageIndex}`,
+                JSON.stringify(widget.styles)
+              );
+              importedCount++;
+            }
+          });
+          
+          // Import whiteboard data
+          if (page.whiteboard) {
+            Object.keys(page.whiteboard).forEach(key => {
+              const whiteboardKey = `whiteboard-${key}-page-${pageIndex}`;
+              localStorage.setItem(whiteboardKey, page.whiteboard[key]);
+              importedCount++;
+            });
+          }
+        });
+        
+      } else if (config.data && typeof config.data === 'object') {
+        // Old format (v1.0) - backward compatibility
+        console.log('Importing configuration in legacy format (v1.0)');
+        
+        Object.keys(config.data).forEach(key => {
+          try {
+            const value = config.data[key];
+            if (typeof value === 'object') {
+              localStorage.setItem(key, JSON.stringify(value));
+            } else {
+              localStorage.setItem(key, value);
+            }
+            importedCount++;
+          } catch (error) {
+            console.warn(`Error importing key ${key}:`, error);
+          }
+        });
+      } else {
+        throw new Error('Invalid configuration format. Expected "pages" array or "data" object.');
+      }
       
       console.log(`Configuration imported successfully. ${importedCount} items restored.`);
       
@@ -4304,7 +4483,7 @@ function importConfiguration(file) {
       
     } catch (error) {
       console.error('Error importing configuration:', error);
-      alert('Error importing configuration. Please ensure the file is a valid JSON configuration file.');
+      alert('Error importing configuration. Please ensure the file is a valid JSON configuration file.\n\nError: ' + error.message);
     }
   };
   
