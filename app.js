@@ -3851,6 +3851,14 @@ function addPage() {
   // Set default background
   newPage.style.background = '#1a1a1a';
   
+  // Mark all widgets as hidden for the new page
+  const visibility = {};
+  Object.keys(WIDGET_CONFIG).forEach(widgetId => {
+    visibility[widgetId] = false; // All widgets hidden by default
+  });
+  const visibilityKey = `dakboard-widget-visibility-page-${newPageIndex}`;
+  localStorage.setItem(visibilityKey, JSON.stringify(visibility));
+  
   // Update page list UI
   updatePageList();
   
