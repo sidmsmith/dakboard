@@ -1989,39 +1989,21 @@ async function setAlarm() {
   const icon = document.getElementById('alarm-icon');
   icon.classList.add('loading');
   
+  // Show toast notification immediately (like garage widget)
+  showToast('Alarm Button Pressed', 1500);
+  
   try {
-    // Call the setalarm webhook directly
-    const webhookUrl = CONFIG.HA_ALARM_WEBHOOK;
+    // Use triggerHAWebhook which handles both webhook IDs and full URLs
+    // It will extract the webhook ID from URLs and use serverless function in production
+    // This avoids mixed content errors (HTTP from HTTPS page)
+    await triggerHAWebhook(CONFIG.HA_ALARM_WEBHOOK);
     
-    // Check if it's a full URL or just a webhook ID
-    if (webhookUrl.startsWith('http://') || webhookUrl.startsWith('https://')) {
-      // Full URL - call directly
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({})
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-    } else {
-      // Webhook ID - use existing function
-      await triggerHAWebhook(webhookUrl);
-    }
-    
-    // Show toast notification
-    showToast('Setting Alarm...', 1500);
-    
-    // Reload alarm after a short delay
+    // Reload alarm after a short delay to get updated state
     setTimeout(() => {
       loadAlarm();
     }, 1000);
   } catch (error) {
     console.error('Error setting alarm:', error);
-    icon.classList.remove('loading');
     showToast('Error setting alarm', 2000);
   } finally {
     icon.classList.remove('loading');
