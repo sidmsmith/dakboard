@@ -152,18 +152,22 @@ function initializeDragAndResize() {
     }
     
     widgets.forEach((widget, index) => {
-      // Remove any existing event listeners by cloning (prevents duplicates)
-      const newWidget = widget.cloneNode(true);
-      widget.parentNode.replaceChild(newWidget, widget);
+      // Skip if already initialized (check for data attribute)
+      if (widget.hasAttribute('data-drag-resize-initialized')) {
+        return;
+      }
+      
+      // Mark as initialized
+      widget.setAttribute('data-drag-resize-initialized', 'true');
       
       // Add resize handles
-      addResizeHandles(newWidget);
+      addResizeHandles(widget);
       
       // Make widget draggable (only in edit mode)
       // In edit mode, entire widget is draggable; in normal mode, no dragging
-      newWidget.addEventListener('mousedown', (e) => {
+      widget.addEventListener('mousedown', (e) => {
         // Check if edit mode is active on the current page
-        const dashboard = newWidget.closest('.dashboard.page');
+        const dashboard = widget.closest('.dashboard.page');
         const inEditMode = dashboard && dashboard.classList.contains('edit-mode');
         
         if (!inEditMode) {
@@ -185,11 +189,11 @@ function initializeDragAndResize() {
           return;
         }
         
-        startDrag(newWidget, e);
+        startDrag(widget, e);
       });
       
       // Update scale on initial load
-      updateWidgetScale(newWidget);
+      updateWidgetScale(widget);
     });
   }, 100);
   
