@@ -333,18 +333,26 @@ function handleMouseMove(e) {
     newLeft = Math.max(-newWidth + minVisible, Math.min(newLeft, dashboardRect.width - minVisible));
     newTop = Math.max(-newHeight + minVisible, Math.min(newTop, dashboardRect.height - minVisible));
     
-    // If top was constrained, recalculate height to maintain bottom position
+    // If resizing from top and top was constrained, adjust height to compensate
     if (resizeDirection.includes('top')) {
+      const originalNewTop = newTop;
       const constrainedTop = Math.max(-newHeight + minVisible, Math.min(newTop, dashboardRect.height - minVisible));
-      if (constrainedTop !== newTop) {
-        // Top was constrained, so adjust height to maintain the intended resize
-        const topDelta = constrainedTop - newTop;
-        newHeight = newHeight - topDelta;
+      
+      if (constrainedTop !== originalNewTop) {
+        // Top was constrained, so adjust height to maintain the intended resize effect
+        // The difference between intended and constrained top should be added to height
+        // so the full mouse movement is reflected in the height change
+        const topConstraintDelta = originalNewTop - constrainedTop;
+        newHeight = newHeight + topConstraintDelta;
         newTop = constrainedTop;
+        
         // Re-apply minimum height after adjustment
         if (newHeight < minHeight) {
           newHeight = minHeight;
+          // If we hit min height, adjust top to keep bottom in place
           newTop = resizeStart.top + resizeStart.height - minHeight;
+          // But still respect dashboard bounds
+          newTop = Math.max(-newHeight + minVisible, Math.min(newTop, dashboardRect.height - minVisible));
         }
       }
     }
