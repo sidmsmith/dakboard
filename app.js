@@ -2687,15 +2687,6 @@ function initializeWhiteboard() {
   
   // Drawing event listeners (only in normal mode)
   setupWhiteboardDrawing();
-  
-  // Update drawing when edit mode changes
-  const originalSetEditMode = window.setEditMode;
-  if (originalSetEditMode) {
-    window.setEditMode = function(enabled) {
-      originalSetEditMode(enabled);
-      setupWhiteboardDrawing();
-    };
-  }
 }
 
 // Setup whiteboard drawing
@@ -3128,6 +3119,11 @@ function setEditMode(enabled) {
     } else {
       dashboard.classList.remove('edit-mode');
     }
+  }
+  
+  // Update whiteboard drawing state
+  if (typeof setupWhiteboardDrawing === 'function') {
+    setupWhiteboardDrawing();
   }
   
   // Toggle watermark visibility
