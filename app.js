@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   loadWidgetLayout(); // Load saved positions/sizes first
-  loadWidgetVisibility(); // Load widget visibility state
+  // loadWidgetVisibility() is now called in loadCurrentPage() for page-specific loading
   initializeWidgetControlPanel(); // Initialize widget visibility panel
   initializeCalendar();
   initializeClock(); // Initialize clock
@@ -3028,17 +3028,24 @@ const WIDGET_CONFIG = {
   'whiteboard-widget': { name: 'Whiteboard', icon: '🖊️' }
 };
 
-// Load widget visibility state from localStorage
+// Load widget visibility state from localStorage (page-specific)
 function loadWidgetVisibility() {
   try {
-    const saved = localStorage.getItem('dakboard-widget-visibility');
+    const pageElement = getPageElement(currentPageIndex);
+    if (!pageElement) return;
+    
+    const visibilityKey = `dakboard-widget-visibility-page-${currentPageIndex}`;
+    const saved = localStorage.getItem(visibilityKey);
     if (saved) {
       const visibility = JSON.parse(saved);
       Object.keys(visibility).forEach(widgetId => {
-        const widget = document.querySelector(`.${widgetId}`);
+        // Find widget on current page only
+        const widget = pageElement.querySelector(`.${widgetId}`);
         if (widget) {
           if (visibility[widgetId] === false) {
             widget.classList.add('hidden');
+          } else {
+            widget.classList.remove('hidden');
           }
         }
       });
@@ -3048,25 +3055,62 @@ function loadWidgetVisibility() {
   }
 }
 
-// Save widget visibility state to localStorage
+// Save widget visibility state to localStorage (page-specific)
 function saveWidgetVisibility() {
   try {
+    const pageElement = getPageElement(currentPageIndex);
+    if (!pageElement) return;
+    
     const visibility = {};
     Object.keys(WIDGET_CONFIG).forEach(widgetId => {
-      const widget = document.querySelector(`.${widgetId}`);
+      // Find widget on current page only
+      const widget = pageElement.querySelector(`.${widgetId}`);
       if (widget) {
         visibility[widgetId] = !widget.classList.contains('hidden');
+      } else {
+        // Widget doesn't exist on this page, mark as hidden
+        visibility[widgetId] = false;
       }
     });
-    localStorage.setItem('dakboard-widget-visibility', JSON.stringify(visibility));
+    
+    const visibilityKey = `dakboard-widget-visibility-page-${currentPageIndex}`;
+    localStorage.setItem(visibilityKey, JSON.stringify(visibility));
   } catch (error) {
     console.error('Error saving widget visibility:', error);
   }
 }
 
-// Toggle widget visibility
+// Toggle widget visibility (page-specific)
 function toggleWidgetVisibility(widgetId) {
-  const widget = document.querySelector(`.${widgetId}`);
+  const pageElement = getPageElement(currentPageIndex);
+  if (!pageElement) return;
+  
+  // Find widget on current page
+  let widget = pageElement.querySelector(`.${widgetId}`);
+  
+  // If widget doesn't exist on current page and we're showing it, create it
+  if (!widget) {
+    // Find the widget template (usually on page 0 or in the original HTML)
+    const templateWidget = document.querySelector(`.${widgetId}`);
+    if (templateWidget) {
+      // Clone the widget to the current page
+      widget = templateWidget.cloneNode(true);
+      widget.classList.remove('hidden'); // Ensure it's visible
+      pageElement.appendChild(widget);
+      
+      // Initialize widget-specific functionality if needed
+      if (typeof initializeDragAndResize === 'function') {
+        // Reinitialize drag/resize for the new widget
+        setTimeout(() => {
+          initializeDragAndResize();
+        }, 100);
+      }
+    } else {
+      console.error(`Widget template ${widgetId} not found`);
+      return;
+    }
+  }
+  
   if (widget) {
     widget.classList.toggle('hidden');
     saveWidgetVisibility();
