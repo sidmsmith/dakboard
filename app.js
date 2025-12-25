@@ -2261,29 +2261,37 @@ let currentThermostat = 1;
 
 // Load thermostat data
 async function loadThermostat() {
-  const selector = document.getElementById('thermostat-selector');
-  const display = document.getElementById('thermostat-display');
+  // Find all thermostat widgets across all pages
+  const selectors = document.querySelectorAll('#thermostat-selector');
+  const displays = document.querySelectorAll('#thermostat-display');
   
-  if (!selector || !display) return;
+  if (selectors.length === 0 || displays.length === 0) return;
+  
+  // Use the first selector to get the value (they should all be in sync)
+  const selector = selectors[0];
+  const display = displays[0];
   
   // Get selected thermostat
   currentThermostat = parseInt(selector.value) || 1;
   const thermostatEntity = CONFIG[`HA_THERMOSTAT_${currentThermostat}`];
   
   if (!thermostatEntity) {
-    display.innerHTML = `
+    const errorHtml = `
       <div class="thermostat-error">
         <p>Thermostat ${currentThermostat} not configured</p>
         <p style="font-size: 12px; color: #888;">Update CONFIG.HA_THERMOSTAT_${currentThermostat} in app.js</p>
       </div>
     `;
+    // Update all displays
+    displays.forEach(d => d.innerHTML = errorHtml);
     return;
   }
   
   try {
     const entity = await fetchHAEntity(thermostatEntity);
     if (!entity) {
-      display.innerHTML = '<div class="thermostat-error">Thermostat not found</div>';
+      const errorHtml = '<div class="thermostat-error">Thermostat not found</div>';
+      displays.forEach(d => d.innerHTML = errorHtml);
       return;
     }
     
@@ -2301,7 +2309,7 @@ async function loadThermostat() {
     const isHeating = mode === 'heat' || (mode === 'auto' && currentTemp < targetTemp);
     const isCooling = mode === 'cool' || (mode === 'auto' && currentTemp > targetTemp);
     
-    display.innerHTML = `
+    const displayHtml = `
       <div class="thermostat-main">
         <div class="thermostat-temp-display">
           <div class="thermostat-current-temp">${Math.round(currentTemp)}°</div>
@@ -2342,13 +2350,17 @@ async function loadThermostat() {
       </div>
     `;
     
-    // Add event listeners (only if not in edit mode)
+    // Update all displays across all pages
+    displays.forEach(d => d.innerHTML = displayHtml);
+    
+    // Add event listeners (only if not in edit mode) - setup for all widgets
     if (!isEditMode) {
       setupThermostatControls(thermostatEntity);
     }
   } catch (error) {
     console.error('Error loading thermostat:', error);
-    display.innerHTML = `<div class="thermostat-error">Error: ${error.message}</div>`;
+    const errorHtml = `<div class="thermostat-error">Error: ${error.message}</div>`;
+    displays.forEach(d => d.innerHTML = errorHtml);
   }
 }
 
@@ -2529,8 +2541,9 @@ async function setThermostatFanMode(entityId, fanMode) {
 
 // Load news feed
 async function loadNews() {
-  const container = document.getElementById('news-content');
-  if (!container) return;
+  // Find all news widgets across all pages
+  const containers = document.querySelectorAll('#news-content');
+  if (containers.length === 0) return;
   
   try {
     // Use NewsAPI (free tier available)
@@ -2542,7 +2555,7 @@ async function loadNews() {
         // Show setup instructions if API key is missing
         const errorData = await response.json();
         if (errorData.error && errorData.error.includes('News API key required')) {
-          container.innerHTML = `
+          const setupHtml = `
             <div class="news-placeholder">
               <div class="news-icon">📰</div>
               <h3>News Feed Setup</h3>
@@ -2557,6 +2570,7 @@ async function loadNews() {
               </p>
             </div>
           `;
+          containers.forEach(c => c.innerHTML = setupHtml);
           return;
         }
       }
@@ -2565,8 +2579,9 @@ async function loadNews() {
     
     const data = await response.json();
     
+    let contentHtml;
     if (data.articles && data.articles.length > 0) {
-      container.innerHTML = `
+      contentHtml = `
         <div class="news-list">
           ${data.articles.slice(0, 5).map((article, index) => `
             <div class="news-item">
@@ -2581,16 +2596,20 @@ async function loadNews() {
         </div>
       `;
     } else {
-      container.innerHTML = '<div class="news-error">No news articles found</div>';
+      contentHtml = '<div class="news-error">No news articles found</div>';
     }
+    
+    // Update all containers across all pages
+    containers.forEach(c => c.innerHTML = contentHtml);
   } catch (error) {
     console.error('Error loading news:', error);
-    container.innerHTML = `
+    const errorHtml = `
       <div class="news-error">
         <p>Error loading news</p>
         <p style="font-size: 12px; color: #888;">${error.message}</p>
       </div>
     `;
+    containers.forEach(c => c.innerHTML = errorHtml);
   }
 }
 
