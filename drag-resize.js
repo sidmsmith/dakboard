@@ -152,10 +152,11 @@ function initializeDragAndResize() {
     }
     
     widgets.forEach((widget, index) => {
-      // Skip if already initialized (check for data attribute)
-      if (widget.hasAttribute('data-drag-resize-initialized')) {
-        return;
-      }
+      // Remove existing resize handles first (in case we're re-initializing)
+      widget.querySelectorAll('.resize-handle').forEach(h => h.remove());
+      
+      // Remove data attribute to allow re-initialization when switching pages
+      widget.removeAttribute('data-drag-resize-initialized');
       
       // Mark as initialized
       widget.setAttribute('data-drag-resize-initialized', 'true');

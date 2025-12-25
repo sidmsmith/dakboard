@@ -3521,6 +3521,24 @@ function createPage(pageIndex) {
       });
       existingDashboard.remove();
     }
+    
+    // Move app-purpose-box to page 0 only
+    const appPurposeBox = document.querySelector('.app-purpose-box');
+    if (appPurposeBox && !appPurposeBox.closest('.dashboard.page')) {
+      page.appendChild(appPurposeBox);
+    }
+  } else {
+    // For pages 1+, hide or remove the app-purpose-box if it exists
+    const appPurposeBox = document.querySelector('.app-purpose-box');
+    if (appPurposeBox) {
+      // If it's not already on a page, hide it
+      if (!appPurposeBox.closest('.dashboard.page')) {
+        appPurposeBox.style.display = 'none';
+      } else {
+        // If it's on another page, just ensure it's not visible on this page
+        appPurposeBox.style.display = 'none';
+      }
+    }
   }
   
   return page;
