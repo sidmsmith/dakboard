@@ -3604,6 +3604,11 @@ function showPage(pageIndex) {
   if (typeof initializeDragAndResize === 'function') {
     initializeDragAndResize();
   }
+  
+  // Reinitialize whiteboard for current page
+  if (typeof initializeWhiteboard === 'function') {
+    initializeWhiteboard();
+  }
 }
 
 // Navigate to next page (circular)
