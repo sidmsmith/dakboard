@@ -4164,6 +4164,17 @@ function renamePage(pageIndex, labelElement) {
     labelElement.style.display = '';
     parent.removeChild(input);
   };
+  
+  input.addEventListener('blur', saveName);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveName();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelRename();
+    }
+  });
 }
 
 // Export/Import Configuration Functions
@@ -4302,18 +4313,6 @@ function importConfiguration(file) {
   };
   
   reader.readAsText(file);
-}
-  
-  input.addEventListener('blur', saveName);
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      saveName();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      cancelRename();
-    }
-  });
 }
 
 // Setup page management event listeners
