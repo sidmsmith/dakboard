@@ -3125,6 +3125,7 @@ function initializeWidgetControlPanel() {
   });
   
   updateWidgetControlPanel();
+  updatePageList(); // Update page list in control panel
 }
 
 // Set edit mode on/off (page-specific)
@@ -3419,8 +3420,14 @@ function initializePages() {
   // Setup swipe gestures
   setupSwipeGestures();
   
+  // Setup page management (add/delete)
+  setupPageManagement();
+  
   // Show current page
   showPage(currentPageIndex);
+  
+  // Initial page list update
+  updatePageList();
 }
 
 // Get page element by index

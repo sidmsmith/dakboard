@@ -2294,6 +2294,116 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
   padding: 10px;
 }
 
+/* Page Management Section */
+.page-management-section {
+  border-top: 2px solid #3a3a3a;
+  padding: 15px;
+  background: #2a2a2a;
+}
+
+.page-management-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.page-management-header h4 {
+  margin: 0;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.page-management-btn {
+  background: #4285f4;
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  line-height: 1;
+  padding: 0;
+}
+
+.page-management-btn:hover {
+  background: #357ae8;
+}
+
+.page-management-btn:active {
+  background: #2d6bc4;
+}
+
+.page-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.page-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #3a3a3a;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.page-list-item:hover {
+  background: #444;
+}
+
+.page-list-item.active {
+  background: #4285f4;
+  border: 1px solid #5ba0f2;
+}
+
+.page-list-item.active .page-list-label {
+  color: #fff;
+  font-weight: 600;
+}
+
+.page-list-label {
+  color: #e0e0e0;
+  font-size: 14px;
+  flex: 1;
+}
+
+.page-delete-btn {
+  background: transparent;
+  border: 1px solid #666;
+  color: #e0e0e0;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  line-height: 1;
+  padding: 0;
+}
+
+.page-delete-btn:hover:not(:disabled) {
+  background: #e74c3c;
+  border-color: #e74c3c;
+  color: #fff;
+}
+
+.page-delete-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 .widget-control-item {
   display: flex;
   align-items: center;
