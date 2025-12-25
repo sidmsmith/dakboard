@@ -1867,7 +1867,7 @@ function applyBackgroundToPageElement(pageElement, settings) {
       if (settings.url) {
         bgStyle = `background-image: url(${settings.url}); background-repeat: ${settings.repeat}; background-position: ${settings.position}; background-size: ${settings.size};`;
         if (settings.opacity < 100) {
-          dashboard.style.setProperty('--bg-image-opacity', settings.opacity / 100);
+          pageElement.style.setProperty('--bg-image-opacity', settings.opacity / 100);
         }
       }
       break;
@@ -1877,16 +1877,24 @@ function applyBackgroundToPageElement(pageElement, settings) {
       const bgImageMatch = patternCSS.match(/background-image:\s*([^;]+);/);
       const bgSizeMatch = patternCSS.match(/background-size:\s*([^;]+);/);
       if (bgImageMatch) {
-        dashboard.style.backgroundImage = bgImageMatch[1].trim();
+        pageElement.style.backgroundImage = bgImageMatch[1].trim();
       }
       if (bgSizeMatch) {
-        dashboard.style.backgroundSize = bgSizeMatch[1].trim();
+        pageElement.style.backgroundSize = bgSizeMatch[1].trim();
       }
+      break;
+    case 'transparent':
+      pageElement.style.background = 'transparent';
       break;
   }
   
   if (bgStyle) {
-    dashboard.style.cssText = bgStyle;
+    pageElement.style.cssText = bgStyle;
+  }
+  
+  // Handle transparent background
+  if (settings.type === 'transparent') {
+    pageElement.style.background = 'transparent';
   }
 }
 
