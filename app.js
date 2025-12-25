@@ -3614,6 +3614,32 @@ function loadCurrentPage() {
   const pageElement = getPageElement(currentPageIndex);
   if (!pageElement) return;
   
+  // Load page-specific edit mode
+  const editModeKey = `dakboard-edit-mode-page-${currentPageIndex}`;
+  const savedEditMode = localStorage.getItem(editModeKey);
+  if (savedEditMode === 'true') {
+    isEditMode = true;
+    pageElement.classList.add('edit-mode');
+  } else {
+    isEditMode = false;
+    pageElement.classList.remove('edit-mode');
+  }
+  
+  // Update edit mode toggle
+  const editToggle = document.getElementById('edit-layout-toggle');
+  if (editToggle) {
+    editToggle.checked = isEditMode;
+  }
+  
+  // Load page-specific background
+  const pageBg = getPageBackground(currentPageIndex);
+  if (pageBg) {
+    applyBackgroundToPage(pageElement, pageBg);
+  } else {
+    // Fallback to default
+    pageElement.style.background = '#1a1a1a';
+  }
+  
   // Load page-specific widget layout
   const layoutKey = `dakboard-widget-layout-page-${currentPageIndex}`;
   const saved = localStorage.getItem(layoutKey);
