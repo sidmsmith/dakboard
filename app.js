@@ -3641,8 +3641,8 @@ function initializePages() {
   // Setup page management (add/delete) - only once
   // Don't call here, it's called in initializeWidgetControlPanel after panel is ready
   
-  // Show current page
-  showPage(currentPageIndex);
+  // Don't show page here - it will be shown after all initialization is complete
+  // This ensures widgets are properly created and visibility/styles are loaded first
   
   // Initial page list update
   updatePageList();
