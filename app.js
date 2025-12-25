@@ -3136,6 +3136,12 @@ function initializeWidgetControlPanel() {
   if (typeof updatePageList === 'function') {
     updatePageList();
   }
+  
+  // Setup page management after panel is initialized
+  // This ensures the button exists in the DOM
+  if (typeof setupPageManagement === 'function') {
+    setupPageManagement();
+  }
 }
 
 // Set edit mode on/off (page-specific)
