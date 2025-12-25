@@ -3492,6 +3492,11 @@ function showPage(pageIndex) {
     loadBackgroundSettings();
   }
   
+  // Update page list in control panel
+  if (typeof updatePageList === 'function') {
+    updatePageList();
+  }
+  
   // Reinitialize drag and resize for current page
   if (typeof initializeDragAndResize === 'function') {
     initializeDragAndResize();
