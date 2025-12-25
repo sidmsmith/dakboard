@@ -4167,6 +4167,145 @@ function renamePage(pageIndex, labelElement) {
     labelElement.style.display = '';
     parent.removeChild(input);
   };
+}
+
+// Export/Import Configuration Functions
+function initializeConfigExportImport() {
+  const exportBtn = document.getElementById('export-config-btn');
+  const importBtn = document.getElementById('import-config-btn');
+  const importFileInput = document.getElementById('import-config-file');
+  
+  if (exportBtn) {
+    exportBtn.addEventListener('click', exportConfiguration);
+  }
+  
+  if (importBtn && importFileInput) {
+    importBtn.addEventListener('click', () => {
+      importFileInput.click();
+    });
+    
+    importFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        importConfiguration(file);
+      }
+      // Reset input so same file can be selected again
+      e.target.value = '';
+    });
+  }
+}
+
+// Export all dashboard configuration to JSON file
+function exportConfiguration() {
+  try {
+    const config = {
+      version: '1.0',
+      exportDate: new Date().toISOString(),
+      data: {}
+    };
+    
+    // Collect all localStorage keys related to dashboard
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('dakboard-') || key.startsWith('whiteboard-'))) {
+        try {
+          const value = localStorage.getItem(key);
+          // Try to parse JSON, if it fails, store as string
+          try {
+            config.data[key] = JSON.parse(value);
+          } catch {
+            config.data[key] = value;
+          }
+        } catch (error) {
+          console.warn(`Error exporting key ${key}:`, error);
+        }
+      }
+    }
+    
+    // Create JSON blob and trigger download
+    const jsonStr = JSON.stringify(config, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dakboard-config-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    console.log('Configuration exported successfully');
+  } catch (error) {
+    console.error('Error exporting configuration:', error);
+    alert('Error exporting configuration. Please check the console for details.');
+  }
+}
+
+// Import configuration from JSON file
+function importConfiguration(file) {
+  const reader = new FileReader();
+  
+  reader.onload = (e) => {
+    try {
+      const config = JSON.parse(e.target.result);
+      
+      if (!config.data || typeof config.data !== 'object') {
+        throw new Error('Invalid configuration format');
+      }
+      
+      // Confirm before importing (will overwrite existing data)
+      const confirmed = confirm(
+        'This will overwrite your current dashboard configuration. Are you sure you want to continue?'
+      );
+      
+      if (!confirmed) {
+        return;
+      }
+      
+      // Clear existing dashboard-related localStorage keys
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('dakboard-') || key.startsWith('whiteboard-'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      // Import new data
+      let importedCount = 0;
+      Object.keys(config.data).forEach(key => {
+        try {
+          const value = config.data[key];
+          if (typeof value === 'object') {
+            localStorage.setItem(key, JSON.stringify(value));
+          } else {
+            localStorage.setItem(key, value);
+          }
+          importedCount++;
+        } catch (error) {
+          console.warn(`Error importing key ${key}:`, error);
+        }
+      });
+      
+      console.log(`Configuration imported successfully. ${importedCount} items restored.`);
+      
+      // Reload the page to apply the new configuration
+      alert('Configuration imported successfully! The page will reload to apply changes.');
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('Error importing configuration:', error);
+      alert('Error importing configuration. Please ensure the file is a valid JSON configuration file.');
+    }
+  };
+  
+  reader.onerror = () => {
+    alert('Error reading file. Please try again.');
+  };
+  
+  reader.readAsText(file);
+}
   
   input.addEventListener('blur', saveName);
   input.addEventListener('keydown', (e) => {
