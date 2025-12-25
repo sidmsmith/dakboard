@@ -2668,11 +2668,13 @@ function initializeWhiteboard() {
   const savedInkColor = localStorage.getItem('whiteboard-ink-color') || '#000000';
   const savedBrushSize = localStorage.getItem('whiteboard-brush-size') || '3';
   
-  const inkColorInput = document.getElementById('whiteboard-ink-color');
-  const bgColorInput = document.getElementById('whiteboard-bg-color');
-  const brushSizeInput = document.getElementById('whiteboard-brush-size');
-  const brushSizeLabel = document.getElementById('whiteboard-brush-size-label');
-  const clearBtn = document.getElementById('whiteboard-clear');
+  // Find controls on current page (whiteboard controls are in the widget header)
+  const widget = canvas.closest('.whiteboard-widget');
+  const inkColorInput = widget ? widget.querySelector('#whiteboard-ink-color') : document.getElementById('whiteboard-ink-color');
+  const bgColorInput = widget ? widget.querySelector('#whiteboard-bg-color') : document.getElementById('whiteboard-bg-color');
+  const brushSizeInput = widget ? widget.querySelector('#whiteboard-brush-size') : document.getElementById('whiteboard-brush-size');
+  const brushSizeLabel = widget ? widget.querySelector('#whiteboard-brush-size-label') : document.getElementById('whiteboard-brush-size-label');
+  const clearBtn = widget ? widget.querySelector('#whiteboard-clear') : document.getElementById('whiteboard-clear');
   
   if (inkColorInput) inkColorInput.value = savedInkColor;
   if (bgColorInput) bgColorInput.value = bgColor;
