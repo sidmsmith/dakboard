@@ -1827,7 +1827,7 @@ function applyBackground() {
 // Apply background settings to dashboard (page-specific)
 function applyBackgroundToDashboard(settings, applyToAllPages = false) {
   // Get current page index from app.js if available
-  const currentPageIndex = typeof currentPageIndex !== 'undefined' ? window.currentPageIndex : 0;
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
   
   if (applyToAllPages) {
     // Apply to all pages

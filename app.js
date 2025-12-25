@@ -3125,7 +3125,10 @@ function initializeWidgetControlPanel() {
   });
   
   updateWidgetControlPanel();
-  updatePageList(); // Update page list in control panel
+  // Update page list if function exists (it's defined later in the file)
+  if (typeof updatePageList === 'function') {
+    updatePageList();
+  }
 }
 
 // Set edit mode on/off (page-specific)
