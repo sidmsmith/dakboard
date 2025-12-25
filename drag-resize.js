@@ -54,14 +54,21 @@ function loadWidgetLayout() {
   }
 }
 
-// Save widget layout to localStorage
+// Save widget layout to localStorage (page-specific)
 function saveWidgetLayout() {
+  // Use page-specific save function if available
+  if (typeof saveCurrentPageLayout === 'function') {
+    saveCurrentPageLayout();
+    return;
+  }
+  
+  // Fallback to old method for backward compatibility
   try {
     const layout = {};
     document.querySelectorAll('.widget').forEach(widget => {
       const widgetId = widget.classList[1]; // Get second class (e.g., 'calendar-widget')
       const rect = widget.getBoundingClientRect();
-      const dashboard = draggedWidget.closest('.dashboard');
+      const dashboard = widget.closest('.dashboard');
       if (!dashboard) return;
       const dashboardRect = dashboard.getBoundingClientRect();
       
