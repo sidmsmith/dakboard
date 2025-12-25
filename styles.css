@@ -1884,8 +1884,8 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
 
 /* Whiteboard Widget */
 .whiteboard-widget {
-  min-width: 400px;
-  min-height: 300px;
+  min-width: 200px;
+  min-height: 150px;
 }
 
 .whiteboard-container {
@@ -1894,6 +1894,7 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
   height: 100%;
   width: 100%;
   overflow: hidden;
+  min-height: 0; /* Allow container to shrink below content */
 }
 
 .whiteboard-toolbar {

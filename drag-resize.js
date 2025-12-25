@@ -304,6 +304,9 @@ function handleMouseMove(e) {
     } else if (resizeWidget.classList.contains('weather-widget')) {
       minWidth = 300;
       minHeight = 300; // Need space for current + forecast
+    } else if (resizeWidget.classList.contains('whiteboard-widget')) {
+      minWidth = 200;
+      minHeight = 150; // Allow smaller whiteboard
     }
     
     if (newWidth < minWidth) {

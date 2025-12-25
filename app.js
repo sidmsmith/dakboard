@@ -2598,33 +2598,46 @@ function initializeWhiteboard() {
   
   // Set canvas size to match container
   const container = canvas.closest('.whiteboard-container');
-  if (container) {
+  const widget = canvas.closest('.whiteboard-widget');
+  if (container && widget) {
     const resizeCanvas = () => {
-      const rect = container.getBoundingClientRect();
-      canvas.width = rect.width - 2; // Account for border
-      canvas.height = rect.height - 50; // Account for toolbar
+      // Get the actual container dimensions
+      const containerRect = container.getBoundingClientRect();
+      const toolbarHeight = container.querySelector('.whiteboard-toolbar')?.offsetHeight || 50;
       
-      // Restore saved drawing if exists
-      const savedDrawing = localStorage.getItem('whiteboard-drawing');
-      if (savedDrawing) {
-        const img = new Image();
-        img.onload = () => {
-          whiteboardCtx.drawImage(img, 0, 0);
-        };
-        img.src = savedDrawing;
-      } else {
-        // Set default background
-        const bgColor = localStorage.getItem('whiteboard-bg-color') || '#ffffff';
-        whiteboardCtx.fillStyle = bgColor;
-        whiteboardCtx.fillRect(0, 0, canvas.width, canvas.height);
+      // Calculate available space for canvas
+      const availableWidth = containerRect.width - 2; // Account for border
+      const availableHeight = Math.max(50, containerRect.height - toolbarHeight - 8); // Account for toolbar and margin
+      
+      // Only resize if dimensions actually changed to avoid unnecessary redraws
+      if (canvas.width !== availableWidth || canvas.height !== availableHeight) {
+        const wasDrawing = canvas.width > 0 && canvas.height > 0;
+        const oldImage = wasDrawing ? canvas.toDataURL() : null;
+        
+        canvas.width = availableWidth;
+        canvas.height = availableHeight;
+        
+        // Restore drawing or set background
+        if (oldImage && wasDrawing) {
+          const img = new Image();
+          img.onload = () => {
+            whiteboardCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          };
+          img.src = oldImage;
+        } else {
+          const bgColor = localStorage.getItem('whiteboard-bg-color') || '#ffffff';
+          whiteboardCtx.fillStyle = bgColor;
+          whiteboardCtx.fillRect(0, 0, canvas.width, canvas.height);
+        }
       }
     };
     
     resizeCanvas();
     
-    // Resize on window resize
+    // Observe both container and widget for resize
     const resizeObserver = new ResizeObserver(resizeCanvas);
     resizeObserver.observe(container);
+    resizeObserver.observe(widget);
   }
   
   // Set default background color
