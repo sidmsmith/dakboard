@@ -1537,9 +1537,9 @@ function loadStylesToWidget(widget, styles) {
     case 'image':
       if (styles.backgroundImageUrl) {
         widget.style.backgroundImage = `url(${styles.backgroundImageUrl})`;
-        widget.style.backgroundRepeat = styles.backgroundImageRepeat || 'no-repeat';
-        widget.style.backgroundPosition = styles.backgroundImagePosition || 'center';
-        widget.style.backgroundSize = styles.backgroundImageSize || 'cover';
+        widget.style.backgroundRepeat = styles.backgroundRepeat || 'no-repeat';
+        widget.style.backgroundPosition = styles.backgroundPosition || 'center';
+        widget.style.backgroundSize = styles.backgroundSize || 'cover';
         if (styles.backgroundImageOpacity !== undefined && styles.backgroundImageOpacity < 100) {
           widget.style.opacity = styles.backgroundImageOpacity / 100;
         }
@@ -1548,9 +1548,20 @@ function loadStylesToWidget(widget, styles) {
       
     case 'pattern':
       if (styles.patternType && styles.patternColor) {
-        // Pattern handling would need generatePatternCSS function
-        // For now, just set a background color
-        widget.style.backgroundColor = styles.patternColor || '#1a1a1a';
+        const patternType = styles.patternType || 'dots';
+        const patternColor = styles.patternColor || '#3a3a3a';
+        const patternSize = styles.patternSize !== undefined ? styles.patternSize : 20;
+        const patternCSS = generatePatternCSS(patternType, patternColor, patternSize);
+        // Extract background-image and background-size from pattern CSS
+        const bgImageMatch = patternCSS.match(/background-image:\s*([^;]+);/);
+        const bgSizeMatch = patternCSS.match(/background-size:\s*([^;]+);/);
+        if (bgImageMatch) {
+          widget.style.backgroundImage = bgImageMatch[1].trim();
+        }
+        if (bgSizeMatch) {
+          widget.style.backgroundSize = bgSizeMatch[1].trim();
+        }
+        widget.style.backgroundColor = '#1a1a1a';
       }
       break;
   }
@@ -1561,17 +1572,17 @@ function loadStylesToWidget(widget, styles) {
   }
   
   // Border
-  if (styles.borderColor) widget.style.borderColor = styles.borderColor;
+  if (styles.borderColor !== undefined) widget.style.borderColor = styles.borderColor;
   if (styles.borderWidth !== undefined) widget.style.borderWidth = styles.borderWidth + 'px';
-  if (styles.borderStyle) widget.style.borderStyle = styles.borderStyle;
+  if (styles.borderStyle !== undefined) widget.style.borderStyle = styles.borderStyle;
   if (styles.borderRadius !== undefined) widget.style.borderRadius = styles.borderRadius + 'px';
   
-  // Shadow
-  if (styles.shadowBlur !== undefined || styles.shadowX !== undefined) {
-    const x = styles.shadowX || 0;
-    const y = styles.shadowY || 0;
-    const blur = styles.shadowBlur || 0;
-    const spread = styles.shadowSpread || 0;
+  // Shadow - apply if any shadow property is defined
+  if (styles.shadowBlur !== undefined || styles.shadowX !== undefined || styles.shadowY !== undefined || styles.shadowSpread !== undefined) {
+    const x = styles.shadowX !== undefined ? styles.shadowX : 0;
+    const y = styles.shadowY !== undefined ? styles.shadowY : 4;
+    const blur = styles.shadowBlur !== undefined ? styles.shadowBlur : 6;
+    const spread = styles.shadowSpread !== undefined ? styles.shadowSpread : 0;
     const color = styles.shadowColor || 'rgba(0, 0, 0, 0.3)';
     widget.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
   }
@@ -1579,9 +1590,9 @@ function loadStylesToWidget(widget, styles) {
   // Text (widget title)
   const title = widget.querySelector('.widget-title');
   if (title) {
-    if (styles.textColor) title.style.color = styles.textColor;
-    if (styles.fontSize) title.style.fontSize = styles.fontSize + 'px';
-    if (styles.fontWeight) title.style.fontWeight = styles.fontWeight;
+    if (styles.textColor !== undefined) title.style.color = styles.textColor;
+    if (styles.fontSize !== undefined) title.style.fontSize = styles.fontSize + 'px';
+    if (styles.fontWeight !== undefined) title.style.fontWeight = styles.fontWeight;
   }
   
   // Padding
