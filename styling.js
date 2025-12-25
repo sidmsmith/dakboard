@@ -1861,7 +1861,9 @@ function applyBackgroundToDashboard(settings, applyToAllPages = false) {
     if (currentPage) {
       applyBackgroundToPageElement(currentPage, settings);
       const pageId = currentPage.getAttribute('data-page-id') || '0';
-      savePageBackground(parseInt(pageId), settings);
+      if (typeof savePageBackground === 'function') {
+        savePageBackground(parseInt(pageId), settings);
+      }
     }
   }
 }

@@ -52,6 +52,9 @@ body {
   width: 50px;
   height: 100px;
   font-size: 32px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -59,6 +62,11 @@ body {
   border-radius: 8px;
   transition: all 0.2s ease;
   user-select: none;
+}
+
+body:hover .page-nav-arrow {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .page-nav-arrow:hover {
