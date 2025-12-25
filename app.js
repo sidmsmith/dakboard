@@ -3186,6 +3186,9 @@ function initializeWidgetControlPanel() {
     });
   }
   
+  // Initialize config export/import
+  initializeConfigExportImport();
+  
   // Edit mode toggle (now in bottom controls)
   if (editModeToggle) {
     editModeToggle.addEventListener('change', (e) => {

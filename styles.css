@@ -2261,6 +2261,36 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+  gap: 8px;
+}
+
+.config-controls {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.config-btn {
+  background: transparent;
+  border: 1px solid #4a4a4a;
+  color: #aaa;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-size: 14px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.config-btn:hover {
+  background: #3a3a3a;
+  border-color: #5a5a5a;
+  color: #fff;
 }
 
 
