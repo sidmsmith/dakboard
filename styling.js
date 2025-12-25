@@ -1921,9 +1921,28 @@ function resetBackground() {
   updateBackgroundPreview();
 }
 
-// Load background settings
+// Load background settings (page-specific)
 function loadBackgroundSettings() {
-  const saved = localStorage.getItem('dakboard-background');
+  // Try to load page-specific background first
+  // Safely get currentPageIndex - it may not be initialized yet
+  let currentPageIndex = 0;
+  try {
+    if (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') {
+      currentPageIndex = window.currentPageIndex;
+    }
+  } catch (e) {
+    // Fallback to 0 if there's any error
+    currentPageIndex = 0;
+  }
+  
+  const pageBgKey = `dakboard-background-page-${currentPageIndex}`;
+  let saved = localStorage.getItem(pageBgKey);
+  
+  // Fallback to legacy key if page-specific not found
+  if (!saved) {
+    saved = localStorage.getItem('dakboard-background');
+  }
+  
   if (saved) {
     try {
       const settings = JSON.parse(saved);
