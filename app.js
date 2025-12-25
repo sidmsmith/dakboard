@@ -3127,17 +3127,21 @@ function initializeWidgetControlPanel() {
   updateWidgetControlPanel();
 }
 
-// Set edit mode on/off
+// Set edit mode on/off (page-specific)
 function setEditMode(enabled) {
   isEditMode = enabled;
-  localStorage.setItem('dakboard-edit-mode', enabled ? 'true' : 'false');
   
-  const dashboard = document.querySelector('.dashboard');
-  if (dashboard) {
+  // Store edit mode per page
+  const editModeKey = `dakboard-edit-mode-page-${currentPageIndex}`;
+  localStorage.setItem(editModeKey, enabled ? 'true' : 'false');
+  
+  // Apply to current page only
+  const currentPage = getPageElement(currentPageIndex);
+  if (currentPage) {
     if (enabled) {
-      dashboard.classList.add('edit-mode');
+      currentPage.classList.add('edit-mode');
     } else {
-      dashboard.classList.remove('edit-mode');
+      currentPage.classList.remove('edit-mode');
     }
   }
   

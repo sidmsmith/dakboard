@@ -1824,10 +1824,35 @@ function applyBackground() {
   closeBackgroundModal();
 }
 
-// Apply background settings to dashboard
-function applyBackgroundToDashboard(settings) {
-  const dashboard = document.querySelector('.dashboard');
-  if (!dashboard) return;
+// Apply background settings to dashboard (page-specific)
+function applyBackgroundToDashboard(settings, applyToAllPages = false) {
+  // Get current page index from app.js if available
+  const currentPageIndex = typeof currentPageIndex !== 'undefined' ? window.currentPageIndex : 0;
+  
+  if (applyToAllPages) {
+    // Apply to all pages
+    const allPages = document.querySelectorAll('.dashboard.page');
+    allPages.forEach((page, index) => {
+      applyBackgroundToPageElement(page, settings);
+      savePageBackground(index, settings);
+    });
+  } else {
+    // Apply to current page only
+    const currentPage = typeof getPageElement === 'function' && typeof currentPageIndex !== 'undefined' 
+      ? getPageElement(currentPageIndex)
+      : document.querySelector('.dashboard.page[data-page-id]') || document.querySelector('.dashboard');
+    
+    if (currentPage) {
+      applyBackgroundToPageElement(currentPage, settings);
+      const pageId = currentPage.getAttribute('data-page-id') || '0';
+      savePageBackground(parseInt(pageId), settings);
+    }
+  }
+}
+
+// Apply background to a specific page element
+function applyBackgroundToPageElement(pageElement, settings) {
+  if (!pageElement) return;
   
   let bgStyle = '';
   
