@@ -2231,8 +2231,8 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
 .widget-control-panel {
   position: fixed;
   top: 0;
-  right: -400px;
-  width: 350px;
+  right: -440px;
+  width: 385px;
   height: 100vh;
   background: #2a2a2a;
   border-left: 2px solid #3a3a3a;
