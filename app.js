@@ -1862,6 +1862,8 @@ async function loadGarageDoors() {
       // Still create the door element but show error state
       const doorDiv = document.createElement('div');
       doorDiv.className = 'garage-door closed';
+      doorDiv.dataset.doorId = door.id;
+      doorDiv.dataset.webhookId = door.webhook;
       const iconHtml = garageIcon ? garageIcon.replace('<svg', '<svg class="mdi-icon"') : '<div style="width: 120px; height: 120px; background: currentColor; opacity: 0.3;"></div>';
       doorDiv.innerHTML = `
         <div class="garage-door-icon closed">
