@@ -1839,12 +1839,24 @@ async function loadGarageDoors() {
         <div class="garage-door-name">${door.name}</div>
       `;
       
+      // Attach event listener to original
       doorDiv.addEventListener('click', (e) => {
         if (!isEditMode) {
           toggleGarageDoor(doorDiv);
         }
       });
-      containers.forEach(container => container.appendChild(doorDiv.cloneNode(true)));
+      
+      // Clone and attach event listeners to each container
+      containers.forEach(container => {
+        const clonedDoor = doorDiv.cloneNode(true);
+        // Re-attach event listener to cloned element
+        clonedDoor.addEventListener('click', (e) => {
+          if (!isEditMode) {
+            toggleGarageDoor(clonedDoor);
+          }
+        });
+        container.appendChild(clonedDoor);
+      });
     } catch (error) {
       console.error(`Error loading garage door ${door.id}:`, error);
       // Still create the door element but show error state
@@ -1857,7 +1869,18 @@ async function loadGarageDoors() {
         </div>
         <div class="garage-door-name">${door.name}</div>
       `;
-      containers.forEach(container => container.appendChild(doorDiv.cloneNode(true)));
+      
+      // Clone and attach event listeners to each container
+      containers.forEach(container => {
+        const clonedDoor = doorDiv.cloneNode(true);
+        // Re-attach event listener to cloned element
+        clonedDoor.addEventListener('click', (e) => {
+          if (!isEditMode) {
+            toggleGarageDoor(clonedDoor);
+          }
+        });
+        container.appendChild(clonedDoor);
+      });
     }
   }
 }
