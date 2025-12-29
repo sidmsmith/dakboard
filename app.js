@@ -2061,6 +2061,14 @@ let googlePhotosCache = {
   updateInterval: null
 };
 
+// Google Picker API state (NEW - replaces deprecated Library API)
+let googlePickerState = {
+  accessToken: null,
+  selectedPhotos: [],
+  pickerSessionId: null,
+  isInitialized: false
+};
+
 // Check if Google Photos is authenticated
 function isGooglePhotosAuthenticated() {
   const accessToken = localStorage.getItem('google_photos_access_token');
