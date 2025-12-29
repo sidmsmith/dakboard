@@ -3111,11 +3111,32 @@ async function initializeGooglePicker() {
     throw new Error('Google Picker API is disabled');
   }
   
-  // Use GOOGLE_PICKER_CLIENT_ID if set, otherwise fall back to GOOGLE_PHOTOS_CLIENT_ID
-  const clientId = CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID;
+  // Get Client ID - try config first, then fetch from API (environment variable)
+  let clientId = CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID;
+  
+  // If not in config, fetch from API endpoint (reads from environment variable)
+  if (!clientId) {
+    try {
+      const response = await fetch('/api/google-picker-client-id');
+      if (response.ok) {
+        const data = await response.json();
+        clientId = data.clientId;
+        // Cache it for future use
+        CONFIG.GOOGLE_PHOTOS_CLIENT_ID = clientId;
+      } else {
+        const errorMsg = 'Google Picker API Client ID not configured. Please set GOOGLE_PHOTOS_CLIENT_ID environment variable in Vercel.';
+        console.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+    } catch (error) {
+      const errorMsg = 'Failed to fetch Google Client ID from server. Please check your environment variables.';
+      console.error(errorMsg, error);
+      throw new Error(errorMsg);
+    }
+  }
   
   if (!clientId) {
-    const errorMsg = 'Google Picker API Client ID not configured. Set GOOGLE_PICKER_CLIENT_ID or GOOGLE_PHOTOS_CLIENT_ID in config.';
+    const errorMsg = 'Google Picker API Client ID not configured. Set GOOGLE_PICKER_CLIENT_ID in config.js or GOOGLE_PHOTOS_CLIENT_ID environment variable.';
     console.error(errorMsg);
     throw new Error(errorMsg);
   }
@@ -3165,9 +3186,28 @@ function loadGooglePickerScript() {
       }
       
       // Load auth2 for OAuth
-      window.gapi.load('auth2', () => {
-        // Use GOOGLE_PICKER_CLIENT_ID if set, otherwise fall back to GOOGLE_PHOTOS_CLIENT_ID
-        const clientId = CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID;
+      window.gapi.load('auth2', async () => {
+        // Get Client ID - try config first, then fetch from API (environment variable)
+        let clientId = CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID;
+        
+        // If not in config, fetch from API endpoint (reads from environment variable)
+        if (!clientId) {
+          try {
+            const response = await fetch('/api/google-picker-client-id');
+            if (response.ok) {
+              const data = await response.json();
+              clientId = data.clientId;
+              // Cache it for future use
+              CONFIG.GOOGLE_PHOTOS_CLIENT_ID = clientId;
+            } else {
+              reject(new Error('Client ID not configured. Please set GOOGLE_PHOTOS_CLIENT_ID environment variable.'));
+              return;
+            }
+          } catch (error) {
+            reject(new Error('Failed to fetch Client ID from server'));
+            return;
+          }
+        }
         
         if (!clientId) {
           reject(new Error('Client ID not configured'));
