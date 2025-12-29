@@ -3163,6 +3163,15 @@ async function initializeGooglePicker() {
   } catch (error) {
     console.error('Error initializing Google Picker API:', error);
     googlePickerState.isInitialized = false;
+    
+    // Check if it's an origin registration error
+    if (error && (error.error === 'idpiframe_initialization_failed' || 
+                  (error.details && error.details.includes('not been registered')))) {
+      const originError = new Error('Origin not registered in Google Cloud Console. Please add your domain to Authorized JavaScript origins in your OAuth 2.0 client settings.');
+      originError.originalError = error;
+      throw originError;
+    }
+    
     throw error;
   }
 }
@@ -3455,6 +3464,13 @@ async function openGooglePicker() {
       error.message.includes('not initialized')
     );
     
+    // Check if it's an origin registration error
+    const isOriginError = error.message && (
+      error.message.includes('not been registered') ||
+      error.message.includes('Authorized JavaScript origins') ||
+      (error.originalError && error.originalError.error === 'idpiframe_initialization_failed')
+    );
+    
     // Check if it's an authentication error (403/401) - likely due to unverified app
     const isAuthError = error.message && (
       error.message.includes('403') || 
@@ -3474,6 +3490,27 @@ async function openGooglePicker() {
             <p style="font-size: 12px; color: #888; margin-top: 8px;">
               Photos cannot be loaded until app verification is complete. This is expected behavior for unverified apps.
             </p>
+          </div>
+        `;
+      });
+    } else if (isOriginError) {
+      // Show origin registration error message
+      containers.forEach(container => {
+        container.innerHTML = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">⚠️</div>
+            <h3>Origin Not Registered</h3>
+            <p>Your domain needs to be registered in Google Cloud Console.</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">
+              <strong>To fix this:</strong><br>
+              1. Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color: #66b3ff;">Google Cloud Console → APIs & Services → Credentials</a><br>
+              2. Click on your OAuth 2.0 Client ID<br>
+              3. Under "Authorized JavaScript origins", click "Add URI"<br>
+              4. Add: <code style="background: #333; padding: 2px 6px; border-radius: 3px;">https://dakboard-smith.vercel.app</code><br>
+              5. Click "Save"<br>
+              6. Wait a few minutes for changes to propagate, then try again
+            </p>
+            <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Try Again</button>
           </div>
         `;
       });
