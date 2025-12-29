@@ -1030,7 +1030,7 @@ async function loadAllData() {
       loadTodos(),
       loadGarageDoors(),
       loadAlarm(),
-      // loadGooglePhotos(), // Temporarily disabled until Google Photos is working nicely
+      loadGooglePhotos(), // Load Google Photos (using Picker API if enabled)
       loadThermostat(), // Load thermostat
       loadNews(), // Load news feed
       initializeWhiteboard(), // Initialize whiteboard
