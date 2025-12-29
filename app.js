@@ -3104,8 +3104,11 @@ async function initializeGooglePicker() {
     return;
   }
   
-  if (!CONFIG.GOOGLE_PICKER_API_KEY || !CONFIG.GOOGLE_PICKER_CLIENT_ID) {
-    console.error('Google Picker API credentials not configured');
+  // Use GOOGLE_PICKER_CLIENT_ID if set, otherwise fall back to GOOGLE_PHOTOS_CLIENT_ID
+  const clientId = CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID;
+  
+  if (!clientId) {
+    console.error('Google Picker API Client ID not configured. Set GOOGLE_PICKER_CLIENT_ID or GOOGLE_PHOTOS_CLIENT_ID in config.');
     return;
   }
   
@@ -3145,8 +3148,10 @@ function loadGooglePickerScript() {
     script.onload = () => {
       // Load auth2 for OAuth
       window.gapi.load('auth2', () => {
+        // Use GOOGLE_PICKER_CLIENT_ID if set, otherwise fall back to GOOGLE_PHOTOS_CLIENT_ID
+        const clientId = CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID;
         window.gapi.auth2.init({
-          client_id: CONFIG.GOOGLE_PICKER_CLIENT_ID
+          client_id: clientId
         }).then(() => {
           resolve();
         }, reject);
@@ -3412,6 +3417,25 @@ async function loadGooglePhotosWithPicker() {
   const containers = document.querySelectorAll('#photos-content');
   if (containers.length === 0) return;
   
+  // Check if Client ID is configured
+  const clientId = CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID;
+  if (!clientId) {
+    // Show connect button with instructions
+    const promptHtml = `
+      <div class="photos-placeholder">
+        <div class="photos-icon">📷</div>
+        <h3>Connect Google Photos</h3>
+        <p>Click the button below to connect your Google Photos account.</p>
+        <button onclick="openGooglePicker()" class="photos-connect-btn">Connect Google Photos</button>
+        <p style="font-size: 11px; color: #888; margin-top: 12px;">
+          Note: Make sure GOOGLE_PHOTOS_CLIENT_ID is configured in your config.js file.
+        </p>
+      </div>
+    `;
+    containers.forEach(container => container.innerHTML = promptHtml);
+    return;
+  }
+  
   try {
     // Initialize if needed
     if (!googlePickerState.isInitialized) {
@@ -3466,21 +3490,23 @@ async function loadGooglePhotosWithPicker() {
     const promptHtml = `
       <div class="photos-placeholder">
         <div class="photos-icon">📷</div>
-        <h3>Select Google Photos</h3>
-        <p>Click the button below to authenticate and select photos from your Google Photos library.</p>
-        <button onclick="openGooglePicker()" class="photos-connect-btn">Connect & Select Photos</button>
+        <h3>Connect Google Photos</h3>
+        <p>Click the button below to connect your Google Photos account.</p>
+        <button onclick="openGooglePicker()" class="photos-connect-btn">Connect Google Photos</button>
       </div>
     `;
     containers.forEach(container => container.innerHTML = promptHtml);
     
   } catch (error) {
     console.error('Error loading Google Photos with Picker:', error);
+    // Show connect button even on error
     const errorHtml = `
       <div class="photos-placeholder">
         <div class="photos-icon">📷</div>
-        <h3>Error Loading Photos</h3>
-        <p>${error.message}</p>
-        <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Try Again</button>
+        <h3>Connect Google Photos</h3>
+        <p>Click the button below to connect your Google Photos account.</p>
+        <button onclick="openGooglePicker()" class="photos-connect-btn">Connect Google Photos</button>
+        ${error.message ? `<p style="font-size: 11px; color: #888; margin-top: 8px;">Error: ${error.message}</p>` : ''}
       </div>
     `;
     containers.forEach(container => container.innerHTML = errorHtml);
