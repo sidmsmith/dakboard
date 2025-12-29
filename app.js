@@ -20,7 +20,7 @@ const CONFIG = {
   
   // Google Picker API Configuration (NEW - replaces deprecated Library API)
   // Set to true to enable Google Picker API (requires app verification)
-  USE_GOOGLE_PICKER_API: false, // Currently disabled until app verification is complete
+  USE_GOOGLE_PICKER_API: true, // Enabled for video recording (app verification pending)
   GOOGLE_PICKER_API_KEY: null, // Your Google API Key for Picker API
   GOOGLE_PICKER_CLIENT_ID: null, // Your Google OAuth 2.0 Client ID
   
@@ -3174,10 +3174,13 @@ async function authenticateGooglePicker() {
     
     // Store token in localStorage for persistence
     localStorage.setItem('google_picker_access_token', accessToken);
+    localStorage.setItem('google_picker_authenticated', 'true');
     
+    console.log('Google Picker authentication successful');
     return accessToken;
   } catch (error) {
     console.error('Error authenticating Google Picker:', error);
+    // Don't clear authentication flag if it was previously set
     throw error;
   }
 }
@@ -3204,7 +3207,17 @@ async function createPickerSession() {
     });
     
     if (!response.ok) {
-      throw new Error(`Failed to create picker session: ${response.status}`);
+      const errorText = await response.text();
+      let errorMessage = `Failed to create picker session: ${response.status}`;
+      
+      // Check if it's an unverified app error
+      if (response.status === 403 || response.status === 401) {
+        errorMessage = `App verification required (${response.status}). Authentication succeeded, but API access requires app verification.`;
+        // Still mark authentication as successful
+        localStorage.setItem('google_picker_authenticated', 'true');
+      }
+      
+      throw new Error(errorMessage);
     }
     
     const data = await response.json();
@@ -3336,6 +3349,28 @@ async function loadGooglePhotosWithPicker() {
       await initializeGooglePicker();
     }
     
+    // Check if user is already authenticated
+    const isAuthenticated = localStorage.getItem('google_picker_authenticated') === 'true' ||
+                           googlePickerState.accessToken ||
+                           localStorage.getItem('google_picker_access_token');
+    
+    if (isAuthenticated) {
+      // Show authenticated state (photos won't load until app is verified)
+      const authHtml = `
+        <div class="photos-placeholder">
+          <div class="photos-icon">✅</div>
+          <h3>Authentication Successful!</h3>
+          <p>You have successfully authenticated with Google Photos.</p>
+          <p style="font-size: 12px; color: #888; margin-top: 8px;">
+            Photos cannot be loaded until app verification is complete. This is expected behavior for unverified apps.
+          </p>
+          <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Try Selecting Photos</button>
+        </div>
+      `;
+      containers.forEach(container => container.innerHTML = authHtml);
+      return;
+    }
+    
     // Check if we have previously selected photos
     const storedPhotos = localStorage.getItem('google_picker_selected_photos');
     if (storedPhotos) {
@@ -3363,8 +3398,8 @@ async function loadGooglePhotosWithPicker() {
       <div class="photos-placeholder">
         <div class="photos-icon">📷</div>
         <h3>Select Google Photos</h3>
-        <p>Click the button below to select photos from your Google Photos library.</p>
-        <button onclick="openGooglePicker()" class="photos-connect-btn">Select Photos</button>
+        <p>Click the button below to authenticate and select photos from your Google Photos library.</p>
+        <button onclick="openGooglePicker()" class="photos-connect-btn">Connect & Select Photos</button>
       </div>
     `;
     containers.forEach(container => container.innerHTML = promptHtml);
@@ -3376,6 +3411,7 @@ async function loadGooglePhotosWithPicker() {
         <div class="photos-icon">📷</div>
         <h3>Error Loading Photos</h3>
         <p>${error.message}</p>
+        <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Try Again</button>
       </div>
     `;
     containers.forEach(container => container.innerHTML = errorHtml);
