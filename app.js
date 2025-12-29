@@ -3108,44 +3108,49 @@ async function loadGooglePhotos() {
 async function initializeGooglePicker() {
   if (!CONFIG.USE_GOOGLE_PICKER_API) {
     console.log('Google Picker API is disabled');
-    return;
+    throw new Error('Google Picker API is disabled');
   }
   
   // Use GOOGLE_PICKER_CLIENT_ID if set, otherwise fall back to GOOGLE_PHOTOS_CLIENT_ID
   const clientId = CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID;
   
   if (!clientId) {
-    console.error('Google Picker API Client ID not configured. Set GOOGLE_PICKER_CLIENT_ID or GOOGLE_PHOTOS_CLIENT_ID in config.');
-    return;
+    const errorMsg = 'Google Picker API Client ID not configured. Set GOOGLE_PICKER_CLIENT_ID or GOOGLE_PHOTOS_CLIENT_ID in config.';
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   }
   
   try {
     // Load Google Picker API script
     await loadGooglePickerScript();
     
+    // Check if gapi is loaded
+    if (!window.gapi || !window.gapi.load) {
+      throw new Error('Google API client not loaded');
+    }
+    
     // Initialize Google API client
     await new Promise((resolve, reject) => {
-      if (window.gapi && window.gapi.load) {
-        window.gapi.load('picker', {
-          callback: resolve,
-          onerror: reject
-        });
-      } else {
-        reject(new Error('Google API client not loaded'));
-      }
+      window.gapi.load('picker', {
+        callback: resolve,
+        onerror: reject
+      });
     });
     
     googlePickerState.isInitialized = true;
     console.log('Google Picker API initialized');
   } catch (error) {
     console.error('Error initializing Google Picker API:', error);
+    googlePickerState.isInitialized = false;
+    throw error;
   }
 }
 
 // Load Google Picker API script dynamically
 function loadGooglePickerScript() {
   return new Promise((resolve, reject) => {
-    if (window.gapi) {
+    if (window.gapi && window.gapi.auth2) {
+      // Already loaded and initialized
       resolve();
       return;
     }
@@ -3153,10 +3158,22 @@ function loadGooglePickerScript() {
     const script = document.createElement('script');
     script.src = 'https://apis.google.com/js/api.js';
     script.onload = () => {
+      // Check if gapi loaded successfully
+      if (!window.gapi || !window.gapi.load) {
+        reject(new Error('Failed to load Google API client'));
+        return;
+      }
+      
       // Load auth2 for OAuth
       window.gapi.load('auth2', () => {
         // Use GOOGLE_PICKER_CLIENT_ID if set, otherwise fall back to GOOGLE_PHOTOS_CLIENT_ID
         const clientId = CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID;
+        
+        if (!clientId) {
+          reject(new Error('Client ID not configured'));
+          return;
+        }
+        
         window.gapi.auth2.init({
           client_id: clientId
         }).then(() => {
@@ -3164,19 +3181,31 @@ function loadGooglePickerScript() {
         }, reject);
       });
     };
-    script.onerror = reject;
+    script.onerror = () => {
+      reject(new Error('Failed to load Google API script'));
+    };
     document.head.appendChild(script);
   });
 }
 
 // Authenticate user and get access token for Picker API
 async function authenticateGooglePicker() {
+  // Ensure initialization
   if (!googlePickerState.isInitialized) {
     await initializeGooglePicker();
   }
   
+  // Check if gapi is available
+  if (!window.gapi || !window.gapi.auth2) {
+    throw new Error('Google API client not initialized. Please check your Client ID configuration.');
+  }
+  
   try {
     const authInstance = window.gapi.auth2.getAuthInstance();
+    if (!authInstance) {
+      throw new Error('Google Auth2 instance not available. Please check your Client ID configuration.');
+    }
+    
     const user = await authInstance.signIn({
       scope: 'https://www.googleapis.com/auth/photoslibrary.readonly'
     });
