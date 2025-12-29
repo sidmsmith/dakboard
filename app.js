@@ -3408,6 +3408,13 @@ async function openGooglePicker() {
   } catch (error) {
     console.error('Error opening Google Picker:', error);
     
+    // Check if it's a configuration error
+    const isConfigError = error.message && (
+      error.message.includes('not configured') ||
+      error.message.includes('Client ID') ||
+      error.message.includes('not initialized')
+    );
+    
     // Check if it's an authentication error (403/401) - likely due to unverified app
     const isAuthError = error.message && (
       error.message.includes('403') || 
@@ -3427,6 +3434,21 @@ async function openGooglePicker() {
             <p style="font-size: 12px; color: #888; margin-top: 8px;">
               Photos cannot be loaded until app verification is complete. This is expected behavior for unverified apps.
             </p>
+          </div>
+        `;
+      });
+    } else if (isConfigError) {
+      // Show configuration error message
+      containers.forEach(container => {
+        container.innerHTML = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">📷</div>
+            <h3>Configuration Required</h3>
+            <p>${error.message || 'Google Picker API is not properly configured.'}</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">
+              Please set GOOGLE_PHOTOS_CLIENT_ID in your config.js file.
+            </p>
+            <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Try Again</button>
           </div>
         `;
       });
