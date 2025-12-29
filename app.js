@@ -3293,10 +3293,42 @@ async function getSelectedMediaItems(sessionId) {
 
 // Open Google Picker and handle photo selection
 async function openGooglePicker() {
+  const containers = document.querySelectorAll('#photos-content');
+  
   try {
     // Authenticate if needed
     if (!googlePickerState.accessToken) {
+      // Show loading message
+      containers.forEach(container => {
+        container.innerHTML = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">📷</div>
+            <h3>Authenticating...</h3>
+            <p>Please complete authentication in the popup window.</p>
+          </div>
+        `;
+      });
+      
       await authenticateGooglePicker();
+      
+      // Show success message after authentication
+      containers.forEach(container => {
+        container.innerHTML = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">✅</div>
+            <h3>Authentication Successful!</h3>
+            <p>You have successfully authenticated with Google Photos.</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">
+              Note: Photos cannot be loaded until app verification is complete.
+            </p>
+          </div>
+        `;
+      });
+      
+      // Store authentication success
+      localStorage.setItem('google_picker_authenticated', 'true');
+      
+      return;
     }
     
     // Create picker session
@@ -3334,6 +3366,43 @@ async function openGooglePicker() {
     return selectedItems;
   } catch (error) {
     console.error('Error opening Google Picker:', error);
+    
+    // Check if it's an authentication error (403/401) - likely due to unverified app
+    const isAuthError = error.message && (
+      error.message.includes('403') || 
+      error.message.includes('401') ||
+      error.message.includes('verification') ||
+      error.message.includes('unverified')
+    );
+    
+    // If authentication succeeded but API calls fail, show appropriate message
+    if (localStorage.getItem('google_picker_authenticated') === 'true' || isAuthError) {
+      containers.forEach(container => {
+        container.innerHTML = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">✅</div>
+            <h3>Authentication Successful</h3>
+            <p>You have successfully authenticated with Google Photos.</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">
+              Photos cannot be loaded until app verification is complete. This is expected behavior for unverified apps.
+            </p>
+          </div>
+        `;
+      });
+    } else {
+      // Show generic error
+      containers.forEach(container => {
+        container.innerHTML = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">📷</div>
+            <h3>Error</h3>
+            <p>${error.message || 'An error occurred'}</p>
+            <button onclick="openGooglePicker()" class="photos-connect-btn">Try Again</button>
+          </div>
+        `;
+      });
+    }
+    
     throw error;
   }
 }
