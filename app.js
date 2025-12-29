@@ -21,8 +21,7 @@ const CONFIG = {
   // Google Picker API Configuration (NEW - replaces deprecated Library API)
   // Set to true to enable Google Picker API (requires app verification)
   USE_GOOGLE_PICKER_API: true, // Enabled for video recording (app verification pending)
-  GOOGLE_PICKER_API_KEY: null, // Your Google API Key for Picker API
-  GOOGLE_PICKER_CLIENT_ID: null, // Your Google OAuth 2.0 Client ID
+  GOOGLE_PICKER_CLIENT_ID: null, // Your Google OAuth 2.0 Client ID (falls back to GOOGLE_PHOTOS_CLIENT_ID if not set)
   
   // Home Assistant Webhook IDs (for triggering actions)
   // Just the webhook ID, not the full URL - the code will handle the URL construction
