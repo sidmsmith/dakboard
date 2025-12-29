@@ -3270,6 +3270,16 @@ async function authenticateGooglePicker() {
     return accessToken;
   } catch (error) {
     console.error('Error authenticating Google Picker:', error);
+    
+    // Check for specific error types
+    if (error && error.type === 'tokenFailed' && error.error === 'server_error') {
+      // This usually means origin not registered or app not verified
+      const originError = new Error('Authentication failed. This may be due to: 1) Origin not registered in Google Cloud Console, 2) App not verified, or 3) OAuth configuration issue.');
+      originError.originalError = error;
+      originError.isTokenFailed = true;
+      throw originError;
+    }
+    
     // Don't clear authentication flag if it was previously set
     throw error;
   }
@@ -3471,6 +3481,11 @@ async function openGooglePicker() {
       (error.originalError && error.originalError.error === 'idpiframe_initialization_failed')
     );
     
+    // Check if it's a token failed error (server_error)
+    const isTokenFailed = error.isTokenFailed || 
+                         (error.originalError && error.originalError.type === 'tokenFailed') ||
+                         (error.error === 'server_error' && error.type === 'tokenFailed');
+    
     // Check if it's an authentication error (403/401) - likely due to unverified app
     const isAuthError = error.message && (
       error.message.includes('403') || 
@@ -3493,22 +3508,20 @@ async function openGooglePicker() {
           </div>
         `;
       });
-    } else if (isOriginError) {
-      // Show origin registration error message
+    } else if (isOriginError || isTokenFailed) {
+      // Show origin registration or token failed error message
       containers.forEach(container => {
         container.innerHTML = `
           <div class="photos-placeholder">
             <div class="photos-icon">⚠️</div>
-            <h3>Origin Not Registered</h3>
-            <p>Your domain needs to be registered in Google Cloud Console.</p>
+            <h3>Authentication Configuration Issue</h3>
+            <p>There's an issue with your Google OAuth configuration.</p>
             <p style="font-size: 12px; color: #888; margin-top: 8px;">
-              <strong>To fix this:</strong><br>
-              1. Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color: #66b3ff;">Google Cloud Console → APIs & Services → Credentials</a><br>
-              2. Click on your OAuth 2.0 Client ID<br>
-              3. Under "Authorized JavaScript origins", click "Add URI"<br>
-              4. Add: <code style="background: #333; padding: 2px 6px; border-radius: 3px;">https://dakboard-smith.vercel.app</code><br>
-              5. Click "Save"<br>
-              6. Wait a few minutes for changes to propagate, then try again
+              <strong>Possible causes and fixes:</strong><br>
+              1. <strong>Origin not registered:</strong> Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color: #66b3ff;">Google Cloud Console → APIs & Services → Credentials</a>, click your OAuth 2.0 Client ID, and add <code style="background: #333; padding: 2px 6px; border-radius: 3px;">https://dakboard-smith.vercel.app</code> to "Authorized JavaScript origins"<br>
+              2. <strong>App not verified:</strong> Your app may need to be verified by Google (this is expected for unverified apps)<br>
+              3. <strong>Wait for propagation:</strong> If you just added the origin, wait 5-10 minutes for changes to take effect<br>
+              4. <strong>Check OAuth consent screen:</strong> Make sure your OAuth consent screen is properly configured
             </p>
             <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Try Again</button>
           </div>
