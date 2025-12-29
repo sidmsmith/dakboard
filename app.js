@@ -18,6 +18,12 @@ const CONFIG = {
   // Google Photos Configuration
   GOOGLE_PHOTOS_ALBUM_ID: null, // Optional: Specific album ID to display photos from. If null or empty, randomizes from all photos.
   
+  // Google Picker API Configuration (NEW - replaces deprecated Library API)
+  // Set to true to enable Google Picker API (requires app verification)
+  USE_GOOGLE_PICKER_API: false, // Currently disabled until app verification is complete
+  GOOGLE_PICKER_API_KEY: null, // Your Google API Key for Picker API
+  GOOGLE_PICKER_CLIENT_ID: null, // Your Google OAuth 2.0 Client ID
+  
   // Home Assistant Webhook IDs (for triggering actions)
   // Just the webhook ID, not the full URL - the code will handle the URL construction
   HA_GARAGE_WEBHOOK_1: 'garage1toggle', // Update with your webhook IDs
@@ -3075,6 +3081,306 @@ async function loadGooglePhotos() {
     }
   }, 60 * 1000); // Every 1 minute
 }
+
+// ============================================================================
+// GOOGLE PICKER API IMPLEMENTATION (NEW - replaces deprecated Library API)
+// ============================================================================
+// This implementation uses the Google Photos Picker API which allows users
+// to explicitly select photos to share, providing better privacy controls.
+// Currently disabled until app verification is complete.
+// ============================================================================
+
+// Initialize Google Picker API
+async function initializeGooglePicker() {
+  if (!CONFIG.USE_GOOGLE_PICKER_API) {
+    console.log('Google Picker API is disabled');
+    return;
+  }
+  
+  if (!CONFIG.GOOGLE_PICKER_API_KEY || !CONFIG.GOOGLE_PICKER_CLIENT_ID) {
+    console.error('Google Picker API credentials not configured');
+    return;
+  }
+  
+  try {
+    // Load Google Picker API script
+    await loadGooglePickerScript();
+    
+    // Initialize Google API client
+    await new Promise((resolve, reject) => {
+      if (window.gapi && window.gapi.load) {
+        window.gapi.load('picker', {
+          callback: resolve,
+          onerror: reject
+        });
+      } else {
+        reject(new Error('Google API client not loaded'));
+      }
+    });
+    
+    googlePickerState.isInitialized = true;
+    console.log('Google Picker API initialized');
+  } catch (error) {
+    console.error('Error initializing Google Picker API:', error);
+  }
+}
+
+// Load Google Picker API script dynamically
+function loadGooglePickerScript() {
+  return new Promise((resolve, reject) => {
+    if (window.gapi) {
+      resolve();
+      return;
+    }
+    
+    const script = document.createElement('script');
+    script.src = 'https://apis.google.com/js/api.js';
+    script.onload = () => {
+      // Load auth2 for OAuth
+      window.gapi.load('auth2', () => {
+        window.gapi.auth2.init({
+          client_id: CONFIG.GOOGLE_PICKER_CLIENT_ID
+        }).then(() => {
+          resolve();
+        }, reject);
+      });
+    };
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+// Authenticate user and get access token for Picker API
+async function authenticateGooglePicker() {
+  if (!googlePickerState.isInitialized) {
+    await initializeGooglePicker();
+  }
+  
+  try {
+    const authInstance = window.gapi.auth2.getAuthInstance();
+    const user = await authInstance.signIn({
+      scope: 'https://www.googleapis.com/auth/photoslibrary.readonly'
+    });
+    
+    const accessToken = user.getAuthResponse().access_token;
+    googlePickerState.accessToken = accessToken;
+    
+    // Store token in localStorage for persistence
+    localStorage.setItem('google_picker_access_token', accessToken);
+    
+    return accessToken;
+  } catch (error) {
+    console.error('Error authenticating Google Picker:', error);
+    throw error;
+  }
+}
+
+// Create a Picker API session
+async function createPickerSession() {
+  if (!googlePickerState.accessToken) {
+    await authenticateGooglePicker();
+  }
+  
+  try {
+    const response = await fetch('https://photoslibrary.googleapis.com/v1/pickerSessions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${googlePickerState.accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        featureConfigs: [{
+          feature: 'PHOTOS',
+          allowedMimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+        }]
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to create picker session: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    googlePickerState.pickerSessionId = data.sessionId;
+    
+    return data.pickerUri;
+  } catch (error) {
+    console.error('Error creating picker session:', error);
+    throw error;
+  }
+}
+
+// Poll picker session to check if user has completed selection
+async function pollPickerSession(sessionId) {
+  const maxAttempts = 60; // Poll for up to 5 minutes (5 second intervals)
+  let attempts = 0;
+  
+  return new Promise((resolve, reject) => {
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      
+      try {
+        const response = await fetch(`https://photoslibrary.googleapis.com/v1/pickerSessions/${sessionId}`, {
+          headers: {
+            'Authorization': `Bearer ${googlePickerState.accessToken}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to poll session: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.state === 'COMPLETED') {
+          clearInterval(pollInterval);
+          resolve(data);
+        } else if (data.state === 'CANCELLED' || data.state === 'EXPIRED') {
+          clearInterval(pollInterval);
+          reject(new Error(`Session ${data.state.toLowerCase()}`));
+        } else if (attempts >= maxAttempts) {
+          clearInterval(pollInterval);
+          reject(new Error('Session polling timeout'));
+        }
+      } catch (error) {
+        clearInterval(pollInterval);
+        reject(error);
+      }
+    }, 5000); // Poll every 5 seconds
+  });
+}
+
+// Get selected media items from completed session
+async function getSelectedMediaItems(sessionId) {
+  try {
+    const response = await fetch(`https://photoslibrary.googleapis.com/v1/pickerSessions/${sessionId}:getSelectedMediaItems`, {
+      headers: {
+        'Authorization': `Bearer ${googlePickerState.accessToken}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to get selected media items: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data.selectedMediaItems || [];
+  } catch (error) {
+    console.error('Error getting selected media items:', error);
+    throw error;
+  }
+}
+
+// Open Google Picker and handle photo selection
+async function openGooglePicker() {
+  try {
+    // Authenticate if needed
+    if (!googlePickerState.accessToken) {
+      await authenticateGooglePicker();
+    }
+    
+    // Create picker session
+    const pickerUri = await createPickerSession();
+    
+    // Open picker in new window
+    const pickerWindow = window.open(pickerUri, 'google-picker', 'width=800,height=600');
+    
+    if (!pickerWindow) {
+      throw new Error('Failed to open picker window (popup blocked?)');
+    }
+    
+    // Poll for completion
+    const sessionData = await pollPickerSession(googlePickerState.pickerSessionId);
+    
+    // Get selected media items
+    const selectedItems = await getSelectedMediaItems(googlePickerState.pickerSessionId);
+    
+    // Update cache with selected photos
+    googlePhotosCache.photos = selectedItems.map(item => ({
+      id: item.id,
+      filename: item.filename,
+      baseUrl: item.baseUrl,
+      mimeType: item.mimeType
+    }));
+    
+    googlePhotosCache.lastUpdate = Date.now();
+    
+    // Display photos
+    displayRandomGooglePhoto();
+    
+    // Store selected photos in localStorage
+    localStorage.setItem('google_picker_selected_photos', JSON.stringify(googlePhotosCache.photos));
+    
+    return selectedItems;
+  } catch (error) {
+    console.error('Error opening Google Picker:', error);
+    throw error;
+  }
+}
+
+// Load Google Photos using Picker API
+async function loadGooglePhotosWithPicker() {
+  const containers = document.querySelectorAll('#photos-content');
+  if (containers.length === 0) return;
+  
+  try {
+    // Initialize if needed
+    if (!googlePickerState.isInitialized) {
+      await initializeGooglePicker();
+    }
+    
+    // Check if we have previously selected photos
+    const storedPhotos = localStorage.getItem('google_picker_selected_photos');
+    if (storedPhotos) {
+      try {
+        googlePhotosCache.photos = JSON.parse(storedPhotos);
+        if (googlePhotosCache.photos.length > 0) {
+          displayRandomGooglePhoto();
+          
+          // Set up auto-refresh to show different random photo
+          if (googlePhotosCache.updateInterval) {
+            clearInterval(googlePhotosCache.updateInterval);
+          }
+          googlePhotosCache.updateInterval = setInterval(() => {
+            displayRandomGooglePhoto();
+          }, 60 * 1000); // Every 1 minute
+          return;
+        }
+      } catch (e) {
+        console.error('Error parsing stored photos:', e);
+      }
+    }
+    
+    // No photos selected yet, show prompt to open picker
+    const promptHtml = `
+      <div class="photos-placeholder">
+        <div class="photos-icon">📷</div>
+        <h3>Select Google Photos</h3>
+        <p>Click the button below to select photos from your Google Photos library.</p>
+        <button onclick="openGooglePicker()" class="photos-connect-btn">Select Photos</button>
+      </div>
+    `;
+    containers.forEach(container => container.innerHTML = promptHtml);
+    
+  } catch (error) {
+    console.error('Error loading Google Photos with Picker:', error);
+    const errorHtml = `
+      <div class="photos-placeholder">
+        <div class="photos-icon">📷</div>
+        <h3>Error Loading Photos</h3>
+        <p>${error.message}</p>
+      </div>
+    `;
+    containers.forEach(container => container.innerHTML = errorHtml);
+  }
+}
+
+// Make openGooglePicker globally accessible
+window.openGooglePicker = openGooglePicker;
+
+// ============================================================================
+// END GOOGLE PICKER API IMPLEMENTATION
+// ============================================================================
 
 // Fetch HA entity via API (works both locally and in production)
 async function fetchHAEntity(entityId) {

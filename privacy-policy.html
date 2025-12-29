@@ -45,7 +45,7 @@
   <h3>Data You Provide</h3>
   <ul>
     <li><strong>Home Assistant Credentials</strong>: We store your Home Assistant URL and access token locally in your browser (localStorage) to connect to your Home Assistant instance.</li>
-    <li><strong>Google Photos Authentication</strong>: When you connect Google Photos, we store OAuth tokens (access token and refresh token) locally in your browser to access your Google Photos library.</li>
+    <li><strong>Google Photos Selection</strong>: When you use the Google Photos feature, you explicitly select which photos to share with the application. We store OAuth access tokens and your selected photo references locally in your browser (localStorage) to display the photos you've chosen.</li>
   </ul>
 
   <h3>Data We Access</h3>
@@ -59,7 +59,7 @@
         <li>Alarm panel status</li>
       </ul>
     </li>
-    <li><strong>Google Photos</strong>: We access your Google Photos library to display photos in the dashboard widget.</li>
+    <li><strong>Google Photos</strong>: We only access the specific photos you explicitly select through the Google Photos Picker API. You control which photos are shared with the application.</li>
   </ul>
 
   <h3>Automatically Collected Data</h3>
@@ -80,7 +80,7 @@
     <li><strong>Local Storage</strong>: All data is stored locally in your browser's localStorage. No data is transmitted to our servers except:
       <ul>
         <li>API calls to your Home Assistant instance (using your configured URL and token)</li>
-        <li>API calls to Google Photos API (using OAuth tokens stored locally)</li>
+        <li>API calls to Google Photos Picker API (using OAuth tokens stored locally) to create picker sessions and retrieve only the photos you explicitly select</li>
       </ul>
     </li>
     <li><strong>No Server-Side Storage</strong>: We do not store any of your data on our servers. All data remains in your browser.</li>
@@ -90,7 +90,7 @@
   <p>We do not share, sell, or distribute your personal information to third parties. The only external services we interact with are:</p>
   <ul>
     <li><strong>Home Assistant</strong>: Direct API calls to your Home Assistant instance</li>
-    <li><strong>Google Photos</strong>: Direct API calls to Google Photos API using OAuth authentication</li>
+    <li><strong>Google Photos</strong>: We use the Google Photos Picker API, which allows you to explicitly select which photos to share. We only access the specific photos you choose through the picker interface.</li>
   </ul>
 
   <h2>Your Rights</h2>
@@ -98,14 +98,14 @@
   <ul>
     <li><strong>Access</strong>: View all data stored in your browser's localStorage</li>
     <li><strong>Delete</strong>: Clear all data by clearing your browser's localStorage</li>
-    <li><strong>Disconnect</strong>: Revoke access to Google Photos through your Google Account settings</li>
+    <li><strong>Disconnect</strong>: Clear selected photos and revoke access to Google Photos through your Google Account settings or by clearing the application's localStorage</li>
     <li><strong>Control</strong>: Manage widget visibility and styling through the dashboard interface</li>
   </ul>
 
   <h2>Security</h2>
   <ul>
     <li><strong>Local Storage</strong>: All data is stored locally in your browser, encrypted by your browser's security mechanisms</li>
-    <li><strong>OAuth Tokens</strong>: Google Photos tokens are stored securely in browser localStorage</li>
+    <li><strong>OAuth Tokens</strong>: Google Photos Picker API tokens are stored securely in browser localStorage. Only the photos you explicitly select are accessible to the application.</li>
     <li><strong>No Transmission</strong>: Except for API calls to your configured services, no data leaves your browser</li>
   </ul>
 
@@ -119,9 +119,11 @@
 
   <h3>Google Photos</h3>
   <ul>
-    <li>We use Google OAuth 2.0 for authentication</li>
-    <li>We only request read-only access to your Google Photos library (<code>photoslibrary.readonly</code> scope)</li>
-    <li>You can revoke access at any time through your Google Account settings</li>
+    <li>We use the Google Photos Picker API, which provides enhanced privacy controls</li>
+    <li>You explicitly select which photos to share with the application through a picker interface</li>
+    <li>We use Google OAuth 2.0 for authentication with the <code>photoslibrary.readonly</code> scope, but only access the specific photos you choose</li>
+    <li>You can revoke access at any time through your Google Account settings or by clearing the application's localStorage</li>
+    <li>We do not access your entire Google Photos library - only the photos you explicitly select</li>
   </ul>
 
   <h2>Cookies and Tracking</h2>
