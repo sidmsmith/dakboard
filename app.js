@@ -3057,6 +3057,13 @@ async function loadGooglePhotos() {
     return;
   }
   
+  // NEW: Use Google Picker API if enabled (replaces deprecated Library API)
+  if (CONFIG.USE_GOOGLE_PICKER_API) {
+    await loadGooglePhotosWithPicker();
+    return;
+  }
+  
+  // OLD: Legacy Google Photos Library API (deprecated)
   // Check if authenticated
   if (!isGooglePhotosAuthenticated()) {
     showGooglePhotosAuthPrompt();
