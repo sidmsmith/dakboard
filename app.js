@@ -5367,8 +5367,10 @@ function showPage(pageIndex, direction = null) {
       });
     });
     
-    // Return early - final positions will be set in requestAnimationFrame
-    return;
+    // Don't return early - we still need to run the page loading code below
+    // But skip the final position setting since it's handled in requestAnimationFrame
+    // We'll set a flag to skip it
+    const skipFinalPositions = true;
   } else if (isInitialLoad) {
     console.log(`[showPage] INITIAL LOAD - Disabling transitions`);
     // Disable transition on initial load
@@ -5385,12 +5387,14 @@ function showPage(pageIndex, direction = null) {
   
   // Update all pages to final positions (single animation)
   // Note: This is skipped for looping animations (handled in requestAnimationFrame above)
-  console.log(`[showPage] Setting final positions for all pages`);
-  pages.forEach((page, index) => {
-    const offset = (index - pageIndex) * 100;
-    console.log(`[showPage] Page ${index}: final translateX(${offset}vw)`);
-    page.style.transform = `translateX(${offset}vw)`;
-  });
+  if (!skipFinalPositions) {
+    console.log(`[showPage] Setting final positions for all pages`);
+    pages.forEach((page, index) => {
+      const offset = (index - pageIndex) * 100;
+      console.log(`[showPage] Page ${index}: final translateX(${offset}vw)`);
+      page.style.transform = `translateX(${offset}vw)`;
+    });
+  }
   
   // Mark initial load as complete after first page display
   if (isInitialLoad) {
