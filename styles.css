@@ -570,13 +570,9 @@ body {
   scrollbar-color: #4a90e2 #2a2a2a;
 }
 
-/* Day 1 container - sticky at top when scrolling */
+/* Day 1 container - just a regular item now */
 .weather-forecast-day1 {
   flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: #2a2a2a; /* Match widget background to cover scrolling content */
 }
 
 /* Days 2-5 container - part of scrollable list */

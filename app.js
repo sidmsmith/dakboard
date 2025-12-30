@@ -1537,85 +1537,58 @@ function renderForecast(forecastData, attrs) {
     return forecastItem;
   }
   
-  // Update all forecast lists
+  // Update all forecast lists - simplified: just add all items directly to the list
   forecastLists.forEach(forecastList => {
     forecastList.innerHTML = '';
     
     if (forecastData.length === 0) return;
     
-    // Day 1 container (always visible)
-    const day1Container = document.createElement('div');
-    day1Container.className = 'weather-forecast-day1';
-    const day1Item = createForecastItem(forecastData[0], 0, range, minTemp, currentTemp);
-    day1Container.appendChild(day1Item);
-    forecastList.appendChild(day1Container);
+    // Add all forecast items directly to the list (no separate containers)
+    forecastData.forEach((day, index) => {
+      const dayItem = createForecastItem(day, index, range, minTemp, currentTemp);
+      forecastList.appendChild(dayItem);
+    });
     
-    // Days 2-5 container (scrollable)
-    if (forecastData.length > 1) {
-      const days2to5Container = document.createElement('div');
-      days2to5Container.className = 'weather-forecast-days-2-5';
+    // Debug logging after a short delay to allow rendering
+    setTimeout(() => {
+      const parent = forecastList;
+      const forecastSection = parent.closest('.weather-forecast');
+      const weatherContent = forecastSection?.parentElement;
+      const widget = weatherContent?.closest('.weather-widget');
       
-      for (let i = 1; i < forecastData.length; i++) {
-        const dayItem = createForecastItem(forecastData[i], i, range, minTemp, currentTemp);
-        days2to5Container.appendChild(dayItem);
-      }
-      
-      forecastList.appendChild(days2to5Container);
-      
-      // Debug logging after a short delay to allow rendering
-      setTimeout(() => {
-        const container = days2to5Container;
-        const parent = forecastList;
-        const forecastSection = parent.closest('.weather-forecast');
-        const weatherContent = forecastSection?.parentElement;
-        const widget = weatherContent?.closest('.weather-widget');
-        
-        console.log('=== Weather Forecast Scrollbar Debug ===');
-        console.log('Days 2-5 Container:', {
-          scrollHeight: container.scrollHeight,
-          clientHeight: container.clientHeight,
-          offsetHeight: container.offsetHeight,
-          hasOverflow: container.scrollHeight > container.clientHeight,
-          computedStyle: {
-            overflowY: window.getComputedStyle(container).overflowY,
-            flex: window.getComputedStyle(container).flex,
-            minHeight: window.getComputedStyle(container).minHeight,
-            maxHeight: window.getComputedStyle(container).maxHeight,
-            height: window.getComputedStyle(container).height
-          }
-        });
-        console.log('Parent (.weather-forecast-list):', {
-          scrollHeight: parent.scrollHeight,
-          clientHeight: parent.clientHeight,
-          offsetHeight: parent.offsetHeight,
-          computedStyle: {
-            overflow: window.getComputedStyle(parent).overflow,
-            flex: window.getComputedStyle(parent).flex,
-            minHeight: window.getComputedStyle(parent).minHeight,
-            height: window.getComputedStyle(parent).height
-          }
-        });
-        console.log('Forecast Section (.weather-forecast):', {
-          scrollHeight: forecastSection?.scrollHeight,
-          clientHeight: forecastSection?.clientHeight,
-          offsetHeight: forecastSection?.offsetHeight,
-          computedStyle: {
-            overflow: window.getComputedStyle(forecastSection).overflow,
-            flex: window.getComputedStyle(forecastSection).flex,
-            minHeight: window.getComputedStyle(forecastSection).minHeight,
-            height: window.getComputedStyle(forecastSection).height
-          }
-        });
-        console.log('Weather Widget:', {
-          scrollHeight: widget?.scrollHeight,
-          clientHeight: widget?.clientHeight,
-          offsetHeight: widget?.offsetHeight,
-          height: window.getComputedStyle(widget).height
-        });
-        console.log('Number of forecast items in Days 2-5:', container.children.length);
-        console.log('========================================');
-      }, 100);
-    }
+      console.log('=== Weather Forecast Scrollbar Debug ===');
+      console.log('Forecast List (.weather-forecast-list):', {
+        scrollHeight: parent.scrollHeight,
+        clientHeight: parent.clientHeight,
+        offsetHeight: parent.offsetHeight,
+        hasOverflow: parent.scrollHeight > parent.clientHeight,
+        computedStyle: {
+          overflowY: window.getComputedStyle(parent).overflowY,
+          flex: window.getComputedStyle(parent).flex,
+          minHeight: window.getComputedStyle(parent).minHeight,
+          height: window.getComputedStyle(parent).height
+        }
+      });
+      console.log('Forecast Section (.weather-forecast):', {
+        scrollHeight: forecastSection?.scrollHeight,
+        clientHeight: forecastSection?.clientHeight,
+        offsetHeight: forecastSection?.offsetHeight,
+        computedStyle: {
+          overflow: window.getComputedStyle(forecastSection).overflow,
+          flex: window.getComputedStyle(forecastSection).flex,
+          minHeight: window.getComputedStyle(forecastSection).minHeight,
+          height: window.getComputedStyle(forecastSection).height
+        }
+      });
+      console.log('Weather Widget:', {
+        scrollHeight: widget?.scrollHeight,
+        clientHeight: widget?.clientHeight,
+        offsetHeight: widget?.offsetHeight,
+        height: window.getComputedStyle(widget).height
+      });
+      console.log('Number of forecast items:', parent.children.length);
+      console.log('========================================');
+    }, 100);
   });
 }
 
