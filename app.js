@@ -256,6 +256,36 @@ async function loadCalendarEvents() {
         const endTime = event.end || event.end_time || event.dtend;
         const summary = event.summary || event.title || event.name || 'Untitled Event';
         
+        // Detect all-day events: check if all_day flag is set, or if times indicate all-day
+        let isAllDay = event.all_day || false;
+        if (!isAllDay && startTime) {
+          const start = new Date(startTime);
+          // Check if event starts at midnight and spans full day (or ends at midnight next day)
+          const startHour = start.getHours();
+          const startMinute = start.getMinutes();
+          const startSecond = start.getSeconds();
+          
+          // Some calendar systems set all-day events to 7pm (19:00) or midnight
+          // If it starts at 00:00:00 or 19:00:00 and has no specific time component, treat as all-day
+          if ((startHour === 0 && startMinute === 0 && startSecond === 0) || 
+              (startHour === 19 && startMinute === 0 && startSecond === 0)) {
+            if (endTime) {
+              const end = new Date(endTime);
+              const endHour = end.getHours();
+              const endMinute = end.getMinutes();
+              const endSecond = end.getSeconds();
+              // If it ends at 00:00:00 next day or 19:00:00 same day, it's likely all-day
+              if ((endHour === 0 && endMinute === 0 && endSecond === 0) ||
+                  (endHour === 19 && endMinute === 0 && endSecond === 0)) {
+                isAllDay = true;
+              }
+            } else {
+              // No end time, but starts at midnight or 7pm - likely all-day
+              isAllDay = true;
+            }
+          }
+        }
+        
         return {
           id: event.uid || event.id || `${event.calendar}-${startTime}`,
           title: summary,
@@ -264,9 +294,12 @@ async function loadCalendarEvents() {
           location: event.location || null,
           description: event.description || null,
           calendar: event.calendar,
-          allDay: event.all_day || false
+          allDay: isAllDay
         };
       });
+      
+      // De-duplicate events: compare by title and start/end times (ignore calendar source)
+      calendarEvents = deduplicateEvents(calendarEvents);
       
     } else {
       // Use serverless function (for Vercel production)
@@ -275,6 +308,36 @@ async function loadCalendarEvents() {
       if (response.ok) {
         const data = await response.json();
         calendarEvents = data.events || [];
+        
+        // Detect and fix all-day events, then de-duplicate
+        calendarEvents = calendarEvents.map(event => {
+          let isAllDay = event.allDay || false;
+          if (!isAllDay && event.start) {
+            const start = new Date(event.start);
+            const startHour = start.getHours();
+            const startMinute = start.getMinutes();
+            const startSecond = start.getSeconds();
+            
+            if ((startHour === 0 && startMinute === 0 && startSecond === 0) || 
+                (startHour === 19 && startMinute === 0 && startSecond === 0)) {
+              if (event.end) {
+                const end = new Date(event.end);
+                const endHour = end.getHours();
+                const endMinute = end.getMinutes();
+                const endSecond = end.getSeconds();
+                if ((endHour === 0 && endMinute === 0 && endSecond === 0) ||
+                    (endHour === 19 && endMinute === 0 && endSecond === 0)) {
+                  isAllDay = true;
+                }
+              } else {
+                isAllDay = true;
+              }
+            }
+          }
+          return { ...event, allDay: isAllDay };
+        });
+        
+        calendarEvents = deduplicateEvents(calendarEvents);
       } else {
         console.error('Failed to fetch calendar events:', response.status);
         calendarEvents = [];
@@ -705,10 +768,16 @@ function renderMonthCalendar(container, year, month, events) {
     const moreCount = dayEvents.length - 3;
     
     eventsToShow.forEach(event => {
-      const eventStart = new Date(event.start);
-      const timeStr = eventStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-      html += `<div class="month-event" style="border-left-color: ${event.color || '#4a90e2'}" title="${event.title} - ${timeStr}">
-        <span class="month-event-time">${timeStr}</span>
+      // Don't show time for all-day events
+      let timeStr = '';
+      let titleText = event.title;
+      if (!event.allDay) {
+        const eventStart = new Date(event.start);
+        timeStr = eventStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        titleText = `${event.title} - ${timeStr}`;
+      }
+      html += `<div class="month-event" style="border-left-color: ${event.color || '#4a90e2'}" title="${titleText}">
+        ${timeStr ? `<span class="month-event-time">${timeStr}</span>` : ''}
         <span class="month-event-title">${event.title}</span>
       </div>`;
     });
@@ -820,6 +889,31 @@ async function fetchMonthEvents(monthStart, monthEnd) {
           const endTime = event.end || event.end_time || event.dtend;
           const summary = event.summary || event.title || event.name || 'Untitled Event';
           
+          // Detect all-day events (same logic as weekly calendar)
+          let isAllDay = event.all_day || false;
+          if (!isAllDay && startTime) {
+            const start = new Date(startTime);
+            const startHour = start.getHours();
+            const startMinute = start.getMinutes();
+            const startSecond = start.getSeconds();
+            
+            if ((startHour === 0 && startMinute === 0 && startSecond === 0) || 
+                (startHour === 19 && startMinute === 0 && startSecond === 0)) {
+              if (endTime) {
+                const end = new Date(endTime);
+                const endHour = end.getHours();
+                const endMinute = end.getMinutes();
+                const endSecond = end.getSeconds();
+                if ((endHour === 0 && endMinute === 0 && endSecond === 0) ||
+                    (endHour === 19 && endMinute === 0 && endSecond === 0)) {
+                  isAllDay = true;
+                }
+              } else {
+                isAllDay = true;
+              }
+            }
+          }
+          
           return {
             id: event.uid || event.id || `${event.calendar}-${startTime}`,
             title: summary,
@@ -828,9 +922,12 @@ async function fetchMonthEvents(monthStart, monthEnd) {
             location: event.location || null,
             description: event.description || null,
             calendar: event.calendar,
-            allDay: event.all_day || false
+            allDay: isAllDay
           };
         });
+        
+        // De-duplicate month events
+        monthEvents = deduplicateEvents(monthEvents);
       } else {
         monthEvents = [];
       }
@@ -841,6 +938,36 @@ async function fetchMonthEvents(monthStart, monthEnd) {
       if (response.ok) {
         const data = await response.json();
         monthEvents = data.events || [];
+        
+        // Detect and fix all-day events, then de-duplicate
+        monthEvents = monthEvents.map(event => {
+          let isAllDay = event.allDay || false;
+          if (!isAllDay && event.start) {
+            const start = new Date(event.start);
+            const startHour = start.getHours();
+            const startMinute = start.getMinutes();
+            const startSecond = start.getSeconds();
+            
+            if ((startHour === 0 && startMinute === 0 && startSecond === 0) || 
+                (startHour === 19 && startMinute === 0 && startSecond === 0)) {
+              if (event.end) {
+                const end = new Date(event.end);
+                const endHour = end.getHours();
+                const endMinute = end.getMinutes();
+                const endSecond = end.getSeconds();
+                if ((endHour === 0 && endMinute === 0 && endSecond === 0) ||
+                    (endHour === 19 && endMinute === 0 && endSecond === 0)) {
+                  isAllDay = true;
+                }
+              } else {
+                isAllDay = true;
+              }
+            }
+          }
+          return { ...event, allDay: isAllDay };
+        });
+        
+        monthEvents = deduplicateEvents(monthEvents);
       } else {
         console.error('Failed to fetch month calendar events:', response.status);
         monthEvents = [];

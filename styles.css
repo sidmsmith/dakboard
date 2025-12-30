@@ -1137,12 +1137,27 @@ body {
 /* Hide scrollbar on month calendar modal content */
 #month-calendar-content {
   /* Hide scrollbar but keep scrolling functionality */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE and Edge */
+  overflow-y: auto; /* Ensure scrolling is enabled */
 }
 
 #month-calendar-content::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none !important; /* Chrome, Safari, Opera */
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Also hide scrollbar on modal-content if it contains month calendar */
+.modal-content:has(#month-calendar-content) {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.modal-content:has(#month-calendar-content)::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .modal-large {
