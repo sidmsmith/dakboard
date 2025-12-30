@@ -5357,7 +5357,18 @@ function showPage(pageIndex, direction = null) {
         page.style.visibility = 'visible';
       });
       console.log(`[showPage] Transitions re-enabled, all pages visible`);
+      
+      // Now set final positions AFTER transitions are enabled (this triggers the animation)
+      console.log(`[showPage] Setting final positions for all pages (triggering animation)`);
+      pages.forEach((page, index) => {
+        const offset = (index - pageIndex) * 100;
+        console.log(`[showPage] Page ${index}: final translateX(${offset}vw)`);
+        page.style.transform = `translateX(${offset}vw)`;
+      });
     });
+    
+    // Return early - final positions will be set in requestAnimationFrame
+    return;
   } else if (isInitialLoad) {
     console.log(`[showPage] INITIAL LOAD - Disabling transitions`);
     // Disable transition on initial load
@@ -5373,6 +5384,7 @@ function showPage(pageIndex, direction = null) {
   }
   
   // Update all pages to final positions (single animation)
+  // Note: This is skipped for looping animations (handled in requestAnimationFrame above)
   console.log(`[showPage] Setting final positions for all pages`);
   pages.forEach((page, index) => {
     const offset = (index - pageIndex) * 100;
