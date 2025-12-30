@@ -1025,6 +1025,37 @@ function loadDailyAgendaForDate(date) {
   if (!modal.classList.contains('active')) {
     modal.classList.add('active');
   }
+  
+  // Set up navigation button event listeners (do this after modal is shown)
+  const prevDayBtn = document.getElementById('prev-day-btn');
+  const nextDayBtn = document.getElementById('next-day-btn');
+  
+  // Remove existing listeners to prevent duplicates
+  const newPrevBtn = prevDayBtn?.cloneNode(true);
+  const newNextBtn = nextDayBtn?.cloneNode(true);
+  if (prevDayBtn && newPrevBtn) {
+    prevDayBtn.parentNode?.replaceChild(newPrevBtn, prevDayBtn);
+    newPrevBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (currentAgendaDate) {
+        currentAgendaDate.setDate(currentAgendaDate.getDate() - 1);
+        loadDailyAgendaForDate(currentAgendaDate);
+      }
+    });
+  }
+  
+  if (nextDayBtn && newNextBtn) {
+    nextDayBtn.parentNode?.replaceChild(newNextBtn, nextDayBtn);
+    newNextBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (currentAgendaDate) {
+        currentAgendaDate.setDate(currentAgendaDate.getDate() + 1);
+        loadDailyAgendaForDate(currentAgendaDate);
+      }
+    });
+  }
 }
 
 // Close daily agenda modal

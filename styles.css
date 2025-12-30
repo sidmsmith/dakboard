@@ -398,7 +398,6 @@ body {
 
 .daily-agenda-event:hover {
   background: #3a3a3a;
-  transform: translateX(4px);
 }
 
 .daily-agenda-event-time {
