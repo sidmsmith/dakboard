@@ -3854,6 +3854,12 @@ function loadGooglePickerScript() {
 
 // Authenticate user and get access token for Picker API
 async function authenticateGooglePicker() {
+  // Restore access token from localStorage first (might be expired, but check anyway)
+  const storedToken = localStorage.getItem('google_picker_access_token');
+  if (storedToken) {
+    googlePickerState.accessToken = storedToken;
+  }
+  
   // Ensure initialization
   if (!googlePickerState.isInitialized) {
     await initializeGooglePicker();
@@ -3870,9 +3876,11 @@ async function authenticateGooglePicker() {
       throw new Error('Google Auth2 instance not available. Please check your Client ID configuration.');
     }
     
-    // Use Google Picker API scope (not the old Photos Library API scope)
+    // Use Google Picker API scope (matches what's configured in Google Cloud Console)
+    // This scope: https://www.googleapis.com/auth/photospicker.mediaitems.readonly
     const user = await authInstance.signIn({
-      scope: 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly'
+      scope: 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly',
+      prompt: 'consent' // Force consent screen to show scopes for verification
     });
     
     const accessToken = user.getAuthResponse().access_token;
@@ -3903,6 +3911,12 @@ async function authenticateGooglePicker() {
 
 // Create a Picker API session
 async function createPickerSession() {
+  // Restore access token from localStorage if available
+  const storedToken = localStorage.getItem('google_picker_access_token');
+  if (storedToken && !googlePickerState.accessToken) {
+    googlePickerState.accessToken = storedToken;
+  }
+  
   if (!googlePickerState.accessToken) {
     await authenticateGooglePicker();
   }
@@ -4186,6 +4200,12 @@ async function openGooglePicker() {
 async function loadGooglePhotosWithPicker() {
   const containers = document.querySelectorAll('#photos-content');
   if (containers.length === 0) return;
+  
+  // Restore access token from localStorage if available
+  const storedToken = localStorage.getItem('google_picker_access_token');
+  if (storedToken && !googlePickerState.accessToken) {
+    googlePickerState.accessToken = storedToken;
+  }
   
   // Check if Client ID is configured
   const clientId = CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID;
