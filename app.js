@@ -1586,7 +1586,7 @@ function updateForecastListHeight(forecastList) {
     
     // Use getBoundingClientRect to get actual rendered height
     const sectionRect = forecastSection.getBoundingClientRect();
-    const availableHeight = sectionRect.height - headerHeight;
+    let availableHeight = sectionRect.height - headerHeight;
     
     // Calculate total content height (all items + gaps) - items should be 60px each
     const itemCount = forecastList.children.length;
@@ -1595,20 +1595,28 @@ function updateForecastListHeight(forecastList) {
     
     // Check if height has actually changed to prevent unnecessary updates
     const currentHeight = parseFloat(forecastList.style.height) || 0;
-    const heightChanged = Math.abs(currentHeight - availableHeight) >= 1;
+    const heightChanged = Math.abs(currentHeight - availableHeight) >= 2;
     
-    // Only update if height changed OR if we need to force overflow
-    if (!heightChanged && forecastList.scrollHeight <= forecastList.clientHeight) {
-      // Height hasn't changed and no overflow, skip update to prevent feedback loop
+    // Only update if height changed significantly OR if we need to force overflow
+    if (!heightChanged && forecastList.scrollHeight <= forecastList.clientHeight + 1) {
+      // Height hasn't changed significantly and no meaningful overflow, skip update to prevent feedback loop
       return;
     }
     
-    // ALWAYS constrain to available height to ensure scrollbar appears when needed
+    // If content is taller than available space, ensure we have enough overflow for scrolling
+    // Round down to ensure we always have at least a few pixels of overflow
+    if (totalContentHeight > availableHeight) {
+      // Constrain to slightly less than available to ensure scrollbar appears
+      availableHeight = Math.floor(availableHeight) - 1;
+    } else {
+      // Content fits, use available height
+      availableHeight = Math.floor(availableHeight);
+    }
+    
+    // ALWAYS constrain to calculated height to ensure scrollbar appears when needed
     // This matches the Todo List pattern which uses fixed max-height
-    // Use Math.floor to avoid sub-pixel issues
-    const constrainedHeight = Math.floor(availableHeight);
-    forecastList.style.maxHeight = `${constrainedHeight}px`;
-    forecastList.style.height = `${constrainedHeight}px`;
+    forecastList.style.maxHeight = `${availableHeight}px`;
+    forecastList.style.height = `${availableHeight}px`;
     
     // Force items not to compress by ensuring they maintain their min-height
     Array.from(forecastList.children).forEach(item => {
