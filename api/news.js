@@ -14,31 +14,62 @@ export default async function (req, res) {
   }
   
   // RSS feed URL - can be configured via environment variable or use default
-  const rssUrl = process.env.NEWS_RSS_URL || 'https://hosted.ap.org/lineups/TOPHEADS.rss';
+  // AP News no longer provides RSS feeds, so using Reuters as default
+  // Alternative options: BBC, NPR, CNN, etc.
+  const rssUrl = process.env.NEWS_RSS_URL || 'https://www.reutersagency.com/feed/?best-topics=business-finance&post_type=best';
+  
+  // Fallback URLs if primary fails (user can override with NEWS_RSS_URL env var)
+  const fallbackUrls = [
+    'https://feeds.reuters.com/reuters/topNews',
+    'https://rss.cnn.com/rss/edition.rss',
+    'https://feeds.npr.org/1001/rss.xml'
+  ];
   
   console.log('Fetching RSS feed from:', rssUrl);
   
   try {
     // Fetch RSS feed with timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
     
     let response;
     try {
+      console.log('Attempting to fetch RSS feed...');
       response = await fetch(rssUrl, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Cache-Control': 'no-cache'
         },
-        signal: controller.signal
+        signal: controller.signal,
+        // Add redirect handling
+        redirect: 'follow'
       });
       clearTimeout(timeoutId);
+      console.log('Fetch response status:', response.status, response.statusText);
     } catch (fetchError) {
       clearTimeout(timeoutId);
+      console.error('Fetch error details:', {
+        name: fetchError.name,
+        message: fetchError.message,
+        cause: fetchError.cause,
+        stack: fetchError.stack
+      });
+      
       if (fetchError.name === 'AbortError') {
-        throw new Error('RSS feed request timed out');
+        throw new Error('RSS feed request timed out after 15 seconds');
       }
-      throw new Error(`Failed to fetch RSS feed: ${fetchError.message}`);
+      
+      // Provide more detailed error message
+      let errorMsg = `Failed to fetch RSS feed: ${fetchError.message}`;
+      if (fetchError.cause) {
+        errorMsg += ` (Cause: ${fetchError.cause.message || fetchError.cause})`;
+      }
+      if (fetchError.code) {
+        errorMsg += ` (Code: ${fetchError.code})`;
+      }
+      throw new Error(errorMsg);
     }
     
     if (!response.ok) {
@@ -68,31 +99,42 @@ export default async function (req, res) {
       });
     }
     
-    // Set CORS headers before returning
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    
-    // Return in same format as NewsAPI for compatibility
-    return res.json({
-      status: 'ok',
-      totalResults: articles.length,
-      articles: articles
-    });
-  } catch (error) {
-    console.error('RSS feed error:', error);
-    console.error('Error stack:', error.stack);
-    
-    // Set CORS headers even for errors
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    
-    return res.status(500).json({ 
-      error: error.message || 'Failed to fetch news feed',
-      details: error.stack || 'Unknown error'
-    });
+      // Set CORS headers before returning
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      
+      // Return in same format as NewsAPI for compatibility
+      return res.json({
+        status: 'ok',
+        totalResults: articles.length,
+        articles: articles
+      });
+    } catch (error) {
+      console.error(`Failed to fetch from ${rssUrl}:`, error.message);
+      lastError = error;
+      
+      // If this was the last URL or it's a configured URL, break and return error
+      if (rssUrl === urlsToTry[urlsToTry.length - 1] || process.env.NEWS_RSS_URL) {
+        break;
+      }
+      // Otherwise try next URL
+      continue;
+    }
   }
+  
+  // All URLs failed
+  console.error('All RSS feed URLs failed. Last error:', lastError);
+  
+  // Set CORS headers even for errors
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  return res.status(500).json({ 
+    error: lastError?.message || 'Failed to fetch news feed from all sources',
+    details: lastError?.stack || 'Unknown error'
+  });
 }
 
 // Parse RSS XML and convert to article format
