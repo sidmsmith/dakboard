@@ -1554,16 +1554,20 @@ function renderForecast(forecastData, attrs) {
     
     // Set up ResizeObserver to update height when widget is resized
     const widget = forecastList.closest('.weather-widget');
-    const forecastSection = forecastList.closest('.weather-forecast');
-    if (widget && forecastSection && !widget.dataset.forecastObserverSet) {
+    if (widget && !widget.dataset.forecastObserverSet) {
       widget.dataset.forecastObserverSet = 'true';
-      // Observe both widget and forecast section for size changes
+      
+      // Debounce to prevent infinite loops
+      let resizeTimeout;
       const resizeObserver = new ResizeObserver(() => {
-        console.log('ResizeObserver fired for weather widget');
-        updateForecastListHeight(forecastList);
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+          updateForecastListHeight(forecastList);
+        }, 50); // 50ms debounce
       });
+      
+      // Only observe the widget, not the forecast section (to prevent feedback loop)
       resizeObserver.observe(widget);
-      resizeObserver.observe(forecastSection);
     }
   });
 }
@@ -1583,6 +1587,13 @@ function updateForecastListHeight(forecastList) {
     // Use getBoundingClientRect to get actual rendered height
     const sectionRect = forecastSection.getBoundingClientRect();
     const availableHeight = sectionRect.height - headerHeight;
+    
+    // Check if height has actually changed to prevent unnecessary updates
+    const currentHeight = parseFloat(forecastList.style.height) || 0;
+    if (Math.abs(currentHeight - availableHeight) < 1) {
+      // Height hasn't changed significantly, skip update to prevent feedback loop
+      return;
+    }
     
     // Calculate total content height (all items + gaps) - items should be 60px each
     const itemCount = forecastList.children.length;
