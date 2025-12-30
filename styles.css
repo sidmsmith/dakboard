@@ -564,8 +564,6 @@ body {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  /* Ensure this container has a defined height for flex children */
-  height: 100%;
 }
 
 /* Day 1 container - always visible */
@@ -578,15 +576,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  flex: 1 1 auto;
+  flex: 1 1 0%; /* flex-basis: 0% forces container to respect available space */
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: #4a90e2 #2a2a2a;
-  /* Force the container to be constrained - use both height and max-height */
-  max-height: 100%;
 }
 
 .weather-forecast-days-2-5::-webkit-scrollbar {
