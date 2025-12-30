@@ -5327,7 +5327,8 @@ function showPage(pageIndex, direction = null) {
       });
       
       // Set final positions (triggers animation)
-      // For looping right, all pages should move LEFT visually
+      // For looping right, all pages should move LEFT visually during animation
+      // But they must end at correct final positions for subsequent navigation
       pages.forEach((page, index) => {
         if (index === pageIndex) {
           // New page (0) animates to center
@@ -5340,17 +5341,22 @@ function showPage(pageIndex, direction = null) {
             page.style.visibility = 'visible';
           }, 350); // After animation completes
         } else {
-          // All other pages: calculate if they should move left or right
+          // All other pages: calculate positions
           const currentOffset = (index - oldPageIndex) * 100;
           const finalOffset = (index - pageIndex) * 100;
           
-          // If final position is to the right of current, move it left off-screen instead
-          // This ensures all pages move left visually during the loop
-          if (finalOffset > currentOffset) {
-            // This page would move right - instead move it left off-screen
+          // During animation, move pages left for visual effect
+          // But ensure they end at correct final positions
+          if (finalOffset > currentOffset && finalOffset > 100) {
+            // This page would move far right (like Page 3 going to 300vw)
+            // Instead, animate it left off-screen, then correct position after animation
             page.style.transform = `translateX(-100vw)`;
+            // After animation, set to correct final position
+            setTimeout(() => {
+              page.style.transform = `translateX(${finalOffset}vw)`;
+            }, 350);
           } else {
-            // This page moves left - use final position
+            // This page moves left or is close - use final position directly
             page.style.transform = `translateX(${finalOffset}vw)`;
           }
           page.style.visibility = 'visible';
