@@ -1549,45 +1549,52 @@ function renderForecast(forecastData, attrs) {
       forecastList.appendChild(dayItem);
     });
     
-    // Debug logging after a short delay to allow rendering
+    // Force container to be constrained by setting max-height based on parent
+    // This ensures scrollbar appears when content overflows
     setTimeout(() => {
       const parent = forecastList;
       const forecastSection = parent.closest('.weather-forecast');
-      const weatherContent = forecastSection?.parentElement;
-      const widget = weatherContent?.closest('.weather-widget');
       
-      console.log('=== Weather Forecast Scrollbar Debug ===');
-      console.log('Forecast List (.weather-forecast-list):', {
-        scrollHeight: parent.scrollHeight,
-        clientHeight: parent.clientHeight,
-        offsetHeight: parent.offsetHeight,
-        hasOverflow: parent.scrollHeight > parent.clientHeight,
-        computedStyle: {
-          overflowY: window.getComputedStyle(parent).overflowY,
-          flex: window.getComputedStyle(parent).flex,
-          minHeight: window.getComputedStyle(parent).minHeight,
-          height: window.getComputedStyle(parent).height
-        }
-      });
-      console.log('Forecast Section (.weather-forecast):', {
-        scrollHeight: forecastSection?.scrollHeight,
-        clientHeight: forecastSection?.clientHeight,
-        offsetHeight: forecastSection?.offsetHeight,
-        computedStyle: {
-          overflow: window.getComputedStyle(forecastSection).overflow,
-          flex: window.getComputedStyle(forecastSection).flex,
-          minHeight: window.getComputedStyle(forecastSection).minHeight,
-          height: window.getComputedStyle(forecastSection).height
-        }
-      });
-      console.log('Weather Widget:', {
-        scrollHeight: widget?.scrollHeight,
-        clientHeight: widget?.clientHeight,
-        offsetHeight: widget?.offsetHeight,
-        height: window.getComputedStyle(widget).height
-      });
-      console.log('Number of forecast items:', parent.children.length);
-      console.log('========================================');
+      if (forecastSection && parent) {
+        // Get the available height for the list (parent height minus header)
+        const header = forecastSection.querySelector('.weather-forecast-header');
+        const headerHeight = header ? header.offsetHeight + parseInt(window.getComputedStyle(header).marginBottom) : 0;
+        const availableHeight = forecastSection.clientHeight - headerHeight;
+        
+        // Set max-height to force constraint
+        parent.style.maxHeight = `${availableHeight}px`;
+        
+        console.log('=== Weather Forecast Scrollbar Debug ===');
+        console.log('Forecast List (.weather-forecast-list):', {
+          scrollHeight: parent.scrollHeight,
+          clientHeight: parent.clientHeight,
+          offsetHeight: parent.offsetHeight,
+          maxHeight: parent.style.maxHeight,
+          hasOverflow: parent.scrollHeight > parent.clientHeight,
+          computedStyle: {
+            overflowY: window.getComputedStyle(parent).overflowY,
+            flex: window.getComputedStyle(parent).flex,
+            minHeight: window.getComputedStyle(parent).minHeight,
+            height: window.getComputedStyle(parent).height,
+            maxHeight: window.getComputedStyle(parent).maxHeight
+          }
+        });
+        console.log('Forecast Section (.weather-forecast):', {
+          scrollHeight: forecastSection.scrollHeight,
+          clientHeight: forecastSection.clientHeight,
+          offsetHeight: forecastSection.offsetHeight,
+          headerHeight: headerHeight,
+          availableHeight: availableHeight,
+          computedStyle: {
+            overflow: window.getComputedStyle(forecastSection).overflow,
+            flex: window.getComputedStyle(forecastSection).flex,
+            minHeight: window.getComputedStyle(forecastSection).minHeight,
+            height: window.getComputedStyle(forecastSection).height
+          }
+        });
+        console.log('Number of forecast items:', parent.children.length);
+        console.log('========================================');
+      }
     }, 100);
   });
 }
