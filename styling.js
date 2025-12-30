@@ -444,6 +444,9 @@ function generateShadowTab() {
         <div class="styling-form-row">
           <label class="styling-form-label">Color</label>
           <div class="styling-form-control">
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="shadow-color-same-as-border"> Same as Border
+            </label>
             <input type="color" id="shadow-color" value="${shadowColor}">
             <label class="styling-apply-all-checkbox">
               <input type="checkbox" id="shadow-color-apply-all" ${applyToAllFlags.shadowColor ? 'checked' : ''}> Apply to all
@@ -810,10 +813,49 @@ function attachTabEventListeners(tabName) {
       });
     });
 
-    document.getElementById('shadow-color').addEventListener('input', (e) => {
-      currentStyles.shadowColor = e.target.value;
-      updatePreview();
-    });
+    // "Same as Border" checkbox
+    const sameAsBorderCheckbox = document.getElementById('shadow-color-same-as-border');
+    const shadowColorInput = document.getElementById('shadow-color');
+    
+    if (sameAsBorderCheckbox) {
+      // Check if shadow color matches border color on load
+      const borderColor = currentStyles.borderColor || '#000000';
+      const shadowColor = currentStyles.shadowColor || '#000000';
+      if (shadowColor === borderColor) {
+        sameAsBorderCheckbox.checked = true;
+        if (shadowColorInput) {
+          shadowColorInput.disabled = true;
+        }
+      }
+      
+      sameAsBorderCheckbox.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          // Sync shadow color with border color
+          const borderColor = currentStyles.borderColor || '#000000';
+          currentStyles.shadowColor = borderColor;
+          if (shadowColorInput) {
+            shadowColorInput.value = borderColor;
+            shadowColorInput.disabled = true;
+          }
+        } else {
+          // Enable shadow color picker
+          if (shadowColorInput) {
+            shadowColorInput.disabled = false;
+          }
+        }
+        updatePreview();
+      });
+    }
+
+    if (shadowColorInput) {
+      shadowColorInput.addEventListener('input', (e) => {
+        // Only update if "Same as Border" is not checked
+        if (!sameAsBorderCheckbox || !sameAsBorderCheckbox.checked) {
+          currentStyles.shadowColor = e.target.value;
+          updatePreview();
+        }
+      });
+    }
 
     const shadowBlur = document.getElementById('shadow-blur');
     const shadowBlurValue = document.getElementById('shadow-blur-value');
