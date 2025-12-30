@@ -3870,8 +3870,9 @@ async function authenticateGooglePicker() {
       throw new Error('Google Auth2 instance not available. Please check your Client ID configuration.');
     }
     
+    // Use Google Picker API scope (not the old Photos Library API scope)
     const user = await authInstance.signIn({
-      scope: 'https://www.googleapis.com/auth/photoslibrary.readonly'
+      scope: 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly'
     });
     
     const accessToken = user.getAuthResponse().access_token;
@@ -4011,6 +4012,12 @@ async function openGooglePicker() {
   const containers = document.querySelectorAll('#photos-content');
   
   try {
+    // Restore access token from localStorage if available
+    const storedToken = localStorage.getItem('google_picker_access_token');
+    if (storedToken && !googlePickerState.accessToken) {
+      googlePickerState.accessToken = storedToken;
+    }
+    
     // Authenticate if needed
     if (!googlePickerState.accessToken) {
       // Show loading message
