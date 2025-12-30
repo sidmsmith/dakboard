@@ -1496,6 +1496,12 @@ function applyCurrentStylesToWidget(widget) {
       widget.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${shadowColor}`;
     }
   }
+  
+  // Update thermostat control styles if this is a thermostat widget
+  if (widget.classList.contains('thermostat-widget') && typeof updateThermostatControlStyles === 'function') {
+    // Use setTimeout to ensure background styles are applied first
+    setTimeout(() => updateThermostatControlStyles(widget), 0);
+  }
 }
 
 // Update apply-to-all flags from checkboxes
@@ -1801,6 +1807,12 @@ function loadStylesToWidget(widget, styles) {
     } else {
       widget.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${shadowColor}`;
     }
+  }
+  
+  // Update thermostat control styles if this is a thermostat widget
+  if (widget.classList.contains('thermostat-widget') && typeof updateThermostatControlStyles === 'function') {
+    // Use setTimeout to ensure background styles are applied first
+    setTimeout(() => updateThermostatControlStyles(widget), 0);
   }
 }
 

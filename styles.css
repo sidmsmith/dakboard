@@ -1767,24 +1767,26 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
 .thermostat-dropdown {
   width: 100%;
   padding: 8px 12px;
-  background: #3a3a3a;
-  color: #e0e0e0;
-  border: 1px solid #4a4a4a;
+  background: var(--thermostat-bg-overlay, rgba(255, 255, 255, 0.15));
+  color: #fff;
+  border: 1px solid var(--thermostat-border-color, rgba(255, 255, 255, 0.3));
   border-radius: 6px;
   font-size: 14px;
   cursor: pointer;
   transition: background-color 0.2s, border-color 0.2s;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .thermostat-dropdown:hover {
-  background: #444;
-  border-color: #555;
+  background: var(--thermostat-hover-bg, rgba(255, 255, 255, 0.25));
+  border-color: var(--thermostat-hover-border, rgba(255, 255, 255, 0.4));
 }
 
 .thermostat-dropdown:focus {
   outline: none;
-  border-color: #4285f4;
-  background: #444;
+  border-color: var(--thermostat-hover-border, rgba(255, 255, 255, 0.5));
+  background: var(--thermostat-hover-bg, rgba(255, 255, 255, 0.25));
 }
 
 .thermostat-display {
@@ -1859,24 +1861,26 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
 
 .thermostat-control-select {
   padding: 8px 10px;
-  background: #3a3a3a;
-  color: #e0e0e0;
-  border: 1px solid #4a4a4a;
+  background: var(--thermostat-bg-overlay, rgba(255, 255, 255, 0.15));
+  color: #fff;
+  border: 1px solid var(--thermostat-border-color, rgba(255, 255, 255, 0.3));
   border-radius: 6px;
   font-size: 14px;
   cursor: pointer;
   transition: background-color 0.2s, border-color 0.2s;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .thermostat-control-select:hover:not(:disabled) {
-  background: #444;
-  border-color: #555;
+  background: var(--thermostat-hover-bg, rgba(255, 255, 255, 0.25));
+  border-color: var(--thermostat-hover-border, rgba(255, 255, 255, 0.4));
 }
 
 .thermostat-control-select:focus {
   outline: none;
-  border-color: #4285f4;
-  background: #444;
+  border-color: var(--thermostat-hover-border, rgba(255, 255, 255, 0.5));
+  background: var(--thermostat-hover-bg, rgba(255, 255, 255, 0.25));
 }
 
 .thermostat-control-select:disabled {
@@ -1895,9 +1899,9 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #3a3a3a;
-  color: #e0e0e0;
-  border: 1px solid #4a4a4a;
+  background: var(--thermostat-bg-overlay, rgba(255, 255, 255, 0.15));
+  color: #fff;
+  border: 1px solid var(--thermostat-border-color, rgba(255, 255, 255, 0.3));
   font-size: 24px;
   cursor: pointer;
   display: flex;
@@ -1905,15 +1909,18 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
   justify-content: center;
   transition: background-color 0.2s, border-color 0.2s;
   user-select: none;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .thermostat-temp-btn:hover:not(:disabled) {
-  background: #444;
-  border-color: #555;
+  background: var(--thermostat-hover-bg, rgba(255, 255, 255, 0.25));
+  border-color: var(--thermostat-hover-border, rgba(255, 255, 255, 0.4));
 }
 
 .thermostat-temp-btn:active:not(:disabled) {
-  background: #555;
+  background: var(--thermostat-hover-bg, rgba(255, 255, 255, 0.3));
+  border-color: var(--thermostat-hover-border, rgba(255, 255, 255, 0.5));
 }
 
 .thermostat-temp-btn:disabled {
@@ -1924,25 +1931,27 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
 .thermostat-temp-input {
   width: 80px;
   padding: 10px;
-  background: #3a3a3a;
-  color: #e0e0e0;
-  border: 1px solid #4a4a4a;
+  background: var(--thermostat-bg-overlay, rgba(255, 255, 255, 0.15));
+  color: #fff;
+  border: 1px solid var(--thermostat-border-color, rgba(255, 255, 255, 0.3));
   border-radius: 6px;
   font-size: 24px;
   font-weight: 600;
   text-align: center;
   transition: background-color 0.2s, border-color 0.2s;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .thermostat-temp-input:hover:not(:disabled) {
-  background: #444;
-  border-color: #555;
+  background: var(--thermostat-hover-bg, rgba(255, 255, 255, 0.25));
+  border-color: var(--thermostat-hover-border, rgba(255, 255, 255, 0.4));
 }
 
 .thermostat-temp-input:focus {
   outline: none;
-  border-color: #4285f4;
-  background: #444;
+  border-color: var(--thermostat-hover-border, rgba(255, 255, 255, 0.5));
+  background: var(--thermostat-hover-bg, rgba(255, 255, 255, 0.25));
 }
 
 .thermostat-temp-input:disabled {

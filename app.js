@@ -2681,6 +2681,58 @@ window.enableGooglePhotosDemoMode = enableGooglePhotosDemoMode;
 // Thermostat state
 let currentThermostat = 1;
 
+// Update thermostat control styles based on widget background color
+function updateThermostatControlStyles(widget) {
+  if (!widget) return;
+  
+  // Get computed background color from the widget
+  const computedStyle = window.getComputedStyle(widget);
+  let bgColor = computedStyle.backgroundColor;
+  
+  // If background is transparent or rgba(0,0,0,0), try to get from background-image or use fallback
+  if (!bgColor || bgColor === 'rgba(0, 0, 0, 0)' || bgColor === 'transparent') {
+    // Check if there's a background image (we can't extract color from it, so use a neutral approach)
+    const bgImage = computedStyle.backgroundImage;
+    if (bgImage && bgImage !== 'none') {
+      // For images/gradients, use a semi-transparent white overlay approach
+      bgColor = 'rgba(255, 255, 255, 0.15)'; // Default overlay
+    } else {
+      // Try to get from parent or use default
+      bgColor = computedStyle.backgroundColor || 'rgb(42, 42, 42)';
+    }
+  }
+  
+  // Extract RGB values from rgba/rgb string
+  let rgbMatch = bgColor.match(/\d+/g);
+  if (!rgbMatch || rgbMatch.length < 3) {
+    // Fallback to default if parsing fails
+    bgColor = 'rgb(42, 42, 42)';
+    rgbMatch = [42, 42, 42];
+  }
+  
+  const r = parseInt(rgbMatch[0]);
+  const g = parseInt(rgbMatch[1]);
+  const b = parseInt(rgbMatch[2]);
+  
+  // Calculate darker shade for borders (reduce brightness by 25-30%)
+  const darkenFactor = 0.25;
+  const borderR = Math.max(0, Math.floor(r * (1 - darkenFactor)));
+  const borderG = Math.max(0, Math.floor(g * (1 - darkenFactor)));
+  const borderB = Math.max(0, Math.floor(b * (1 - darkenFactor)));
+  
+  // Calculate even darker for hover states
+  const hoverDarkenFactor = 0.15; // Additional darkening on top of border
+  const hoverR = Math.max(0, Math.floor(borderR * (1 - hoverDarkenFactor)));
+  const hoverG = Math.max(0, Math.floor(borderG * (1 - hoverDarkenFactor)));
+  const hoverB = Math.max(0, Math.floor(borderB * (1 - hoverDarkenFactor)));
+  
+  // Set CSS custom properties on the widget
+  widget.style.setProperty('--thermostat-bg-overlay', 'rgba(255, 255, 255, 0.15)');
+  widget.style.setProperty('--thermostat-border-color', `rgb(${borderR}, ${borderG}, ${borderB})`);
+  widget.style.setProperty('--thermostat-hover-border', `rgb(${hoverR}, ${hoverG}, ${hoverB})`);
+  widget.style.setProperty('--thermostat-hover-bg', 'rgba(255, 255, 255, 0.25)');
+}
+
 // Load thermostat data
 async function loadThermostat() {
   // Find all thermostat widgets across all pages
@@ -2780,6 +2832,11 @@ async function loadThermostat() {
       if (s.value !== currentThermostat.toString()) {
         s.value = currentThermostat.toString();
       }
+    });
+    
+    // Apply dynamic styling to thermostat controls based on widget background
+    document.querySelectorAll('.thermostat-widget').forEach(widget => {
+      updateThermostatControlStyles(widget);
     });
     
     // Add event listeners (only if not in edit mode) - setup for all widgets
