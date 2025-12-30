@@ -5280,6 +5280,24 @@ function showPage(pageIndex, direction = null) {
   // Flag to skip final position setting for right loop (handled in requestAnimationFrame)
   let skipFinalPositions = false;
   
+  // Check if pages are hidden from previous loop - if so, show them before animating
+  const pagesHidden = Array.from(pages).some(page => page.style.visibility === 'hidden' && page !== pages[pageIndex]);
+  if (pagesHidden && !isLooping && !isInitialLoad) {
+    // Show all pages first (with transitions disabled)
+    pages.forEach(page => {
+      page.style.transition = 'none';
+      page.style.visibility = 'visible';
+    });
+    // Force reflow
+    void pages[0].offsetHeight;
+    // Re-enable transitions
+    requestAnimationFrame(() => {
+      pages.forEach(page => {
+        page.style.transition = '';
+      });
+    });
+  }
+  
   // For looping right (Page 3 → Page 1), animate with Page 1 sliding over Page 3
   if (isLooping && !isInitialLoad && direction === 'right') {
     // Disable transitions initially
@@ -5359,18 +5377,22 @@ function showPage(pageIndex, direction = null) {
         }
       });
       
-      // After animation completes, instantly correct all page positions (no visible animation)
+      // After animation completes, hide all pages except current one
       setTimeout(() => {
         // Disable transitions for instant correction
         pages.forEach(page => {
           page.style.transition = 'none';
         });
         
-        // Set all pages to their correct final positions
+        // Set all pages to their correct final positions and hide all except current
         pages.forEach((page, index) => {
           const finalOffset = (index - pageIndex) * 100;
           page.style.transform = `translateX(${finalOffset}vw)`;
-          page.style.visibility = 'visible';
+          if (index === pageIndex) {
+            page.style.visibility = 'visible'; // Keep current page visible
+          } else {
+            page.style.visibility = 'hidden'; // Hide all other pages
+          }
           page.style.zIndex = '';
         });
         
