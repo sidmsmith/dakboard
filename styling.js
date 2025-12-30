@@ -1712,6 +1712,16 @@ function loadWidgetStyles(widgetId) {
   const saved = localStorage.getItem(`dakboard-widget-styles-${widgetId}-page-${currentPageIndex}`);
   if (saved) {
     currentStyles = JSON.parse(saved);
+    // For existing widgets, set textColorDynamic based on whether textColor exists
+    // If textColor is set and not the default, assume it was manually set (dynamic = false)
+    // If textColor is not set or is default, assume dynamic (dynamic = true)
+    if (currentStyles.textColorDynamic === undefined) {
+      if (currentStyles.textColor && currentStyles.textColor !== '#fff') {
+        currentStyles.textColorDynamic = false; // Manual color was set
+      } else {
+        currentStyles.textColorDynamic = true; // No manual color, use dynamic
+      }
+    }
   } else {
     // Set defaults
     currentStyles = {
@@ -1732,17 +1742,6 @@ function loadWidgetStyles(widgetId) {
       padding: 24,
       widgetOpacity: 100
     };
-  } else {
-    // For existing widgets, set textColorDynamic based on whether textColor exists
-    // If textColor is set and not the default, assume it was manually set (dynamic = false)
-    // If textColor is not set or is default, assume dynamic (dynamic = true)
-    if (currentStyles.textColorDynamic === undefined) {
-      if (currentStyles.textColor && currentStyles.textColor !== '#fff') {
-        currentStyles.textColorDynamic = false; // Manual color was set
-      } else {
-        currentStyles.textColorDynamic = true; // No manual color, use dynamic
-      }
-    }
   }
 }
 
