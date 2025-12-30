@@ -51,6 +51,7 @@ let pagesContainer = null;
 let swipeStartX = 0;
 let swipeStartY = 0;
 let isSwiping = false;
+let isInitialLoad = true; // Track if this is the initial page load
 
 // Clock interval management
 let clockInterval = null;
@@ -5260,22 +5261,95 @@ function createPage(pageIndex) {
 }
 
 // Show a specific page
-function showPage(pageIndex) {
+function showPage(pageIndex, direction = null) {
   if (pageIndex < 0 || pageIndex >= totalPages) {
     console.warn(`Invalid page index: ${pageIndex}`);
     return;
   }
   
+  const pages = document.querySelectorAll('.dashboard.page');
+  const oldPageIndex = currentPageIndex;
   currentPageIndex = pageIndex;
   window.currentPageIndex = pageIndex; // Make available globally for styling.js
   localStorage.setItem('dakboard-current-page', pageIndex.toString());
   
+  // Determine if we're looping (wrapping around)
+  const isLooping = (direction === 'right' && oldPageIndex === totalPages - 1 && pageIndex === 0) ||
+                    (direction === 'left' && oldPageIndex === 0 && pageIndex === totalPages - 1);
+  
+  // Disable transition on initial load or if looping
+  if (isInitialLoad || isLooping) {
+    pages.forEach(page => {
+      page.style.transition = 'none';
+    });
+  } else {
+    // Re-enable transition for normal navigation
+    pages.forEach(page => {
+      page.style.transition = '';
+    });
+  }
+  
+  // For looping, position pages correctly before animating
+  if (isLooping && direction === 'right') {
+    // Right button: going from last page to first
+    // Position first page off-screen to the right, then animate it in
+    pages.forEach((page, index) => {
+      if (index === pageIndex) {
+        // New page (first page) starts off-screen to the right
+        page.style.transform = `translateX(100vw)`;
+      } else {
+        // Other pages stay in their current positions temporarily
+        const offset = (index - oldPageIndex) * 100;
+        page.style.transform = `translateX(${offset}vw)`;
+      }
+    });
+    
+    // Force reflow, then animate
+    void pages[0].offsetHeight;
+    
+    // Re-enable transition and animate
+    pages.forEach(page => {
+      page.style.transition = '';
+    });
+  } else if (isLooping && direction === 'left') {
+    // Left button: going from first page to last
+    // Position last page off-screen to the left, then animate it in
+    pages.forEach((page, index) => {
+      if (index === pageIndex) {
+        // New page (last page) starts off-screen to the left
+        page.style.transform = `translateX(-100vw)`;
+      } else {
+        // Other pages stay in their current positions temporarily
+        const offset = (index - oldPageIndex) * 100;
+        page.style.transform = `translateX(${offset}vw)`;
+      }
+    });
+    
+    // Force reflow, then animate
+    void pages[0].offsetHeight;
+    
+    // Re-enable transition and animate
+    pages.forEach(page => {
+      page.style.transition = '';
+    });
+  }
+  
   // Update page positions
-  const pages = document.querySelectorAll('.dashboard.page');
   pages.forEach((page, index) => {
     const offset = (index - pageIndex) * 100;
     page.style.transform = `translateX(${offset}vw)`;
   });
+  
+  // Mark initial load as complete after first page display
+  if (isInitialLoad) {
+    isInitialLoad = false;
+    // Re-enable transitions after a short delay to allow initial positioning
+    setTimeout(() => {
+      pages.forEach(page => {
+        page.style.transition = '';
+      });
+    }, 50);
+  }
   
   // Update navigation arrows visibility
   updateNavigationArrows();
@@ -5327,13 +5401,13 @@ function showPage(pageIndex) {
 // Navigate to next page (circular)
 function nextPage() {
   const nextIndex = (currentPageIndex + 1) % totalPages;
-  showPage(nextIndex);
+  showPage(nextIndex, 'right'); // Always animate left-to-right
 }
 
 // Navigate to previous page (circular)
 function previousPage() {
   const prevIndex = (currentPageIndex - 1 + totalPages) % totalPages;
-  showPage(prevIndex);
+  showPage(prevIndex, 'left'); // Always animate right-to-left
 }
 
 // Setup page navigation buttons
