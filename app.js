@@ -1241,18 +1241,27 @@ function loadDailyAgendaForDate(date) {
     
     // For all-day events, check if the day falls within the event's date range (ignoring time)
     if (event.allDay) {
-      const eventStartDate = new Date(eventStart);
-      eventStartDate.setHours(0, 0, 0, 0);
-      const eventEndDate = new Date(eventEnd);
-      eventEndDate.setHours(0, 0, 0, 0);
-      // For all-day events, end date is typically the day after (exclusive), so subtract 1 day
-      eventEndDate.setDate(eventEndDate.getDate() - 1);
+      // Extract date components (year, month, day) to avoid timezone issues
+      const eventStartYear = eventStart.getFullYear();
+      const eventStartMonth = eventStart.getMonth();
+      const eventStartDay = eventStart.getDate();
       
-      const currentDate = new Date(date);
-      currentDate.setHours(0, 0, 0, 0);
+      const eventEndYear = eventEnd.getFullYear();
+      const eventEndMonth = eventEnd.getMonth();
+      const eventEndDay = eventEnd.getDate();
+      // For all-day events, end date is typically the day after (exclusive), so subtract 1 day
+      const eventEndDateObj = new Date(eventEndYear, eventEndMonth, eventEndDay);
+      eventEndDateObj.setDate(eventEndDateObj.getDate() - 1);
+      
+      const currentYear = date.getFullYear();
+      const currentMonth = date.getMonth();
+      const currentDay = date.getDate();
+      const currentDateObj = new Date(currentYear, currentMonth, currentDay);
+      
+      const eventStartDateObj = new Date(eventStartYear, eventStartMonth, eventStartDay);
       
       // Check if current day is within the event's date range
-      return (currentDate >= eventStartDate && currentDate <= eventEndDate);
+      return (currentDateObj >= eventStartDateObj && currentDateObj <= eventEndDateObj);
     } else {
       // For timed events, check if event overlaps with this day
       return (eventStart <= dayEnd && eventEnd >= dayStart);
