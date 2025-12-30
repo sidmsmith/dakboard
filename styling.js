@@ -499,6 +499,10 @@ function generateTextTab() {
   const textColor = currentStyles.textColor || '#fff';
   const fontSize = currentStyles.fontSize !== undefined ? currentStyles.fontSize : 18;
   const fontWeight = currentStyles.fontWeight || '600';
+  // Default to dynamic (true) if textColorDynamic is not set, or if textColor is not explicitly set
+  const textColorDynamic = currentStyles.textColorDynamic !== undefined 
+    ? currentStyles.textColorDynamic 
+    : (currentStyles.textColor === undefined || currentStyles.textColor === '#fff');
   
   return `
     <div class="styling-form-section">
@@ -507,7 +511,10 @@ function generateTextTab() {
         <div class="styling-form-row">
           <label class="styling-form-label">Color</label>
           <div class="styling-form-control">
-            <input type="color" id="text-color" value="${textColor}">
+            <label class="styling-apply-all-checkbox" style="margin-right: 12px;">
+              <input type="checkbox" id="text-color-dynamic" ${textColorDynamic ? 'checked' : ''}> Dynamic
+            </label>
+            <input type="color" id="text-color" value="${textColor}" ${textColorDynamic ? 'disabled' : ''}>
             <label class="styling-apply-all-checkbox">
               <input type="checkbox" id="text-color-apply-all" ${applyToAllFlags.textColor ? 'checked' : ''}> Apply to all
             </label>
@@ -915,10 +922,44 @@ function attachTabEventListeners(tabName) {
   }
   
   if (tabName === 'text') {
-    document.getElementById('text-color').addEventListener('input', (e) => {
-      currentStyles.textColor = e.target.value;
-      updatePreview();
-    });
+    // Dynamic checkbox for text color
+    const textColorDynamicCheckbox = document.getElementById('text-color-dynamic');
+    const textColorInput = document.getElementById('text-color');
+    
+    if (textColorDynamicCheckbox) {
+      textColorDynamicCheckbox.addEventListener('change', (e) => {
+        currentStyles.textColorDynamic = e.target.checked;
+        if (e.target.checked) {
+          // Dynamic mode: disable color picker and remove inline color
+          if (textColorInput) textColorInput.disabled = true;
+          // Remove textColor so it uses CSS variable
+          delete currentStyles.textColor;
+        } else {
+          // Manual mode: enable color picker
+          if (textColorInput) textColorInput.disabled = false;
+          // Set textColor to current picker value if not set
+          if (!currentStyles.textColor && textColorInput) {
+            currentStyles.textColor = textColorInput.value;
+          }
+        }
+        updatePreview();
+      });
+    }
+    
+    if (textColorInput) {
+      textColorInput.addEventListener('input', (e) => {
+        currentStyles.textColor = e.target.value;
+        // If user manually changes color, automatically disable dynamic mode
+        if (currentStyles.textColorDynamic) {
+          currentStyles.textColorDynamic = false;
+          if (textColorDynamicCheckbox) {
+            textColorDynamicCheckbox.checked = false;
+          }
+          textColorInput.disabled = false;
+        }
+        updatePreview();
+      });
+    }
 
     const fontSize = document.getElementById('font-size');
     const fontSizeValue = document.getElementById('font-size-value');
@@ -1110,8 +1151,47 @@ function updatePreview() {
   // Apply text
   const titleText = preview.querySelector('.styling-preview-title-text');
   if (titleText) {
-    if (currentStyles.textColor) {
+    // Handle text color: use dynamic color if textColorDynamic is true, otherwise use manual color
+    if (currentStyles.textColorDynamic) {
+      // Dynamic mode: calculate color based on preview background
+      // Get computed background color from preview
+      const previewComputedStyle = window.getComputedStyle(preview);
+      let previewBgColor = previewComputedStyle.backgroundColor;
+      
+      // If background is transparent or rgba(0,0,0,0), use default
+      if (!previewBgColor || previewBgColor === 'rgba(0, 0, 0, 0)' || previewBgColor === 'transparent') {
+        const previewBgImage = previewComputedStyle.backgroundImage;
+        if (previewBgImage && previewBgImage !== 'none') {
+          previewBgColor = 'rgb(42, 42, 42)'; // Assume dark for images
+        } else {
+          previewBgColor = 'rgb(42, 42, 42)';
+        }
+      }
+      
+      // Extract RGB values and calculate dynamic color
+      const rgbMatch = previewBgColor.match(/\d+/g);
+      if (rgbMatch && rgbMatch.length >= 3) {
+        const r = parseInt(rgbMatch[0]);
+        const g = parseInt(rgbMatch[1]);
+        const b = parseInt(rgbMatch[2]);
+        
+        // Use the same luminance calculation as updateWidgetDynamicStyles
+        if (typeof isLightColor === 'function') {
+          const isLight = isLightColor(r, g, b);
+          titleText.style.color = isLight ? '#1a1a1a' : '#ffffff';
+        } else {
+          // Fallback if function not available
+          titleText.style.color = '#ffffff';
+        }
+      } else {
+        titleText.style.color = '#ffffff'; // Fallback
+      }
+    } else if (currentStyles.textColor) {
+      // Manual mode: use the selected color
       titleText.style.color = currentStyles.textColor;
+    } else {
+      // No color set: use default
+      titleText.style.color = '';
     }
     if (currentStyles.fontSize) {
       titleText.style.fontSize = currentStyles.fontSize + 'px';
@@ -1288,7 +1368,17 @@ function updateCurrentStylesFromForm() {
   if (shadowSpread) currentStyles.shadowSpread = parseInt(shadowSpread.value);
   
   const textColor = document.getElementById('text-color');
-  if (textColor) currentStyles.textColor = textColor.value;
+  const textColorDynamic = document.getElementById('text-color-dynamic');
+  if (textColorDynamic) {
+    currentStyles.textColorDynamic = textColorDynamic.checked;
+  }
+  if (textColor && !textColorDynamic?.checked) {
+    // Only save textColor if dynamic mode is off
+    currentStyles.textColor = textColor.value;
+  } else if (textColorDynamic?.checked) {
+    // If dynamic is on, remove textColor
+    delete currentStyles.textColor;
+  }
   
   const fontSize = document.getElementById('font-size');
   if (fontSize) currentStyles.fontSize = parseInt(fontSize.value);
@@ -1432,9 +1522,16 @@ function applyCurrentStylesToWidget(widget) {
   // Text (widget title)
   const title = widget.querySelector('.widget-title');
   if (title) {
-    if (currentStyles.textColor !== undefined) {
+    // Only apply inline color if textColorDynamic is false (manual mode)
+    // If textColorDynamic is true or undefined, let CSS variable handle it
+    if (currentStyles.textColorDynamic === false && currentStyles.textColor !== undefined) {
       if (!isApplyingToAll || applyToAllFlags.textColor) {
         title.style.color = currentStyles.textColor;
+      }
+    } else {
+      // Dynamic mode: remove inline color to let CSS variable handle it
+      if (!isApplyingToAll || applyToAllFlags.textColor) {
+        title.style.color = '';
       }
     }
     if (currentStyles.fontSize !== undefined) {
@@ -1542,12 +1639,12 @@ function resetStyles() {
     shadowX: 0,
     shadowY: 4,
     shadowSpread: 0,
-    textColor: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-    padding: 24,
-    widgetOpacity: 100
-  };
+      textColorDynamic: true, // Default to dynamic
+      fontSize: 18,
+      fontWeight: '600',
+      padding: 24,
+      widgetOpacity: 100
+    };
   
   // Reset widget to defaults
   // Find widget on current page
@@ -1568,8 +1665,11 @@ function resetStyles() {
     
     const title = widget.querySelector('.widget-title');
     if (title) {
-      title.style.color = '#fff';
+      // Reset text color to use dynamic (remove inline style)
+      title.style.color = '';
       title.style.fontSize = '18px';
+      // Reset text color to use dynamic (remove inline style)
+      title.style.color = '';
       title.style.fontWeight = '600';
     }
   }
@@ -1626,12 +1726,23 @@ function loadWidgetStyles(widgetId) {
       shadowX: 0,
       shadowY: 4,
       shadowSpread: 0,
-      textColor: '#fff',
+      textColorDynamic: true, // Default to dynamic for new widgets
       fontSize: 18,
       fontWeight: '600',
       padding: 24,
       widgetOpacity: 100
     };
+  } else {
+    // For existing widgets, set textColorDynamic based on whether textColor exists
+    // If textColor is set and not the default, assume it was manually set (dynamic = false)
+    // If textColor is not set or is default, assume dynamic (dynamic = true)
+    if (currentStyles.textColorDynamic === undefined) {
+      if (currentStyles.textColor && currentStyles.textColor !== '#fff') {
+        currentStyles.textColorDynamic = false; // Manual color was set
+      } else {
+        currentStyles.textColorDynamic = true; // No manual color, use dynamic
+      }
+    }
   }
 }
 
@@ -1762,7 +1873,14 @@ function loadStylesToWidget(widget, styles) {
   // Text (widget title)
   const title = widget.querySelector('.widget-title');
   if (title) {
-    if (styles.textColor !== undefined) title.style.color = styles.textColor;
+    // Only apply inline color if textColorDynamic is false (manual mode)
+    // If textColorDynamic is true or undefined, let CSS variable handle it
+    if (styles.textColorDynamic === false && styles.textColor !== undefined) {
+      title.style.color = styles.textColor;
+    } else {
+      // Dynamic mode: remove inline color to let CSS variable handle it
+      title.style.color = '';
+    }
     if (styles.fontSize !== undefined) title.style.fontSize = styles.fontSize + 'px';
     if (styles.fontWeight !== undefined) title.style.fontWeight = styles.fontWeight;
     // Apply widget opacity to title (independent of background opacity)
