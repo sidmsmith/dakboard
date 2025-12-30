@@ -1026,14 +1026,18 @@ function loadDailyAgendaForDate(date) {
     modal.classList.add('active');
   }
   
-  // Set up navigation button event listeners (do this after modal is shown)
+  // Set up navigation button event listeners
+  setupDailyAgendaNavigation();
+}
+
+// Set up daily agenda navigation buttons
+function setupDailyAgendaNavigation() {
   const prevDayBtn = document.getElementById('prev-day-btn');
   const nextDayBtn = document.getElementById('next-day-btn');
   
-  // Remove existing listeners to prevent duplicates
-  const newPrevBtn = prevDayBtn?.cloneNode(true);
-  const newNextBtn = nextDayBtn?.cloneNode(true);
-  if (prevDayBtn && newPrevBtn) {
+  // Remove existing listeners by cloning and replacing
+  if (prevDayBtn) {
+    const newPrevBtn = prevDayBtn.cloneNode(true);
     prevDayBtn.parentNode?.replaceChild(newPrevBtn, prevDayBtn);
     newPrevBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -1045,7 +1049,8 @@ function loadDailyAgendaForDate(date) {
     });
   }
   
-  if (nextDayBtn && newNextBtn) {
+  if (nextDayBtn) {
+    const newNextBtn = nextDayBtn.cloneNode(true);
     nextDayBtn.parentNode?.replaceChild(newNextBtn, nextDayBtn);
     newNextBtn.addEventListener('click', (e) => {
       e.preventDefault();

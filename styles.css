@@ -393,7 +393,9 @@ body {
   background: #333;
   border-radius: 8px;
   border-left: 4px solid #4a90e2;
-  transition: background 0.2s, transform 0.2s;
+  transition: background 0.2s;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .daily-agenda-event:hover {
