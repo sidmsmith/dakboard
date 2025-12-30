@@ -931,12 +931,8 @@ function updatePreview() {
   const preview = document.getElementById('styling-preview-widget');
   if (!preview) return;
 
-  // Scope queries to the styling modal to avoid conflicts with dashboard background modal
-  const stylingModal = document.getElementById('styling-modal');
-  if (!stylingModal) return;
-  
-  // Apply background based on type - read directly from form inputs within styling modal
-  const bgType = stylingModal.querySelector('#bg-type')?.value || 'solid';
+  // Apply background based on type - use currentStyles to ensure consistency
+  const bgType = currentStyles.backgroundType || 'solid';
   
   // Clear previous background styles
   preview.style.backgroundColor = '';
@@ -944,11 +940,12 @@ function updatePreview() {
   preview.style.backgroundRepeat = '';
   preview.style.backgroundPosition = '';
   preview.style.backgroundSize = '';
-  preview.style.opacity = '';
+  // Note: Don't clear opacity here - it will be set appropriately below based on background type and widgetOpacity
   
+  // Apply background based on type, using currentStyles values
   switch(bgType) {
     case 'solid':
-      const solidColor = stylingModal.querySelector('#bg-color')?.value || '#2a2a2a';
+      const solidColor = currentStyles.backgroundColor || '#2a2a2a';
       preview.style.backgroundColor = solidColor;
       break;
       
@@ -957,22 +954,25 @@ function updatePreview() {
       break;
       
     case 'gradient':
-      const color1 = stylingModal.querySelector('#bg-gradient-color1')?.value || '#2a2a2a';
-      const color2 = stylingModal.querySelector('#bg-gradient-color2')?.value || '#3a3a3a';
-      const direction = stylingModal.querySelector('#bg-gradient-direction')?.value || 'to bottom';
+      const color1 = currentStyles.gradientColor1 || '#2a2a2a';
+      const color2 = currentStyles.gradientColor2 || '#3a3a3a';
+      const direction = currentStyles.gradientDirection || 'to bottom';
       preview.style.backgroundImage = `linear-gradient(${direction}, ${color1}, ${color2})`;
       break;
       
     case 'image':
-      const imageUrl = stylingModal.querySelector('#bg-image-url')?.value || '';
+      const imageUrl = currentStyles.backgroundImageUrl || '';
       if (imageUrl) {
         preview.style.backgroundImage = `url(${imageUrl})`;
-        preview.style.backgroundRepeat = stylingModal.querySelector('#bg-image-repeat')?.value || 'no-repeat';
-        preview.style.backgroundPosition = stylingModal.querySelector('#bg-image-position')?.value || 'center';
-        preview.style.backgroundSize = stylingModal.querySelector('#bg-image-size')?.value || 'cover';
-        const imgOpacity = parseInt(stylingModal.querySelector('#bg-image-opacity')?.value || 100);
-        if (imgOpacity < 100) {
-          preview.style.opacity = imgOpacity / 100;
+        preview.style.backgroundRepeat = currentStyles.backgroundRepeat || 'no-repeat';
+        preview.style.backgroundPosition = currentStyles.backgroundPosition || 'center';
+        preview.style.backgroundSize = currentStyles.backgroundSize || 'cover';
+        // Note: backgroundImageOpacity will be overridden by widgetOpacity if set (see below)
+        if (currentStyles.backgroundImageOpacity !== undefined && currentStyles.backgroundImageOpacity < 100) {
+          // Only set if widgetOpacity is not defined, otherwise widgetOpacity takes precedence
+          if (currentStyles.widgetOpacity === undefined) {
+            preview.style.opacity = currentStyles.backgroundImageOpacity / 100;
+          }
         }
       } else {
         preview.style.backgroundColor = '#1a1a1a';
@@ -980,9 +980,9 @@ function updatePreview() {
       break;
       
     case 'pattern':
-      const patternType = stylingModal.querySelector('#bg-pattern-type')?.value || 'dots';
-      const patternColor = stylingModal.querySelector('#bg-pattern-color')?.value || '#3a3a3a';
-      const patternSize = parseInt(stylingModal.querySelector('#bg-pattern-size')?.value || 20);
+      const patternType = currentStyles.patternType || 'dots';
+      const patternColor = currentStyles.patternColor || '#3a3a3a';
+      const patternSize = currentStyles.patternSize !== undefined ? currentStyles.patternSize : 20;
       const patternCSS = generatePatternCSS(patternType, patternColor, patternSize);
       // Extract background-image and background-size from pattern CSS
       const bgImageMatch = patternCSS.match(/background-image:\s*([^;]+);/);
@@ -998,10 +998,11 @@ function updatePreview() {
   }
   
   // Apply opacity (for solid/gradient/pattern, not image which has its own opacity)
-  if (currentStyles.opacity !== undefined && bgType !== 'image') {
+  // Note: widgetOpacity takes precedence over opacity and backgroundImageOpacity (see below)
+  if (currentStyles.opacity !== undefined && bgType !== 'image' && currentStyles.widgetOpacity === undefined) {
     const opacity = currentStyles.opacity / 100;
     preview.style.opacity = opacity;
-  } else if (bgType !== 'image') {
+  } else if (bgType !== 'image' && currentStyles.widgetOpacity === undefined) {
     preview.style.opacity = '1';
   }
 
