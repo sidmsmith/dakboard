@@ -1549,54 +1549,68 @@ function renderForecast(forecastData, attrs) {
       forecastList.appendChild(dayItem);
     });
     
-    // Force container to be constrained by setting max-height based on parent
-    // This ensures scrollbar appears when content overflows
-    setTimeout(() => {
-      const parent = forecastList;
-      const forecastSection = parent.closest('.weather-forecast');
-      
-      if (forecastSection && parent) {
-        // Get the available height for the list (parent height minus header)
-        const header = forecastSection.querySelector('.weather-forecast-header');
-        const headerHeight = header ? header.offsetHeight + parseInt(window.getComputedStyle(header).marginBottom) : 0;
-        const availableHeight = forecastSection.clientHeight - headerHeight;
-        
-        // Force container to be constrained - set both max-height and height
-        parent.style.maxHeight = `${availableHeight}px`;
-        parent.style.height = `${availableHeight}px`;
-        
-        console.log('=== Weather Forecast Scrollbar Debug ===');
-        console.log('Forecast List (.weather-forecast-list):', {
-          scrollHeight: parent.scrollHeight,
-          clientHeight: parent.clientHeight,
-          offsetHeight: parent.offsetHeight,
-          maxHeight: parent.style.maxHeight,
-          hasOverflow: parent.scrollHeight > parent.clientHeight,
-          computedStyle: {
-            overflowY: window.getComputedStyle(parent).overflowY,
-            flex: window.getComputedStyle(parent).flex,
-            minHeight: window.getComputedStyle(parent).minHeight,
-            height: window.getComputedStyle(parent).height,
-            maxHeight: window.getComputedStyle(parent).maxHeight
-          }
-        });
-        console.log('Forecast Section (.weather-forecast):', {
-          scrollHeight: forecastSection.scrollHeight,
-          clientHeight: forecastSection.clientHeight,
-          offsetHeight: forecastSection.offsetHeight,
-          headerHeight: headerHeight,
-          availableHeight: availableHeight,
-          computedStyle: {
-            overflow: window.getComputedStyle(forecastSection).overflow,
-            flex: window.getComputedStyle(forecastSection).flex,
-            minHeight: window.getComputedStyle(forecastSection).minHeight,
-            height: window.getComputedStyle(forecastSection).height
-          }
-        });
-        console.log('Number of forecast items:', parent.children.length);
-        console.log('========================================');
+    // Update forecast list height constraint
+    updateForecastListHeight(forecastList);
+    
+    // Set up ResizeObserver to update height when widget is resized
+    const widget = forecastList.closest('.weather-widget');
+    if (widget && !widget.dataset.forecastObserverSet) {
+      widget.dataset.forecastObserverSet = 'true';
+      const resizeObserver = new ResizeObserver(() => {
+        updateForecastListHeight(forecastList);
+      });
+      resizeObserver.observe(widget);
+    }
+  });
+}
+
+// Update forecast list height constraint to ensure scrollbar appears
+function updateForecastListHeight(forecastList) {
+  const forecastSection = forecastList.closest('.weather-forecast');
+  
+  if (forecastSection && forecastList) {
+    // Get the available height for the list (parent height minus header)
+    const header = forecastSection.querySelector('.weather-forecast-header');
+    const headerHeight = header ? header.offsetHeight + parseInt(window.getComputedStyle(header).marginBottom) : 0;
+    const availableHeight = forecastSection.clientHeight - headerHeight;
+    
+    // Force container to be constrained - set both max-height and height
+    forecastList.style.maxHeight = `${availableHeight}px`;
+    forecastList.style.height = `${availableHeight}px`;
+    
+    // Debug logging
+    console.log('=== Weather Forecast Scrollbar Debug ===');
+    console.log('Forecast List (.weather-forecast-list):', {
+      scrollHeight: forecastList.scrollHeight,
+      clientHeight: forecastList.clientHeight,
+      offsetHeight: forecastList.offsetHeight,
+      maxHeight: forecastList.style.maxHeight,
+      height: forecastList.style.height,
+      hasOverflow: forecastList.scrollHeight > forecastList.clientHeight,
+      computedStyle: {
+        overflowY: window.getComputedStyle(forecastList).overflowY,
+        flex: window.getComputedStyle(forecastList).flex,
+        minHeight: window.getComputedStyle(forecastList).minHeight,
+        height: window.getComputedStyle(forecastList).height,
+        maxHeight: window.getComputedStyle(forecastList).maxHeight
       }
-    }, 100);
+    });
+    console.log('Forecast Section (.weather-forecast):', {
+      scrollHeight: forecastSection.scrollHeight,
+      clientHeight: forecastSection.clientHeight,
+      offsetHeight: forecastSection.offsetHeight,
+      headerHeight: headerHeight,
+      availableHeight: availableHeight,
+      computedStyle: {
+        overflow: window.getComputedStyle(forecastSection).overflow,
+        flex: window.getComputedStyle(forecastSection).flex,
+        minHeight: window.getComputedStyle(forecastSection).minHeight,
+        height: window.getComputedStyle(forecastSection).height
+      }
+    });
+    console.log('Number of forecast items:', forecastList.children.length);
+    console.log('========================================');
+  }
   });
 }
 
