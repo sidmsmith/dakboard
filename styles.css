@@ -612,6 +612,8 @@ body {
   border-radius: 6px;
   transition: background 0.2s;
   cursor: pointer;
+  flex-shrink: 0; /* Prevent items from shrinking - force scrollbar instead */
+  min-height: 60px; /* Ensure consistent item height */
 }
 
 .weather-forecast-item:hover {
