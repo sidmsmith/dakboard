@@ -563,6 +563,20 @@ body {
   gap: 10px;
   flex: 1;
   min-height: 0;
+}
+
+/* Day 1 container - always visible */
+.weather-forecast-day1 {
+  flex-shrink: 0;
+}
+
+/* Days 2-5 container - scrollable */
+.weather-forecast-days-2-5 {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -570,21 +584,21 @@ body {
   scrollbar-color: #4a90e2 #2a2a2a;
 }
 
-.weather-forecast-list::-webkit-scrollbar {
+.weather-forecast-days-2-5::-webkit-scrollbar {
   width: 8px;
 }
 
-.weather-forecast-list::-webkit-scrollbar-track {
+.weather-forecast-days-2-5::-webkit-scrollbar-track {
   background: #2a2a2a;
   border-radius: 4px;
 }
 
-.weather-forecast-list::-webkit-scrollbar-thumb {
+.weather-forecast-days-2-5::-webkit-scrollbar-thumb {
   background: #4a90e2;
   border-radius: 4px;
 }
 
-.weather-forecast-list::-webkit-scrollbar-thumb:hover {
+.weather-forecast-days-2-5::-webkit-scrollbar-thumb:hover {
   background: #5ba0f2;
 }
 

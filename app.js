@@ -1454,11 +1454,8 @@ function renderForecast(forecastData, attrs) {
   // Current temp for marker
   const currentTemp = attrs.temperature ? Math.round(attrs.temperature) : null;
   
-  // Update all forecast lists
-  forecastLists.forEach(forecastList => {
-    forecastList.innerHTML = '';
-    
-    forecastData.forEach((day, index) => {
+  // Helper function to create a forecast item
+  function createForecastItem(day, index, range, minTemp, currentTemp) {
     const lowPercent = range > 0 ? ((day.low - minTemp) / range) * 100 : 0;
     const highPercent = range > 0 ? ((day.high - minTemp) / range) * 100 : 100;
     const barWidth = highPercent - lowPercent;
@@ -1537,8 +1534,34 @@ function renderForecast(forecastData, attrs) {
       };
     })(dayOffsetForClick, day.dayName, day.high, day.low));
     
-      forecastList.appendChild(forecastItem);
-    });
+    return forecastItem;
+  }
+  
+  // Update all forecast lists
+  forecastLists.forEach(forecastList => {
+    forecastList.innerHTML = '';
+    
+    if (forecastData.length === 0) return;
+    
+    // Day 1 container (always visible)
+    const day1Container = document.createElement('div');
+    day1Container.className = 'weather-forecast-day1';
+    const day1Item = createForecastItem(forecastData[0], 0, range, minTemp, currentTemp);
+    day1Container.appendChild(day1Item);
+    forecastList.appendChild(day1Container);
+    
+    // Days 2-5 container (scrollable)
+    if (forecastData.length > 1) {
+      const days2to5Container = document.createElement('div');
+      days2to5Container.className = 'weather-forecast-days-2-5';
+      
+      for (let i = 1; i < forecastData.length; i++) {
+        const dayItem = createForecastItem(forecastData[i], i, range, minTemp, currentTemp);
+        days2to5Container.appendChild(dayItem);
+      }
+      
+      forecastList.appendChild(days2to5Container);
+    }
   });
 }
 
