@@ -5277,64 +5277,56 @@ function showPage(pageIndex, direction = null) {
   const isLooping = (direction === 'right' && oldPageIndex === totalPages - 1 && pageIndex === 0) ||
                     (direction === 'left' && oldPageIndex === 0 && pageIndex === totalPages - 1);
   
-  // Disable transition on initial load or if looping
-  if (isInitialLoad || isLooping) {
+  // Handle looping: position new page off-screen, then animate all pages in one smooth motion
+  if (isLooping && !isInitialLoad) {
+    // Disable transitions temporarily
+    pages.forEach(page => {
+      page.style.transition = 'none';
+    });
+    
+    // Position all pages: new page off-screen, others in current positions
+    if (direction === 'right') {
+      // Right button: new page (first) comes from right
+      pages.forEach((page, index) => {
+        if (index === pageIndex) {
+          page.style.transform = `translateX(100vw)`; // Off-screen right
+        } else {
+          const offset = (index - oldPageIndex) * 100;
+          page.style.transform = `translateX(${offset}vw)`;
+        }
+      });
+    } else {
+      // Left button: new page (last) comes from left
+      pages.forEach((page, index) => {
+        if (index === pageIndex) {
+          page.style.transform = `translateX(-100vw)`; // Off-screen left
+        } else {
+          const offset = (index - oldPageIndex) * 100;
+          page.style.transform = `translateX(${offset}vw)`;
+        }
+      });
+    }
+    
+    // Force reflow to apply the initial positions
+    void pages[0].offsetHeight;
+    
+    // Re-enable transitions for smooth animation
+    pages.forEach(page => {
+      page.style.transition = '';
+    });
+  } else if (isInitialLoad) {
+    // Disable transition on initial load
     pages.forEach(page => {
       page.style.transition = 'none';
     });
   } else {
-    // Re-enable transition for normal navigation
+    // Normal navigation: ensure transitions are enabled
     pages.forEach(page => {
       page.style.transition = '';
     });
   }
   
-  // For looping, position pages correctly before animating
-  if (isLooping && direction === 'right') {
-    // Right button: going from last page to first
-    // Position first page off-screen to the right, then animate it in
-    pages.forEach((page, index) => {
-      if (index === pageIndex) {
-        // New page (first page) starts off-screen to the right
-        page.style.transform = `translateX(100vw)`;
-      } else {
-        // Other pages stay in their current positions temporarily
-        const offset = (index - oldPageIndex) * 100;
-        page.style.transform = `translateX(${offset}vw)`;
-      }
-    });
-    
-    // Force reflow, then animate
-    void pages[0].offsetHeight;
-    
-    // Re-enable transition and animate
-    pages.forEach(page => {
-      page.style.transition = '';
-    });
-  } else if (isLooping && direction === 'left') {
-    // Left button: going from first page to last
-    // Position last page off-screen to the left, then animate it in
-    pages.forEach((page, index) => {
-      if (index === pageIndex) {
-        // New page (last page) starts off-screen to the left
-        page.style.transform = `translateX(-100vw)`;
-      } else {
-        // Other pages stay in their current positions temporarily
-        const offset = (index - oldPageIndex) * 100;
-        page.style.transform = `translateX(${offset}vw)`;
-      }
-    });
-    
-    // Force reflow, then animate
-    void pages[0].offsetHeight;
-    
-    // Re-enable transition and animate
-    pages.forEach(page => {
-      page.style.transition = '';
-    });
-  }
-  
-  // Update page positions
+  // Update all pages to final positions (single animation)
   pages.forEach((page, index) => {
     const offset = (index - pageIndex) * 100;
     page.style.transform = `translateX(${offset}vw)`;
