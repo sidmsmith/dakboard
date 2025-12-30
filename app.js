@@ -401,6 +401,35 @@ function initializeEventListeners() {
       });
     }
   }
+  
+  // Daily agenda modal
+  const closeDailyAgendaModalBtn = document.getElementById('close-daily-agenda-modal');
+  const dailyAgendaModal = document.getElementById('daily-agenda-modal');
+  
+  if (closeDailyAgendaModalBtn) {
+    closeDailyAgendaModalBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeDailyAgendaModal();
+    });
+  }
+  
+  if (dailyAgendaModal) {
+    dailyAgendaModal.addEventListener('click', (e) => {
+      // Close if clicking directly on the modal background (not on modal-content)
+      if (e.target === dailyAgendaModal || e.target.id === 'daily-agenda-modal') {
+        closeDailyAgendaModal();
+      }
+    });
+    
+    // Prevent clicks inside modal-content from closing the modal
+    const modalContent = dailyAgendaModal.querySelector('.modal-content');
+    if (modalContent) {
+      modalContent.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+    }
+  }
 }
 
 // Render weekly calendar
