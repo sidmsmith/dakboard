@@ -353,6 +353,45 @@ async function loadCalendarEvents() {
   }
 }
 
+// De-duplicate calendar events based on title and start/end times (not calendar source)
+function deduplicateEvents(events) {
+  if (!Array.isArray(events) || events.length === 0) {
+    return events;
+  }
+  
+  const seen = new Map();
+  const unique = [];
+  
+  for (const event of events) {
+    // Create a key from title and normalized start/end times
+    const start = new Date(event.start);
+    const end = new Date(event.end || event.start);
+    
+    // Normalize times to date strings (ignore time for comparison)
+    const startDateStr = start.toISOString().split('T')[0];
+    const endDateStr = end.toISOString().split('T')[0];
+    
+    // For all-day events, compare by date only
+    // For timed events, compare by date and time
+    let key;
+    if (event.allDay) {
+      key = `${event.title || ''}|${startDateStr}|${endDateStr}|allDay`;
+    } else {
+      // Include time for timed events
+      const startTimeStr = start.toTimeString().split(' ')[0]; // HH:MM:SS
+      const endTimeStr = end.toTimeString().split(' ')[0];
+      key = `${event.title || ''}|${startDateStr}|${startTimeStr}|${endDateStr}|${endTimeStr}`;
+    }
+    
+    if (!seen.has(key)) {
+      seen.set(key, true);
+      unique.push(event);
+    }
+  }
+  
+  return unique;
+}
+
 // Initialize calendar view
 function initializeCalendar() {
   renderCalendar();
