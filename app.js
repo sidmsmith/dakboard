@@ -1220,7 +1220,25 @@ function loadDailyAgendaForDate(date) {
   const dayEvents = calendarEvents.filter(event => {
     const eventStart = new Date(event.start);
     const eventEnd = new Date(event.end || event.start);
-    return (eventStart <= dayEnd && eventEnd >= dayStart);
+    
+    // For all-day events, check if the day falls within the event's date range (ignoring time)
+    if (event.allDay) {
+      const eventStartDate = new Date(eventStart);
+      eventStartDate.setHours(0, 0, 0, 0);
+      const eventEndDate = new Date(eventEnd);
+      eventEndDate.setHours(0, 0, 0, 0);
+      // For all-day events, end date is typically the day after (exclusive), so subtract 1 day
+      eventEndDate.setDate(eventEndDate.getDate() - 1);
+      
+      const currentDate = new Date(date);
+      currentDate.setHours(0, 0, 0, 0);
+      
+      // Check if current day is within the event's date range
+      return (currentDate >= eventStartDate && currentDate <= eventEndDate);
+    } else {
+      // For timed events, check if event overlaps with this day
+      return (eventStart <= dayEnd && eventEnd >= dayStart);
+    }
   });
   
   // Sort events by start time
