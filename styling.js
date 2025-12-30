@@ -1197,11 +1197,8 @@ function applyCurrentStylesToWidget(widget) {
   // When applying to a single widget, always apply (checkbox doesn't matter)
   const isApplyingToAll = applyToAllFlags.global;
   
-  // Background - read directly from form inputs within styling modal (scoped to avoid conflicts)
-  const stylingModal = document.getElementById('styling-modal');
-  if (!stylingModal) return;
-  
-  const bgType = stylingModal.querySelector('#bg-type')?.value || 'solid';
+  // Background - use currentStyles to ensure background is preserved when other properties change
+  const bgType = currentStyles.backgroundType || 'solid';
   
   // Clear previous background styles
   widget.style.backgroundColor = '';
@@ -1209,11 +1206,12 @@ function applyCurrentStylesToWidget(widget) {
   widget.style.backgroundRepeat = '';
   widget.style.backgroundPosition = '';
   widget.style.backgroundSize = '';
-  widget.style.opacity = '';
+  // Note: Don't clear opacity here - it will be set appropriately below based on background type and widgetOpacity
   
+  // Apply background based on type, using currentStyles values
   switch(bgType) {
     case 'solid':
-      const solidColor = stylingModal.querySelector('#bg-color')?.value || '#2a2a2a';
+      const solidColor = currentStyles.backgroundColor || '#2a2a2a';
       if (!isApplyingToAll || applyToAllFlags.backgroundColor) {
         widget.style.backgroundColor = solidColor;
       }
@@ -1226,32 +1224,31 @@ function applyCurrentStylesToWidget(widget) {
       break;
       
     case 'gradient':
-      const color1 = stylingModal.querySelector('#bg-gradient-color1')?.value || '#2a2a2a';
-      const color2 = stylingModal.querySelector('#bg-gradient-color2')?.value || '#3a3a3a';
-      const direction = stylingModal.querySelector('#bg-gradient-direction')?.value || 'to bottom';
+      const color1 = currentStyles.gradientColor1 || '#2a2a2a';
+      const color2 = currentStyles.gradientColor2 || '#3a3a3a';
+      const direction = currentStyles.gradientDirection || 'to bottom';
       if (!isApplyingToAll || applyToAllFlags.gradientColor1 || applyToAllFlags.gradientColor2) {
         widget.style.backgroundImage = `linear-gradient(${direction}, ${color1}, ${color2})`;
       }
       break;
       
     case 'image':
-      const imageUrl = stylingModal.querySelector('#bg-image-url')?.value || '';
+      const imageUrl = currentStyles.backgroundImageUrl || '';
       if (imageUrl && (!isApplyingToAll || applyToAllFlags.backgroundImageUrl)) {
         widget.style.backgroundImage = `url(${imageUrl})`;
-        widget.style.backgroundRepeat = stylingModal.querySelector('#bg-image-repeat')?.value || 'no-repeat';
-        widget.style.backgroundPosition = stylingModal.querySelector('#bg-image-position')?.value || 'center';
-        widget.style.backgroundSize = stylingModal.querySelector('#bg-image-size')?.value || 'cover';
-        const imgOpacity = parseInt(stylingModal.querySelector('#bg-image-opacity')?.value || 100);
-        if (imgOpacity < 100) {
-          widget.style.opacity = imgOpacity / 100;
+        widget.style.backgroundRepeat = currentStyles.backgroundRepeat || 'no-repeat';
+        widget.style.backgroundPosition = currentStyles.backgroundPosition || 'center';
+        widget.style.backgroundSize = currentStyles.backgroundSize || 'cover';
+        if (currentStyles.backgroundImageOpacity !== undefined && currentStyles.backgroundImageOpacity < 100) {
+          widget.style.opacity = currentStyles.backgroundImageOpacity / 100;
         }
       }
       break;
       
     case 'pattern':
-      const patternType = stylingModal.querySelector('#bg-pattern-type')?.value || 'dots';
-      const patternColor = stylingModal.querySelector('#bg-pattern-color')?.value || '#3a3a3a';
-      const patternSize = parseInt(stylingModal.querySelector('#bg-pattern-size')?.value || 20);
+      const patternType = currentStyles.patternType || 'dots';
+      const patternColor = currentStyles.patternColor || '#3a3a3a';
+      const patternSize = currentStyles.patternSize !== undefined ? currentStyles.patternSize : 20;
       if (!isApplyingToAll || applyToAllFlags.patternType || applyToAllFlags.patternColor) {
         const patternCSS = generatePatternCSS(patternType, patternColor, patternSize);
         // Extract background-image and background-size from pattern CSS
