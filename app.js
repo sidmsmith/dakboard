@@ -1611,7 +1611,6 @@ function updateForecastListHeight(forecastList) {
     console.log('Number of forecast items:', forecastList.children.length);
     console.log('========================================');
   }
-  });
 }
 
 // Fetch all HA states (helper function)
