@@ -5296,6 +5296,7 @@ function showPage(pageIndex, direction = null) {
           // New page starts off-screen to the right
           console.log(`[showPage] Page ${index} (new): translateX(100vw) - off-screen right`);
           page.style.transform = `translateX(100vw)`;
+          page.style.visibility = 'visible';
         } else {
           // All other pages positioned off-screen to the left
           // Calculate their final position, then shift left by 100vw to ensure they're off-screen
@@ -5305,6 +5306,13 @@ function showPage(pageIndex, direction = null) {
           const safeOffset = Math.min(initialOffset, -100);
           console.log(`[showPage] Page ${index}: translateX(${safeOffset}vw) - off-screen left (will animate to ${finalOffset}vw)`);
           page.style.transform = `translateX(${safeOffset}vw)`;
+          // Hide pages that would be visible (between -100vw and 100vw)
+          if (safeOffset > -100 && safeOffset < 100) {
+            page.style.visibility = 'hidden';
+            console.log(`[showPage] Page ${index}: hidden to prevent flash`);
+          } else {
+            page.style.visibility = 'visible';
+          }
         }
       });
     } else {
@@ -5315,6 +5323,7 @@ function showPage(pageIndex, direction = null) {
           // New page starts off-screen to the left
           console.log(`[showPage] Page ${index} (new): translateX(-100vw) - off-screen left`);
           page.style.transform = `translateX(-100vw)`;
+          page.style.visibility = 'visible';
         } else {
           // All other pages positioned off-screen to the right
           // Calculate their final position, then shift right by 100vw to ensure they're off-screen
@@ -5324,6 +5333,13 @@ function showPage(pageIndex, direction = null) {
           const safeOffset = Math.max(initialOffset, 100);
           console.log(`[showPage] Page ${index}: translateX(${safeOffset}vw) - off-screen right (will animate to ${finalOffset}vw)`);
           page.style.transform = `translateX(${safeOffset}vw)`;
+          // Hide pages that would be visible (between -100vw and 100vw)
+          if (safeOffset > -100 && safeOffset < 100) {
+            page.style.visibility = 'hidden';
+            console.log(`[showPage] Page ${index}: hidden to prevent flash`);
+          } else {
+            page.style.visibility = 'visible';
+          }
         }
       });
     }
@@ -5332,9 +5348,15 @@ function showPage(pageIndex, direction = null) {
     void pages[0].offsetHeight;
     console.log(`[showPage] Reflow forced, re-enabling transitions`);
     
-    // Re-enable transitions for smooth animation
-    pages.forEach(page => {
-      page.style.transition = '';
+    // Use requestAnimationFrame to ensure positions are applied before re-enabling transitions
+    requestAnimationFrame(() => {
+      // Re-enable transitions for smooth animation
+      pages.forEach(page => {
+        page.style.transition = '';
+        // Make sure all pages are visible for the animation
+        page.style.visibility = 'visible';
+      });
+      console.log(`[showPage] Transitions re-enabled, all pages visible`);
     });
   } else if (isInitialLoad) {
     console.log(`[showPage] INITIAL LOAD - Disabling transitions`);
