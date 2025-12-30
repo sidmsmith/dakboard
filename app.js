@@ -2776,13 +2776,25 @@ function setupThermostatControls(entityId) {
     });
   }
   
-  // Thermostat selector dropdown
-  const selector = document.getElementById('thermostat-selector');
-  if (selector) {
-    selector.addEventListener('change', () => {
-      loadThermostat();
-    });
-  }
+  // Thermostat selector dropdown - attach to ALL selectors across all pages
+  // Use querySelectorAll to get all selectors and attach listeners to each
+  const allSelectors = document.querySelectorAll('#thermostat-selector');
+  allSelectors.forEach(selector => {
+    // Check if listener is already attached (avoid duplicates)
+    if (!selector.dataset.listenerAttached) {
+      selector.dataset.listenerAttached = 'true';
+      selector.addEventListener('change', () => {
+        // Sync all selectors to the same value
+        const selectedValue = selector.value;
+        document.querySelectorAll('#thermostat-selector').forEach(s => {
+          if (s !== selector && s.value !== selectedValue) {
+            s.value = selectedValue;
+          }
+        });
+        loadThermostat();
+      });
+    }
+  });
 }
 
 // Set thermostat temperature
