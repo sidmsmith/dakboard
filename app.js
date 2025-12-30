@@ -2714,6 +2714,13 @@ async function loadThermostat() {
     // Update all displays across all pages
     displays.forEach(d => d.innerHTML = displayHtml);
     
+    // Sync all selectors to the current selection
+    selectors.forEach(s => {
+      if (s.value !== currentThermostat.toString()) {
+        s.value = currentThermostat.toString();
+      }
+    });
+    
     // Add event listeners (only if not in edit mode) - setup for all widgets
     if (!isEditMode) {
       setupThermostatControls(thermostatEntity);
