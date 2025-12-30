@@ -14,13 +14,12 @@ export default async function (req, res) {
   }
   
   // RSS feed URL - can be configured via environment variable or use default
-  // AP News no longer provides RSS feeds, so using Reuters as default
-  // Alternative options: BBC, NPR, CNN, etc.
-  const primaryUrl = process.env.NEWS_RSS_URL || 'https://feeds.reuters.com/reuters/topNews';
+  // Using NY Times as primary source (reliable, free RSS feed)
+  // Fallback to NPR and BBC if NY Times fails
+  const primaryUrl = process.env.NEWS_RSS_URL || 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml';
   
   // Fallback URLs if primary fails (only used if NEWS_RSS_URL is not set)
   const fallbackUrls = process.env.NEWS_RSS_URL ? [] : [
-    'https://rss.cnn.com/rss/edition.rss',
     'https://feeds.npr.org/1001/rss.xml',
     'https://feeds.bbci.co.uk/news/rss.xml'
   ];
