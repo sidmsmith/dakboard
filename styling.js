@@ -780,6 +780,15 @@ function attachTabEventListeners(tabName) {
   if (tabName === 'border') {
     document.getElementById('border-color').addEventListener('input', (e) => {
       currentStyles.borderColor = e.target.value;
+      // If "Same as Border" checkbox is checked (even if shadow tab is not active), update shadow color
+      const sameAsBorderCheckbox = document.getElementById('shadow-color-same-as-border');
+      if (sameAsBorderCheckbox && sameAsBorderCheckbox.checked) {
+        currentStyles.shadowColor = e.target.value;
+        const shadowColorInput = document.getElementById('shadow-color');
+        if (shadowColorInput) {
+          shadowColorInput.value = e.target.value;
+        }
+      }
       updatePreview();
     });
 
@@ -849,6 +858,26 @@ function attachTabEventListeners(tabName) {
         }
         updatePreview();
       });
+      
+      // Listen for border color changes even when on shadow tab
+      // This ensures shadow color updates when border color changes
+      const borderColorInput = document.getElementById('border-color');
+      if (borderColorInput) {
+        // Remove any existing listener to avoid duplicates
+        const newBorderColorInput = borderColorInput.cloneNode(true);
+        borderColorInput.parentNode.replaceChild(newBorderColorInput, borderColorInput);
+        
+        newBorderColorInput.addEventListener('input', (e) => {
+          if (sameAsBorderCheckbox.checked) {
+            // Update shadow color to match border color
+            currentStyles.shadowColor = e.target.value;
+            if (shadowColorInput) {
+              shadowColorInput.value = e.target.value;
+            }
+            updatePreview();
+          }
+        });
+      }
     }
 
     if (shadowColorInput) {
