@@ -576,16 +576,14 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  flex: 1 1 0%;
+  flex: 1;
   min-height: 0;
-  max-height: 100%;
+  height: 0; /* Flexbox trick: force container to respect parent height */
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: #4a90e2 #2a2a2a;
-  /* Force container to respect parent height constraint */
-  position: relative;
 }
 
 .weather-forecast-days-2-5::-webkit-scrollbar {
