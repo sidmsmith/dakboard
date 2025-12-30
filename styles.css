@@ -1452,6 +1452,29 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
   padding: calc(10px * var(--scale-factor, 1));
 }
 
+/* Calendar widget - prevent scaling for title, increase font sizes */
+.widget[data-scale].calendar-widget .widget-title {
+  font-size: 18px !important;
+}
+
+.widget[data-scale].calendar-widget .calendar-day-header {
+  font-size: 14px !important;
+}
+
+.widget[data-scale].calendar-widget .calendar-day-number {
+  font-size: 20px !important;
+}
+
+.widget[data-scale].calendar-widget .calendar-event {
+  font-size: 14px !important;
+  padding: calc(4px * var(--scale-factor, 1)) calc(8px * var(--scale-factor, 1));
+}
+
+.widget[data-scale].calendar-widget #week-range,
+.widget[data-scale].calendar-widget .calendar-nav span {
+  font-size: 14px !important;
+}
+
 .widget[data-scale] .calendar-event {
   font-size: calc(0.75rem * var(--scale-factor, 1));
   padding: calc(4px * var(--scale-factor, 1)) calc(8px * var(--scale-factor, 1));
