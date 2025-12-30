@@ -4,6 +4,7 @@
 let currentWidgetId = null;
 let currentStyles = {};
 let applyToAllFlags = {};
+let shadowSameAsBorder = false; // Track "Same as Border" checkbox state
 
 // Helper function to convert hex color to rgba with opacity
 function hexToRgba(hex, opacity) {
@@ -427,8 +428,8 @@ function generateShadowTab() {
   const shadowY = currentStyles.shadowY !== undefined ? currentStyles.shadowY : 4;
   const shadowSpread = currentStyles.shadowSpread !== undefined ? currentStyles.shadowSpread : 0;
   
-  // Check if shadow color matches border color
-  const sameAsBorder = shadowColor === borderColor;
+  // Check if shadow color matches border color, or if checkbox was previously checked
+  const sameAsBorder = shadowSameAsBorder || shadowColor === borderColor;
   
   return `
     <div class="styling-form-section">
@@ -780,14 +781,16 @@ function attachTabEventListeners(tabName) {
   if (tabName === 'border') {
     document.getElementById('border-color').addEventListener('input', (e) => {
       currentStyles.borderColor = e.target.value;
-      // If "Same as Border" checkbox is checked (even if shadow tab is not active), update shadow color
+      // If "Same as Border" checkbox is checked (check both DOM and stored state), update shadow color
       const sameAsBorderCheckbox = document.getElementById('shadow-color-same-as-border');
-      if (sameAsBorderCheckbox && sameAsBorderCheckbox.checked) {
+      if ((sameAsBorderCheckbox && sameAsBorderCheckbox.checked) || shadowSameAsBorder) {
         currentStyles.shadowColor = e.target.value;
         const shadowColorInput = document.getElementById('shadow-color');
         if (shadowColorInput) {
           shadowColorInput.value = e.target.value;
         }
+        // Update stored state
+        shadowSameAsBorder = true;
       }
       updatePreview();
     });
@@ -842,6 +845,7 @@ function attachTabEventListeners(tabName) {
       }
       
       sameAsBorderCheckbox.addEventListener('change', (e) => {
+        shadowSameAsBorder = e.target.checked;
         if (e.target.checked) {
           // Sync shadow color with border color
           const borderColor = currentStyles.borderColor || '#000000';
