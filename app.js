@@ -2681,6 +2681,23 @@ window.enableGooglePhotosDemoMode = enableGooglePhotosDemoMode;
 // Thermostat state
 let currentThermostat = 1;
 
+// Calculate relative luminance of a color (for contrast calculation)
+function getLuminance(r, g, b) {
+  // Convert RGB to relative luminance using WCAG formula
+  const [rs, gs, bs] = [r, g, b].map(val => {
+    val = val / 255;
+    return val <= 0.03928 ? val / 12.92 : Math.pow((val + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+// Determine if a color is light or dark based on luminance
+function isLightColor(r, g, b) {
+  const luminance = getLuminance(r, g, b);
+  // Threshold of 0.5 - above is light, below is dark
+  return luminance > 0.5;
+}
+
 // Update thermostat control styles based on widget background color
 function updateThermostatControlStyles(widget) {
   if (!widget) return;
@@ -2694,8 +2711,8 @@ function updateThermostatControlStyles(widget) {
     // Check if there's a background image (we can't extract color from it, so use a neutral approach)
     const bgImage = computedStyle.backgroundImage;
     if (bgImage && bgImage !== 'none') {
-      // For images/gradients, use a semi-transparent white overlay approach
-      bgColor = 'rgba(255, 255, 255, 0.15)'; // Default overlay
+      // For images/gradients, assume dark background (use light text)
+      bgColor = 'rgb(42, 42, 42)';
     } else {
       // Try to get from parent or use default
       bgColor = computedStyle.backgroundColor || 'rgb(42, 42, 42)';
@@ -2714,6 +2731,13 @@ function updateThermostatControlStyles(widget) {
   const g = parseInt(rgbMatch[1]);
   const b = parseInt(rgbMatch[2]);
   
+  // Determine if background is light or dark
+  const isLight = isLightColor(r, g, b);
+  
+  // Set text colors based on background brightness
+  const primaryTextColor = isLight ? '#1a1a1a' : '#ffffff'; // Dark text for light bg, white for dark bg
+  const secondaryTextColor = isLight ? '#4a4a4a' : '#aaaaaa'; // Darker gray for light bg, lighter gray for dark bg
+  
   // Calculate darker shade for borders (reduce brightness by 25-30%)
   const darkenFactor = 0.25;
   const borderR = Math.max(0, Math.floor(r * (1 - darkenFactor)));
@@ -2727,10 +2751,12 @@ function updateThermostatControlStyles(widget) {
   const hoverB = Math.max(0, Math.floor(borderB * (1 - hoverDarkenFactor)));
   
   // Set CSS custom properties on the widget
-  widget.style.setProperty('--thermostat-bg-overlay', 'rgba(255, 255, 255, 0.15)');
+  widget.style.setProperty('--thermostat-bg-overlay', isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.15)');
   widget.style.setProperty('--thermostat-border-color', `rgb(${borderR}, ${borderG}, ${borderB})`);
   widget.style.setProperty('--thermostat-hover-border', `rgb(${hoverR}, ${hoverG}, ${hoverB})`);
-  widget.style.setProperty('--thermostat-hover-bg', 'rgba(255, 255, 255, 0.25)');
+  widget.style.setProperty('--thermostat-hover-bg', isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.25)');
+  widget.style.setProperty('--thermostat-text-primary', primaryTextColor);
+  widget.style.setProperty('--thermostat-text-secondary', secondaryTextColor);
 }
 
 // Load thermostat data

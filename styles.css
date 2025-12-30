@@ -1768,7 +1768,7 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
   width: 100%;
   padding: 8px 12px;
   background: var(--thermostat-bg-overlay, rgba(255, 255, 255, 0.15));
-  color: #fff;
+  color: var(--thermostat-text-primary, #fff);
   border: 1px solid var(--thermostat-border-color, rgba(255, 255, 255, 0.3));
   border-radius: 6px;
   font-size: 14px;
@@ -1811,14 +1811,14 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
 .thermostat-current-temp {
   font-size: 64px;
   font-weight: 300;
-  color: #fff;
+  color: var(--thermostat-text-primary, #fff);
   line-height: 1;
   margin-bottom: 8px;
 }
 
 .thermostat-target-temp {
   font-size: 18px;
-  color: #aaa;
+  color: var(--thermostat-text-secondary, #aaa);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1827,12 +1827,13 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
 
 .thermostat-target-label {
   font-size: 14px;
+  color: var(--thermostat-text-secondary, #aaa);
 }
 
 .thermostat-target-value {
   font-size: 20px;
   font-weight: 600;
-  color: #fff;
+  color: var(--thermostat-text-primary, #fff);
 }
 
 .thermostat-controls {
@@ -1854,7 +1855,7 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
 .thermostat-mode label,
 .thermostat-fan label {
   font-size: 12px;
-  color: #aaa;
+  color: var(--thermostat-text-secondary, #aaa);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1862,7 +1863,7 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
 .thermostat-control-select {
   padding: 8px 10px;
   background: var(--thermostat-bg-overlay, rgba(255, 255, 255, 0.15));
-  color: #fff;
+  color: var(--thermostat-text-primary, #fff);
   border: 1px solid var(--thermostat-border-color, rgba(255, 255, 255, 0.3));
   border-radius: 6px;
   font-size: 14px;
@@ -1900,7 +1901,7 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
   height: 40px;
   border-radius: 50%;
   background: var(--thermostat-bg-overlay, rgba(255, 255, 255, 0.15));
-  color: #fff;
+  color: var(--thermostat-text-primary, #fff);
   border: 1px solid var(--thermostat-border-color, rgba(255, 255, 255, 0.3));
   font-size: 24px;
   cursor: pointer;
@@ -1932,7 +1933,7 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
   width: 80px;
   padding: 10px;
   background: var(--thermostat-bg-overlay, rgba(255, 255, 255, 0.15));
-  color: #fff;
+  color: var(--thermostat-text-primary, #fff);
   border: 1px solid var(--thermostat-border-color, rgba(255, 255, 255, 0.3));
   border-radius: 6px;
   font-size: 24px;
