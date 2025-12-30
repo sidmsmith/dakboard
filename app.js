@@ -5327,17 +5327,32 @@ function showPage(pageIndex, direction = null) {
       });
       
       // Set final positions (triggers animation)
+      // For looping right, all pages should move LEFT visually
       pages.forEach((page, index) => {
-        const offset = (index - pageIndex) * 100;
-        page.style.transform = `translateX(${offset}vw)`;
-        
-        // Keep Page 1 hidden during animation, show it after animation completes
-        if (index === 1) {
+        if (index === pageIndex) {
+          // New page (0) animates to center
+          page.style.transform = `translateX(0vw)`;
+        } else if (index === 1) {
+          // Page 1: Keep hidden, will be at -100vw (off-screen left)
+          page.style.transform = `translateX(-100vw)`;
           page.style.visibility = 'hidden';
           setTimeout(() => {
             page.style.visibility = 'visible';
           }, 350); // After animation completes
         } else {
+          // All other pages: calculate if they should move left or right
+          const currentOffset = (index - oldPageIndex) * 100;
+          const finalOffset = (index - pageIndex) * 100;
+          
+          // If final position is to the right of current, move it left off-screen instead
+          // This ensures all pages move left visually during the loop
+          if (finalOffset > currentOffset) {
+            // This page would move right - instead move it left off-screen
+            page.style.transform = `translateX(-100vw)`;
+          } else {
+            // This page moves left - use final position
+            page.style.transform = `translateX(${finalOffset}vw)`;
+          }
           page.style.visibility = 'visible';
         }
         
