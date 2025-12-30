@@ -1571,29 +1571,28 @@ function renderForecast(forecastData, attrs) {
 // Update forecast list height constraint to ensure scrollbar appears
 function updateForecastListHeight(forecastList) {
   const forecastSection = forecastList.closest('.weather-forecast');
+  const weatherContent = forecastSection?.parentElement;
+  const widget = weatherContent?.closest('.weather-widget');
   
-  if (forecastSection && forecastList) {
-    // Get the available height for the list (parent height minus header)
+  if (forecastSection && forecastList && widget) {
+    // Get the available height for the list
+    // Calculate from the forecast section's actual visible height
     const header = forecastSection.querySelector('.weather-forecast-header');
     const headerHeight = header ? header.offsetHeight + parseInt(window.getComputedStyle(header).marginBottom) : 0;
-    const availableHeight = forecastSection.clientHeight - headerHeight;
     
-    // Calculate total content height (all items + gaps)
-    // Use min-height to ensure items don't compress
-    let totalContentHeight = 0;
-    Array.from(forecastList.children).forEach((item, index) => {
-      if (index > 0) totalContentHeight += 10; // gap
-      // Use the larger of actual height or min-height to prevent compression
-      const itemHeight = Math.max(item.offsetHeight, 60); // min-height from CSS
-      totalContentHeight += itemHeight;
-    });
+    // Use getBoundingClientRect to get actual rendered height
+    const sectionRect = forecastSection.getBoundingClientRect();
+    const availableHeight = sectionRect.height - headerHeight;
+    
+    // Calculate total content height (all items + gaps) - items should be 60px each
+    const itemCount = forecastList.children.length;
+    const gapCount = itemCount > 0 ? itemCount - 1 : 0;
+    const totalContentHeight = (itemCount * 60) + (gapCount * 10); // 60px min-height per item, 10px gap
     
     // ALWAYS constrain to available height to ensure scrollbar appears when needed
     // This matches the Todo List pattern which uses fixed max-height
-    // Use a slightly smaller value to ensure overflow is detected
-    const constrainedHeight = Math.max(availableHeight - 1, 0);
     forecastList.style.maxHeight = `${availableHeight}px`;
-    forecastList.style.height = `${constrainedHeight}px`;
+    forecastList.style.height = `${availableHeight}px`;
     
     // Debug logging
     console.log('=== Weather Forecast Scrollbar Debug ===');
