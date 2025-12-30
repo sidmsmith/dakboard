@@ -698,18 +698,6 @@ function renderCalendar() {
         
         const eventStartDateObj = new Date(eventStartParts.year, eventStartParts.month, eventStartParts.day);
         
-        // Debug logging for all-day events
-        if (DEBUG || event.title?.includes('New Year')) {
-          console.log(`[All-Day Event Debug] Event: "${event.title}"`);
-          console.log(`  Original start: ${event.start} -> Parsed: ${eventStartParts.year}-${eventStartParts.month + 1}-${eventStartParts.day}`);
-          console.log(`  Original end: ${event.end || event.start} -> Parsed: ${eventEndParts.year}-${eventEndParts.month + 1}-${eventEndParts.day} (adjusted: ${eventEndDateObj.getFullYear()}-${eventEndDateObj.getMonth() + 1}-${eventEndDateObj.getDate()})`);
-          console.log(`  Current day: ${currentYear}-${currentMonth + 1}-${currentDay}`);
-          console.log(`  Event date range: ${eventStartDateObj.toDateString()} to ${eventEndDateObj.toDateString()}`);
-          console.log(`  Current date: ${currentDateObj.toDateString()}`);
-          const matches = (currentDateObj >= eventStartDateObj && currentDateObj <= eventEndDateObj);
-          console.log(`  Match result: ${matches}`);
-        }
-        
         // Check if current day is within the event's date range
         return (currentDateObj >= eventStartDateObj && currentDateObj <= eventEndDateObj);
       } else {
@@ -864,18 +852,6 @@ function renderMonthCalendar(container, year, month, events) {
         const currentDateObj = new Date(currentYear, currentMonth, currentDay);
         
         const eventStartDateObj = new Date(eventStartParts.year, eventStartParts.month, eventStartParts.day);
-        
-        // Debug logging for all-day events (monthly view)
-        if (DEBUG || event.title?.includes('New Year')) {
-          console.log(`[Monthly All-Day Event Debug] Event: "${event.title}"`);
-          console.log(`  Original start: ${event.start} -> Parsed: ${eventStartParts.year}-${eventStartParts.month + 1}-${eventStartParts.day}`);
-          console.log(`  Original end: ${event.end || event.start} -> Parsed: ${eventEndParts.year}-${eventEndParts.month + 1}-${eventEndParts.day} (adjusted: ${eventEndDateObj.getFullYear()}-${eventEndDateObj.getMonth() + 1}-${eventEndDateObj.getDate()})`);
-          console.log(`  Current day: ${currentYear}-${currentMonth + 1}-${currentDay}`);
-          console.log(`  Event date range: ${eventStartDateObj.toDateString()} to ${eventEndDateObj.toDateString()}`);
-          console.log(`  Current date: ${currentDateObj.toDateString()}`);
-          const matches = (currentDateObj >= eventStartDateObj && currentDateObj <= eventEndDateObj);
-          console.log(`  Match result: ${matches}`);
-        }
         
         // Check if current day is within the event's date range
         return (currentDateObj >= eventStartDateObj && currentDateObj <= eventEndDateObj);
@@ -1303,18 +1279,6 @@ function loadDailyAgendaForDate(date) {
       const currentDateObj = new Date(currentYear, currentMonth, currentDay);
       
       const eventStartDateObj = new Date(eventStartParts.year, eventStartParts.month, eventStartParts.day);
-      
-      // Debug logging for all-day events (daily agenda)
-      if (DEBUG || event.title?.includes('New Year')) {
-        console.log(`[Daily Agenda All-Day Event Debug] Event: "${event.title}"`);
-        console.log(`  Original start: ${event.start} -> Parsed: ${eventStartParts.year}-${eventStartParts.month + 1}-${eventStartParts.day}`);
-        console.log(`  Original end: ${event.end || event.start} -> Parsed: ${eventEndParts.year}-${eventEndParts.month + 1}-${eventEndParts.day} (adjusted: ${eventEndDateObj.getFullYear()}-${eventEndDateObj.getMonth() + 1}-${eventEndDateObj.getDate()})`);
-        console.log(`  Current day: ${currentYear}-${currentMonth + 1}-${currentDay}`);
-        console.log(`  Event date range: ${eventStartDateObj.toDateString()} to ${eventEndDateObj.toDateString()}`);
-        console.log(`  Current date: ${currentDateObj.toDateString()}`);
-        const matches = (currentDateObj >= eventStartDateObj && currentDateObj <= eventEndDateObj);
-        console.log(`  Match result: ${matches}`);
-      }
       
       // Check if current day is within the event's date range
       return (currentDateObj >= eventStartDateObj && currentDateObj <= eventEndDateObj);

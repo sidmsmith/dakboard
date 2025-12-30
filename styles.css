@@ -234,7 +234,7 @@ body {
 .calendar-day-header {
   text-align: center;
   font-weight: 600;
-  color: #888;
+  color: var(--widget-text-primary, #fff);
   padding: 4px 8px;
   font-size: 12px;
   text-transform: uppercase;
