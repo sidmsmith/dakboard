@@ -671,16 +671,24 @@ function renderCalendar() {
       
       // For all-day events, check if the day falls within the event's date range (ignoring time)
       if (event.allDay) {
-        // Extract date components (year, month, day) to avoid timezone issues
-        const eventStartYear = eventStart.getFullYear();
-        const eventStartMonth = eventStart.getMonth();
-        const eventStartDay = eventStart.getDate();
+        // Parse date string directly to avoid timezone conversion issues
+        // Event dates are typically in format "YYYY-MM-DD" or "YYYY-MM-DDTHH:mm:ss.sssZ"
+        const parseDateString = (dateStr) => {
+          // Extract date part (before 'T' if present)
+          const datePart = dateStr.split('T')[0];
+          const parts = datePart.split('-');
+          return {
+            year: parseInt(parts[0], 10),
+            month: parseInt(parts[1], 10) - 1, // JavaScript months are 0-indexed
+            day: parseInt(parts[2], 10)
+          };
+        };
         
-        const eventEndYear = eventEnd.getFullYear();
-        const eventEndMonth = eventEnd.getMonth();
-        const eventEndDay = eventEnd.getDate();
+        const eventStartParts = parseDateString(event.start);
+        const eventEndParts = parseDateString(event.end || event.start);
+        
         // For all-day events, end date is typically the day after (exclusive), so subtract 1 day
-        const eventEndDateObj = new Date(eventEndYear, eventEndMonth, eventEndDay);
+        const eventEndDateObj = new Date(eventEndParts.year, eventEndParts.month, eventEndParts.day);
         eventEndDateObj.setDate(eventEndDateObj.getDate() - 1);
         
         const currentYear = date.getFullYear();
@@ -688,15 +696,13 @@ function renderCalendar() {
         const currentDay = date.getDate();
         const currentDateObj = new Date(currentYear, currentMonth, currentDay);
         
-        const eventStartDateObj = new Date(eventStartYear, eventStartMonth, eventStartDay);
+        const eventStartDateObj = new Date(eventStartParts.year, eventStartParts.month, eventStartParts.day);
         
         // Debug logging for all-day events
         if (DEBUG || event.title?.includes('New Year')) {
           console.log(`[All-Day Event Debug] Event: "${event.title}"`);
-          console.log(`  Original start: ${event.start} -> Date: ${eventStart.toISOString()}`);
-          console.log(`  Original end: ${event.end || event.start} -> Date: ${eventEnd.toISOString()}`);
-          console.log(`  Extracted start: ${eventStartYear}-${eventStartMonth + 1}-${eventStartDay}`);
-          console.log(`  Extracted end: ${eventEndYear}-${eventEndMonth + 1}-${eventEndDay} (adjusted: ${eventEndDateObj.getFullYear()}-${eventEndDateObj.getMonth() + 1}-${eventEndDateObj.getDate()})`);
+          console.log(`  Original start: ${event.start} -> Parsed: ${eventStartParts.year}-${eventStartParts.month + 1}-${eventStartParts.day}`);
+          console.log(`  Original end: ${event.end || event.start} -> Parsed: ${eventEndParts.year}-${eventEndParts.month + 1}-${eventEndParts.day} (adjusted: ${eventEndDateObj.getFullYear()}-${eventEndDateObj.getMonth() + 1}-${eventEndDateObj.getDate()})`);
           console.log(`  Current day: ${currentYear}-${currentMonth + 1}-${currentDay}`);
           console.log(`  Event date range: ${eventStartDateObj.toDateString()} to ${eventEndDateObj.toDateString()}`);
           console.log(`  Current date: ${currentDateObj.toDateString()}`);
@@ -834,16 +840,22 @@ function renderMonthCalendar(container, year, month, events) {
       
       // For all-day events, check if the day falls within the event's date range (ignoring time)
       if (event.allDay) {
-        // Extract date components (year, month, day) to avoid timezone issues
-        const eventStartYear = eventStart.getFullYear();
-        const eventStartMonth = eventStart.getMonth();
-        const eventStartDay = eventStart.getDate();
+        // Parse date string directly to avoid timezone conversion issues
+        const parseDateString = (dateStr) => {
+          const datePart = dateStr.split('T')[0];
+          const parts = datePart.split('-');
+          return {
+            year: parseInt(parts[0], 10),
+            month: parseInt(parts[1], 10) - 1, // JavaScript months are 0-indexed
+            day: parseInt(parts[2], 10)
+          };
+        };
         
-        const eventEndYear = eventEnd.getFullYear();
-        const eventEndMonth = eventEnd.getMonth();
-        const eventEndDay = eventEnd.getDate();
+        const eventStartParts = parseDateString(event.start);
+        const eventEndParts = parseDateString(event.end || event.start);
+        
         // For all-day events, end date is typically the day after (exclusive), so subtract 1 day
-        const eventEndDateObj = new Date(eventEndYear, eventEndMonth, eventEndDay);
+        const eventEndDateObj = new Date(eventEndParts.year, eventEndParts.month, eventEndParts.day);
         eventEndDateObj.setDate(eventEndDateObj.getDate() - 1);
         
         const currentYear = date.getFullYear();
@@ -851,15 +863,13 @@ function renderMonthCalendar(container, year, month, events) {
         const currentDay = date.getDate();
         const currentDateObj = new Date(currentYear, currentMonth, currentDay);
         
-        const eventStartDateObj = new Date(eventStartYear, eventStartMonth, eventStartDay);
+        const eventStartDateObj = new Date(eventStartParts.year, eventStartParts.month, eventStartParts.day);
         
         // Debug logging for all-day events (monthly view)
         if (DEBUG || event.title?.includes('New Year')) {
           console.log(`[Monthly All-Day Event Debug] Event: "${event.title}"`);
-          console.log(`  Original start: ${event.start} -> Date: ${eventStart.toISOString()}`);
-          console.log(`  Original end: ${event.end || event.start} -> Date: ${eventEnd.toISOString()}`);
-          console.log(`  Extracted start: ${eventStartYear}-${eventStartMonth + 1}-${eventStartDay}`);
-          console.log(`  Extracted end: ${eventEndYear}-${eventEndMonth + 1}-${eventEndDay} (adjusted: ${eventEndDateObj.getFullYear()}-${eventEndDateObj.getMonth() + 1}-${eventEndDateObj.getDate()})`);
+          console.log(`  Original start: ${event.start} -> Parsed: ${eventStartParts.year}-${eventStartParts.month + 1}-${eventStartParts.day}`);
+          console.log(`  Original end: ${event.end || event.start} -> Parsed: ${eventEndParts.year}-${eventEndParts.month + 1}-${eventEndParts.day} (adjusted: ${eventEndDateObj.getFullYear()}-${eventEndDateObj.getMonth() + 1}-${eventEndDateObj.getDate()})`);
           console.log(`  Current day: ${currentYear}-${currentMonth + 1}-${currentDay}`);
           console.log(`  Event date range: ${eventStartDateObj.toDateString()} to ${eventEndDateObj.toDateString()}`);
           console.log(`  Current date: ${currentDateObj.toDateString()}`);
@@ -1269,16 +1279,22 @@ function loadDailyAgendaForDate(date) {
     
     // For all-day events, check if the day falls within the event's date range (ignoring time)
     if (event.allDay) {
-      // Extract date components (year, month, day) to avoid timezone issues
-      const eventStartYear = eventStart.getFullYear();
-      const eventStartMonth = eventStart.getMonth();
-      const eventStartDay = eventStart.getDate();
+      // Parse date string directly to avoid timezone conversion issues
+      const parseDateString = (dateStr) => {
+        const datePart = dateStr.split('T')[0];
+        const parts = datePart.split('-');
+        return {
+          year: parseInt(parts[0], 10),
+          month: parseInt(parts[1], 10) - 1, // JavaScript months are 0-indexed
+          day: parseInt(parts[2], 10)
+        };
+      };
       
-      const eventEndYear = eventEnd.getFullYear();
-      const eventEndMonth = eventEnd.getMonth();
-      const eventEndDay = eventEnd.getDate();
+      const eventStartParts = parseDateString(event.start);
+      const eventEndParts = parseDateString(event.end || event.start);
+      
       // For all-day events, end date is typically the day after (exclusive), so subtract 1 day
-      const eventEndDateObj = new Date(eventEndYear, eventEndMonth, eventEndDay);
+      const eventEndDateObj = new Date(eventEndParts.year, eventEndParts.month, eventEndParts.day);
       eventEndDateObj.setDate(eventEndDateObj.getDate() - 1);
       
       const currentYear = date.getFullYear();
@@ -1286,15 +1302,13 @@ function loadDailyAgendaForDate(date) {
       const currentDay = date.getDate();
       const currentDateObj = new Date(currentYear, currentMonth, currentDay);
       
-      const eventStartDateObj = new Date(eventStartYear, eventStartMonth, eventStartDay);
+      const eventStartDateObj = new Date(eventStartParts.year, eventStartParts.month, eventStartParts.day);
       
       // Debug logging for all-day events (daily agenda)
       if (DEBUG || event.title?.includes('New Year')) {
         console.log(`[Daily Agenda All-Day Event Debug] Event: "${event.title}"`);
-        console.log(`  Original start: ${event.start} -> Date: ${eventStart.toISOString()}`);
-        console.log(`  Original end: ${event.end || event.start} -> Date: ${eventEnd.toISOString()}`);
-        console.log(`  Extracted start: ${eventStartYear}-${eventStartMonth + 1}-${eventStartDay}`);
-        console.log(`  Extracted end: ${eventEndYear}-${eventEndMonth + 1}-${eventEndDay} (adjusted: ${eventEndDateObj.getFullYear()}-${eventEndDateObj.getMonth() + 1}-${eventEndDateObj.getDate()})`);
+        console.log(`  Original start: ${event.start} -> Parsed: ${eventStartParts.year}-${eventStartParts.month + 1}-${eventStartParts.day}`);
+        console.log(`  Original end: ${event.end || event.start} -> Parsed: ${eventEndParts.year}-${eventEndParts.month + 1}-${eventEndParts.day} (adjusted: ${eventEndDateObj.getFullYear()}-${eventEndDateObj.getMonth() + 1}-${eventEndDateObj.getDate()})`);
         console.log(`  Current day: ${currentYear}-${currentMonth + 1}-${currentDay}`);
         console.log(`  Event date range: ${eventStartDateObj.toDateString()} to ${eventEndDateObj.toDateString()}`);
         console.log(`  Current date: ${currentDateObj.toDateString()}`);
