@@ -563,28 +563,27 @@ body {
   gap: 10px;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
-}
-
-/* Day 1 container - always visible */
-.weather-forecast-day1 {
-  flex-shrink: 0;
-}
-
-/* Days 2-5 container - scrollable */
-.weather-forecast-days-2-5 {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  flex: 1;
-  min-height: 0;
-  /* Force container to be constrained - use height calculation trick */
-  height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: #4a90e2 #2a2a2a;
+}
+
+/* Day 1 container - sticky at top when scrolling */
+.weather-forecast-day1 {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #2a2a2a; /* Match widget background to cover scrolling content */
+}
+
+/* Days 2-5 container - part of scrollable list */
+.weather-forecast-days-2-5 {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .weather-forecast-days-2-5::-webkit-scrollbar {
