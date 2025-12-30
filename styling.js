@@ -5,6 +5,18 @@ let currentWidgetId = null;
 let currentStyles = {};
 let applyToAllFlags = {};
 
+// Helper function to convert hex color to rgba with opacity
+function hexToRgba(hex, opacity) {
+  // Remove # if present
+  hex = hex.replace('#', '');
+  // Convert to RGB
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  // Return rgba string
+  return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
+}
+
 // Initialize styling system
 function initStyling() {
   // Close modal handlers
@@ -942,11 +954,15 @@ function updatePreview() {
   preview.style.backgroundSize = '';
   // Note: Don't clear opacity here - it will be set appropriately below based on background type and widgetOpacity
   
+  // Get background opacity (applies to all background types including images)
+  const bgOpacity = currentStyles.opacity !== undefined ? currentStyles.opacity : 100;
+  
   // Apply background based on type, using currentStyles values
   switch(bgType) {
     case 'solid':
       const solidColor = currentStyles.backgroundColor || '#2a2a2a';
-      preview.style.backgroundColor = solidColor;
+      // Apply background opacity using rgba
+      preview.style.backgroundColor = bgOpacity < 100 ? hexToRgba(solidColor, bgOpacity) : solidColor;
       break;
       
     case 'transparent':
@@ -957,7 +973,10 @@ function updatePreview() {
       const color1 = currentStyles.gradientColor1 || '#2a2a2a';
       const color2 = currentStyles.gradientColor2 || '#3a3a3a';
       const direction = currentStyles.gradientDirection || 'to bottom';
-      preview.style.backgroundImage = `linear-gradient(${direction}, ${color1}, ${color2})`;
+      // Apply background opacity using rgba in gradient
+      const rgbaColor1 = bgOpacity < 100 ? hexToRgba(color1, bgOpacity) : color1;
+      const rgbaColor2 = bgOpacity < 100 ? hexToRgba(color2, bgOpacity) : color2;
+      preview.style.backgroundImage = `linear-gradient(${direction}, ${rgbaColor1}, ${rgbaColor2})`;
       break;
       
     case 'image':
@@ -967,12 +986,11 @@ function updatePreview() {
         preview.style.backgroundRepeat = currentStyles.backgroundRepeat || 'no-repeat';
         preview.style.backgroundPosition = currentStyles.backgroundPosition || 'center';
         preview.style.backgroundSize = currentStyles.backgroundSize || 'cover';
-        // Note: backgroundImageOpacity will be overridden by widgetOpacity if set (see below)
-        if (currentStyles.backgroundImageOpacity !== undefined && currentStyles.backgroundImageOpacity < 100) {
-          // Only set if widgetOpacity is not defined, otherwise widgetOpacity takes precedence
-          if (currentStyles.widgetOpacity === undefined) {
-            preview.style.opacity = currentStyles.backgroundImageOpacity / 100;
-          }
+        // For images, apply opacity to preview but content will be set to opacity: 1 below
+        if (bgOpacity < 100) {
+          preview.style.opacity = bgOpacity / 100;
+        } else {
+          preview.style.opacity = '';
         }
       } else {
         preview.style.backgroundColor = '#1a1a1a';
@@ -993,17 +1011,14 @@ function updatePreview() {
       if (bgSizeMatch) {
         preview.style.backgroundSize = bgSizeMatch[1].trim();
       }
+      // For patterns, apply opacity to preview but content will be set to opacity: 1 below
+      if (bgOpacity < 100) {
+        preview.style.opacity = bgOpacity / 100;
+      } else {
+        preview.style.opacity = '';
+      }
       preview.style.backgroundColor = '#1a1a1a';
       break;
-  }
-  
-  // Apply opacity (for solid/gradient/pattern, not image which has its own opacity)
-  // Note: widgetOpacity takes precedence over opacity and backgroundImageOpacity (see below)
-  if (currentStyles.opacity !== undefined && bgType !== 'image' && currentStyles.widgetOpacity === undefined) {
-    const opacity = currentStyles.opacity / 100;
-    preview.style.opacity = opacity;
-  } else if (bgType !== 'image' && currentStyles.widgetOpacity === undefined) {
-    preview.style.opacity = '1';
   }
 
   // Apply border
@@ -1031,14 +1046,28 @@ function updatePreview() {
   }
 
   // Apply text
-  if (currentStyles.textColor) {
-    preview.querySelector('.styling-preview-title-text').style.color = currentStyles.textColor;
-  }
-  if (currentStyles.fontSize) {
-    preview.querySelector('.styling-preview-title-text').style.fontSize = currentStyles.fontSize + 'px';
-  }
-  if (currentStyles.fontWeight) {
-    preview.querySelector('.styling-preview-title-text').style.fontWeight = currentStyles.fontWeight;
+  const titleText = preview.querySelector('.styling-preview-title-text');
+  if (titleText) {
+    if (currentStyles.textColor) {
+      titleText.style.color = currentStyles.textColor;
+    }
+    if (currentStyles.fontSize) {
+      titleText.style.fontSize = currentStyles.fontSize + 'px';
+    }
+    if (currentStyles.fontWeight) {
+      titleText.style.fontWeight = currentStyles.fontWeight;
+    }
+    // Apply widget opacity to title (independent of background opacity)
+    if (currentStyles.widgetOpacity !== undefined) {
+      titleText.style.opacity = (currentStyles.widgetOpacity / 100);
+    } else {
+      // If background opacity was applied to preview (for images/patterns), counteract on content
+      if ((bgType === 'image' || bgType === 'pattern') && bgOpacity < 100) {
+        titleText.style.opacity = '1';
+      } else {
+        titleText.style.opacity = '';
+      }
+    }
   }
 
   // Apply padding
@@ -1046,9 +1075,31 @@ function updatePreview() {
     preview.style.padding = currentStyles.padding + 'px';
   }
 
-  // Apply widget opacity
-  if (currentStyles.widgetOpacity !== undefined) {
-    preview.style.opacity = (currentStyles.widgetOpacity / 100);
+  // Apply widget opacity to border and shadow (via rgba if widget opacity < 100)
+  if (currentStyles.widgetOpacity !== undefined && currentStyles.widgetOpacity < 100) {
+    if (currentStyles.borderColor) {
+      preview.style.borderColor = hexToRgba(currentStyles.borderColor, currentStyles.widgetOpacity);
+    }
+    
+    if (currentStyles.shadowBlur !== undefined || currentStyles.shadowX !== undefined || currentStyles.shadowY !== undefined) {
+      const x = currentStyles.shadowX || 0;
+      const y = currentStyles.shadowY || 0;
+      const blur = currentStyles.shadowBlur || 0;
+      const spread = currentStyles.shadowSpread || 0;
+      const shadowColor = currentStyles.shadowColor || 'rgba(0, 0, 0, 0.3)';
+      // Extract rgba values and apply widget opacity
+      const rgbaMatch = shadowColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+      if (rgbaMatch) {
+        const r = rgbaMatch[1];
+        const g = rgbaMatch[2];
+        const b = rgbaMatch[3];
+        const baseOpacity = rgbaMatch[4] ? parseFloat(rgbaMatch[4]) : 0.3;
+        const finalOpacity = (baseOpacity * currentStyles.widgetOpacity / 100);
+        preview.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px rgba(${r}, ${g}, ${b}, ${finalOpacity})`;
+      } else {
+        preview.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${shadowColor}`;
+      }
+    }
   }
 }
 
@@ -1209,12 +1260,16 @@ function applyCurrentStylesToWidget(widget) {
   widget.style.backgroundSize = '';
   // Note: Don't clear opacity here - it will be set appropriately below based on background type and widgetOpacity
   
+  // Get background opacity (applies to all background types including images)
+  const bgOpacity = currentStyles.opacity !== undefined ? currentStyles.opacity : 100;
+  
   // Apply background based on type, using currentStyles values
   switch(bgType) {
     case 'solid':
       const solidColor = currentStyles.backgroundColor || '#2a2a2a';
       if (!isApplyingToAll || applyToAllFlags.backgroundColor) {
-        widget.style.backgroundColor = solidColor;
+        // Apply background opacity using rgba
+        widget.style.backgroundColor = bgOpacity < 100 ? hexToRgba(solidColor, bgOpacity) : solidColor;
       }
       break;
       
@@ -1229,7 +1284,10 @@ function applyCurrentStylesToWidget(widget) {
       const color2 = currentStyles.gradientColor2 || '#3a3a3a';
       const direction = currentStyles.gradientDirection || 'to bottom';
       if (!isApplyingToAll || applyToAllFlags.gradientColor1 || applyToAllFlags.gradientColor2) {
-        widget.style.backgroundImage = `linear-gradient(${direction}, ${color1}, ${color2})`;
+        // Apply background opacity using rgba in gradient
+        const rgbaColor1 = bgOpacity < 100 ? hexToRgba(color1, bgOpacity) : color1;
+        const rgbaColor2 = bgOpacity < 100 ? hexToRgba(color2, bgOpacity) : color2;
+        widget.style.backgroundImage = `linear-gradient(${direction}, ${rgbaColor1}, ${rgbaColor2})`;
       }
       break;
       
@@ -1240,8 +1298,11 @@ function applyCurrentStylesToWidget(widget) {
         widget.style.backgroundRepeat = currentStyles.backgroundRepeat || 'no-repeat';
         widget.style.backgroundPosition = currentStyles.backgroundPosition || 'center';
         widget.style.backgroundSize = currentStyles.backgroundSize || 'cover';
-        if (currentStyles.backgroundImageOpacity !== undefined && currentStyles.backgroundImageOpacity < 100) {
-          widget.style.opacity = currentStyles.backgroundImageOpacity / 100;
+        // For images, apply opacity to widget but content will be set to opacity: 1 below
+        if (bgOpacity < 100 && (!isApplyingToAll || applyToAllFlags.opacity)) {
+          widget.style.opacity = bgOpacity / 100;
+        } else {
+          widget.style.opacity = '';
         }
       }
       break;
@@ -1261,15 +1322,15 @@ function applyCurrentStylesToWidget(widget) {
         if (bgSizeMatch) {
           widget.style.backgroundSize = bgSizeMatch[1].trim();
         }
+        // For patterns, apply opacity to widget but content will be set to opacity: 1 below
+        if (bgOpacity < 100 && (!isApplyingToAll || applyToAllFlags.opacity)) {
+          widget.style.opacity = bgOpacity / 100;
+        } else {
+          widget.style.opacity = '';
+        }
         widget.style.backgroundColor = '#1a1a1a';
       }
       break;
-  }
-  
-  if (currentStyles.opacity !== undefined) {
-    if (!isApplyingToAll || applyToAllFlags.opacity) {
-      widget.style.opacity = currentStyles.opacity / 100;
-    }
   }
 
   // Border
@@ -1324,6 +1385,17 @@ function applyCurrentStylesToWidget(widget) {
         title.style.fontWeight = currentStyles.fontWeight;
       }
     }
+    // Apply widget opacity to title (independent of background opacity)
+    if (currentStyles.widgetOpacity !== undefined && (!isApplyingToAll || applyToAllFlags.widgetOpacity)) {
+      title.style.opacity = (currentStyles.widgetOpacity / 100);
+    } else {
+      // If background opacity was applied to widget (for images/patterns), counteract on content
+      if ((bgType === 'image' || bgType === 'pattern') && bgOpacity < 100) {
+        title.style.opacity = '1';
+      } else {
+        title.style.opacity = '';
+      }
+    }
   }
 
   // Padding
@@ -1333,10 +1405,33 @@ function applyCurrentStylesToWidget(widget) {
     }
   }
 
-  // Widget opacity (overrides background opacity if both are set)
-  if (currentStyles.widgetOpacity !== undefined) {
-    if (!isApplyingToAll || applyToAllFlags.widgetOpacity) {
-      widget.style.opacity = (currentStyles.widgetOpacity / 100);
+  // Widget opacity for content elements (borders, shadows, etc.)
+  // Apply widget opacity to border (via rgba if widget opacity < 100)
+  if (currentStyles.widgetOpacity !== undefined && currentStyles.widgetOpacity < 100 && 
+      currentStyles.borderColor !== undefined && (!isApplyingToAll || applyToAllFlags.widgetOpacity)) {
+    widget.style.borderColor = hexToRgba(currentStyles.borderColor, currentStyles.widgetOpacity);
+  }
+  
+  // Apply widget opacity to shadow (via rgba if widget opacity < 100)
+  if (currentStyles.widgetOpacity !== undefined && currentStyles.widgetOpacity < 100 &&
+      (currentStyles.shadowBlur !== undefined || currentStyles.shadowX !== undefined || currentStyles.shadowY !== undefined) && 
+      (!isApplyingToAll || applyToAllFlags.shadowColor || applyToAllFlags.shadowBlur)) {
+    const x = currentStyles.shadowX !== undefined ? currentStyles.shadowX : 0;
+    const y = currentStyles.shadowY !== undefined ? currentStyles.shadowY : 4;
+    const blur = currentStyles.shadowBlur !== undefined ? currentStyles.shadowBlur : 6;
+    const spread = currentStyles.shadowSpread !== undefined ? currentStyles.shadowSpread : 0;
+    const shadowColor = currentStyles.shadowColor || 'rgba(0, 0, 0, 0.3)';
+    // Extract rgba values and apply widget opacity
+    const rgbaMatch = shadowColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+    if (rgbaMatch) {
+      const r = rgbaMatch[1];
+      const g = rgbaMatch[2];
+      const b = rgbaMatch[3];
+      const baseOpacity = rgbaMatch[4] ? parseFloat(rgbaMatch[4]) : 0.3;
+      const finalOpacity = (baseOpacity * currentStyles.widgetOpacity / 100);
+      widget.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px rgba(${r}, ${g}, ${b}, ${finalOpacity})`;
+    } else {
+      widget.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${shadowColor}`;
     }
   }
 }
@@ -1512,12 +1607,16 @@ function loadStylesToWidget(widget, styles) {
   widget.style.backgroundPosition = '';
   widget.style.backgroundSize = '';
   
+  // Get background opacity (applies to all background types including images)
+  const bgOpacity = styles.opacity !== undefined ? styles.opacity : 100;
+  
   // Apply background based on type
   const bgType = styles.backgroundType || 'solid';
   switch(bgType) {
     case 'solid':
       if (styles.backgroundColor) {
-        widget.style.backgroundColor = styles.backgroundColor;
+        // Apply background opacity using rgba
+        widget.style.backgroundColor = bgOpacity < 100 ? hexToRgba(styles.backgroundColor, bgOpacity) : styles.backgroundColor;
       }
       break;
       
@@ -1529,7 +1628,10 @@ function loadStylesToWidget(widget, styles) {
       const color1 = styles.gradientColor1 || '#2a2a2a';
       const color2 = styles.gradientColor2 || '#3a3a3a';
       const direction = styles.gradientDirection || 'to bottom';
-      widget.style.backgroundImage = `linear-gradient(${direction}, ${color1}, ${color2})`;
+      // Apply background opacity using rgba in gradient
+      const rgbaColor1 = bgOpacity < 100 ? hexToRgba(color1, bgOpacity) : color1;
+      const rgbaColor2 = bgOpacity < 100 ? hexToRgba(color2, bgOpacity) : color2;
+      widget.style.backgroundImage = `linear-gradient(${direction}, ${rgbaColor1}, ${rgbaColor2})`;
       break;
       
     case 'image':
@@ -1538,8 +1640,11 @@ function loadStylesToWidget(widget, styles) {
         widget.style.backgroundRepeat = styles.backgroundRepeat || 'no-repeat';
         widget.style.backgroundPosition = styles.backgroundPosition || 'center';
         widget.style.backgroundSize = styles.backgroundSize || 'cover';
-        if (styles.backgroundImageOpacity !== undefined && styles.backgroundImageOpacity < 100) {
-          widget.style.opacity = styles.backgroundImageOpacity / 100;
+        // For images, apply opacity to widget but content will be set to opacity: 1 below
+        if (bgOpacity < 100) {
+          widget.style.opacity = bgOpacity / 100;
+        } else {
+          widget.style.opacity = '';
         }
       }
       break;
@@ -1559,14 +1664,15 @@ function loadStylesToWidget(widget, styles) {
         if (bgSizeMatch) {
           widget.style.backgroundSize = bgSizeMatch[1].trim();
         }
+        // For patterns, apply opacity to widget but content will be set to opacity: 1 below
+        if (bgOpacity < 100) {
+          widget.style.opacity = bgOpacity / 100;
+        } else {
+          widget.style.opacity = '';
+        }
         widget.style.backgroundColor = '#1a1a1a';
       }
       break;
-  }
-  
-  // Opacity (only if not already set by background image)
-  if (styles.opacity !== undefined && bgType !== 'image') {
-    widget.style.opacity = styles.opacity / 100;
   }
   
   // Border
@@ -1591,14 +1697,48 @@ function loadStylesToWidget(widget, styles) {
     if (styles.textColor !== undefined) title.style.color = styles.textColor;
     if (styles.fontSize !== undefined) title.style.fontSize = styles.fontSize + 'px';
     if (styles.fontWeight !== undefined) title.style.fontWeight = styles.fontWeight;
+    // Apply widget opacity to title (independent of background opacity)
+    if (styles.widgetOpacity !== undefined) {
+      title.style.opacity = (styles.widgetOpacity / 100);
+    } else {
+      // If background opacity was applied to widget (for images/patterns), counteract on content
+      if ((bgType === 'image' || bgType === 'pattern') && bgOpacity < 100) {
+        title.style.opacity = '1';
+      } else {
+        title.style.opacity = '';
+      }
+    }
   }
-  
+
   // Padding
   if (styles.padding !== undefined) widget.style.padding = styles.padding + 'px';
   
-  // Widget opacity (overrides background opacity if both are set)
-  if (styles.widgetOpacity !== undefined) {
-    widget.style.opacity = styles.widgetOpacity / 100;
+  // Widget opacity for content elements (borders, shadows, etc.)
+  // Apply widget opacity to border (via rgba if widget opacity < 100)
+  if (styles.widgetOpacity !== undefined && styles.widgetOpacity < 100 && styles.borderColor !== undefined) {
+    widget.style.borderColor = hexToRgba(styles.borderColor, styles.widgetOpacity);
+  }
+  
+  // Apply widget opacity to shadow (via rgba if widget opacity < 100)
+  if (styles.widgetOpacity !== undefined && styles.widgetOpacity < 100 &&
+      (styles.shadowBlur !== undefined || styles.shadowX !== undefined || styles.shadowY !== undefined)) {
+    const x = styles.shadowX !== undefined ? styles.shadowX : 0;
+    const y = styles.shadowY !== undefined ? styles.shadowY : 4;
+    const blur = styles.shadowBlur !== undefined ? styles.shadowBlur : 6;
+    const spread = styles.shadowSpread !== undefined ? styles.shadowSpread : 0;
+    const shadowColor = styles.shadowColor || 'rgba(0, 0, 0, 0.3)';
+    // Extract rgba values and apply widget opacity
+    const rgbaMatch = shadowColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+    if (rgbaMatch) {
+      const r = rgbaMatch[1];
+      const g = rgbaMatch[2];
+      const b = rgbaMatch[3];
+      const baseOpacity = rgbaMatch[4] ? parseFloat(rgbaMatch[4]) : 0.3;
+      const finalOpacity = (baseOpacity * styles.widgetOpacity / 100);
+      widget.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px rgba(${r}, ${g}, ${b}, ${finalOpacity})`;
+    } else {
+      widget.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${shadowColor}`;
+    }
   }
 }
 
