@@ -1604,10 +1604,12 @@ function updateForecastListHeight(forecastList) {
     }
     
     // If content is taller than available space, ensure we have enough overflow for scrolling
-    // Round down to ensure we always have at least a few pixels of overflow
+    // We need enough overflow to actually scroll through all content
     if (totalContentHeight > availableHeight) {
-      // Constrain to slightly less than available to ensure scrollbar appears
-      availableHeight = Math.floor(availableHeight) - 1;
+      // Constrain to allow enough space to show most of the content but leave room to scroll
+      // Show approximately 3.5 days (3.5 * 60 + 2.5 * 10 = 235px) to ensure good scrolling
+      const minVisibleHeight = Math.min(availableHeight, 235); // Show ~3.5 days
+      availableHeight = Math.floor(minVisibleHeight);
     } else {
       // Content fits, use available height
       availableHeight = Math.floor(availableHeight);
