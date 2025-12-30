@@ -100,39 +100,64 @@ function parseRSSFeed(xmlText) {
   const articles = [];
   
   try {
+    // Check if this looks like valid RSS/XML
+    if (!xmlText.includes('<rss') && !xmlText.includes('<feed')) {
+      console.warn('RSS feed does not appear to be valid RSS/XML format');
+    }
+    
     // Extract items using regex (simple parser for RSS)
-    const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi;
+    // Handle both <item> (RSS) and <entry> (Atom feeds)
+    const itemRegex = /<(?:item|entry)[^>]*>([\s\S]*?)<\/(?:item|entry)>/gi;
     let itemMatch;
+    let itemCount = 0;
     
     while ((itemMatch = itemRegex.exec(xmlText)) !== null && articles.length < 10) {
+      itemCount++;
       const itemContent = itemMatch[1];
       
-      // Extract title
-      const titleMatch = itemContent.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-      const title = titleMatch ? cleanXMLText(titleMatch[1]) : 'Untitled';
+      // Extract title - try multiple patterns
+      let titleMatch = itemContent.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+      if (!titleMatch) {
+        titleMatch = itemContent.match(/<title[^>]*\/>/i);
+      }
+      const title = titleMatch ? cleanXMLText(titleMatch[1] || titleMatch[0]) : null;
       
-      // Extract link
-      const linkMatch = itemContent.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
-      const url = linkMatch ? cleanXMLText(linkMatch[1]) : '';
+      // Extract link - RSS uses <link>, Atom uses <link href="...">
+      let linkMatch = itemContent.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
+      if (!linkMatch) {
+        linkMatch = itemContent.match(/<link[^>]+href=["']([^"']+)["']/i);
+        if (linkMatch) {
+          linkMatch = { 1: linkMatch[1] }; // Normalize to same format
+        }
+      }
+      const url = linkMatch ? cleanXMLText(linkMatch[1]) : null;
       
-      // Extract publication date
-      const pubDateMatch = itemContent.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i);
+      // Extract publication date - try pubDate, published, updated
+      let pubDateMatch = itemContent.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i) ||
+                        itemContent.match(/<published[^>]*>([\s\S]*?)<\/published>/i) ||
+                        itemContent.match(/<updated[^>]*>([\s\S]*?)<\/updated>/i);
       const publishedAt = pubDateMatch ? cleanXMLText(pubDateMatch[1]) : new Date().toISOString();
       
       // Extract description (optional)
-      const descMatch = itemContent.match(/<description[^>]*>([\s\S]*?)<\/description>/i);
+      const descMatch = itemContent.match(/<description[^>]*>([\s\S]*?)<\/description>/i) ||
+                       itemContent.match(/<summary[^>]*>([\s\S]*?)<\/summary>/i) ||
+                       itemContent.match(/<content[^>]*>([\s\S]*?)<\/content>/i);
       const description = descMatch ? cleanXMLText(descMatch[1]) : '';
       
-      // Extract source (could be in <source>, <dc:creator>, or channel title)
+      // Extract source - try multiple patterns
       let sourceName = 'AP News';
       const sourceMatch = itemContent.match(/<source[^>]*>([\s\S]*?)<\/source>/i) ||
-                         itemContent.match(/<dc:creator[^>]*>([\s\S]*?)<\/dc:creator>/i);
+                         itemContent.match(/<dc:creator[^>]*>([\s\S]*?)<\/dc:creator>/i) ||
+                         itemContent.match(/<author[^>]*>([\s\S]*?)<\/author>/i);
       if (sourceMatch) {
-        sourceName = cleanXMLText(sourceMatch[1]);
+        const sourceText = cleanXMLText(sourceMatch[1]);
+        // Try to extract name from author tag
+        const nameMatch = sourceText.match(/<name[^>]*>([\s\S]*?)<\/name>/i);
+        sourceName = nameMatch ? cleanXMLText(nameMatch[1]) : sourceText || 'AP News';
       }
       
       // Only add if we have a title and URL
-      if (title && url) {
+      if (title && url && title !== 'Untitled') {
         articles.push({
           title: title,
           url: url,
@@ -142,11 +167,16 @@ function parseRSSFeed(xmlText) {
             name: sourceName
           }
         });
+      } else {
+        console.warn(`Skipping item ${itemCount}: missing title or URL`, { title: !!title, url: !!url });
       }
     }
+    
+    console.log(`Parsed ${itemCount} items, extracted ${articles.length} articles`);
   } catch (error) {
     console.error('Error parsing RSS feed:', error);
-    throw new Error('Failed to parse RSS feed');
+    console.error('Error stack:', error.stack);
+    throw new Error(`Failed to parse RSS feed: ${error.message}`);
   }
   
   return articles;
