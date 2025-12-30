@@ -5277,6 +5277,9 @@ function showPage(pageIndex, direction = null) {
   const isLooping = (direction === 'right' && oldPageIndex === totalPages - 1 && pageIndex === 0) ||
                     (direction === 'left' && oldPageIndex === 0 && pageIndex === totalPages - 1);
   
+  // Flag to skip final position setting for right loop (handled in requestAnimationFrame)
+  let skipFinalPositions = false;
+  
   // For looping right (Page 3 → Page 1), animate with Page 2 hidden
   if (isLooping && !isInitialLoad && direction === 'right') {
     // Disable transitions initially
@@ -5330,8 +5333,7 @@ function showPage(pageIndex, direction = null) {
     });
     
     // Skip the normal final position setting below - handled in requestAnimationFrame
-    // Set flag to skip final positions
-    const skipFinalPositions = true;
+    skipFinalPositions = true;
   } else if (isLooping && !isInitialLoad) {
     // For left loop, disable transitions and switch instantly (no animation)
     pages.forEach(page => {
@@ -5350,7 +5352,7 @@ function showPage(pageIndex, direction = null) {
   }
   
   // Update all pages to final positions (skip for right loop - handled in requestAnimationFrame)
-  if (typeof skipFinalPositions === 'undefined' || !skipFinalPositions) {
+  if (!skipFinalPositions) {
     pages.forEach((page, index) => {
       const offset = (index - pageIndex) * 100;
       page.style.transform = `translateX(${offset}vw)`;
