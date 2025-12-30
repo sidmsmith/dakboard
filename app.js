@@ -5284,13 +5284,11 @@ function showPage(pageIndex, direction = null) {
       page.style.transition = 'none';
     });
   } else if (isInitialLoad) {
-    console.log(`[showPage] INITIAL LOAD - Disabling transitions`);
     // Disable transition on initial load
     pages.forEach(page => {
       page.style.transition = 'none';
     });
   } else {
-    console.log(`[showPage] NORMAL NAVIGATION - Ensuring transitions enabled`);
     // Normal navigation: ensure transitions are enabled
     pages.forEach(page => {
       page.style.transition = '';
