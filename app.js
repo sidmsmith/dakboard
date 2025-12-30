@@ -5301,14 +5301,14 @@ function showPage(pageIndex, direction = null) {
         page.style.zIndex = '1';
       } else if (index === oldPageIndex) {
         // Page 3 (old current page): Keep it visible at current position so Page 1 slides over it
+        // It will animate left to its final position
         page.style.transform = `translateX(0vw)`;
         page.style.visibility = 'visible';
         page.style.zIndex = '1'; // Behind the new page
       } else {
-        // Other pages: position them to slide left
+        // Other pages: position them to slide left from their current positions
         const currentOffset = (index - oldPageIndex) * 100;
-        const finalOffset = (index - pageIndex) * 100;
-        // Start from current position, will animate to final
+        // Start from current position, will animate left to final position
         page.style.transform = `translateX(${currentOffset}vw)`;
         page.style.visibility = 'visible';
         page.style.zIndex = '1';
