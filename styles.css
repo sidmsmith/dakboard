@@ -576,8 +576,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  flex: 1 1 0%; /* flex-basis: 0% forces container to respect available space */
+  flex: 1;
   min-height: 0;
+  /* Force container to be constrained - use height calculation trick */
+  height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
