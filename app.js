@@ -3048,8 +3048,7 @@ async function loadNews() {
   newsLoading = true;
   
   try {
-    // Use NewsAPI (free tier available)
-    // You'll need to add NEWS_API_KEY to Vercel environment variables
+    // Use RSS feed (free, no API key required)
     const response = await fetch('/api/news');
     
     if (!response.ok) {
@@ -3066,26 +3065,18 @@ async function loadNews() {
       }
       
       if (response.status === 400) {
-        // Show setup instructions if API key is missing
-        const setupHtml = `
-          <div class="news-placeholder">
-            <div class="news-icon">📰</div>
-            <h3>News Feed Setup</h3>
-            <p>To enable news feed:</p>
-            <ol class="news-instructions">
-              <li>Get a free API key from <a href="https://newsapi.org/" target="_blank">NewsAPI.org</a></li>
-              <li>Add <code>NEWS_API_KEY</code> to Vercel environment variables</li>
-              <li>Redeploy your application</li>
-            </ol>
-            <p style="font-size: 12px; color: #888; margin-top: 12px;">
-              Free tier: 100 requests/day (localhost only)<br>
-              Production requires paid plan
+        // Show error message for configuration issues
+        const errorHtml = `
+          <div class="news-error">
+            <p>News feed configuration error</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">
+              Please check your RSS feed configuration.
             </p>
           </div>
         `;
-        containers.forEach(c => c.innerHTML = setupHtml);
+        containers.forEach(c => c.innerHTML = errorHtml);
         newsErrorCount = MAX_NEWS_ERRORS; // Stop retrying
-        newsLastError = 'API key configuration required';
+        newsLastError = 'Configuration error';
         return;
       }
       

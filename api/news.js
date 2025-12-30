@@ -1,5 +1,5 @@
-// News API - Fetch news headlines
-// Uses NewsAPI.org to fetch news articles
+// News API - Fetch news headlines from RSS feed
+// Uses RSS feeds (AP News, etc.) - free and no API key required
 
 export default async function (req, res) {
   const { method, query } = req;
@@ -13,65 +13,126 @@ export default async function (req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   
-  // Get API key from environment variable (should be set in Vercel)
-  // Default to provided key for now, but should be moved to Vercel env vars
-  const apiKey = process.env.NEWS_API_KEY || 'f4d09e4ceabe48a99ccb5320796b2bbb';
-  
-  if (!apiKey) {
-    return res.status(400).json({ error: 'News API key required. Get one at https://newsapi.org/' });
-  }
+  // RSS feed URL - can be configured via environment variable or use default
+  const rssUrl = process.env.NEWS_RSS_URL || 'https://hosted.ap.org/lineups/TOPHEADS.rss';
   
   try {
-    // Fetch top headlines from NewsAPI
-    const response = await fetch(
-      `https://newsapi.org/v2/top-headlines?country=us&pageSize=10&apiKey=${apiKey}`
-    );
+    // Fetch RSS feed
+    const response = await fetch(rssUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; Dakboard/1.0)'
+      }
+    });
     
     if (!response.ok) {
-      // Try to get error details from response
-      let errorMessage = `NewsAPI error: ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        if (errorData.message) {
-          errorMessage = errorData.message;
-        } else if (errorData.error) {
-          errorMessage = errorData.error;
-        }
-      } catch (e) {
-        // If JSON parsing fails, use status text
-      }
-      
-      // Check for common NewsAPI errors
-      if (response.status === 401) {
-        errorMessage = 'Invalid API key. Please check your NEWS_API_KEY environment variable.';
-      } else if (response.status === 429) {
-        errorMessage = 'Rate limit exceeded. NewsAPI free tier has daily limits.';
-      } else if (response.status === 426) {
-        errorMessage = 'Upgrade required. NewsAPI free tier only works on localhost. Production requires a paid plan.';
-      }
-      
-      console.error('News API error:', errorMessage, 'Status:', response.status);
-      return res.status(response.status === 401 ? 400 : 500).json({ 
-        error: errorMessage
-      });
+      throw new Error(`Failed to fetch RSS feed: ${response.statusText}`);
     }
     
-    const data = await response.json();
+    const xmlText = await response.text();
     
-    // Validate response structure
-    if (!data || !data.articles) {
-      console.error('Invalid NewsAPI response structure:', data);
+    // Parse RSS XML
+    const articles = parseRSSFeed(xmlText);
+    
+    if (!articles || articles.length === 0) {
       return res.status(500).json({ 
-        error: 'Invalid response from news service' 
+        error: 'No articles found in RSS feed' 
       });
     }
     
-    return res.json(data);
+    // Return in same format as NewsAPI for compatibility
+    return res.json({
+      status: 'ok',
+      totalResults: articles.length,
+      articles: articles
+    });
   } catch (error) {
-    console.error('News API error:', error);
+    console.error('RSS feed error:', error);
     return res.status(500).json({ 
-      error: error.message || 'Failed to fetch news' 
+      error: error.message || 'Failed to fetch news feed' 
     });
   }
+}
+
+// Parse RSS XML and convert to article format
+function parseRSSFeed(xmlText) {
+  const articles = [];
+  
+  try {
+    // Extract items using regex (simple parser for RSS)
+    const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi;
+    let itemMatch;
+    
+    while ((itemMatch = itemRegex.exec(xmlText)) !== null && articles.length < 10) {
+      const itemContent = itemMatch[1];
+      
+      // Extract title
+      const titleMatch = itemContent.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+      const title = titleMatch ? cleanXMLText(titleMatch[1]) : 'Untitled';
+      
+      // Extract link
+      const linkMatch = itemContent.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
+      const url = linkMatch ? cleanXMLText(linkMatch[1]) : '';
+      
+      // Extract publication date
+      const pubDateMatch = itemContent.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i);
+      const publishedAt = pubDateMatch ? cleanXMLText(pubDateMatch[1]) : new Date().toISOString();
+      
+      // Extract description (optional)
+      const descMatch = itemContent.match(/<description[^>]*>([\s\S]*?)<\/description>/i);
+      const description = descMatch ? cleanXMLText(descMatch[1]) : '';
+      
+      // Extract source (could be in <source>, <dc:creator>, or channel title)
+      let sourceName = 'AP News';
+      const sourceMatch = itemContent.match(/<source[^>]*>([\s\S]*?)<\/source>/i) ||
+                         itemContent.match(/<dc:creator[^>]*>([\s\S]*?)<\/dc:creator>/i);
+      if (sourceMatch) {
+        sourceName = cleanXMLText(sourceMatch[1]);
+      }
+      
+      // Only add if we have a title and URL
+      if (title && url) {
+        articles.push({
+          title: title,
+          url: url,
+          description: description,
+          publishedAt: publishedAt,
+          source: {
+            name: sourceName
+          }
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error parsing RSS feed:', error);
+    throw new Error('Failed to parse RSS feed');
+  }
+  
+  return articles;
+}
+
+// Clean XML text - remove CDATA, decode entities, trim whitespace
+function cleanXMLText(text) {
+  if (!text) return '';
+  
+  // Remove CDATA wrapper if present
+  text = text.replace(/<!\[CDATA\[(.*?)\]\]>/gi, '$1');
+  
+  // Decode common HTML entities
+  text = text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+  
+  // Decode numeric entities
+  text = text.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
+  text = text.replace(/&#x([a-f\d]+);/gi, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+  
+  // Trim whitespace and newlines
+  text = text.trim().replace(/\s+/g, ' ');
+  
+  return text;
 }
 
