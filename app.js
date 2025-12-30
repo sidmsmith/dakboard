@@ -5356,10 +5356,8 @@ function showPage(pageIndex, direction = null) {
       // Re-enable transitions for smooth animation
       pages.forEach(page => {
         page.style.transition = '';
-        // Make sure all pages are visible for the animation
-        page.style.visibility = 'visible';
       });
-      console.log(`[showPage] Transitions re-enabled, all pages visible`);
+      console.log(`[showPage] Transitions re-enabled`);
       
       // Now set final positions AFTER transitions are enabled (this triggers the animation)
       console.log(`[showPage] Setting final positions for all pages (triggering animation)`);
@@ -5367,6 +5365,24 @@ function showPage(pageIndex, direction = null) {
         const offset = (index - pageIndex) * 100;
         console.log(`[showPage] Page ${index}: final translateX(${offset}vw)`);
         page.style.transform = `translateX(${offset}vw)`;
+        
+        // Only show pages that will be visible (between -100vw and 100vw) or are already off-screen
+        // Hide pages that will pass through the visible area during animation
+        if (offset >= -100 && offset <= 100) {
+          // Page will be visible at final position - show it
+          page.style.visibility = 'visible';
+          console.log(`[showPage] Page ${index}: visible (final position ${offset}vw is in viewport)`);
+        } else {
+          // Page will be off-screen at final position - keep it hidden during animation
+          // It will be shown when it reaches its final position (off-screen)
+          page.style.visibility = 'hidden';
+          console.log(`[showPage] Page ${index}: hidden (final position ${offset}vw is off-screen)`);
+          
+          // Show it after animation completes (300ms transition duration)
+          setTimeout(() => {
+            page.style.visibility = 'visible';
+          }, 350);
+        }
       });
     });
     
