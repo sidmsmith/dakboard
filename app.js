@@ -5329,8 +5329,9 @@ function showPage(pageIndex, direction = null) {
       });
     });
     
-    // Skip the normal final position setting below
-    // Continue to page loading code
+    // Skip the normal final position setting below - handled in requestAnimationFrame
+    // Set flag to skip final positions
+    const skipFinalPositions = true;
   } else if (isLooping && !isInitialLoad) {
     // For left loop, disable transitions and switch instantly (no animation)
     pages.forEach(page => {
@@ -5348,14 +5349,16 @@ function showPage(pageIndex, direction = null) {
     });
   }
   
-  // Update all pages to final positions
-  pages.forEach((page, index) => {
-    const offset = (index - pageIndex) * 100;
-    page.style.transform = `translateX(${offset}vw)`;
-  });
+  // Update all pages to final positions (skip for right loop - handled in requestAnimationFrame)
+  if (typeof skipFinalPositions === 'undefined' || !skipFinalPositions) {
+    pages.forEach((page, index) => {
+      const offset = (index - pageIndex) * 100;
+      page.style.transform = `translateX(${offset}vw)`;
+    });
+  }
   
-  // Re-enable transitions after instant loop switch
-  if (isLooping && !isInitialLoad) {
+  // Re-enable transitions after instant loop switch (for left loop only)
+  if (isLooping && !isInitialLoad && direction === 'left') {
     // Re-enable transitions after a brief delay for normal navigation
     setTimeout(() => {
       pages.forEach(page => {
