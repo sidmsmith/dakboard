@@ -1588,22 +1588,35 @@ function updateForecastListHeight(forecastList) {
     const sectionRect = forecastSection.getBoundingClientRect();
     const availableHeight = sectionRect.height - headerHeight;
     
-    // Check if height has actually changed to prevent unnecessary updates
-    const currentHeight = parseFloat(forecastList.style.height) || 0;
-    if (Math.abs(currentHeight - availableHeight) < 1) {
-      // Height hasn't changed significantly, skip update to prevent feedback loop
-      return;
-    }
-    
     // Calculate total content height (all items + gaps) - items should be 60px each
     const itemCount = forecastList.children.length;
     const gapCount = itemCount > 0 ? itemCount - 1 : 0;
     const totalContentHeight = (itemCount * 60) + (gapCount * 10); // 60px min-height per item, 10px gap
     
+    // Check if height has actually changed to prevent unnecessary updates
+    const currentHeight = parseFloat(forecastList.style.height) || 0;
+    const heightChanged = Math.abs(currentHeight - availableHeight) >= 1;
+    
+    // Only update if height changed OR if we need to force overflow
+    if (!heightChanged && forecastList.scrollHeight <= forecastList.clientHeight) {
+      // Height hasn't changed and no overflow, skip update to prevent feedback loop
+      return;
+    }
+    
     // ALWAYS constrain to available height to ensure scrollbar appears when needed
     // This matches the Todo List pattern which uses fixed max-height
-    forecastList.style.maxHeight = `${availableHeight}px`;
-    forecastList.style.height = `${availableHeight}px`;
+    // Use Math.floor to avoid sub-pixel issues
+    const constrainedHeight = Math.floor(availableHeight);
+    forecastList.style.maxHeight = `${constrainedHeight}px`;
+    forecastList.style.height = `${constrainedHeight}px`;
+    
+    // Force items not to compress by ensuring they maintain their min-height
+    Array.from(forecastList.children).forEach(item => {
+      if (item.offsetHeight < 60) {
+        item.style.minHeight = '60px';
+        item.style.flexShrink = '0';
+      }
+    });
     
     // Debug logging
     console.log('=== Weather Forecast Scrollbar Debug ===');
