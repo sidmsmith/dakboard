@@ -1548,7 +1548,72 @@ function renderForecast(forecastData, attrs) {
       const dayItem = createForecastItem(day, index, range, minTemp, currentTemp);
       forecastList.appendChild(dayItem);
     });
+    
+    // Calculate available height for forecast list and enable scrolling if needed
+    updateForecastListHeight(forecastList);
   });
+}
+
+// Calculate available height for forecast list and enable scrolling
+function updateForecastListHeight(forecastList) {
+  const widget = forecastList.closest('.weather-widget');
+  const weatherContent = widget?.querySelector('#weather-content');
+  const weatherCurrent = weatherContent?.querySelector('.weather-current');
+  const forecastSection = forecastList.closest('.weather-forecast');
+  const forecastHeader = forecastSection?.querySelector('.weather-forecast-header');
+  
+  if (!widget || !weatherContent || !forecastSection) return;
+  
+  // Get widget's actual rendered height (including borders, padding)
+  const widgetRect = widget.getBoundingClientRect();
+  const widgetHeight = widgetRect.height;
+  
+  // Get widget-header height (title)
+  const widgetHeader = widget.querySelector('.widget-header');
+  const widgetHeaderHeight = widgetHeader ? widgetHeader.getBoundingClientRect().height : 0;
+  
+  // Get widget padding (top + bottom)
+  const widgetStyle = window.getComputedStyle(widget);
+  const widgetPaddingTop = parseFloat(widgetStyle.paddingTop) || 0;
+  const widgetPaddingBottom = parseFloat(widgetStyle.paddingBottom) || 0;
+  const widgetBorderTop = parseFloat(widgetStyle.borderTopWidth) || 0;
+  const widgetBorderBottom = parseFloat(widgetStyle.borderBottomWidth) || 0;
+  const widgetPadding = widgetPaddingTop + widgetPaddingBottom + widgetBorderTop + widgetBorderBottom;
+  
+  // Get weather-content gap and padding
+  const contentStyle = window.getComputedStyle(weatherContent);
+  const contentGap = parseFloat(contentStyle.gap) || 0;
+  
+  // Get weather-current height
+  const currentHeight = weatherCurrent ? weatherCurrent.getBoundingClientRect().height : 0;
+  
+  // Get forecast section margin-top
+  const forecastStyle = window.getComputedStyle(forecastSection);
+  const forecastMarginTop = parseFloat(forecastStyle.marginTop) || 0;
+  
+  // Get forecast header height
+  const headerHeight = forecastHeader ? forecastHeader.getBoundingClientRect().height : 0;
+  const headerMarginBottom = forecastHeader ? parseFloat(window.getComputedStyle(forecastHeader).marginBottom) || 0 : 0;
+  const totalHeaderHeight = headerHeight + headerMarginBottom;
+  
+  // Calculate available height for forecast list
+  const availableHeight = widgetHeight 
+    - widgetHeaderHeight 
+    - widgetPadding 
+    - currentHeight 
+    - contentGap 
+    - forecastMarginTop 
+    - totalHeaderHeight;
+  
+  // Only constrain if content exceeds available space
+  const totalContentHeight = forecastList.scrollHeight;
+  if (totalContentHeight > availableHeight && availableHeight > 0) {
+    forecastList.style.maxHeight = `${availableHeight}px`;
+    forecastList.style.overflowY = 'auto';
+  } else {
+    forecastList.style.maxHeight = '';
+    forecastList.style.overflowY = '';
+  }
 }
 
 // Fetch all HA states (helper function)
