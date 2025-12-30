@@ -5277,9 +5277,62 @@ function showPage(pageIndex, direction = null) {
   const isLooping = (direction === 'right' && oldPageIndex === totalPages - 1 && pageIndex === 0) ||
                     (direction === 'left' && oldPageIndex === 0 && pageIndex === totalPages - 1);
   
-  // For looping, disable transitions and switch instantly (no animation)
-  if (isLooping && !isInitialLoad) {
-    // Disable transitions for instant switch
+  // For looping right (Page 3 → Page 1), animate with Page 2 hidden
+  if (isLooping && !isInitialLoad && direction === 'right') {
+    // Disable transitions initially
+    pages.forEach(page => {
+      page.style.transition = 'none';
+    });
+    
+    // Position pages: new page (0) off-screen right, hide page 1, move others left
+    pages.forEach((page, index) => {
+      if (index === pageIndex) {
+        // New page (0) starts off-screen to the right
+        page.style.transform = `translateX(100vw)`;
+        page.style.visibility = 'visible';
+      } else if (index === 1) {
+        // Page 1: Keep it hidden and positioned off-screen to prevent flash
+        // Position it at its final location but keep it hidden
+        page.style.transform = `translateX(-100vw)`;
+        page.style.visibility = 'hidden';
+      } else {
+        // Other pages: position them to slide left
+        const finalOffset = (index - pageIndex) * 100;
+        page.style.transform = `translateX(${finalOffset - 100}vw)`;
+        page.style.visibility = 'visible';
+      }
+    });
+    
+    // Force reflow
+    void pages[0].offsetHeight;
+    
+    // Re-enable transitions and animate
+    requestAnimationFrame(() => {
+      pages.forEach(page => {
+        page.style.transition = '';
+      });
+      
+      // Set final positions (triggers animation)
+      pages.forEach((page, index) => {
+        const offset = (index - pageIndex) * 100;
+        page.style.transform = `translateX(${offset}vw)`;
+        
+        // Keep Page 1 hidden during animation, show it after animation completes
+        if (index === 1) {
+          page.style.visibility = 'hidden';
+          setTimeout(() => {
+            page.style.visibility = 'visible';
+          }, 350); // After animation completes
+        } else {
+          page.style.visibility = 'visible';
+        }
+      });
+    });
+    
+    // Skip the normal final position setting below
+    // Continue to page loading code
+  } else if (isLooping && !isInitialLoad) {
+    // For left loop, disable transitions and switch instantly (no animation)
     pages.forEach(page => {
       page.style.transition = 'none';
     });
