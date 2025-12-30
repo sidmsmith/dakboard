@@ -1574,9 +1574,23 @@ function updateForecastListHeight(forecastList) {
     const headerHeight = header ? header.offsetHeight + parseInt(window.getComputedStyle(header).marginBottom) : 0;
     const availableHeight = forecastSection.clientHeight - headerHeight;
     
-    // Force container to be constrained - set both max-height and height
-    forecastList.style.maxHeight = `${availableHeight}px`;
-    forecastList.style.height = `${availableHeight}px`;
+    // Calculate total content height (all items + gaps)
+    let totalContentHeight = 0;
+    Array.from(forecastList.children).forEach((item, index) => {
+      if (index > 0) totalContentHeight += 10; // gap
+      totalContentHeight += item.offsetHeight;
+    });
+    
+    // Only constrain if content is taller than available space
+    // Otherwise let it be natural height
+    if (totalContentHeight > availableHeight) {
+      forecastList.style.maxHeight = `${availableHeight}px`;
+      forecastList.style.height = `${availableHeight}px`;
+    } else {
+      // Content fits, but still set max-height to prevent expansion beyond available
+      forecastList.style.maxHeight = `${availableHeight}px`;
+      forecastList.style.height = 'auto';
+    }
     
     // Debug logging
     console.log('=== Weather Forecast Scrollbar Debug ===');
@@ -1586,6 +1600,8 @@ function updateForecastListHeight(forecastList) {
       offsetHeight: forecastList.offsetHeight,
       maxHeight: forecastList.style.maxHeight,
       height: forecastList.style.height,
+      totalContentHeight: totalContentHeight,
+      availableHeight: availableHeight,
       hasOverflow: forecastList.scrollHeight > forecastList.clientHeight,
       computedStyle: {
         overflowY: window.getComputedStyle(forecastList).overflowY,
@@ -1609,6 +1625,7 @@ function updateForecastListHeight(forecastList) {
       }
     });
     console.log('Number of forecast items:', forecastList.children.length);
+    console.log('Item heights:', Array.from(forecastList.children).map((item, i) => `${i}: ${item.offsetHeight}px`));
     console.log('========================================');
   }
 }
