@@ -5349,24 +5349,38 @@ function showPage(pageIndex, direction = null) {
           // But ensure they end at correct final positions
           if (finalOffset > currentOffset && finalOffset > 100) {
             // This page would move far right (like Page 3 going to 300vw)
-            // Instead, animate it left off-screen, then correct position after animation
+            // Animate it left off-screen for visual effect
             page.style.transform = `translateX(-100vw)`;
-            // After animation, set to correct final position
-            setTimeout(() => {
-              page.style.transform = `translateX(${finalOffset}vw)`;
-            }, 350);
           } else {
             // This page moves left or is close - use final position directly
             page.style.transform = `translateX(${finalOffset}vw)`;
           }
           page.style.visibility = 'visible';
         }
-        
-        // Reset z-index after animation
-        setTimeout(() => {
-          page.style.zIndex = '';
-        }, 350);
       });
+      
+      // After animation completes, instantly correct all page positions (no visible animation)
+      setTimeout(() => {
+        // Disable transitions for instant correction
+        pages.forEach(page => {
+          page.style.transition = 'none';
+        });
+        
+        // Set all pages to their correct final positions
+        pages.forEach((page, index) => {
+          const finalOffset = (index - pageIndex) * 100;
+          page.style.transform = `translateX(${finalOffset}vw)`;
+          page.style.visibility = 'visible';
+          page.style.zIndex = '';
+        });
+        
+        // Re-enable transitions for normal navigation
+        requestAnimationFrame(() => {
+          pages.forEach(page => {
+            page.style.transition = '';
+          });
+        });
+      }, 350); // After animation completes
     });
     
     // Skip the normal final position setting below - handled in requestAnimationFrame
