@@ -1561,6 +1561,60 @@ function renderForecast(forecastData, attrs) {
       }
       
       forecastList.appendChild(days2to5Container);
+      
+      // Debug logging after a short delay to allow rendering
+      setTimeout(() => {
+        const container = days2to5Container;
+        const parent = forecastList;
+        const forecastSection = parent.closest('.weather-forecast');
+        const weatherContent = forecastSection?.parentElement;
+        const widget = weatherContent?.closest('.weather-widget');
+        
+        console.log('=== Weather Forecast Scrollbar Debug ===');
+        console.log('Days 2-5 Container:', {
+          scrollHeight: container.scrollHeight,
+          clientHeight: container.clientHeight,
+          offsetHeight: container.offsetHeight,
+          hasOverflow: container.scrollHeight > container.clientHeight,
+          computedStyle: {
+            overflowY: window.getComputedStyle(container).overflowY,
+            flex: window.getComputedStyle(container).flex,
+            minHeight: window.getComputedStyle(container).minHeight,
+            maxHeight: window.getComputedStyle(container).maxHeight,
+            height: window.getComputedStyle(container).height
+          }
+        });
+        console.log('Parent (.weather-forecast-list):', {
+          scrollHeight: parent.scrollHeight,
+          clientHeight: parent.clientHeight,
+          offsetHeight: parent.offsetHeight,
+          computedStyle: {
+            overflow: window.getComputedStyle(parent).overflow,
+            flex: window.getComputedStyle(parent).flex,
+            minHeight: window.getComputedStyle(parent).minHeight,
+            height: window.getComputedStyle(parent).height
+          }
+        });
+        console.log('Forecast Section (.weather-forecast):', {
+          scrollHeight: forecastSection?.scrollHeight,
+          clientHeight: forecastSection?.clientHeight,
+          offsetHeight: forecastSection?.offsetHeight,
+          computedStyle: {
+            overflow: window.getComputedStyle(forecastSection).overflow,
+            flex: window.getComputedStyle(forecastSection).flex,
+            minHeight: window.getComputedStyle(forecastSection).minHeight,
+            height: window.getComputedStyle(forecastSection).height
+          }
+        });
+        console.log('Weather Widget:', {
+          scrollHeight: widget?.scrollHeight,
+          clientHeight: widget?.clientHeight,
+          offsetHeight: widget?.offsetHeight,
+          height: window.getComputedStyle(widget).height
+        });
+        console.log('Number of forecast items in Days 2-5:', container.children.length);
+        console.log('========================================');
+      }, 100);
     }
   });
 }
