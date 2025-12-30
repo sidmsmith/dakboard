@@ -1554,12 +1554,16 @@ function renderForecast(forecastData, attrs) {
     
     // Set up ResizeObserver to update height when widget is resized
     const widget = forecastList.closest('.weather-widget');
-    if (widget && !widget.dataset.forecastObserverSet) {
+    const forecastSection = forecastList.closest('.weather-forecast');
+    if (widget && forecastSection && !widget.dataset.forecastObserverSet) {
       widget.dataset.forecastObserverSet = 'true';
+      // Observe both widget and forecast section for size changes
       const resizeObserver = new ResizeObserver(() => {
+        console.log('ResizeObserver fired for weather widget');
         updateForecastListHeight(forecastList);
       });
       resizeObserver.observe(widget);
+      resizeObserver.observe(forecastSection);
     }
   });
 }
