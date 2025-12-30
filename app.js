@@ -450,6 +450,16 @@ function renderCalendar() {
     const dayNumber = document.createElement('div');
     dayNumber.className = 'calendar-day-number';
     dayNumber.textContent = date.getDate();
+    dayNumber.style.cursor = 'pointer';
+    dayNumber.title = 'Click to view daily agenda';
+    
+    // Add click handler to show daily agenda
+    dayNumber.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!isEditMode) {
+        showDailyAgenda(date, dayEvents);
+      }
+    });
     
     const eventsDiv = document.createElement('div');
     eventsDiv.className = 'calendar-events';
@@ -873,6 +883,99 @@ function showEventDetails(event) {
 // Close calendar event details modal
 function closeEventModal() {
   const modal = document.getElementById('event-modal');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
+// Show daily agenda modal
+function showDailyAgenda(date, events) {
+  // Don't allow interaction in edit mode
+  if (isEditMode) return;
+  
+  const modal = document.getElementById('daily-agenda-modal');
+  const title = document.getElementById('daily-agenda-title');
+  const content = document.getElementById('daily-agenda-content');
+  
+  // Format date for title
+  const dateStr = date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+  title.textContent = `Daily Agenda - ${dateStr}`;
+  
+  // Sort events by start time
+  const sortedEvents = [...events].sort((a, b) => {
+    return new Date(a.start) - new Date(b.start);
+  });
+  
+  // Build agenda HTML
+  let agendaHTML = '';
+  
+  if (sortedEvents.length === 0) {
+    agendaHTML = '<div class="daily-agenda-empty">No events scheduled for this day.</div>';
+  } else {
+    sortedEvents.forEach(event => {
+      const eventStart = new Date(event.start);
+      const eventEnd = new Date(event.end || event.start);
+      
+      // Format time
+      let timeStr = '';
+      if (event.allDay) {
+        timeStr = 'All Day';
+      } else {
+        const startTime = eventStart.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+        const endTime = eventEnd.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+        timeStr = `${startTime} - ${endTime}`;
+      }
+      
+      // Build event HTML
+      agendaHTML += `
+        <div class="daily-agenda-event" data-event-id="${event.uid || ''}">
+          <div class="daily-agenda-event-time">${timeStr}</div>
+          <div class="daily-agenda-event-content">
+            <div class="daily-agenda-event-title">${event.title || 'Untitled Event'}</div>
+            ${event.location ? `<div class="daily-agenda-event-location">📍 ${event.location}</div>` : ''}
+            ${event.description ? `<div class="daily-agenda-event-description">${event.description.replace(/<[^>]*>/g, '').replace(/\[CAUTION:.*?\]/g, '').trim()}</div>` : ''}
+            ${event.calendar ? `<div class="daily-agenda-event-calendar">Calendar: ${event.calendar.replace(/^calendar\./, '').replace(/_/g, ' ')}</div>` : ''}
+          </div>
+        </div>
+      `;
+    });
+  }
+  
+  content.innerHTML = agendaHTML;
+  
+  // Add click handlers to events to show details
+  content.querySelectorAll('.daily-agenda-event').forEach(eventEl => {
+    eventEl.style.cursor = 'pointer';
+    eventEl.addEventListener('click', () => {
+      const eventId = eventEl.dataset.eventId;
+      const event = sortedEvents.find(e => (e.uid || '') === eventId);
+      if (event) {
+        closeDailyAgendaModal();
+        setTimeout(() => showEventDetails(event), 100);
+      }
+    });
+  });
+  
+  // Show modal
+  modal.classList.add('active');
+}
+
+// Close daily agenda modal
+function closeDailyAgendaModal() {
+  const modal = document.getElementById('daily-agenda-modal');
   if (modal) {
     modal.classList.remove('active');
   }

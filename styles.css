@@ -340,6 +340,77 @@ body {
   margin-top: 8px;
 }
 
+/* Daily Agenda Modal */
+.daily-agenda-content {
+  padding: 20px 0;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.daily-agenda-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #888;
+  font-size: 18px;
+}
+
+.daily-agenda-event {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  margin-bottom: 16px;
+  background: #333;
+  border-radius: 8px;
+  border-left: 4px solid #4a90e2;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.daily-agenda-event:hover {
+  background: #3a3a3a;
+  transform: translateX(4px);
+}
+
+.daily-agenda-event-time {
+  min-width: 140px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #4a90e2;
+  flex-shrink: 0;
+}
+
+.daily-agenda-event-content {
+  flex: 1;
+}
+
+.daily-agenda-event-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.daily-agenda-event-location {
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 8px;
+}
+
+.daily-agenda-event-description {
+  font-size: 14px;
+  color: #ccc;
+  line-height: 1.6;
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.daily-agenda-event-calendar {
+  font-size: 12px;
+  color: #888;
+  margin-top: 8px;
+  text-transform: capitalize;
+}
+
 .calendar-events {
   flex: 1;
   display: flex;
