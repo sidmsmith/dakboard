@@ -563,6 +563,7 @@ body {
   gap: 10px;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
 /* Day 1 container - always visible */
