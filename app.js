@@ -690,6 +690,20 @@ function renderCalendar() {
         
         const eventStartDateObj = new Date(eventStartYear, eventStartMonth, eventStartDay);
         
+        // Debug logging for all-day events
+        if (DEBUG || event.title?.includes('New Year')) {
+          console.log(`[All-Day Event Debug] Event: "${event.title}"`);
+          console.log(`  Original start: ${event.start} -> Date: ${eventStart.toISOString()}`);
+          console.log(`  Original end: ${event.end || event.start} -> Date: ${eventEnd.toISOString()}`);
+          console.log(`  Extracted start: ${eventStartYear}-${eventStartMonth + 1}-${eventStartDay}`);
+          console.log(`  Extracted end: ${eventEndYear}-${eventEndMonth + 1}-${eventEndDay} (adjusted: ${eventEndDateObj.getFullYear()}-${eventEndDateObj.getMonth() + 1}-${eventEndDateObj.getDate()})`);
+          console.log(`  Current day: ${currentYear}-${currentMonth + 1}-${currentDay}`);
+          console.log(`  Event date range: ${eventStartDateObj.toDateString()} to ${eventEndDateObj.toDateString()}`);
+          console.log(`  Current date: ${currentDateObj.toDateString()}`);
+          const matches = (currentDateObj >= eventStartDateObj && currentDateObj <= eventEndDateObj);
+          console.log(`  Match result: ${matches}`);
+        }
+        
         // Check if current day is within the event's date range
         return (currentDateObj >= eventStartDateObj && currentDateObj <= eventEndDateObj);
       } else {
