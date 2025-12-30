@@ -5301,8 +5301,10 @@ function showPage(pageIndex, direction = null) {
           // Calculate their final position, then shift left by 100vw to ensure they're off-screen
           const finalOffset = (index - pageIndex) * 100;
           const initialOffset = finalOffset - 100; // Shift left by 100vw
-          console.log(`[showPage] Page ${index}: translateX(${initialOffset}vw) - off-screen left (will animate to ${finalOffset}vw)`);
-          page.style.transform = `translateX(${initialOffset}vw)`;
+          // Ensure it's actually off-screen (at least -100vw or less)
+          const safeOffset = Math.min(initialOffset, -100);
+          console.log(`[showPage] Page ${index}: translateX(${safeOffset}vw) - off-screen left (will animate to ${finalOffset}vw)`);
+          page.style.transform = `translateX(${safeOffset}vw)`;
         }
       });
     } else {
@@ -5318,8 +5320,10 @@ function showPage(pageIndex, direction = null) {
           // Calculate their final position, then shift right by 100vw to ensure they're off-screen
           const finalOffset = (index - pageIndex) * 100;
           const initialOffset = finalOffset + 100; // Shift right by 100vw
-          console.log(`[showPage] Page ${index}: translateX(${initialOffset}vw) - off-screen right (will animate to ${finalOffset}vw)`);
-          page.style.transform = `translateX(${initialOffset}vw)`;
+          // Ensure it's actually off-screen (at least 100vw or more)
+          const safeOffset = Math.max(initialOffset, 100);
+          console.log(`[showPage] Page ${index}: translateX(${safeOffset}vw) - off-screen right (will animate to ${finalOffset}vw)`);
+          page.style.transform = `translateX(${safeOffset}vw)`;
         }
       });
     }
