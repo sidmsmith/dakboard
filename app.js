@@ -5277,8 +5277,11 @@ function showPage(pageIndex, direction = null) {
   const isLooping = (direction === 'right' && oldPageIndex === totalPages - 1 && pageIndex === 0) ||
                     (direction === 'left' && oldPageIndex === 0 && pageIndex === totalPages - 1);
   
+  console.log(`[showPage] oldPageIndex: ${oldPageIndex}, newPageIndex: ${pageIndex}, direction: ${direction}, isLooping: ${isLooping}, isInitialLoad: ${isInitialLoad}`);
+  
   // Handle looping: position new page off-screen, then animate all pages in one smooth motion
   if (isLooping && !isInitialLoad) {
+    console.log(`[showPage] LOOPING - Setting up animation`);
     // Disable transitions temporarily
     pages.forEach(page => {
       page.style.transition = 'none';
@@ -5287,21 +5290,27 @@ function showPage(pageIndex, direction = null) {
     // Position all pages: new page off-screen, others in current positions
     if (direction === 'right') {
       // Right button: new page (first) comes from right
+      console.log(`[showPage] LOOPING RIGHT - Positioning pages`);
       pages.forEach((page, index) => {
         if (index === pageIndex) {
+          console.log(`[showPage] Page ${index} (new): translateX(100vw) - off-screen right`);
           page.style.transform = `translateX(100vw)`; // Off-screen right
         } else {
           const offset = (index - oldPageIndex) * 100;
+          console.log(`[showPage] Page ${index}: translateX(${offset}vw) - maintaining position`);
           page.style.transform = `translateX(${offset}vw)`;
         }
       });
     } else {
       // Left button: new page (last) comes from left
+      console.log(`[showPage] LOOPING LEFT - Positioning pages`);
       pages.forEach((page, index) => {
         if (index === pageIndex) {
+          console.log(`[showPage] Page ${index} (new): translateX(-100vw) - off-screen left`);
           page.style.transform = `translateX(-100vw)`; // Off-screen left
         } else {
           const offset = (index - oldPageIndex) * 100;
+          console.log(`[showPage] Page ${index}: translateX(${offset}vw) - maintaining position`);
           page.style.transform = `translateX(${offset}vw)`;
         }
       });
@@ -5309,17 +5318,20 @@ function showPage(pageIndex, direction = null) {
     
     // Force reflow to apply the initial positions
     void pages[0].offsetHeight;
+    console.log(`[showPage] Reflow forced, re-enabling transitions`);
     
     // Re-enable transitions for smooth animation
     pages.forEach(page => {
       page.style.transition = '';
     });
   } else if (isInitialLoad) {
+    console.log(`[showPage] INITIAL LOAD - Disabling transitions`);
     // Disable transition on initial load
     pages.forEach(page => {
       page.style.transition = 'none';
     });
   } else {
+    console.log(`[showPage] NORMAL NAVIGATION - Ensuring transitions enabled`);
     // Normal navigation: ensure transitions are enabled
     pages.forEach(page => {
       page.style.transition = '';
@@ -5327,8 +5339,10 @@ function showPage(pageIndex, direction = null) {
   }
   
   // Update all pages to final positions (single animation)
+  console.log(`[showPage] Setting final positions for all pages`);
   pages.forEach((page, index) => {
     const offset = (index - pageIndex) * 100;
+    console.log(`[showPage] Page ${index}: final translateX(${offset}vw)`);
     page.style.transform = `translateX(${offset}vw)`;
   });
   
