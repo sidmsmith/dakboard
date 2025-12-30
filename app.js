@@ -1579,16 +1579,21 @@ function updateForecastListHeight(forecastList) {
     const availableHeight = forecastSection.clientHeight - headerHeight;
     
     // Calculate total content height (all items + gaps)
+    // Use min-height to ensure items don't compress
     let totalContentHeight = 0;
     Array.from(forecastList.children).forEach((item, index) => {
       if (index > 0) totalContentHeight += 10; // gap
-      totalContentHeight += item.offsetHeight;
+      // Use the larger of actual height or min-height to prevent compression
+      const itemHeight = Math.max(item.offsetHeight, 60); // min-height from CSS
+      totalContentHeight += itemHeight;
     });
     
     // ALWAYS constrain to available height to ensure scrollbar appears when needed
     // This matches the Todo List pattern which uses fixed max-height
+    // Use a slightly smaller value to ensure overflow is detected
+    const constrainedHeight = Math.max(availableHeight - 1, 0);
     forecastList.style.maxHeight = `${availableHeight}px`;
-    forecastList.style.height = `${availableHeight}px`;
+    forecastList.style.height = `${constrainedHeight}px`;
     
     // Debug logging
     console.log('=== Weather Forecast Scrollbar Debug ===');
