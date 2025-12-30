@@ -375,7 +375,8 @@ body {
 .daily-agenda-content {
   padding: 20px 0;
   max-height: calc(90vh - 200px);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .daily-agenda-empty {
