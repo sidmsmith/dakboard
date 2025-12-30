@@ -341,9 +341,40 @@ body {
 }
 
 /* Daily Agenda Modal */
+.daily-agenda-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.daily-agenda-nav-btn {
+  background: #3a3a3a;
+  border: none;
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s;
+  flex-shrink: 0;
+}
+
+.daily-agenda-nav-btn:hover {
+  background: #4a4a4a;
+}
+
+.daily-agenda-nav-btn:active {
+  background: #5a5a5a;
+}
+
 .daily-agenda-content {
   padding: 20px 0;
-  max-height: 70vh;
+  max-height: calc(90vh - 180px);
   overflow-y: auto;
 }
 

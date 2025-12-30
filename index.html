@@ -358,7 +358,11 @@
   <div id="daily-agenda-modal" class="modal">
     <div class="modal-content modal-large" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <h2 id="daily-agenda-title">Daily Agenda</h2>
+        <div class="daily-agenda-nav">
+          <button class="daily-agenda-nav-btn" id="prev-day-btn" title="Previous Day">‹</button>
+          <h2 id="daily-agenda-title">Daily Agenda</h2>
+          <button class="daily-agenda-nav-btn" id="next-day-btn" title="Next Day">›</button>
+        </div>
         <button class="modal-close" id="close-daily-agenda-modal">&times;</button>
       </div>
       <div id="daily-agenda-content" class="daily-agenda-content">

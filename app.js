@@ -917,11 +917,23 @@ function closeEventModal() {
   }
 }
 
+// Store current agenda date for navigation
+let currentAgendaDate = null;
+
 // Show daily agenda modal
 function showDailyAgenda(date, events) {
   // Don't allow interaction in edit mode
   if (isEditMode) return;
   
+  // Store the date for navigation
+  currentAgendaDate = new Date(date);
+  currentAgendaDate.setHours(0, 0, 0, 0);
+  
+  loadDailyAgendaForDate(currentAgendaDate);
+}
+
+// Load and display agenda for a specific date
+function loadDailyAgendaForDate(date) {
   const modal = document.getElementById('daily-agenda-modal');
   const title = document.getElementById('daily-agenda-title');
   const content = document.getElementById('daily-agenda-content');
@@ -933,10 +945,22 @@ function showDailyAgenda(date, events) {
     day: 'numeric',
     year: 'numeric'
   });
-  title.textContent = `Daily Agenda - ${dateStr}`;
+  title.textContent = dateStr;
+  
+  // Get events for this date
+  const dayStart = new Date(date);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(date);
+  dayEnd.setHours(23, 59, 59, 999);
+  
+  const dayEvents = calendarEvents.filter(event => {
+    const eventStart = new Date(event.start);
+    const eventEnd = new Date(event.end || event.start);
+    return (eventStart <= dayEnd && eventEnd >= dayStart);
+  });
   
   // Sort events by start time
-  const sortedEvents = [...events].sort((a, b) => {
+  const sortedEvents = [...dayEvents].sort((a, b) => {
     return new Date(a.start) - new Date(b.start);
   });
   
@@ -968,7 +992,7 @@ function showDailyAgenda(date, events) {
         timeStr = `${startTime} - ${endTime}`;
       }
       
-      // Build event HTML
+      // Build event HTML (removed calendar name)
       agendaHTML += `
         <div class="daily-agenda-event" data-event-id="${event.uid || ''}">
           <div class="daily-agenda-event-time">${timeStr}</div>
@@ -976,7 +1000,6 @@ function showDailyAgenda(date, events) {
             <div class="daily-agenda-event-title">${event.title || 'Untitled Event'}</div>
             ${event.location ? `<div class="daily-agenda-event-location">📍 ${event.location}</div>` : ''}
             ${event.description ? `<div class="daily-agenda-event-description">${event.description.replace(/<[^>]*>/g, '').replace(/\[CAUTION:.*?\]/g, '').trim()}</div>` : ''}
-            ${event.calendar ? `<div class="daily-agenda-event-calendar">Calendar: ${event.calendar.replace(/^calendar\./, '').replace(/_/g, ' ')}</div>` : ''}
           </div>
         </div>
       `;
@@ -998,8 +1021,10 @@ function showDailyAgenda(date, events) {
     });
   });
   
-  // Show modal
-  modal.classList.add('active');
+  // Show modal if not already visible
+  if (!modal.classList.contains('active')) {
+    modal.classList.add('active');
+  }
 }
 
 // Close daily agenda modal
