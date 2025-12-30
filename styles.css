@@ -570,6 +570,24 @@ body {
   scrollbar-color: #4a90e2 #2a2a2a;
 }
 
+.weather-forecast-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.weather-forecast-list::-webkit-scrollbar-track {
+  background: #2a2a2a;
+  border-radius: 4px;
+}
+
+.weather-forecast-list::-webkit-scrollbar-thumb {
+  background: #4a90e2;
+  border-radius: 4px;
+}
+
+.weather-forecast-list::-webkit-scrollbar-thumb:hover {
+  background: #5ba0f2;
+}
+
 /* Day 1 container - just a regular item now */
 .weather-forecast-day1 {
   flex-shrink: 0;
