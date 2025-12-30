@@ -5288,6 +5288,7 @@ function showPage(pageIndex, direction = null) {
     });
     
     // Position pages: new page (0) off-screen right, hide page 1, keep Page 3 visible
+    // All pages should move LEFT during animation
     pages.forEach((page, index) => {
       if (index === pageIndex) {
         // New page (0) starts off-screen to the right - will slide over Page 3
@@ -5299,19 +5300,20 @@ function showPage(pageIndex, direction = null) {
         page.style.transform = `translateX(-100vw)`;
         page.style.visibility = 'hidden';
         page.style.zIndex = '1';
-      } else if (index === oldPageIndex) {
-        // Page 3 (old current page): Keep it visible at current position so Page 1 slides over it
-        // It will animate left to its final position
-        page.style.transform = `translateX(0vw)`;
-        page.style.visibility = 'visible';
-        page.style.zIndex = '1'; // Behind the new page
       } else {
-        // Other pages: position them to slide left from their current positions
+        // All other pages: position them to their current positions relative to oldPageIndex
+        // They will all animate LEFT to their final positions
         const currentOffset = (index - oldPageIndex) * 100;
-        // Start from current position, will animate left to final position
+        const finalOffset = (index - pageIndex) * 100;
+        
+        // Start from current position (relative to old page)
         page.style.transform = `translateX(${currentOffset}vw)`;
         page.style.visibility = 'visible';
         page.style.zIndex = '1';
+        
+        // For pages that would move right (final > current), we need to handle them differently
+        // Actually, when looping right, all pages should move left visually
+        // So if a page's final position is to the right of current, we need to think about this
       }
     });
     
