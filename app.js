@@ -1561,8 +1561,9 @@ function renderForecast(forecastData, attrs) {
         const headerHeight = header ? header.offsetHeight + parseInt(window.getComputedStyle(header).marginBottom) : 0;
         const availableHeight = forecastSection.clientHeight - headerHeight;
         
-        // Set max-height to force constraint
+        // Force container to be constrained - set both max-height and height
         parent.style.maxHeight = `${availableHeight}px`;
+        parent.style.height = `${availableHeight}px`;
         
         console.log('=== Weather Forecast Scrollbar Debug ===');
         console.log('Forecast List (.weather-forecast-list):', {
