@@ -1581,16 +1581,10 @@ function updateForecastListHeight(forecastList) {
       totalContentHeight += item.offsetHeight;
     });
     
-    // Only constrain if content is taller than available space
-    // Otherwise let it be natural height
-    if (totalContentHeight > availableHeight) {
-      forecastList.style.maxHeight = `${availableHeight}px`;
-      forecastList.style.height = `${availableHeight}px`;
-    } else {
-      // Content fits, but still set max-height to prevent expansion beyond available
-      forecastList.style.maxHeight = `${availableHeight}px`;
-      forecastList.style.height = 'auto';
-    }
+    // ALWAYS constrain to available height to ensure scrollbar appears when needed
+    // This matches the Todo List pattern which uses fixed max-height
+    forecastList.style.maxHeight = `${availableHeight}px`;
+    forecastList.style.height = `${availableHeight}px`;
     
     // Debug logging
     console.log('=== Weather Forecast Scrollbar Debug ===');
