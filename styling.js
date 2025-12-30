@@ -1809,9 +1809,14 @@ function loadStylesToWidget(widget, styles) {
     }
   }
   
-  // Update thermostat control styles if this is a thermostat widget
-  if (widget.classList.contains('thermostat-widget') && typeof updateThermostatControlStyles === 'function') {
+  // Update dynamic styles for all widgets (controls and text colors)
+  if (typeof updateWidgetDynamicStyles === 'function') {
     // Use setTimeout to ensure background styles are applied first
+    setTimeout(() => updateWidgetDynamicStyles(widget), 0);
+  }
+  
+  // Also update thermostat-specific styles for backward compatibility
+  if (widget.classList.contains('thermostat-widget') && typeof updateThermostatControlStyles === 'function') {
     setTimeout(() => updateThermostatControlStyles(widget), 0);
   }
 }

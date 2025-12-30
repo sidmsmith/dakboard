@@ -101,6 +101,15 @@ document.addEventListener('DOMContentLoaded', () => {
     showPage(currentPageIndex);
   }
   
+  // Apply dynamic styles to all widgets after initialization
+  if (typeof updateWidgetDynamicStyles === 'function') {
+    setTimeout(() => {
+      document.querySelectorAll('.widget').forEach(widget => {
+        updateWidgetDynamicStyles(widget);
+      });
+    }, 100); // Small delay to ensure all styles are applied first
+  }
+  
   initializeWidgetControlPanel(); // Initialize widget visibility panel
   initializeCalendar();
   initializeClock(); // Initialize clock
@@ -2698,8 +2707,8 @@ function isLightColor(r, g, b) {
   return luminance > 0.5;
 }
 
-// Update thermostat control styles based on widget background color
-function updateThermostatControlStyles(widget) {
+// Update widget control and text styles based on widget background color (generic for all widgets)
+function updateWidgetDynamicStyles(widget) {
   if (!widget) return;
   
   // Get computed background color from the widget
@@ -2751,12 +2760,76 @@ function updateThermostatControlStyles(widget) {
   const hoverB = Math.max(0, Math.floor(borderB * (1 - hoverDarkenFactor)));
   
   // Set CSS custom properties on the widget
-  widget.style.setProperty('--thermostat-bg-overlay', isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.15)');
-  widget.style.setProperty('--thermostat-border-color', `rgb(${borderR}, ${borderG}, ${borderB})`);
-  widget.style.setProperty('--thermostat-hover-border', `rgb(${hoverR}, ${hoverG}, ${hoverB})`);
-  widget.style.setProperty('--thermostat-hover-bg', isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.25)');
-  widget.style.setProperty('--thermostat-text-primary', primaryTextColor);
-  widget.style.setProperty('--thermostat-text-secondary', secondaryTextColor);
+  widget.style.setProperty('--widget-bg-overlay', isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.15)');
+  widget.style.setProperty('--widget-border-color', `rgb(${borderR}, ${borderG}, ${borderB})`);
+  widget.style.setProperty('--widget-hover-border', `rgb(${hoverR}, ${hoverG}, ${hoverB})`);
+  widget.style.setProperty('--widget-hover-bg', isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.25)');
+  widget.style.setProperty('--widget-text-primary', primaryTextColor);
+  widget.style.setProperty('--widget-text-secondary', secondaryTextColor);
+}
+
+// Update thermostat control styles based on widget background color (kept for backward compatibility)
+function updateThermostatControlStyles(widget) {
+  if (!widget) return;
+  
+  // Get computed background color from the widget
+  const computedStyle = window.getComputedStyle(widget);
+  let bgColor = computedStyle.backgroundColor;
+  
+  // If background is transparent or rgba(0,0,0,0), try to get from background-image or use fallback
+  if (!bgColor || bgColor === 'rgba(0, 0, 0, 0)' || bgColor === 'transparent') {
+    // Check if there's a background image (we can't extract color from it, so use a neutral approach)
+    const bgImage = computedStyle.backgroundImage;
+    if (bgImage && bgImage !== 'none') {
+      // For images/gradients, assume dark background (use light text)
+      bgColor = 'rgb(42, 42, 42)';
+    } else {
+      // Try to get from parent or use default
+      bgColor = computedStyle.backgroundColor || 'rgb(42, 42, 42)';
+    }
+  }
+  
+  // Extract RGB values from rgba/rgb string
+  let rgbMatch = bgColor.match(/\d+/g);
+  if (!rgbMatch || rgbMatch.length < 3) {
+    // Fallback to default if parsing fails
+    bgColor = 'rgb(42, 42, 42)';
+    rgbMatch = [42, 42, 42];
+  }
+  
+  const r = parseInt(rgbMatch[0]);
+  const g = parseInt(rgbMatch[1]);
+  const b = parseInt(rgbMatch[2]);
+  
+  // Determine if background is light or dark
+  const isLight = isLightColor(r, g, b);
+  
+  // Set text colors based on background brightness
+  const primaryTextColor = isLight ? '#1a1a1a' : '#ffffff'; // Dark text for light bg, white for dark bg
+  const secondaryTextColor = isLight ? '#4a4a4a' : '#aaaaaa'; // Darker gray for light bg, lighter gray for dark bg
+  
+  // Calculate darker shade for borders (reduce brightness by 25-30%)
+  const darkenFactor = 0.25;
+  const borderR = Math.max(0, Math.floor(r * (1 - darkenFactor)));
+  const borderG = Math.max(0, Math.floor(g * (1 - darkenFactor)));
+  const borderB = Math.max(0, Math.floor(b * (1 - darkenFactor)));
+  
+  // Calculate even darker for hover states
+  const hoverDarkenFactor = 0.15; // Additional darkening on top of border
+  const hoverR = Math.max(0, Math.floor(borderR * (1 - hoverDarkenFactor)));
+  const hoverG = Math.max(0, Math.floor(borderG * (1 - hoverDarkenFactor)));
+  const hoverB = Math.max(0, Math.floor(borderB * (1 - hoverDarkenFactor)));
+  
+  // Call the generic function and also set thermostat-specific variables for backward compatibility
+  updateWidgetDynamicStyles(widget);
+  
+  // Set thermostat-specific CSS variables (aliases to widget variables for backward compatibility)
+  widget.style.setProperty('--thermostat-bg-overlay', widget.style.getPropertyValue('--widget-bg-overlay'));
+  widget.style.setProperty('--thermostat-border-color', widget.style.getPropertyValue('--widget-border-color'));
+  widget.style.setProperty('--thermostat-hover-border', widget.style.getPropertyValue('--widget-hover-border'));
+  widget.style.setProperty('--thermostat-hover-bg', widget.style.getPropertyValue('--widget-hover-bg'));
+  widget.style.setProperty('--thermostat-text-primary', widget.style.getPropertyValue('--widget-text-primary'));
+  widget.style.setProperty('--thermostat-text-secondary', widget.style.getPropertyValue('--widget-text-secondary'));
 }
 
 // Load thermostat data

@@ -136,7 +136,7 @@ body {
 .widget-title {
   font-size: 18px;
   font-weight: 600;
-  color: #fff;
+  color: var(--widget-text-primary, #fff);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -200,18 +200,21 @@ body {
 }
 
 .calendar-nav button {
-  background: #3a3a3a;
-  border: none;
-  color: #fff;
+  background: var(--widget-bg-overlay, rgba(255, 255, 255, 0.15));
+  border: 1px solid var(--widget-border-color, rgba(255, 255, 255, 0.3));
+  color: var(--widget-text-primary, #fff);
   padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.3s;
+  transition: background 0.3s, border-color 0.3s;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .calendar-nav button:hover:not(:disabled) {
-  background: #4a4a4a;
+  background: var(--widget-hover-bg, rgba(255, 255, 255, 0.25));
+  border-color: var(--widget-hover-border, rgba(255, 255, 255, 0.4));
 }
 
 .calendar-nav button:disabled {
@@ -842,31 +845,37 @@ body {
 .todo-add input {
   flex: 1;
   padding: 8px 12px;
-  background: #2a2a2a;
-  border: 1px solid #444;
+  background: var(--widget-bg-overlay, rgba(255, 255, 255, 0.15));
+  border: 1px solid var(--widget-border-color, rgba(255, 255, 255, 0.3));
   border-radius: 6px;
-  color: #fff;
+  color: var(--widget-text-primary, #fff);
   font-size: 14px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .todo-add input:focus {
   outline: none;
-  border-color: #4a90e2;
+  border-color: var(--widget-hover-border, rgba(255, 255, 255, 0.5));
+  background: var(--widget-hover-bg, rgba(255, 255, 255, 0.25));
 }
 
 .todo-add button {
   padding: 8px 16px;
-  background: #4a90e2;
-  border: none;
+  background: var(--widget-bg-overlay, rgba(255, 255, 255, 0.15));
+  border: 1px solid var(--widget-border-color, rgba(255, 255, 255, 0.3));
   border-radius: 6px;
-  color: #fff;
+  color: var(--widget-text-primary, #fff);
   font-size: 14px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, border-color 0.2s;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .todo-add button:hover {
-  background: #5aa0f2;
+  background: var(--widget-hover-bg, rgba(255, 255, 255, 0.25));
+  border-color: var(--widget-hover-border, rgba(255, 255, 255, 0.4));
 }
 
 .todo-add button:disabled {
@@ -1727,24 +1736,28 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
 }
 
 .photos-connect-btn {
-  background: #4285f4;
-  color: white;
-  border: none;
+  background: var(--widget-bg-overlay, rgba(255, 255, 255, 0.15));
+  color: var(--widget-text-primary, #fff);
+  border: 1px solid var(--widget-border-color, rgba(255, 255, 255, 0.3));
   padding: 12px 24px;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   margin-top: 16px;
-  transition: background 0.2s;
+  transition: background 0.2s, border-color 0.2s;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .photos-connect-btn:hover {
-  background: #357ae8;
+  background: var(--widget-hover-bg, rgba(255, 255, 255, 0.25));
+  border-color: var(--widget-hover-border, rgba(255, 255, 255, 0.4));
 }
 
 .photos-connect-btn:active {
-  background: #2d6bc4;
+  background: var(--widget-hover-bg, rgba(255, 255, 255, 0.3));
+  border-color: var(--widget-hover-border, rgba(255, 255, 255, 0.5));
 }
 
 /* Thermostat Widget */
@@ -2083,7 +2096,7 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
 .news-placeholder {
   text-align: center;
   padding: 30px 20px;
-  color: #aaa;
+  color: var(--widget-text-secondary, #aaa);
 }
 
 .news-icon {
@@ -2092,7 +2105,7 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
 }
 
 .news-placeholder h3 {
-  color: #fff;
+  color: var(--widget-text-primary, #fff);
   margin-bottom: 12px;
   font-size: 18px;
 }
