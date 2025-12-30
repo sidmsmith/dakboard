@@ -5277,118 +5277,12 @@ function showPage(pageIndex, direction = null) {
   const isLooping = (direction === 'right' && oldPageIndex === totalPages - 1 && pageIndex === 0) ||
                     (direction === 'left' && oldPageIndex === 0 && pageIndex === totalPages - 1);
   
-  console.log(`[showPage] oldPageIndex: ${oldPageIndex}, newPageIndex: ${pageIndex}, direction: ${direction}, isLooping: ${isLooping}, isInitialLoad: ${isInitialLoad}`);
-  
-  // Flag to skip final position setting for looping animations (handled in requestAnimationFrame)
-  let skipFinalPositions = false;
-  
-  // Handle looping: position new page off-screen, then animate all pages in one smooth motion
+  // For looping, disable transitions and switch instantly (no animation)
   if (isLooping && !isInitialLoad) {
-    console.log(`[showPage] LOOPING - Setting up animation`);
-    // Disable transitions temporarily
+    // Disable transitions for instant switch
     pages.forEach(page => {
       page.style.transition = 'none';
     });
-    
-    // Position all pages: new page off-screen, all others off-screen in opposite direction
-    if (direction === 'right') {
-      // Right button: new page comes from right, all others go off-screen left
-      console.log(`[showPage] LOOPING RIGHT - Positioning pages`);
-      pages.forEach((page, index) => {
-        if (index === pageIndex) {
-          // New page starts off-screen to the right
-          console.log(`[showPage] Page ${index} (new): translateX(100vw) - off-screen right`);
-          page.style.transform = `translateX(100vw)`;
-          page.style.visibility = 'visible';
-        } else {
-          // All other pages positioned off-screen to the left
-          // Calculate their final position, then shift left by 100vw to ensure they're off-screen
-          const finalOffset = (index - pageIndex) * 100;
-          const initialOffset = finalOffset - 100; // Shift left by 100vw
-          // Ensure it's actually off-screen (at least -100vw or less)
-          const safeOffset = Math.min(initialOffset, -100);
-          console.log(`[showPage] Page ${index}: translateX(${safeOffset}vw) - off-screen left (will animate to ${finalOffset}vw)`);
-          page.style.transform = `translateX(${safeOffset}vw)`;
-          // Hide pages that would be visible (between -100vw and 100vw)
-          if (safeOffset > -100 && safeOffset < 100) {
-            page.style.visibility = 'hidden';
-            console.log(`[showPage] Page ${index}: hidden to prevent flash`);
-          } else {
-            page.style.visibility = 'visible';
-          }
-        }
-      });
-    } else {
-      // Left button: new page comes from left, all others go off-screen right
-      console.log(`[showPage] LOOPING LEFT - Positioning pages`);
-      pages.forEach((page, index) => {
-        if (index === pageIndex) {
-          // New page starts off-screen to the left
-          console.log(`[showPage] Page ${index} (new): translateX(-100vw) - off-screen left`);
-          page.style.transform = `translateX(-100vw)`;
-          page.style.visibility = 'visible';
-        } else {
-          // All other pages positioned off-screen to the right
-          // Calculate their final position, then shift right by 100vw to ensure they're off-screen
-          const finalOffset = (index - pageIndex) * 100;
-          const initialOffset = finalOffset + 100; // Shift right by 100vw
-          // Ensure it's actually off-screen (at least 100vw or more)
-          const safeOffset = Math.max(initialOffset, 100);
-          console.log(`[showPage] Page ${index}: translateX(${safeOffset}vw) - off-screen right (will animate to ${finalOffset}vw)`);
-          page.style.transform = `translateX(${safeOffset}vw)`;
-          // Hide pages that would be visible (between -100vw and 100vw)
-          if (safeOffset > -100 && safeOffset < 100) {
-            page.style.visibility = 'hidden';
-            console.log(`[showPage] Page ${index}: hidden to prevent flash`);
-          } else {
-            page.style.visibility = 'visible';
-          }
-        }
-      });
-    }
-    
-    // Force reflow to apply the initial positions
-    void pages[0].offsetHeight;
-    console.log(`[showPage] Reflow forced, re-enabling transitions`);
-    
-    // Use requestAnimationFrame to ensure positions are applied before re-enabling transitions
-    requestAnimationFrame(() => {
-      // Re-enable transitions for smooth animation
-      pages.forEach(page => {
-        page.style.transition = '';
-      });
-      console.log(`[showPage] Transitions re-enabled`);
-      
-      // Now set final positions AFTER transitions are enabled (this triggers the animation)
-      console.log(`[showPage] Setting final positions for all pages (triggering animation)`);
-      pages.forEach((page, index) => {
-        const offset = (index - pageIndex) * 100;
-        console.log(`[showPage] Page ${index}: final translateX(${offset}vw)`);
-        page.style.transform = `translateX(${offset}vw)`;
-        
-        // Only show pages that will be visible (between -100vw and 100vw) or are already off-screen
-        // Hide pages that will pass through the visible area during animation
-        if (offset >= -100 && offset <= 100) {
-          // Page will be visible at final position - show it
-          page.style.visibility = 'visible';
-          console.log(`[showPage] Page ${index}: visible (final position ${offset}vw is in viewport)`);
-        } else {
-          // Page will be off-screen at final position - keep it hidden during animation
-          // It will be shown when it reaches its final position (off-screen)
-          page.style.visibility = 'hidden';
-          console.log(`[showPage] Page ${index}: hidden (final position ${offset}vw is off-screen)`);
-          
-          // Show it after animation completes (300ms transition duration)
-          setTimeout(() => {
-            page.style.visibility = 'visible';
-          }, 350);
-        }
-      });
-    });
-    
-    // Don't return early - we still need to run the page loading code below
-    // But skip the final position setting since it's handled in requestAnimationFrame
-    skipFinalPositions = true;
   } else if (isInitialLoad) {
     console.log(`[showPage] INITIAL LOAD - Disabling transitions`);
     // Disable transition on initial load
@@ -5403,15 +5297,20 @@ function showPage(pageIndex, direction = null) {
     });
   }
   
-  // Update all pages to final positions (single animation)
-  // Note: This is skipped for looping animations (handled in requestAnimationFrame above)
-  if (!skipFinalPositions) {
-    console.log(`[showPage] Setting final positions for all pages`);
-    pages.forEach((page, index) => {
-      const offset = (index - pageIndex) * 100;
-      console.log(`[showPage] Page ${index}: final translateX(${offset}vw)`);
-      page.style.transform = `translateX(${offset}vw)`;
-    });
+  // Update all pages to final positions
+  pages.forEach((page, index) => {
+    const offset = (index - pageIndex) * 100;
+    page.style.transform = `translateX(${offset}vw)`;
+  });
+  
+  // Re-enable transitions after instant loop switch
+  if (isLooping && !isInitialLoad) {
+    // Re-enable transitions after a brief delay for normal navigation
+    setTimeout(() => {
+      pages.forEach(page => {
+        page.style.transition = '';
+      });
+    }, 50);
   }
   
   // Mark initial load as complete after first page display
