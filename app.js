@@ -5407,11 +5407,112 @@ function showPage(pageIndex, direction = null) {
     
     // Skip the normal final position setting below - handled in requestAnimationFrame
     skipFinalPositions = true;
-  } else if (isLooping && !isInitialLoad) {
-    // For left loop, disable transitions and switch instantly (no animation)
+  } else if (isLooping && !isInitialLoad && direction === 'left') {
+    // For looping left (Page 1 → Page 3), animate with Page 2 hidden
+    // Disable transitions initially
     pages.forEach(page => {
       page.style.transition = 'none';
     });
+    
+    // Position pages: new page (last) off-screen left, hide page 2, keep Page 1 visible
+    pages.forEach((page, index) => {
+      if (index === pageIndex) {
+        // New page (last) starts off-screen to the left - will slide over Page 1
+        page.style.transform = `translateX(-100vw)`;
+        page.style.visibility = 'visible';
+        page.style.zIndex = '10'; // Ensure it's on top
+      } else if (index === totalPages - 2) {
+        // Page 2 (second to last): Keep it hidden and positioned off-screen to prevent flash
+        const finalOffset = (index - pageIndex) * 100;
+        page.style.transform = `translateX(${finalOffset}vw)`;
+        page.style.visibility = 'hidden';
+        page.style.zIndex = '1';
+      } else if (index === oldPageIndex) {
+        // Page 1 (old current page): Keep it visible at current position so new page slides over it
+        page.style.transform = `translateX(0vw)`;
+        page.style.visibility = 'visible';
+        page.style.zIndex = '1'; // Behind the new page
+      } else {
+        // Other pages: position them to their current positions relative to oldPageIndex
+        const currentOffset = (index - oldPageIndex) * 100;
+        page.style.transform = `translateX(${currentOffset}vw)`;
+        page.style.visibility = 'visible';
+        page.style.zIndex = '1';
+      }
+    });
+    
+    // Force reflow
+    void pages[0].offsetHeight;
+    
+    // Re-enable transitions and animate
+    requestAnimationFrame(() => {
+      pages.forEach(page => {
+        page.style.transition = '';
+      });
+      
+      // Set final positions (triggers animation)
+      // For looping left, all pages should move RIGHT visually during animation
+      pages.forEach((page, index) => {
+        if (index === pageIndex) {
+          // New page (last) animates to center
+          page.style.transform = `translateX(0vw)`;
+        } else if (index === totalPages - 2) {
+          // Page 2: Keep hidden, will be at its final position
+          const finalOffset = (index - pageIndex) * 100;
+          page.style.transform = `translateX(${finalOffset}vw)`;
+          page.style.visibility = 'hidden';
+          setTimeout(() => {
+            page.style.visibility = 'visible';
+          }, 350); // After animation completes
+        } else {
+          // All other pages: calculate positions
+          const currentOffset = (index - oldPageIndex) * 100;
+          const finalOffset = (index - pageIndex) * 100;
+          
+          // During animation, move pages right for visual effect
+          // But ensure they end at correct final positions
+          if (finalOffset < currentOffset && finalOffset < -100) {
+            // This page would move far left (like Page 0 going to -200vw)
+            // Animate it right off-screen for visual effect
+            page.style.transform = `translateX(100vw)`;
+          } else {
+            // This page moves right or is close - use final position directly
+            page.style.transform = `translateX(${finalOffset}vw)`;
+          }
+          page.style.visibility = 'visible';
+        }
+      });
+      
+      // After animation completes, hide all pages except current one
+      setTimeout(() => {
+        // Disable transitions for instant correction
+        pages.forEach(page => {
+          page.style.transition = 'none';
+        });
+        
+        // Set all pages to their correct final positions and hide all except current
+        pages.forEach((page, index) => {
+          const finalOffset = (index - pageIndex) * 100;
+          page.style.transform = `translateX(${finalOffset}vw)`;
+          if (index === pageIndex) {
+            page.style.visibility = 'visible'; // Keep current page visible
+          } else {
+            page.style.visibility = 'hidden'; // Hide all other pages
+          }
+          page.style.zIndex = '';
+        });
+        
+        // Re-enable transitions for normal navigation
+        requestAnimationFrame(() => {
+          pages.forEach(page => {
+            page.style.transition = '';
+          });
+        });
+      }, 350); // After animation completes
+    });
+    
+    // Skip the normal final position setting below - handled in requestAnimationFrame
+    skipFinalPositions = true;
   } else if (isInitialLoad) {
     // Disable transition on initial load
     pages.forEach(page => {
