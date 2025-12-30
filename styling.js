@@ -859,25 +859,8 @@ function attachTabEventListeners(tabName) {
         updatePreview();
       });
       
-      // Listen for border color changes even when on shadow tab
-      // This ensures shadow color updates when border color changes
-      const borderColorInput = document.getElementById('border-color');
-      if (borderColorInput) {
-        // Remove any existing listener to avoid duplicates
-        const newBorderColorInput = borderColorInput.cloneNode(true);
-        borderColorInput.parentNode.replaceChild(newBorderColorInput, borderColorInput);
-        
-        newBorderColorInput.addEventListener('input', (e) => {
-          if (sameAsBorderCheckbox.checked) {
-            // Update shadow color to match border color
-            currentStyles.shadowColor = e.target.value;
-            if (shadowColorInput) {
-              shadowColorInput.value = e.target.value;
-            }
-            updatePreview();
-          }
-        });
-      }
+      // Store reference to checkbox for use in border tab listener
+      // The border tab listener will check this checkbox state when border color changes
     }
 
     if (shadowColorInput) {
