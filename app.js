@@ -5287,10 +5287,9 @@ function showPage(pageIndex, direction = null) {
       page.style.transition = 'none';
     });
     
-    // Position all pages: new page off-screen, others positioned relative to new page index
+    // Position all pages: new page off-screen, all others off-screen in opposite direction
     if (direction === 'right') {
-      // Right button: new page (first) comes from right
-      // Position all pages relative to the NEW page index, but offset the new page to the right
+      // Right button: new page comes from right, all others go off-screen left
       console.log(`[showPage] LOOPING RIGHT - Positioning pages`);
       pages.forEach((page, index) => {
         if (index === pageIndex) {
@@ -5298,16 +5297,16 @@ function showPage(pageIndex, direction = null) {
           console.log(`[showPage] Page ${index} (new): translateX(100vw) - off-screen right`);
           page.style.transform = `translateX(100vw)`;
         } else {
-          // Position other pages relative to new page index, but shifted left by 100vw
-          // This makes them appear to slide left as the new page comes in
-          const offset = (index - pageIndex) * 100 - 100;
-          console.log(`[showPage] Page ${index}: translateX(${offset}vw) - positioned relative to new page`);
-          page.style.transform = `translateX(${offset}vw)`;
+          // All other pages positioned off-screen to the left
+          // Calculate their final position, then shift left by 100vw to ensure they're off-screen
+          const finalOffset = (index - pageIndex) * 100;
+          const initialOffset = finalOffset - 100; // Shift left by 100vw
+          console.log(`[showPage] Page ${index}: translateX(${initialOffset}vw) - off-screen left (will animate to ${finalOffset}vw)`);
+          page.style.transform = `translateX(${initialOffset}vw)`;
         }
       });
     } else {
-      // Left button: new page (last) comes from left
-      // Position all pages relative to the NEW page index, but offset the new page to the left
+      // Left button: new page comes from left, all others go off-screen right
       console.log(`[showPage] LOOPING LEFT - Positioning pages`);
       pages.forEach((page, index) => {
         if (index === pageIndex) {
@@ -5315,11 +5314,12 @@ function showPage(pageIndex, direction = null) {
           console.log(`[showPage] Page ${index} (new): translateX(-100vw) - off-screen left`);
           page.style.transform = `translateX(-100vw)`;
         } else {
-          // Position other pages relative to new page index, but shifted right by 100vw
-          // This makes them appear to slide right as the new page comes in
-          const offset = (index - pageIndex) * 100 + 100;
-          console.log(`[showPage] Page ${index}: translateX(${offset}vw) - positioned relative to new page`);
-          page.style.transform = `translateX(${offset}vw)`;
+          // All other pages positioned off-screen to the right
+          // Calculate their final position, then shift right by 100vw to ensure they're off-screen
+          const finalOffset = (index - pageIndex) * 100;
+          const initialOffset = finalOffset + 100; // Shift right by 100vw
+          console.log(`[showPage] Page ${index}: translateX(${initialOffset}vw) - off-screen right (will animate to ${finalOffset}vw)`);
+          page.style.transform = `translateX(${initialOffset}vw)`;
         }
       });
     }
