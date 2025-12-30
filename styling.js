@@ -421,10 +421,14 @@ function generateBorderTab() {
 // Generate Shadow Tab
 function generateShadowTab() {
   const shadowColor = currentStyles.shadowColor || '#000000';
+  const borderColor = currentStyles.borderColor || '#000000';
   const shadowBlur = currentStyles.shadowBlur !== undefined ? currentStyles.shadowBlur : 6;
   const shadowX = currentStyles.shadowX !== undefined ? currentStyles.shadowX : 0;
   const shadowY = currentStyles.shadowY !== undefined ? currentStyles.shadowY : 4;
   const shadowSpread = currentStyles.shadowSpread !== undefined ? currentStyles.shadowSpread : 0;
+  
+  // Check if shadow color matches border color
+  const sameAsBorder = shadowColor === borderColor;
   
   return `
     <div class="styling-form-section">
@@ -445,9 +449,9 @@ function generateShadowTab() {
           <label class="styling-form-label">Color</label>
           <div class="styling-form-control">
             <label class="styling-apply-all-checkbox">
-              <input type="checkbox" id="shadow-color-same-as-border"> Same as Border
+              <input type="checkbox" id="shadow-color-same-as-border" ${sameAsBorder ? 'checked' : ''}> Same as Border
             </label>
-            <input type="color" id="shadow-color" value="${shadowColor}">
+            <input type="color" id="shadow-color" value="${sameAsBorder ? borderColor : shadowColor}" ${sameAsBorder ? 'disabled' : ''}>
             <label class="styling-apply-all-checkbox">
               <input type="checkbox" id="shadow-color-apply-all" ${applyToAllFlags.shadowColor ? 'checked' : ''}> Apply to all
             </label>
