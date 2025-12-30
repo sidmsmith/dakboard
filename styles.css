@@ -576,10 +576,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  flex: 1;
+  flex: 1 1 0; /* Ensure it can shrink below content size */
   min-height: 0;
   max-height: 100%;
-  overflow-y: scroll; /* Use 'scroll' instead of 'auto' to always show scrollbar track */
+  overflow-y: auto; /* Show scrollbar only when content overflows */
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
