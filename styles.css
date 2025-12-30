@@ -1626,7 +1626,7 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
 
 .clock-date {
   font-size: 18px;
-  color: #aaa;
+  color: #fff;
   text-align: center;
 }
 
