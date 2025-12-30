@@ -5287,31 +5287,39 @@ function showPage(pageIndex, direction = null) {
       page.style.transition = 'none';
     });
     
-    // Position all pages: new page off-screen, others in current positions
+    // Position all pages: new page off-screen, others move in the opposite direction
     if (direction === 'right') {
-      // Right button: new page (first) comes from right
+      // Right button: new page (first) comes from right, old pages move left
       console.log(`[showPage] LOOPING RIGHT - Positioning pages`);
       pages.forEach((page, index) => {
         if (index === pageIndex) {
+          // New page starts off-screen to the right
           console.log(`[showPage] Page ${index} (new): translateX(100vw) - off-screen right`);
-          page.style.transform = `translateX(100vw)`; // Off-screen right
+          page.style.transform = `translateX(100vw)`;
         } else {
-          const offset = (index - oldPageIndex) * 100;
-          console.log(`[showPage] Page ${index}: translateX(${offset}vw) - maintaining position`);
-          page.style.transform = `translateX(${offset}vw)`;
+          // Old pages move left (they're already visible, so move them left off-screen)
+          // Calculate how far left they need to go: current position minus 100vw
+          const currentOffset = (index - oldPageIndex) * 100;
+          const newOffset = currentOffset - 100; // Move 100vw to the left
+          console.log(`[showPage] Page ${index}: translateX(${newOffset}vw) - moving left from ${currentOffset}vw`);
+          page.style.transform = `translateX(${newOffset}vw)`;
         }
       });
     } else {
-      // Left button: new page (last) comes from left
+      // Left button: new page (last) comes from left, old pages move right
       console.log(`[showPage] LOOPING LEFT - Positioning pages`);
       pages.forEach((page, index) => {
         if (index === pageIndex) {
+          // New page starts off-screen to the left
           console.log(`[showPage] Page ${index} (new): translateX(-100vw) - off-screen left`);
-          page.style.transform = `translateX(-100vw)`; // Off-screen left
+          page.style.transform = `translateX(-100vw)`;
         } else {
-          const offset = (index - oldPageIndex) * 100;
-          console.log(`[showPage] Page ${index}: translateX(${offset}vw) - maintaining position`);
-          page.style.transform = `translateX(${offset}vw)`;
+          // Old pages move right (they're already visible, so move them right off-screen)
+          // Calculate how far right they need to go: current position plus 100vw
+          const currentOffset = (index - oldPageIndex) * 100;
+          const newOffset = currentOffset + 100; // Move 100vw to the right
+          console.log(`[showPage] Page ${index}: translateX(${newOffset}vw) - moving right from ${currentOffset}vw`);
+          page.style.transform = `translateX(${newOffset}vw)`;
         }
       });
     }
