@@ -16,89 +16,89 @@ export default async function (req, res) {
   // RSS feed URL - can be configured via environment variable or use default
   // AP News no longer provides RSS feeds, so using Reuters as default
   // Alternative options: BBC, NPR, CNN, etc.
-  const rssUrl = process.env.NEWS_RSS_URL || 'https://www.reutersagency.com/feed/?best-topics=business-finance&post_type=best';
+  const primaryUrl = process.env.NEWS_RSS_URL || 'https://feeds.reuters.com/reuters/topNews';
   
-  // Fallback URLs if primary fails (user can override with NEWS_RSS_URL env var)
-  const fallbackUrls = [
-    'https://feeds.reuters.com/reuters/topNews',
+  // Fallback URLs if primary fails (only used if NEWS_RSS_URL is not set)
+  const fallbackUrls = process.env.NEWS_RSS_URL ? [] : [
     'https://rss.cnn.com/rss/edition.rss',
-    'https://feeds.npr.org/1001/rss.xml'
+    'https://feeds.npr.org/1001/rss.xml',
+    'https://feeds.bbci.co.uk/news/rss.xml'
   ];
   
-  console.log('Fetching RSS feed from:', rssUrl);
+  const urlsToTry = [primaryUrl, ...fallbackUrls];
+  console.log('Trying RSS feed URLs:', urlsToTry);
   
-  try {
-    // Fetch RSS feed with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-    
-    let response;
+  let lastError = null;
+  for (const rssUrl of urlsToTry) {
     try {
-      console.log('Attempting to fetch RSS feed...');
-      response = await fetch(rssUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Cache-Control': 'no-cache'
-        },
-        signal: controller.signal,
-        // Add redirect handling
-        redirect: 'follow'
-      });
-      clearTimeout(timeoutId);
-      console.log('Fetch response status:', response.status, response.statusText);
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      console.error('Fetch error details:', {
-        name: fetchError.name,
-        message: fetchError.message,
-        cause: fetchError.cause,
-        stack: fetchError.stack
-      });
+      console.log('Attempting to fetch from:', rssUrl);
       
-      if (fetchError.name === 'AbortError') {
-        throw new Error('RSS feed request timed out after 15 seconds');
+      // Fetch RSS feed with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      
+      let response;
+      try {
+        response = await fetch(rssUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cache-Control': 'no-cache'
+          },
+          signal: controller.signal,
+          redirect: 'follow'
+        });
+        clearTimeout(timeoutId);
+        console.log('Fetch response status:', response.status, response.statusText);
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        console.error('Fetch error details:', {
+          name: fetchError.name,
+          message: fetchError.message,
+          cause: fetchError.cause,
+          code: fetchError.code
+        });
+        
+        if (fetchError.name === 'AbortError') {
+          throw new Error('RSS feed request timed out after 15 seconds');
+        }
+        
+        // Provide more detailed error message
+        let errorMsg = `Failed to fetch RSS feed: ${fetchError.message}`;
+        if (fetchError.cause) {
+          errorMsg += ` (Cause: ${fetchError.cause.message || fetchError.cause})`;
+        }
+        if (fetchError.code) {
+          errorMsg += ` (Code: ${fetchError.code})`;
+        }
+        throw new Error(errorMsg);
       }
       
-      // Provide more detailed error message
-      let errorMsg = `Failed to fetch RSS feed: ${fetchError.message}`;
-      if (fetchError.cause) {
-        errorMsg += ` (Cause: ${fetchError.cause.message || fetchError.cause})`;
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        console.error('RSS feed HTTP error:', response.status, response.statusText, errorText.substring(0, 200));
+        throw new Error(`Failed to fetch RSS feed: ${response.status} ${response.statusText}`);
       }
-      if (fetchError.code) {
-        errorMsg += ` (Code: ${fetchError.code})`;
+      
+      const xmlText = await response.text();
+      
+      if (!xmlText || xmlText.trim().length === 0) {
+        throw new Error('RSS feed returned empty content');
       }
-      throw new Error(errorMsg);
-    }
-    
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      console.error('RSS feed HTTP error:', response.status, response.statusText, errorText.substring(0, 200));
-      throw new Error(`Failed to fetch RSS feed: ${response.status} ${response.statusText}`);
-    }
-    
-    const xmlText = await response.text();
-    
-    if (!xmlText || xmlText.trim().length === 0) {
-      throw new Error('RSS feed returned empty content');
-    }
-    
-    console.log('RSS feed fetched, length:', xmlText.length);
-    
-    // Parse RSS XML
-    const articles = parseRSSFeed(xmlText);
-    
-    console.log('Parsed articles:', articles.length);
-    
-    if (!articles || articles.length === 0) {
-      console.error('No articles parsed from RSS feed. XML preview:', xmlText.substring(0, 500));
-      return res.status(500).json({ 
-        error: 'No articles found in RSS feed',
-        details: 'RSS feed was fetched but no articles could be parsed'
-      });
-    }
-    
+      
+      console.log('RSS feed fetched, length:', xmlText.length);
+      
+      // Parse RSS XML
+      const articles = parseRSSFeed(xmlText);
+      
+      console.log('Parsed articles:', articles.length);
+      
+      if (!articles || articles.length === 0) {
+        console.error('No articles parsed from RSS feed. XML preview:', xmlText.substring(0, 500));
+        throw new Error('No articles found in RSS feed');
+      }
+      
       // Set CORS headers before returning
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET');
