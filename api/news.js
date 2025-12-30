@@ -28,11 +28,43 @@ export default async function (req, res) {
     );
     
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || `NewsAPI error: ${response.statusText}`);
+      // Try to get error details from response
+      let errorMessage = `NewsAPI error: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch (e) {
+        // If JSON parsing fails, use status text
+      }
+      
+      // Check for common NewsAPI errors
+      if (response.status === 401) {
+        errorMessage = 'Invalid API key. Please check your NEWS_API_KEY environment variable.';
+      } else if (response.status === 429) {
+        errorMessage = 'Rate limit exceeded. NewsAPI free tier has daily limits.';
+      } else if (response.status === 426) {
+        errorMessage = 'Upgrade required. NewsAPI free tier only works on localhost. Production requires a paid plan.';
+      }
+      
+      console.error('News API error:', errorMessage, 'Status:', response.status);
+      return res.status(response.status === 401 ? 400 : 500).json({ 
+        error: errorMessage
+      });
     }
     
     const data = await response.json();
+    
+    // Validate response structure
+    if (!data || !data.articles) {
+      console.error('Invalid NewsAPI response structure:', data);
+      return res.status(500).json({ 
+        error: 'Invalid response from news service' 
+      });
+    }
     
     return res.json(data);
   } catch (error) {

@@ -1,6 +1,9 @@
 // Dakboard - Main Application Logic
 // Configuration - Update these with your HA entity IDs
 
+// Debug flag - set to false for production
+const DEBUG = true;
+
 const CONFIG = {
   // Home Assistant Entity IDs
   HA_WEATHER_ENTITY: 'weather.pirateweather', // Update with your Pirate Weather entity ID
@@ -49,13 +52,16 @@ let swipeStartX = 0;
 let swipeStartY = 0;
 let isSwiping = false;
 
+// Clock interval management
+let clockInterval = null;
+
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOMContentLoaded - Starting initialization');
+  if (DEBUG) console.log('DOMContentLoaded - Starting initialization');
   
   // Check if drag-resize functions are available
   if (typeof initializeDragAndResize === 'function') {
-    console.log('initializeDragAndResize function found');
+    if (DEBUG) console.log('initializeDragAndResize function found');
   } else {
     console.error('initializeDragAndResize function NOT found! Check drag-resize.js loading.');
   }
@@ -110,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Retry after a short delay
     setTimeout(() => {
       if (typeof initializeDragAndResize === 'function') {
-        console.log('Retrying initializeDragAndResize');
+        if (DEBUG) console.log('Retrying initializeDragAndResize');
         initializeDragAndResize();
       } else {
         console.error('initializeDragAndResize still not available after retry');
@@ -304,80 +310,126 @@ function initializeClock() {
     dateElements.forEach(el => el.textContent = dateText);
   }
   
+  // Clear any existing interval to prevent memory leaks
+  if (clockInterval) {
+    clearInterval(clockInterval);
+  }
+  
   // Update immediately
   updateClock();
   
   // Update every second
-  setInterval(updateClock, 1000);
+  clockInterval = setInterval(updateClock, 1000);
 }
 
 // Initialize event listeners
 function initializeEventListeners() {
-  // Calendar navigation
-  document.getElementById('prev-week-btn').addEventListener('click', () => {
-    currentWeekStart.setDate(currentWeekStart.getDate() - 7);
-    renderCalendar();
-    loadCalendarEvents(); // Reload events for new week
+  // Calendar navigation - use querySelectorAll for multi-page support
+  const prevWeekBtns = document.querySelectorAll('#prev-week-btn');
+  prevWeekBtns.forEach(btn => {
+    if (!btn.dataset.listenerAttached) {
+      btn.dataset.listenerAttached = 'true';
+      btn.addEventListener('click', () => {
+        currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+        renderCalendar();
+        loadCalendarEvents(); // Reload events for new week
+      });
+    }
   });
   
-  document.getElementById('next-week-btn').addEventListener('click', () => {
-    currentWeekStart.setDate(currentWeekStart.getDate() + 7);
-    renderCalendar();
-    loadCalendarEvents(); // Reload events for new week
+  const nextWeekBtns = document.querySelectorAll('#next-week-btn');
+  nextWeekBtns.forEach(btn => {
+    if (!btn.dataset.listenerAttached) {
+      btn.dataset.listenerAttached = 'true';
+      btn.addEventListener('click', () => {
+        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+        renderCalendar();
+        loadCalendarEvents(); // Reload events for new week
+      });
+    }
   });
   
-  // Monthly view modal
-  document.getElementById('month-view-btn').addEventListener('click', () => {
-    showMonthModal();
-  });
-  
-  // Todo add item
-  const todoInput = document.getElementById('todo-input');
-  const todoAddBtn = document.getElementById('todo-add-btn');
-  
-  if (todoAddBtn) {
-    todoAddBtn.addEventListener('click', () => {
-      if (activeTodoList && todoInput && todoInput.value.trim()) {
-        addTodoItem(activeTodoList, todoInput.value);
-      }
+  // Monthly view modal - single instance, safe to use getElementById
+  const monthViewBtn = document.getElementById('month-view-btn');
+  if (monthViewBtn && !monthViewBtn.dataset.listenerAttached) {
+    monthViewBtn.dataset.listenerAttached = 'true';
+    monthViewBtn.addEventListener('click', () => {
+      showMonthModal();
     });
   }
   
-  if (todoInput) {
-    todoInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter' && activeTodoList && todoInput.value.trim()) {
-        addTodoItem(activeTodoList, todoInput.value);
-      }
+  // Todo add item - use querySelectorAll for multi-page support
+  const todoInputs = document.querySelectorAll('#todo-input');
+  const todoAddBtns = document.querySelectorAll('#todo-add-btn');
+  
+  todoAddBtns.forEach(btn => {
+    if (!btn.dataset.listenerAttached) {
+      btn.dataset.listenerAttached = 'true';
+      btn.addEventListener('click', () => {
+        const input = btn.closest('.todo-widget')?.querySelector('#todo-input');
+        if (activeTodoList && input && input.value.trim()) {
+          addTodoItem(activeTodoList, input.value);
+        }
+      });
+    }
+  });
+  
+  todoInputs.forEach(input => {
+    if (!input.dataset.listenerAttached) {
+      input.dataset.listenerAttached = 'true';
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && activeTodoList && input.value.trim()) {
+          addTodoItem(activeTodoList, input.value);
+        }
+      });
+    }
+  });
+  
+  // Modal close buttons - single instances, safe to use getElementById
+  const closeMonthModalBtn = document.getElementById('close-month-modal');
+  if (closeMonthModalBtn && !closeMonthModalBtn.dataset.listenerAttached) {
+    closeMonthModalBtn.dataset.listenerAttached = 'true';
+    closeMonthModalBtn.addEventListener('click', () => {
+      closeMonthModal();
     });
   }
-  
-  document.getElementById('close-month-modal').addEventListener('click', () => {
-    closeMonthModal();
-  });
   
   // Close modal on background click
-  document.getElementById('month-modal').addEventListener('click', (e) => {
-    if (e.target.id === 'month-modal') {
-      closeMonthModal();
-    }
-  });
+  const monthModal = document.getElementById('month-modal');
+  if (monthModal && !monthModal.dataset.listenerAttached) {
+    monthModal.dataset.listenerAttached = 'true';
+    monthModal.addEventListener('click', (e) => {
+      if (e.target.id === 'month-modal') {
+        closeMonthModal();
+      }
+    });
+  }
   
   // Hourly forecast modal
-  document.getElementById('close-hourly-modal').addEventListener('click', () => {
-    closeHourlyModal();
-  });
-  
-  document.getElementById('hourly-modal').addEventListener('click', (e) => {
-    if (e.target.id === 'hourly-modal') {
+  const closeHourlyModalBtn = document.getElementById('close-hourly-modal');
+  if (closeHourlyModalBtn && !closeHourlyModalBtn.dataset.listenerAttached) {
+    closeHourlyModalBtn.dataset.listenerAttached = 'true';
+    closeHourlyModalBtn.addEventListener('click', () => {
       closeHourlyModal();
-    }
-  });
+    });
+  }
   
-  // Calendar event details modal
+  const hourlyModal = document.getElementById('hourly-modal');
+  if (hourlyModal && !hourlyModal.dataset.listenerAttached) {
+    hourlyModal.dataset.listenerAttached = 'true';
+    hourlyModal.addEventListener('click', (e) => {
+      if (e.target.id === 'hourly-modal') {
+        closeHourlyModal();
+      }
+    });
+  }
+  
+  // Calendar event details modal - single instances, safe to use getElementById
   const closeEventModalBtn = document.getElementById('close-event-modal');
   const eventModal = document.getElementById('event-modal');
   
-  if (closeEventModalBtn) {
+  if (closeEventModalBtn && !closeEventModalBtn.dataset.listenerAttached) {
+    closeEventModalBtn.dataset.listenerAttached = 'true';
     closeEventModalBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -385,7 +437,8 @@ function initializeEventListeners() {
     });
   }
   
-  if (eventModal) {
+  if (eventModal && !eventModal.dataset.listenerAttached) {
+    eventModal.dataset.listenerAttached = 'true';
     eventModal.addEventListener('click', (e) => {
       // Close if clicking directly on the modal background (not on modal-content)
       if (e.target === eventModal || e.target.id === 'event-modal') {
@@ -402,11 +455,12 @@ function initializeEventListeners() {
     }
   }
   
-  // Daily agenda modal
+  // Daily agenda modal - single instances, safe to use getElementById
   const closeDailyAgendaModalBtn = document.getElementById('close-daily-agenda-modal');
   const dailyAgendaModal = document.getElementById('daily-agenda-modal');
   
-  if (closeDailyAgendaModalBtn) {
+  if (closeDailyAgendaModalBtn && !closeDailyAgendaModalBtn.dataset.listenerAttached) {
+    closeDailyAgendaModalBtn.dataset.listenerAttached = 'true';
     closeDailyAgendaModalBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -414,7 +468,8 @@ function initializeEventListeners() {
     });
   }
   
-  if (dailyAgendaModal) {
+  if (dailyAgendaModal && !dailyAgendaModal.dataset.listenerAttached) {
+    dailyAgendaModal.dataset.listenerAttached = 'true';
     dailyAgendaModal.addEventListener('click', (e) => {
       // Close if clicking directly on the modal background (not on modal-content)
       if (e.target === dailyAgendaModal || e.target.id === 'daily-agenda-modal') {
@@ -2032,7 +2087,10 @@ async function addTodoItem(entityId, summary) {
     }
     
     // Clear input and reload
-    document.getElementById('todo-input').value = '';
+    // Clear all todo inputs across all pages
+    document.querySelectorAll('#todo-input').forEach(input => {
+      input.value = '';
+    });
     setTimeout(() => {
       loadTodoListItems(entityId);
     }, 300);
@@ -2284,15 +2342,16 @@ async function setAlarm() {
   // Don't allow interaction in edit mode
   if (isEditMode) return;
   
-  // Check current state - only allow if disarmed
-  const statusDiv = document.getElementById('alarm-status');
-  if (statusDiv && statusDiv.classList.contains('armed')) {
-    console.log('Alarm is already armed - cannot set alarm');
+  // Check current state - only allow if disarmed (check first instance)
+  const statusDivs = document.querySelectorAll('#alarm-status');
+  if (statusDivs.length > 0 && statusDivs[0].classList.contains('armed')) {
+    if (DEBUG) console.log('Alarm is already armed - cannot set alarm');
     return;
   }
   
-  const icon = document.getElementById('alarm-icon');
-  icon.classList.add('loading');
+  // Add loading state to all alarm icons
+  const icons = document.querySelectorAll('#alarm-icon');
+  icons.forEach(icon => icon.classList.add('loading'));
   
   // Show toast notification immediately (like garage widget)
   showToast('Alarm Button Pressed', 1500);
@@ -2316,7 +2375,9 @@ async function setAlarm() {
     }, 1000);
     // Don't show error toast since webhook likely succeeded despite the error
   } finally {
-    icon.classList.remove('loading');
+    // Remove loading state from all alarm icons
+    const allIcons = document.querySelectorAll('#alarm-icon');
+    allIcons.forEach(icon => icon.classList.remove('loading'));
   }
 }
 
@@ -2465,7 +2526,7 @@ async function fetchGooglePhotos() {
     } else {
       const data = await response.json();
       googlePhotosCache.photos = data.photos || [];
-      console.log('Google Photos fetched:', {
+      if (DEBUG) console.log('Google Photos fetched:', {
         count: googlePhotosCache.photos.length,
         message: data.message || 'Success'
       });
@@ -2473,13 +2534,13 @@ async function fetchGooglePhotos() {
     
     // If album is empty, fetch from all photos
     if (googlePhotosCache.photos.length === 0 && CONFIG.GOOGLE_PHOTOS_ALBUM_ID) {
-      console.log('Album is empty, fetching from all photos');
+      if (DEBUG) console.log('Album is empty, fetching from all photos');
       const allPhotosUrl = `/api/google-photos?access_token=${encodeURIComponent(accessToken)}&page_size=100`;
       const allPhotosResponse = await fetch(allPhotosUrl);
       if (allPhotosResponse.ok) {
         const allPhotosData = await allPhotosResponse.json();
         googlePhotosCache.photos = allPhotosData.photos || [];
-        console.log('Fetched all photos (fallback):', googlePhotosCache.photos.length);
+        if (DEBUG) console.log('Fetched all photos (fallback):', googlePhotosCache.photos.length);
       }
     }
     
@@ -2574,7 +2635,7 @@ function displayRandomGooglePhoto() {
   const randomIndex = Math.floor(Math.random() * googlePhotosCache.photos.length);
   const photo = googlePhotosCache.photos[randomIndex];
   
-  console.log('Displaying photo:', {
+  if (DEBUG) console.log('Displaying photo:', {
     index: randomIndex,
     id: photo.id,
     filename: photo.filename,
@@ -2734,54 +2795,82 @@ async function loadThermostat() {
 
 // Setup thermostat controls
 function setupThermostatControls(entityId) {
-  // Temperature input
-  const tempInput = document.getElementById('thermostat-temp-input');
-  const tempDown = document.getElementById('thermostat-temp-down');
-  const tempUp = document.getElementById('thermostat-temp-up');
-  const targetValue = document.getElementById('thermostat-target-value');
+  // Use querySelectorAll to get all instances across pages and attach listeners with duplicate prevention
+  const tempInputs = document.querySelectorAll('#thermostat-temp-input');
+  const tempDowns = document.querySelectorAll('#thermostat-temp-down');
+  const tempUps = document.querySelectorAll('#thermostat-temp-up');
+  const targetValues = document.querySelectorAll('#thermostat-target-value');
+  const modeSelects = document.querySelectorAll('#thermostat-mode-select');
+  const fanSelects = document.querySelectorAll('#thermostat-fan-select');
   
-  if (tempInput) {
-    tempInput.addEventListener('change', async () => {
-      const newTemp = parseFloat(tempInput.value);
-      await setThermostatTemperature(entityId, newTemp);
-    });
-  }
+  // Temperature input - attach to all instances
+  tempInputs.forEach(tempInput => {
+    if (!tempInput.dataset.listenerAttached) {
+      tempInput.dataset.listenerAttached = 'true';
+      tempInput.addEventListener('change', async () => {
+        const newTemp = parseFloat(tempInput.value);
+        await setThermostatTemperature(entityId, newTemp);
+      });
+    }
+  });
   
-  if (tempDown) {
-    tempDown.addEventListener('click', async () => {
-      const current = parseFloat(tempInput.value);
-      const newTemp = Math.max(50, current - 1);
-      tempInput.value = newTemp;
-      targetValue.textContent = `${newTemp}°`;
-      await setThermostatTemperature(entityId, newTemp);
-    });
-  }
+  // Temperature down button - attach to all instances
+  tempDowns.forEach(tempDown => {
+    if (!tempDown.dataset.listenerAttached) {
+      tempDown.dataset.listenerAttached = 'true';
+      tempDown.addEventListener('click', async () => {
+        const widget = tempDown.closest('.thermostat-widget');
+        const tempInput = widget?.querySelector('#thermostat-temp-input');
+        const targetValue = widget?.querySelector('#thermostat-target-value');
+        if (tempInput && targetValue) {
+          const current = parseFloat(tempInput.value);
+          const newTemp = Math.max(50, current - 1);
+          tempInput.value = newTemp;
+          targetValue.textContent = `${newTemp}°`;
+          await setThermostatTemperature(entityId, newTemp);
+        }
+      });
+    }
+  });
   
-  if (tempUp) {
-    tempUp.addEventListener('click', async () => {
-      const current = parseFloat(tempInput.value);
-      const newTemp = Math.min(90, current + 1);
-      tempInput.value = newTemp;
-      targetValue.textContent = `${newTemp}°`;
-      await setThermostatTemperature(entityId, newTemp);
-    });
-  }
+  // Temperature up button - attach to all instances
+  tempUps.forEach(tempUp => {
+    if (!tempUp.dataset.listenerAttached) {
+      tempUp.dataset.listenerAttached = 'true';
+      tempUp.addEventListener('click', async () => {
+        const widget = tempUp.closest('.thermostat-widget');
+        const tempInput = widget?.querySelector('#thermostat-temp-input');
+        const targetValue = widget?.querySelector('#thermostat-target-value');
+        if (tempInput && targetValue) {
+          const current = parseFloat(tempInput.value);
+          const newTemp = Math.min(90, current + 1);
+          tempInput.value = newTemp;
+          targetValue.textContent = `${newTemp}°`;
+          await setThermostatTemperature(entityId, newTemp);
+        }
+      });
+    }
+  });
   
-  // Mode select
-  const modeSelect = document.getElementById('thermostat-mode-select');
-  if (modeSelect) {
-    modeSelect.addEventListener('change', async () => {
-      await setThermostatMode(entityId, modeSelect.value);
-    });
-  }
+  // Mode select - attach to all instances
+  modeSelects.forEach(modeSelect => {
+    if (!modeSelect.dataset.listenerAttached) {
+      modeSelect.dataset.listenerAttached = 'true';
+      modeSelect.addEventListener('change', async () => {
+        await setThermostatMode(entityId, modeSelect.value);
+      });
+    }
+  });
   
-  // Fan select
-  const fanSelect = document.getElementById('thermostat-fan-select');
-  if (fanSelect) {
-    fanSelect.addEventListener('change', async () => {
-      await setThermostatFanMode(entityId, fanSelect.value);
-    });
-  }
+  // Fan select - attach to all instances
+  fanSelects.forEach(fanSelect => {
+    if (!fanSelect.dataset.listenerAttached) {
+      fanSelect.dataset.listenerAttached = 'true';
+      fanSelect.addEventListener('change', async () => {
+        await setThermostatFanMode(entityId, fanSelect.value);
+      });
+    }
+  });
   
   // Thermostat selector dropdown - attach to ALL selectors across all pages
   // Use querySelectorAll to get all selectors and attach listeners to each
@@ -2920,10 +3009,43 @@ async function setThermostatFanMode(entityId, fanMode) {
 }
 
 // Load news feed
+// News loading state - prevent multiple simultaneous requests
+let newsLoading = false;
+let newsLastError = null;
+let newsErrorCount = 0;
+const MAX_NEWS_ERRORS = 3; // Stop retrying after 3 consecutive errors
+
 async function loadNews() {
   // Find all news widgets across all pages
   const containers = document.querySelectorAll('#news-content');
   if (containers.length === 0) return;
+  
+  // Prevent multiple simultaneous requests
+  if (newsLoading) {
+    if (DEBUG) console.log('News already loading, skipping...');
+    return;
+  }
+  
+  // If we've had too many errors, show a persistent error message and don't retry
+  if (newsErrorCount >= MAX_NEWS_ERRORS) {
+    if (newsLastError) {
+      const errorHtml = `
+        <div class="news-error">
+          <p>News feed unavailable</p>
+          <p style="font-size: 12px; color: #888; margin-top: 8px;">
+            ${newsLastError}
+          </p>
+          <p style="font-size: 11px; color: #666; margin-top: 8px;">
+            The news service is currently unavailable. Please check your API configuration.
+          </p>
+        </div>
+      `;
+      containers.forEach(c => c.innerHTML = errorHtml);
+    }
+    return;
+  }
+  
+  newsLoading = true;
   
   try {
     // Use NewsAPI (free tier available)
@@ -2931,33 +3053,70 @@ async function loadNews() {
     const response = await fetch('/api/news');
     
     if (!response.ok) {
+      let errorMessage = `Failed to fetch news: ${response.statusText}`;
+      
+      // Try to get more detailed error message
+      try {
+        const errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch (e) {
+        // If JSON parsing fails, use the status text
+      }
+      
       if (response.status === 400) {
         // Show setup instructions if API key is missing
-        const errorData = await response.json();
-        if (errorData.error && errorData.error.includes('News API key required')) {
-          const setupHtml = `
-            <div class="news-placeholder">
-              <div class="news-icon">📰</div>
-              <h3>News Feed Setup</h3>
-              <p>To enable news feed:</p>
-              <ol class="news-instructions">
-                <li>Get a free API key from <a href="https://newsapi.org/" target="_blank">NewsAPI.org</a></li>
-                <li>Add <code>NEWS_API_KEY</code> to Vercel environment variables</li>
-                <li>Redeploy your application</li>
-              </ol>
-              <p style="font-size: 12px; color: #888; margin-top: 12px;">
-                Free tier: 100 requests/day
-              </p>
-            </div>
-          `;
-          containers.forEach(c => c.innerHTML = setupHtml);
-          return;
-        }
+        const setupHtml = `
+          <div class="news-placeholder">
+            <div class="news-icon">📰</div>
+            <h3>News Feed Setup</h3>
+            <p>To enable news feed:</p>
+            <ol class="news-instructions">
+              <li>Get a free API key from <a href="https://newsapi.org/" target="_blank">NewsAPI.org</a></li>
+              <li>Add <code>NEWS_API_KEY</code> to Vercel environment variables</li>
+              <li>Redeploy your application</li>
+            </ol>
+            <p style="font-size: 12px; color: #888; margin-top: 12px;">
+              Free tier: 100 requests/day (localhost only)<br>
+              Production requires paid plan
+            </p>
+          </div>
+        `;
+        containers.forEach(c => c.innerHTML = setupHtml);
+        newsErrorCount = MAX_NEWS_ERRORS; // Stop retrying
+        newsLastError = 'API key configuration required';
+        return;
       }
-      throw new Error(`Failed to fetch news: ${response.statusText}`);
+      
+      // For 500 errors, show a user-friendly message
+      if (response.status === 500) {
+        newsErrorCount++;
+        newsLastError = errorMessage || 'Server error - news service unavailable';
+        const errorHtml = `
+          <div class="news-error">
+            <p>News feed unavailable</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">
+              ${newsLastError}
+            </p>
+            ${newsErrorCount < MAX_NEWS_ERRORS ? 
+              '<p style="font-size: 11px; color: #666; margin-top: 8px;">Retrying...</p>' :
+              '<p style="font-size: 11px; color: #666; margin-top: 8px;">Service temporarily unavailable</p>'
+            }
+          </div>
+        `;
+        containers.forEach(c => c.innerHTML = errorHtml);
+        throw new Error(errorMessage);
+      }
+      
+      throw new Error(errorMessage);
     }
     
     const data = await response.json();
+    
+    // Reset error count on success
+    newsErrorCount = 0;
+    newsLastError = null;
     
     let contentHtml;
     if (data.articles && data.articles.length > 0) {
@@ -2983,13 +3142,36 @@ async function loadNews() {
     containers.forEach(c => c.innerHTML = contentHtml);
   } catch (error) {
     console.error('Error loading news:', error);
-    const errorHtml = `
-      <div class="news-error">
-        <p>Error loading news</p>
-        <p style="font-size: 12px; color: #888;">${error.message}</p>
-      </div>
-    `;
-    containers.forEach(c => c.innerHTML = errorHtml);
+    newsErrorCount++;
+    newsLastError = error.message || 'Unknown error';
+    
+    // Only show error if we haven't exceeded max errors
+    if (newsErrorCount < MAX_NEWS_ERRORS) {
+      const errorHtml = `
+        <div class="news-error">
+          <p>Error loading news</p>
+          <p style="font-size: 12px; color: #888;">${error.message}</p>
+          <p style="font-size: 11px; color: #666; margin-top: 8px;">Retrying...</p>
+        </div>
+      `;
+      containers.forEach(c => c.innerHTML = errorHtml);
+    } else {
+      // Final error message - no more retries
+      const errorHtml = `
+        <div class="news-error">
+          <p>News feed unavailable</p>
+          <p style="font-size: 12px; color: #888; margin-top: 8px;">
+            ${newsLastError}
+          </p>
+          <p style="font-size: 11px; color: #666; margin-top: 8px;">
+            The news service is currently unavailable. Please check your API configuration.
+          </p>
+        </div>
+      `;
+      containers.forEach(c => c.innerHTML = errorHtml);
+    }
+  } finally {
+    newsLoading = false;
   }
 }
 
@@ -3322,7 +3504,7 @@ function clearGooglePhotosTokens() {
   localStorage.removeItem('google_photos_access_token');
   localStorage.removeItem('google_photos_refresh_token');
   localStorage.removeItem('google_photos_token_expiry');
-  console.log('Google Photos tokens cleared');
+  if (DEBUG) console.log('Google Photos tokens cleared');
 }
 
 // Make function globally accessible
@@ -3393,7 +3575,7 @@ async function loadGooglePhotos() {
 // Initialize Google Picker API
 async function initializeGooglePicker() {
   if (!CONFIG.USE_GOOGLE_PICKER_API) {
-    console.log('Google Picker API is disabled');
+    if (DEBUG) console.log('Google Picker API is disabled');
     throw new Error('Google Picker API is disabled');
   }
   
@@ -3445,7 +3627,7 @@ async function initializeGooglePicker() {
     });
     
     googlePickerState.isInitialized = true;
-    console.log('Google Picker API initialized');
+    if (DEBUG) console.log('Google Picker API initialized');
   } catch (error) {
     console.error('Error initializing Google Picker API:', error);
     googlePickerState.isInitialized = false;
@@ -3552,7 +3734,7 @@ async function authenticateGooglePicker() {
     localStorage.setItem('google_picker_access_token', accessToken);
     localStorage.setItem('google_picker_authenticated', 'true');
     
-    console.log('Google Picker authentication successful');
+    if (DEBUG) console.log('Google Picker authentication successful');
     return accessToken;
   } catch (error) {
     console.error('Error authenticating Google Picker:', error);
@@ -5413,8 +5595,8 @@ function exportConfiguration() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    console.log('Configuration exported successfully');
-    console.log(`Exported ${config.pages.length} pages with ${config.pages.reduce((sum, p) => sum + p.widgets.length, 0)} widgets total`);
+    if (DEBUG) console.log('Configuration exported successfully');
+    if (DEBUG) console.log(`Exported ${config.pages.length} pages with ${config.pages.reduce((sum, p) => sum + p.widgets.length, 0)} widgets total`);
   } catch (error) {
     console.error('Error exporting configuration:', error);
     alert('Error exporting configuration. Please check the console for details.');
@@ -5455,7 +5637,7 @@ function importConfiguration(file) {
         throw new Error('Invalid configuration format. Expected "pages" array.');
       }
       
-      console.log('Importing configuration in organized format (v2.0)');
+      if (DEBUG) console.log('Importing configuration in organized format (v2.0)');
       
       // Import metadata
       if (config.metadata) {
@@ -5540,7 +5722,7 @@ function importConfiguration(file) {
         }
       });
       
-      console.log(`Configuration imported successfully. ${importedCount} items restored.`);
+      if (DEBUG) console.log(`Configuration imported successfully. ${importedCount} items restored.`);
       
       // Move widgets to their correct pages based on visibility
       // This ensures widgets are on the right pages after import
@@ -5596,11 +5778,11 @@ function setupPageManagement() {
     const newBtn = addPageBtn.cloneNode(true);
     addPageBtn.parentNode.replaceChild(newBtn, addPageBtn);
     
-    console.log('Setting up add page button listener');
+    if (DEBUG) console.log('Setting up add page button listener');
     newBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Add page button clicked!');
+      if (DEBUG) console.log('Add page button clicked!');
       addPage();
     });
   } else {
