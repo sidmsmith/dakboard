@@ -5279,6 +5279,9 @@ function showPage(pageIndex, direction = null) {
   
   console.log(`[showPage] oldPageIndex: ${oldPageIndex}, newPageIndex: ${pageIndex}, direction: ${direction}, isLooping: ${isLooping}, isInitialLoad: ${isInitialLoad}`);
   
+  // Flag to skip final position setting for looping animations (handled in requestAnimationFrame)
+  let skipFinalPositions = false;
+  
   // Handle looping: position new page off-screen, then animate all pages in one smooth motion
   if (isLooping && !isInitialLoad) {
     console.log(`[showPage] LOOPING - Setting up animation`);
@@ -5369,8 +5372,7 @@ function showPage(pageIndex, direction = null) {
     
     // Don't return early - we still need to run the page loading code below
     // But skip the final position setting since it's handled in requestAnimationFrame
-    // We'll set a flag to skip it
-    const skipFinalPositions = true;
+    skipFinalPositions = true;
   } else if (isInitialLoad) {
     console.log(`[showPage] INITIAL LOAD - Disabling transitions`);
     // Disable transition on initial load
