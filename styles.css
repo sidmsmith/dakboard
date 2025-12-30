@@ -566,8 +566,13 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: #4a90e2 #2a2a2a;
+  /* Hide scrollbar but keep scrolling functionality */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.weather-forecast-list::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .weather-forecast-list::-webkit-scrollbar {
