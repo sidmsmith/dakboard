@@ -4421,20 +4421,26 @@ async function openGooglePicker() {
     
     // Update cache with selected photos
     // The API returns items with mediaFile object containing the URL
-    console.log('[openGooglePicker] Processing selected items. First item structure:', JSON.stringify(selectedItems[0], null, 2));
+    console.log('[openGooglePicker] Processing selected items. First item full structure:', JSON.stringify(selectedItems[0], null, 2));
     googlePhotosCache.photos = selectedItems.map(item => {
-      // Log the mediaFile structure to see what fields it has
+      // Log the full item and mediaFile structure to see what fields it has
+      console.log('[openGooglePicker] Full item:', JSON.stringify(item, null, 2));
       console.log('[openGooglePicker] Item mediaFile:', JSON.stringify(item.mediaFile, null, 2));
       
-      // The API structure might have different field names - try multiple possibilities
-      const baseUrl = item.mediaFile?.url || 
-                      item.mediaFile?.baseUrl || 
-                      item.mediaFile?.downloadUrl ||
+      // According to Google Photos Picker API docs, mediaFile.baseUrl should contain the URL
+      // But we need to check the actual structure
+      const baseUrl = item.mediaFile?.baseUrl || 
                       item.baseUrl || 
                       null;
       
       if (!baseUrl) {
-        console.warn('[openGooglePicker] No URL found for item:', item.id, 'mediaFile keys:', item.mediaFile ? Object.keys(item.mediaFile) : 'no mediaFile');
+        console.warn('[openGooglePicker] No baseUrl found for item:', item.id);
+        console.warn('[openGooglePicker] Item structure:', {
+          id: item.id,
+          hasMediaFile: !!item.mediaFile,
+          mediaFileKeys: item.mediaFile ? Object.keys(item.mediaFile) : [],
+          allItemKeys: Object.keys(item)
+        });
       }
       
       return {
@@ -4442,7 +4448,7 @@ async function openGooglePicker() {
         filename: item.mediaFile?.filename || item.filename || `photo_${item.id.substring(0, 8)}`,
         baseUrl: baseUrl,
         mimeType: item.mediaFile?.mimeType || item.mimeType || 'image/jpeg',
-        // Add size variants for display
+        // Add size variants for display (baseUrl can be used with size parameters)
         thumbnail: baseUrl ? baseUrl + '=w300-h300-c' : null,
         medium: baseUrl ? baseUrl + '=w800-h600' : null,
         full: baseUrl ? baseUrl + '=w1920-h1080' : null
