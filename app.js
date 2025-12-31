@@ -2727,6 +2727,21 @@ function displayRandomGooglePhoto() {
   containers.forEach(container => container.innerHTML = photoHtml);
 }
 
+// Handle expired photo URLs - baseUrls expire after ~60 minutes
+function handleExpiredPhotoUrl(imgElement) {
+  console.warn('[handleExpiredPhotoUrl] Photo URL expired, prompting for re-selection');
+  const container = imgElement.closest('.photos-content') || imgElement.parentElement;
+  container.innerHTML = `
+    <div class="photos-placeholder">
+      <div class="photos-icon">📷</div>
+      <h3>Photo URLs Expired</h3>
+      <p>Photo URLs expire after ~60 minutes for security.</p>
+      <p>You don't need to re-authenticate - just re-select your photos.</p>
+      <button onclick="openGooglePicker(true)" class="photos-connect-btn" style="margin-top: 12px;">Re-select Photos</button>
+    </div>
+  `;
+}
+
 
 // Thermostat state
 let currentThermostat = 1;
