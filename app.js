@@ -18,6 +18,7 @@ const CONFIG = {
   
   // Google Photos Configuration
   GOOGLE_PHOTOS_ALBUM_ID: null, // Optional: Specific album ID to display photos from. If null or empty, randomizes from all photos.
+  GOOGLE_PHOTOS_ROTATION_MINUTES: 0.5, // Photo rotation interval in minutes (0.5 = 30 seconds for testing)
   
   // Google Picker API Configuration (NEW - replaces deprecated Library API)
   // Set to true to enable Google Picker API (requires app verification)
