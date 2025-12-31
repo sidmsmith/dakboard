@@ -4160,7 +4160,8 @@ async function getSelectedMediaItems(sessionId) {
     
     const data = await response.json();
     console.log('[getSelectedMediaItems] Response data:', data);
-    const items = data.selectedMediaItems || [];
+    // The API returns mediaItems, not selectedMediaItems
+    const items = data.mediaItems || [];
     console.log(`[getSelectedMediaItems] Found ${items.length} selected items`);
     return items;
   } catch (error) {
@@ -4360,16 +4361,23 @@ async function openGooglePicker() {
     }
     
     // Update cache with selected photos
-    googlePhotosCache.photos = selectedItems.map(item => ({
-      id: item.id,
-      filename: item.filename,
-      baseUrl: item.baseUrl,
-      mimeType: item.mimeType,
-      // Add size variants for display
-      thumbnail: item.baseUrl ? item.baseUrl + '=w300-h300-c' : null,
-      medium: item.baseUrl ? item.baseUrl + '=w800-h600' : null,
-      full: item.baseUrl ? item.baseUrl + '=w1920-h1080' : null
-    }));
+    // The API returns items with mediaFile object containing the URL
+    console.log('[openGooglePicker] Processing selected items. First item structure:', selectedItems[0]);
+    googlePhotosCache.photos = selectedItems.map(item => {
+      // The API structure has mediaFile with url field
+      const baseUrl = item.mediaFile?.url || item.baseUrl || null;
+      return {
+        id: item.id,
+        filename: item.mediaFile?.filename || item.filename || `photo_${item.id.substring(0, 8)}`,
+        baseUrl: baseUrl,
+        mimeType: item.mediaFile?.mimeType || item.mimeType || 'image/jpeg',
+        // Add size variants for display
+        thumbnail: baseUrl ? baseUrl + '=w300-h300-c' : null,
+        medium: baseUrl ? baseUrl + '=w800-h600' : null,
+        full: baseUrl ? baseUrl + '=w1920-h1080' : null
+      };
+    });
+    console.log('[openGooglePicker] Processed photos:', googlePhotosCache.photos);
     
     googlePhotosCache.lastUpdate = Date.now();
     
