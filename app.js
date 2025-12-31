@@ -184,8 +184,8 @@ async function loadCalendarEvents() {
               if ((endHour === 0 && endMinute === 0 && endSecond === 0) ||
                   (endHour === 19 && endMinute === 0 && endSecond === 0)) {
                 isAllDay = true;
-              }
-            } else {
+            }
+          } else {
               // No end time, but starts at midnight or 7pm - likely all-day
               isAllDay = true;
             }
@@ -268,21 +268,21 @@ function initializeClock() {
     const timeElements = document.querySelectorAll('#clock-time');
     const dateElements = document.querySelectorAll('#clock-date');
     
-    // 12-hour format with AM/PM
-    let hours = now.getHours();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12;
-    hours = hours ? hours : 12; // 0 should be 12
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
+      // 12-hour format with AM/PM
+      let hours = now.getHours();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // 0 should be 12
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
     const timeText = `${hours}:${minutes}:${seconds} ${ampm}`;
     
     timeElements.forEach(el => el.textContent = timeText);
     
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const dateText = now.toLocaleDateString('en-US', options);
     dateElements.forEach(el => el.textContent = dateText);
-  }
+    }
   
   // Clear any existing interval to prevent memory leaks
   if (clockInterval) {
@@ -304,9 +304,9 @@ function initializeEventListeners() {
     if (!btn.dataset.listenerAttached) {
       btn.dataset.listenerAttached = 'true';
       btn.addEventListener('click', () => {
-        currentWeekStart.setDate(currentWeekStart.getDate() - 7);
-        renderCalendar();
-        loadCalendarEvents(); // Reload events for new week
+    currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+    renderCalendar();
+    loadCalendarEvents(); // Reload events for new week
       });
     }
   });
@@ -316,9 +316,9 @@ function initializeEventListeners() {
     if (!btn.dataset.listenerAttached) {
       btn.dataset.listenerAttached = 'true';
       btn.addEventListener('click', () => {
-        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
-        renderCalendar();
-        loadCalendarEvents(); // Reload events for new week
+    currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+    renderCalendar();
+    loadCalendarEvents(); // Reload events for new week
       });
     }
   });
@@ -328,8 +328,8 @@ function initializeEventListeners() {
   if (monthViewBtn && !monthViewBtn.dataset.listenerAttached) {
     monthViewBtn.dataset.listenerAttached = 'true';
     monthViewBtn.addEventListener('click', () => {
-      showMonthModal();
-    });
+    showMonthModal();
+  });
   }
   
   // Todo add item - use querySelectorAll for multi-page support
@@ -343,9 +343,9 @@ function initializeEventListeners() {
         const input = btn.closest('.todo-widget')?.querySelector('#todo-input');
         if (activeTodoList && input && input.value.trim()) {
           addTodoItem(activeTodoList, input.value);
-        }
-      });
-    }
+      }
+    });
+  }
   });
   
   todoInputs.forEach(input => {
@@ -354,9 +354,9 @@ function initializeEventListeners() {
       input.addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && activeTodoList && input.value.trim()) {
           addTodoItem(activeTodoList, input.value);
-        }
-      });
-    }
+      }
+    });
+  }
   });
   
   // Modal close buttons - single instances, safe to use getElementById
@@ -364,8 +364,8 @@ function initializeEventListeners() {
   if (closeMonthModalBtn && !closeMonthModalBtn.dataset.listenerAttached) {
     closeMonthModalBtn.dataset.listenerAttached = 'true';
     closeMonthModalBtn.addEventListener('click', () => {
-      closeMonthModal();
-    });
+    closeMonthModal();
+  });
   }
   
   // Close modal on background click
@@ -373,10 +373,10 @@ function initializeEventListeners() {
   if (monthModal && !monthModal.dataset.listenerAttached) {
     monthModal.dataset.listenerAttached = 'true';
     monthModal.addEventListener('click', (e) => {
-      if (e.target.id === 'month-modal') {
-        closeMonthModal();
-      }
-    });
+    if (e.target.id === 'month-modal') {
+      closeMonthModal();
+    }
+  });
   }
   
   // Hourly forecast modal
@@ -384,18 +384,18 @@ function initializeEventListeners() {
   if (closeHourlyModalBtn && !closeHourlyModalBtn.dataset.listenerAttached) {
     closeHourlyModalBtn.dataset.listenerAttached = 'true';
     closeHourlyModalBtn.addEventListener('click', () => {
-      closeHourlyModal();
-    });
+    closeHourlyModal();
+  });
   }
   
   const hourlyModal = document.getElementById('hourly-modal');
   if (hourlyModal && !hourlyModal.dataset.listenerAttached) {
     hourlyModal.dataset.listenerAttached = 'true';
     hourlyModal.addEventListener('click', (e) => {
-      if (e.target.id === 'hourly-modal') {
-        closeHourlyModal();
-      }
-    });
+    if (e.target.id === 'hourly-modal') {
+      closeHourlyModal();
+    }
+  });
   }
   
   // Calendar event details modal - single instances, safe to use getElementById
@@ -476,17 +476,17 @@ function renderCalendar() {
   grid.innerHTML = '';
   headers.forEach(header => grid.appendChild(header));
   
-    // Calculate week dates
-    const weekStart = new Date(currentWeekStart);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-    
-    // Update week range display
+  // Calculate week dates
+  const weekStart = new Date(currentWeekStart);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  
+  // Update week range display
     if (weekRange) {
-      weekRange.textContent = `Week of ${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
+  weekRange.textContent = `Week of ${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
     }
-    
-    // Get today's date for highlighting
+  
+  // Get today's date for highlighting
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
@@ -565,7 +565,7 @@ function renderCalendar() {
         return (currentDateObj >= eventStartDateObj && currentDateObj <= eventEndDateObj);
       } else {
         // For timed events, check if event overlaps with this day
-        return (eventStart <= dayEnd && eventEnd >= dayStart);
+      return (eventStart <= dayEnd && eventEnd >= dayStart);
       }
     });
     
@@ -615,10 +615,10 @@ function renderCalendar() {
       eventsDiv.appendChild(moreDiv);
     }
     
-      dayDiv.appendChild(dayNumber);
-      dayDiv.appendChild(eventsDiv);
-      grid.appendChild(dayDiv);
-    }
+    dayDiv.appendChild(dayNumber);
+    dayDiv.appendChild(eventsDiv);
+    grid.appendChild(dayDiv);
+  }
     
     if (weekRange) {
       weekRange.textContent = `Week of ${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
@@ -720,7 +720,7 @@ function renderMonthCalendar(container, year, month, events) {
         return (currentDateObj >= eventStartDateObj && currentDateObj <= eventEndDateObj);
       } else {
         // For timed events, check if event overlaps with this day
-        return (eventStart <= dayEnd && eventEnd >= dayStart);
+      return (eventStart <= dayEnd && eventEnd >= dayStart);
       }
     });
     
@@ -740,7 +740,7 @@ function renderMonthCalendar(container, year, month, events) {
       let timeStr = '';
       let titleText = event.title;
       if (!event.allDay) {
-        const eventStart = new Date(event.start);
+      const eventStart = new Date(event.start);
         timeStr = eventStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
         titleText = `${event.title} - ${timeStr}`;
       }
@@ -1991,7 +1991,7 @@ function renderTodoTabs() {
   if (tabsContainers.length === 0) return;
   
   tabsContainers.forEach(tabsContainer => {
-    tabsContainer.innerHTML = '';
+  tabsContainer.innerHTML = '';
   
   todoLists.forEach(list => {
     const tab = document.createElement('button');
@@ -2018,24 +2018,24 @@ async function loadTodoListItems(entityId) {
     let items = [];
     
     // Use serverless function - use ha-todo-action with list_items action
-    const response = await fetch('/api/ha-todo-action', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        action: 'list_items',
-        entity_id: entityId
-      })
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      items = data.items || [];
-    } else {
-      console.error('Failed to fetch todo items:', response.status, response.statusText);
-      const errorText = await response.text();
-      console.error('Error response:', errorText);
+      const response = await fetch('/api/ha-todo-action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'list_items',
+          entity_id: entityId
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        items = data.items || [];
+      } else {
+        console.error('Failed to fetch todo items:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
     }
     
     // Fetched todo items
@@ -2061,17 +2061,17 @@ async function loadTodoListItems(entityId) {
     // Update all todo lists across all pages
     todoLists.forEach(todoList => {
       todoList.innerHTML = '';
-      
-      // Show incomplete first (up to 5 visible, rest scrollable)
-      incomplete.forEach(item => {
-        const li = createTodoItem(item, entityId);
-        todoList.appendChild(li);
-      });
-      
-      // Show completed at bottom (muted/strikethrough)
-      completed.forEach(item => {
-        const li = createTodoItem(item, entityId, true);
-        todoList.appendChild(li);
+    
+    // Show incomplete first (up to 5 visible, rest scrollable)
+    incomplete.forEach(item => {
+      const li = createTodoItem(item, entityId);
+      todoList.appendChild(li);
+    });
+    
+    // Show completed at bottom (muted/strikethrough)
+    completed.forEach(item => {
+      const li = createTodoItem(item, entityId, true);
+      todoList.appendChild(li);
       });
     });
   } catch (error) {
@@ -2123,16 +2123,16 @@ async function toggleTodoItem(entityId, itemUid, complete) {
     
     // Use serverless function
     const response = await fetch('/api/ha-todo-action', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        action: action,
-        entity_id: entityId,
-        uid: itemUid
-      })
-    });
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: action,
+          entity_id: entityId,
+          uid: itemUid
+        })
+      });
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -2157,17 +2157,17 @@ async function addTodoItem(entityId, summary) {
   
   try {
     // Use serverless function
-    await fetch('/api/ha-todo-action', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        action: 'add',
-        entity_id: entityId,
-        item: summary.trim()
-      })
-    });
+      await fetch('/api/ha-todo-action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'add',
+          entity_id: entityId,
+          item: summary.trim()
+        })
+      });
     
     // Clear input and reload
     // Clear all todo inputs across all pages
@@ -2384,34 +2384,34 @@ async function loadAlarm() {
       const icon = icons[index];
       const text = texts[index];
       if (!icon || !text) return;
-      
-      // Remove existing state classes
-      statusDiv.classList.remove('armed', 'disarmed');
-      
-      if (state === 'armed_away' || state === 'armed_home' || state === 'armed_night') {
-        statusDiv.classList.add('armed');
-        icon.textContent = '🔒';
-        text.textContent = 'ARMED';
-      } else {
-        statusDiv.classList.add('disarmed');
-        icon.textContent = '🔓';
-        text.textContent = 'DISARMED';
-      }
-      
-      // Add click handler - only clickable when DISARMED
-      if (state === 'disarmed' || state === 'disarming' || (!state.includes('armed'))) {
-        // Only allow clicking when disarmed
-        icon.style.cursor = 'pointer';
-        icon.onclick = () => {
-          if (!isEditMode) {
-            setAlarm();
-          }
-        };
-      } else {
-        // Armed states are not clickable
-        icon.style.cursor = 'not-allowed';
-        icon.onclick = null;
-      }
+    
+    // Remove existing state classes
+    statusDiv.classList.remove('armed', 'disarmed');
+    
+    if (state === 'armed_away' || state === 'armed_home' || state === 'armed_night') {
+      statusDiv.classList.add('armed');
+      icon.textContent = '🔒';
+      text.textContent = 'ARMED';
+    } else {
+      statusDiv.classList.add('disarmed');
+      icon.textContent = '🔓';
+      text.textContent = 'DISARMED';
+    }
+    
+    // Add click handler - only clickable when DISARMED
+    if (state === 'disarmed' || state === 'disarming' || (!state.includes('armed'))) {
+      // Only allow clicking when disarmed
+      icon.style.cursor = 'pointer';
+      icon.onclick = () => {
+        if (!isEditMode) {
+          setAlarm();
+        }
+      };
+    } else {
+      // Armed states are not clickable
+      icon.style.cursor = 'not-allowed';
+      icon.onclick = null;
+    }
     });
   } catch (error) {
     console.error('Error loading alarm:', error);
@@ -2629,15 +2629,15 @@ async function fetchGooglePhotos() {
       // Show message if no photos found
       const containers = document.querySelectorAll('#photos-content');
       const noPhotosHtml = `
-        <div class="photos-placeholder">
-          <div class="photos-icon">📷</div>
-          <h3>No Photos Found</h3>
-          <p>Your Google Photos library appears to be empty, or photos are not accessible.</p>
-          <p style="font-size: 12px; color: #888; margin-top: 8px;">
-            Check the browser console (F12) for more details.
-          </p>
-        </div>
-      `;
+          <div class="photos-placeholder">
+            <div class="photos-icon">📷</div>
+            <h3>No Photos Found</h3>
+            <p>Your Google Photos library appears to be empty, or photos are not accessible.</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">
+              Check the browser console (F12) for more details.
+            </p>
+          </div>
+        `;
       containers.forEach(container => container.innerHTML = noPhotosHtml);
     }
   } catch (error) {
@@ -2997,46 +2997,46 @@ function setupThermostatControls(entityId) {
   tempInputs.forEach(tempInput => {
     if (!tempInput.dataset.listenerAttached) {
       tempInput.dataset.listenerAttached = 'true';
-      tempInput.addEventListener('change', async () => {
-        const newTemp = parseFloat(tempInput.value);
-        await setThermostatTemperature(entityId, newTemp);
-      });
-    }
+    tempInput.addEventListener('change', async () => {
+      const newTemp = parseFloat(tempInput.value);
+      await setThermostatTemperature(entityId, newTemp);
+    });
+  }
   });
   
   // Temperature down button - attach to all instances
   tempDowns.forEach(tempDown => {
     if (!tempDown.dataset.listenerAttached) {
       tempDown.dataset.listenerAttached = 'true';
-      tempDown.addEventListener('click', async () => {
+    tempDown.addEventListener('click', async () => {
         const widget = tempDown.closest('.thermostat-widget');
         const tempInput = widget?.querySelector('#thermostat-temp-input');
         const targetValue = widget?.querySelector('#thermostat-target-value');
         if (tempInput && targetValue) {
-          const current = parseFloat(tempInput.value);
-          const newTemp = Math.max(50, current - 1);
-          tempInput.value = newTemp;
-          targetValue.textContent = `${newTemp}°`;
-          await setThermostatTemperature(entityId, newTemp);
+      const current = parseFloat(tempInput.value);
+      const newTemp = Math.max(50, current - 1);
+      tempInput.value = newTemp;
+      targetValue.textContent = `${newTemp}°`;
+      await setThermostatTemperature(entityId, newTemp);
         }
-      });
-    }
+    });
+  }
   });
   
   // Temperature up button - attach to all instances
   tempUps.forEach(tempUp => {
     if (!tempUp.dataset.listenerAttached) {
       tempUp.dataset.listenerAttached = 'true';
-      tempUp.addEventListener('click', async () => {
+    tempUp.addEventListener('click', async () => {
         const widget = tempUp.closest('.thermostat-widget');
         const tempInput = widget?.querySelector('#thermostat-temp-input');
         const targetValue = widget?.querySelector('#thermostat-target-value');
         if (tempInput && targetValue) {
-          const current = parseFloat(tempInput.value);
-          const newTemp = Math.min(90, current + 1);
-          tempInput.value = newTemp;
-          targetValue.textContent = `${newTemp}°`;
-          await setThermostatTemperature(entityId, newTemp);
+      const current = parseFloat(tempInput.value);
+      const newTemp = Math.min(90, current + 1);
+      tempInput.value = newTemp;
+      targetValue.textContent = `${newTemp}°`;
+      await setThermostatTemperature(entityId, newTemp);
         }
       });
     }
@@ -3046,20 +3046,20 @@ function setupThermostatControls(entityId) {
   modeSelects.forEach(modeSelect => {
     if (!modeSelect.dataset.listenerAttached) {
       modeSelect.dataset.listenerAttached = 'true';
-      modeSelect.addEventListener('change', async () => {
-        await setThermostatMode(entityId, modeSelect.value);
-      });
-    }
+    modeSelect.addEventListener('change', async () => {
+      await setThermostatMode(entityId, modeSelect.value);
+    });
+  }
   });
   
   // Fan select - attach to all instances
   fanSelects.forEach(fanSelect => {
     if (!fanSelect.dataset.listenerAttached) {
       fanSelect.dataset.listenerAttached = 'true';
-      fanSelect.addEventListener('change', async () => {
-        await setThermostatFanMode(entityId, fanSelect.value);
-      });
-    }
+    fanSelect.addEventListener('change', async () => {
+      await setThermostatFanMode(entityId, fanSelect.value);
+    });
+  }
   });
   
   // Thermostat selector dropdown - attach to ALL selectors across all pages
@@ -3069,7 +3069,7 @@ function setupThermostatControls(entityId) {
     // Check if listener is already attached (avoid duplicates)
     if (!selector.dataset.listenerAttached) {
       selector.dataset.listenerAttached = 'true';
-      selector.addEventListener('change', () => {
+    selector.addEventListener('change', () => {
         // Sync all selectors to the same value
         const selectedValue = selector.value;
         document.querySelectorAll('#thermostat-selector').forEach(s => {
@@ -3077,9 +3077,9 @@ function setupThermostatControls(entityId) {
             s.value = selectedValue;
           }
         });
-        loadThermostat();
-      });
-    }
+      loadThermostat();
+    });
+  }
   });
 }
 
@@ -3260,14 +3260,14 @@ async function loadNews() {
             <p>News feed configuration error</p>
             <p style="font-size: 12px; color: #888; margin-top: 8px;">
               Please check your RSS feed configuration.
-            </p>
-          </div>
-        `;
+              </p>
+            </div>
+          `;
         containers.forEach(c => c.innerHTML = errorHtml);
         newsErrorCount = MAX_NEWS_ERRORS; // Stop retrying
         newsLastError = 'Configuration error';
-        return;
-      }
+          return;
+        }
       
       // For 500 errors, show a user-friendly message
       if (response.status === 500) {
@@ -3328,12 +3328,12 @@ async function loadNews() {
     // Only show error if we haven't exceeded max errors
     if (newsErrorCount < MAX_NEWS_ERRORS) {
       const errorHtml = `
-        <div class="news-error">
-          <p>Error loading news</p>
-          <p style="font-size: 12px; color: #888;">${error.message}</p>
+      <div class="news-error">
+        <p>Error loading news</p>
+        <p style="font-size: 12px; color: #888;">${error.message}</p>
           <p style="font-size: 11px; color: #666; margin-top: 8px;">Retrying...</p>
-        </div>
-      `;
+      </div>
+    `;
       containers.forEach(c => c.innerHTML = errorHtml);
     } else {
       // Final error message - no more retries
@@ -4009,8 +4009,8 @@ async function createPickerSession() {
     
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
+        headers: {
+          'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         action: 'create',
@@ -4052,19 +4052,27 @@ async function createPickerSession() {
     }
     
     const data = await response.json();
-    console.log('Picker session response:', data);
+    console.log('Picker session response:', JSON.stringify(data, null, 2));
     
-    // The response should contain sessionId and pickerUri
-    if (!data.sessionId) {
-      console.error('No sessionId in response:', data);
-      throw new Error('Session ID not found in API response');
+    // The response structure might vary - check for different possible field names
+    const sessionId = data.sessionId || data.session?.id || data.id;
+    const pickerUri = data.pickerUri || data.uri || data.url;
+    
+    if (!sessionId) {
+      console.error('No sessionId found in response. Response keys:', Object.keys(data));
+      // Don't throw error - we're not using the picker anymore, just log it
+      console.warn('Picker session created but sessionId not found. This is OK if using Library API directly.');
+    } else {
+      googlePickerState.pickerSessionId = sessionId;
+      console.log('Session ID:', sessionId);
     }
     
-    googlePickerState.pickerSessionId = data.sessionId;
-    console.log('Session ID:', data.sessionId);
-    console.log('Picker URI:', data.pickerUri);
+    if (pickerUri) {
+      console.log('Picker URI:', pickerUri);
+    }
     
-    return data.pickerUri;
+    // Return pickerUri if available, but we won't use it for automatic flow
+    return pickerUri || null;
   } catch (error) {
     console.error('Error creating picker session:', error);
     throw error;
@@ -4092,9 +4100,9 @@ async function pollPickerSession(sessionId) {
             accessToken: googlePickerState.accessToken,
             sessionId: sessionId
           })
-        });
-        
-        if (!response.ok) {
+      });
+      
+      if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || `Failed to poll session: ${response.status}`);
         }
@@ -4173,13 +4181,13 @@ async function openGooglePicker() {
     
     await authenticateGooglePicker();
     
-    // Show success message after authentication, then proceed to open picker
+    // Show success message after authentication, then fetch photos automatically
     containers.forEach(container => {
       container.innerHTML = `
         <div class="photos-placeholder">
           <div class="photos-icon">✅</div>
           <h3>Authentication Successful!</h3>
-          <p>Opening Google Photos Picker...</p>
+          <p>Loading photos from your library...</p>
         </div>
       `;
     });
@@ -4260,9 +4268,47 @@ async function openGooglePicker() {
       // Display random photo
       if (googlePhotosCache.photos.length > 0) {
         displayRandomGooglePhoto();
+        
+        // Show success message
+        const rotationMinutes = CONFIG.GOOGLE_PHOTOS_ROTATION_MINUTES || 5;
+        containers.forEach(container => {
+          container.innerHTML = `
+            <div class="photos-placeholder">
+              <div class="photos-icon">✅</div>
+              <h3>Photos Loaded!</h3>
+              <p>Found ${googlePhotosCache.photos.length} photos in your library.</p>
+              <p style="font-size: 12px; color: #888; margin-top: 8px;">
+                Photos will rotate automatically every ${rotationMinutes} minutes.
+              </p>
+            </div>
+          `;
+        });
+        
+        // Show photo after brief delay
+        setTimeout(() => {
+          displayRandomGooglePhoto();
+        }, 1000);
+      } else {
+        containers.forEach(container => {
+          container.innerHTML = `
+            <div class="photos-placeholder">
+              <div class="photos-icon">📷</div>
+              <h3>No Photos Found</h3>
+              <p>No photos were found in your Google Photos library.</p>
+            </div>
+          `;
+        });
       }
     } else {
-      throw new Error(`Failed to fetch photos: ${response.status}`);
+      const errorText = await response.text();
+      let errorMessage = `Failed to fetch photos: ${response.status}`;
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } catch (e) {
+        errorMessage = errorText || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
     
     // Set up automatic rotation
@@ -4487,13 +4533,13 @@ window.openGooglePicker = openGooglePicker;
 async function fetchHAEntity(entityId) {
   try {
     // Use serverless function
-    const response = await fetch(`/api/ha-fetch?entityId=${encodeURIComponent(entityId)}`);
-    if (!response.ok) {
-      // Don't log 404s/500s for missing entities (expected for some forecast days/hours)
-      // Just throw silently - caller will handle
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return await response.json();
+      const response = await fetch(`/api/ha-fetch?entityId=${encodeURIComponent(entityId)}`);
+      if (!response.ok) {
+        // Don't log 404s/500s for missing entities (expected for some forecast days/hours)
+        // Just throw silently - caller will handle
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
   } catch (error) {
     // Silently throw - caller will handle missing entities
     throw error;
@@ -4515,14 +4561,14 @@ async function triggerHAWebhook(webhookId) {
     }
     
     // Use serverless function
-    const response = await fetch(`/api/ha-webhook?webhookId=${encodeURIComponent(actualWebhookId)}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({})
-    });
-    
+      const response = await fetch(`/api/ha-webhook?webhookId=${encodeURIComponent(actualWebhookId)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
+      
     // Some serverless functions may return 500 even when webhook succeeds
     // Try to parse response even if status is not ok
     if (response.ok) {
@@ -4551,7 +4597,7 @@ async function triggerHAWebhook(webhookId) {
         if (response.status === 500) {
           console.warn(`Webhook ${actualWebhookId} returned status 500, but webhook may have succeeded`);
           return { success: true, warning: `Server returned 500 but webhook likely succeeded` };
-        }
+      }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
     }
@@ -4588,7 +4634,7 @@ function loadWidgetVisibility() {
     
     // Process all widgets in WIDGET_CONFIG
     Object.keys(WIDGET_CONFIG).forEach(widgetId => {
-      // Find widget on current page only
+        // Find widget on current page only
       let widget = pageElement.querySelector(`.${widgetId}`);
       
       // Only create widget if visibility is explicitly true
@@ -4612,17 +4658,17 @@ function loadWidgetVisibility() {
       }
       
       // Set visibility for existing widgets
-      if (widget) {
-        if (visibility[widgetId] === false) {
-          widget.classList.add('hidden');
+        if (widget) {
+          if (visibility[widgetId] === false) {
+            widget.classList.add('hidden');
         } else if (visibility[widgetId] === true) {
-          widget.classList.remove('hidden');
+            widget.classList.remove('hidden');
         } else {
           // If visibility not set for this page, hide the widget (it shouldn't be here)
           widget.classList.add('hidden');
+          }
         }
-      }
-    });
+      });
   } catch (error) {
     console.error('Error loading widget visibility:', error);
   }
@@ -4695,7 +4741,7 @@ function toggleWidgetVisibility(widgetId) {
     saveWidgetVisibility();
     // Update panel after a brief delay to ensure DOM is updated
     setTimeout(() => {
-      updateWidgetControlPanel();
+    updateWidgetControlPanel();
     }, 10);
   }
 }
@@ -5400,10 +5446,10 @@ function showPage(pageIndex, direction = null) {
   
   // Update all pages to final positions (skip for right loop - handled in requestAnimationFrame)
   if (!skipFinalPositions) {
-    pages.forEach((page, index) => {
-      const offset = (index - pageIndex) * 100;
-      page.style.transform = `translateX(${offset}vw)`;
-    });
+  pages.forEach((page, index) => {
+    const offset = (index - pageIndex) * 100;
+    page.style.transform = `translateX(${offset}vw)`;
+  });
   }
   
   // Re-enable transitions after instant loop switch (for left loop only)
@@ -6068,7 +6114,7 @@ function exportConfiguration() {
       if (bgValue) {
         try {
           page.background = JSON.parse(bgValue);
-        } catch {
+          } catch {
           page.background = bgValue;
         }
       }
