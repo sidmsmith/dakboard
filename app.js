@@ -4143,43 +4143,39 @@ async function openGooglePicker() {
   const containers = document.querySelectorAll('#photos-content');
   
   try {
-    // Restore access token from localStorage if available
-    const storedToken = localStorage.getItem('google_picker_access_token');
-    if (storedToken && !googlePickerState.accessToken) {
-      googlePickerState.accessToken = storedToken;
-    }
+    // Always clear old tokens to force fresh authentication with correct scope
+    // This ensures we get a token with the photospicker scope
+    localStorage.removeItem('google_picker_access_token');
+    localStorage.removeItem('google_picker_authenticated');
+    googlePickerState.accessToken = null;
     
-    // Authenticate if needed
-    if (!googlePickerState.accessToken) {
-      // Show loading message
-      containers.forEach(container => {
-        container.innerHTML = `
-          <div class="photos-placeholder">
-            <div class="photos-icon">📷</div>
-            <h3>Authenticating...</h3>
-            <p>Please complete authentication in the popup window.</p>
-          </div>
-        `;
-      });
-      
-      await authenticateGooglePicker();
-      
-      // Show success message after authentication, then proceed to open picker
-      containers.forEach(container => {
-        container.innerHTML = `
-          <div class="photos-placeholder">
-            <div class="photos-icon">✅</div>
-            <h3>Authentication Successful!</h3>
-            <p>Opening Google Photos Picker...</p>
-          </div>
-        `;
-      });
-      
-      // Store authentication success
-      localStorage.setItem('google_picker_authenticated', 'true');
-      
-      // Continue to open picker (don't return early)
-    }
+    // Always authenticate to ensure we have a fresh token with the correct scope
+    // Show loading message
+    containers.forEach(container => {
+      container.innerHTML = `
+        <div class="photos-placeholder">
+          <div class="photos-icon">📷</div>
+          <h3>Authenticating...</h3>
+          <p>Please complete authentication in the popup window.</p>
+        </div>
+      `;
+    });
+    
+    await authenticateGooglePicker();
+    
+    // Show success message after authentication, then proceed to open picker
+    containers.forEach(container => {
+      container.innerHTML = `
+        <div class="photos-placeholder">
+          <div class="photos-icon">✅</div>
+          <h3>Authentication Successful!</h3>
+          <p>Opening Google Photos Picker...</p>
+        </div>
+      `;
+    });
+    
+    // Store authentication success
+    localStorage.setItem('google_picker_authenticated', 'true');
     
     // Create picker session
     const pickerUri = await createPickerSession();
