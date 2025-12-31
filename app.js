@@ -3978,15 +3978,18 @@ async function authenticateGooglePicker() {
 
 // Create a Picker API session (via serverless function to avoid CORS)
 async function createPickerSession() {
-  // Restore access token from localStorage if available
-  const storedToken = localStorage.getItem('google_picker_access_token');
-  if (storedToken && !googlePickerState.accessToken) {
-    googlePickerState.accessToken = storedToken;
-  }
-  
+  // Always re-authenticate to ensure we have a fresh token with the correct scope
+  // Don't reuse stored tokens as they might be from old authentication without the right scope
   if (!googlePickerState.accessToken) {
     await authenticateGooglePicker();
   }
+  
+  // Verify we have a token
+  if (!googlePickerState.accessToken) {
+    throw new Error('Failed to obtain access token. Please try authenticating again.');
+  }
+  
+  console.log('Using access token (first 20 chars):', googlePickerState.accessToken.substring(0, 20) + '...');
   
   try {
     console.log('Creating picker session with token:', googlePickerState.accessToken ? 'Token present' : 'No token');

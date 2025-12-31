@@ -31,16 +31,24 @@ export default async function (req, res) {
     return res.status(400).json({ error: 'Access token is required' });
   }
   
+  // Log token info (first 20 chars only for security)
+  console.log('Received access token (first 20 chars):', accessToken.substring(0, 20) + '...');
+  console.log('Token length:', accessToken.length);
+  
   try {
     switch (action) {
       case 'create':
         // Create a new picker session
         // Note: Google Photos Picker API uses photospicker.googleapis.com, not photoslibrary.googleapis.com
         // Endpoint is /v1/sessions, not /v1/pickerSessions
+        const authHeader = `Bearer ${accessToken}`;
+        console.log('Making request to:', 'https://photospicker.googleapis.com/v1/sessions');
+        console.log('Authorization header (first 30 chars):', authHeader.substring(0, 30) + '...');
+        
         const createResponse = await fetch('https://photospicker.googleapis.com/v1/sessions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': authHeader,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -54,6 +62,22 @@ export default async function (req, res) {
         if (!createResponse.ok) {
           const errorText = await createResponse.text();
           console.error('Google Picker API error:', createResponse.status, errorText);
+          
+          // Check if it's a 401 - authentication issue
+          if (createResponse.status === 401) {
+            let errorData;
+            try {
+              errorData = JSON.parse(errorText);
+            } catch (e) {
+              errorData = { error: { message: errorText } };
+            }
+            
+            return res.status(401).json({ 
+              error: 'Authentication failed (401). The access token may be invalid, expired, or not have the required scope.',
+              details: 'Please ensure: 1) The token was obtained with the scope "https://www.googleapis.com/auth/photospicker.mediaitems.readonly", 2) The token is not expired, 3) The OAuth client ID matches the one used to obtain the token.',
+              googleError: errorData
+            });
+          }
           
           // Check if it's a 404 - API might not be enabled
           if (createResponse.status === 404) {
