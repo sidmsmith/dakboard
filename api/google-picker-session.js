@@ -35,7 +35,8 @@ export default async function (req, res) {
     switch (action) {
       case 'create':
         // Create a new picker session
-        const createResponse = await fetch('https://photoslibrary.googleapis.com/v1/pickerSessions', {
+        // Note: Google Photos Picker API uses photospicker.googleapis.com, not photoslibrary.googleapis.com
+        const createResponse = await fetch('https://photospicker.googleapis.com/v1/pickerSessions', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -77,7 +78,7 @@ export default async function (req, res) {
           return res.status(400).json({ error: 'Session ID is required for polling' });
         }
         
-        const pollResponse = await fetch(`https://photoslibrary.googleapis.com/v1/pickerSessions/${sessionId}`, {
+        const pollResponse = await fetch(`https://photospicker.googleapis.com/v1/pickerSessions/${sessionId}`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`
           }
@@ -100,7 +101,7 @@ export default async function (req, res) {
           return res.status(400).json({ error: 'Session ID is required for getting selected items' });
         }
         
-        const getResponse = await fetch(`https://photoslibrary.googleapis.com/v1/pickerSessions/${sessionId}:getSelectedMediaItems`, {
+        const getResponse = await fetch(`https://photospicker.googleapis.com/v1/pickerSessions/${sessionId}:getSelectedMediaItems`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`
           }
