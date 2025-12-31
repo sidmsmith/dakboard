@@ -3976,7 +3976,7 @@ async function authenticateGooglePicker() {
   }
 }
 
-// Create a Picker API session
+// Create a Picker API session (via serverless function to avoid CORS)
 async function createPickerSession() {
   // Restore access token from localStorage if available
   const storedToken = localStorage.getItem('google_picker_access_token');
@@ -3989,23 +3989,21 @@ async function createPickerSession() {
   }
   
   try {
-    const response = await fetch('https://photoslibrary.googleapis.com/v1/pickerSessions', {
+    // Use serverless function to avoid CORS issues
+    const response = await fetch('/api/google-picker-session', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${googlePickerState.accessToken}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        featureConfigs: [{
-          feature: 'PHOTOS',
-          allowedMimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-        }]
+        action: 'create',
+        accessToken: googlePickerState.accessToken
       })
     });
     
     if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage = `Failed to create picker session: ${response.status}`;
+      const errorData = await response.json();
+      let errorMessage = errorData.error || `Failed to create picker session: ${response.status}`;
       
       // Check if it's an unverified app error
       if (response.status === 403 || response.status === 401) {
@@ -4027,7 +4025,7 @@ async function createPickerSession() {
   }
 }
 
-// Poll picker session to check if user has completed selection
+// Poll picker session to check if user has completed selection (via serverless function to avoid CORS)
 async function pollPickerSession(sessionId) {
   const maxAttempts = 60; // Poll for up to 5 minutes (5 second intervals)
   let attempts = 0;
@@ -4037,14 +4035,22 @@ async function pollPickerSession(sessionId) {
       attempts++;
       
       try {
-        const response = await fetch(`https://photoslibrary.googleapis.com/v1/pickerSessions/${sessionId}`, {
+        // Use serverless function to avoid CORS issues
+        const response = await fetch('/api/google-picker-session', {
+          method: 'POST',
           headers: {
-            'Authorization': `Bearer ${googlePickerState.accessToken}`
-          }
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'poll',
+            accessToken: googlePickerState.accessToken,
+            sessionId: sessionId
+          })
         });
         
         if (!response.ok) {
-          throw new Error(`Failed to poll session: ${response.status}`);
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to poll session: ${response.status}`);
         }
         
         const data = await response.json();
@@ -4067,17 +4073,25 @@ async function pollPickerSession(sessionId) {
   });
 }
 
-// Get selected media items from completed session
+// Get selected media items from completed session (via serverless function to avoid CORS)
 async function getSelectedMediaItems(sessionId) {
   try {
-    const response = await fetch(`https://photoslibrary.googleapis.com/v1/pickerSessions/${sessionId}:getSelectedMediaItems`, {
+    // Use serverless function to avoid CORS issues
+    const response = await fetch('/api/google-picker-session', {
+      method: 'POST',
       headers: {
-        'Authorization': `Bearer ${googlePickerState.accessToken}`
-      }
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: 'getSelected',
+        accessToken: googlePickerState.accessToken,
+        sessionId: sessionId
+      })
     });
     
     if (!response.ok) {
-      throw new Error(`Failed to get selected media items: ${response.status}`);
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Failed to get selected media items: ${response.status}`);
     }
     
     const data = await response.json();
@@ -4114,16 +4128,13 @@ async function openGooglePicker() {
       
       await authenticateGooglePicker();
       
-      // Show success message after authentication
+      // Show success message after authentication, then proceed to open picker
       containers.forEach(container => {
         container.innerHTML = `
           <div class="photos-placeholder">
             <div class="photos-icon">✅</div>
             <h3>Authentication Successful!</h3>
-            <p>You have successfully authenticated with Google Photos.</p>
-            <p style="font-size: 12px; color: #888; margin-top: 8px;">
-              Note: Photos cannot be loaded until app verification is complete.
-            </p>
+            <p>Opening Google Photos Picker...</p>
           </div>
         `;
       });
@@ -4131,7 +4142,7 @@ async function openGooglePicker() {
       // Store authentication success
       localStorage.setItem('google_picker_authenticated', 'true');
       
-      return;
+      // Continue to open picker (don't return early)
     }
     
     // Create picker session
