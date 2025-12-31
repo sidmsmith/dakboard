@@ -2458,6 +2458,844 @@ async function setAlarm() {
 // Thermostat state
 let currentThermostat = 1;
 
+// Calculate relative luminance of a color (for contrast calculation)
+function getLuminance(r, g, b) {
+  // Convert RGB to relative luminance using WCAG formula
+  const [rs, gs, bs] = [r, g, b].map(val => {
+    val = val / 255;
+    return val <= 0.03928 ? val / 12.92 : Math.pow((val + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+// Determine if a color is light or dark based on luminance
+function isLightColor(r, g, b) {
+  const luminance = getLuminance(r, g, b);
+  // Threshold of 0.5 - above is light, below is dark
+  return luminance > 0.5;
+}
+
+// Update widget control and text styles based on widget background color (generic for all widgets)
+function updateWidgetDynamicStyles(widget) {
+  if (!widget) return;
+  
+  // Get computed background color from the widget
+  const computedStyle = window.getComputedStyle(widget);
+  let bgColor = computedStyle.backgroundColor;
+  
+  // If background is transparent or rgba(0,0,0,0), try to get from background-image or use fallback
+  if (!bgColor || bgColor === 'rgba(0, 0, 0, 0)' || bgColor === 'transparent') {
+    // Check if there's a background image (we can't extract color from it, so use a neutral approach)
+    const bgImage = computedStyle.backgroundImage;
+    if (bgImage && bgImage !== 'none') {
+      // For images/gradients, assume dark background (use light text)
+      bgColor = 'rgb(42, 42, 42)';
+    } else {
+      // Try to get from parent or use default
+      bgColor = computedStyle.backgroundColor || 'rgb(42, 42, 42)';
+    }
+  }
+  
+  // Extract RGB values from rgba/rgb string
+  let rgbMatch = bgColor.match(/\d+/g);
+  if (!rgbMatch || rgbMatch.length < 3) {
+    // Fallback to default if parsing fails
+    bgColor = 'rgb(42, 42, 42)';
+    rgbMatch = [42, 42, 42];
+  }
+  
+  const r = parseInt(rgbMatch[0]);
+  const g = parseInt(rgbMatch[1]);
+  const b = parseInt(rgbMatch[2]);
+  
+  // Determine if background is light or dark
+  const isLight = isLightColor(r, g, b);
+  
+  // Set text colors based on background brightness
+  const primaryTextColor = isLight ? '#1a1a1a' : '#ffffff'; // Dark text for light bg, white for dark bg
+  const secondaryTextColor = isLight ? '#4a4a4a' : '#aaaaaa'; // Darker gray for light bg, lighter gray for dark bg
+  
+  // Calculate darker shade for borders (reduce brightness by 25-30%)
+  const darkenFactor = 0.25;
+  const borderR = Math.max(0, Math.floor(r * (1 - darkenFactor)));
+  const borderG = Math.max(0, Math.floor(g * (1 - darkenFactor)));
+  const borderB = Math.max(0, Math.floor(b * (1 - darkenFactor)));
+  
+  // Calculate even darker for hover states
+  const hoverDarkenFactor = 0.15; // Additional darkening on top of border
+  const hoverR = Math.max(0, Math.floor(borderR * (1 - hoverDarkenFactor)));
+  const hoverG = Math.max(0, Math.floor(borderG * (1 - hoverDarkenFactor)));
+  const hoverB = Math.max(0, Math.floor(borderB * (1 - hoverDarkenFactor)));
+  
+  // Set CSS custom properties on the widget
+  widget.style.setProperty('--widget-bg-overlay', isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.15)');
+  widget.style.setProperty('--widget-border-color', `rgb(${borderR}, ${borderG}, ${borderB})`);
+  widget.style.setProperty('--widget-hover-border', `rgb(${hoverR}, ${hoverG}, ${hoverB})`);
+  widget.style.setProperty('--widget-hover-bg', isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.25)');
+  widget.style.setProperty('--widget-text-primary', primaryTextColor);
+  widget.style.setProperty('--widget-text-secondary', secondaryTextColor);
+}
+
+// Update thermostat control styles based on widget background color (kept for backward compatibility)
+function updateThermostatControlStyles(widget) {
+  if (!widget) return;
+  updateWidgetDynamicStyles(widget);
+  
+  // Set thermostat-specific CSS variables (aliases to widget variables for backward compatibility)
+  widget.style.setProperty('--thermostat-bg-overlay', widget.style.getPropertyValue('--widget-bg-overlay'));
+  widget.style.setProperty('--thermostat-border-color', widget.style.getPropertyValue('--widget-border-color'));
+  widget.style.setProperty('--thermostat-hover-border', widget.style.getPropertyValue('--widget-hover-border'));
+  widget.style.setProperty('--thermostat-hover-bg', widget.style.getPropertyValue('--widget-hover-bg'));
+  widget.style.setProperty('--thermostat-text-primary', widget.style.getPropertyValue('--widget-text-primary'));
+  widget.style.setProperty('--thermostat-text-secondary', widget.style.getPropertyValue('--widget-text-secondary'));
+}
+
+// Load thermostat data
+async function loadThermostat() {
+  // Find all thermostat widgets across all pages
+  const selectors = document.querySelectorAll('#thermostat-selector');
+  const displays = document.querySelectorAll('#thermostat-display');
+  
+  if (selectors.length === 0 || displays.length === 0) return;
+  
+  // Use the first selector to get the value (they should all be in sync)
+  const selector = selectors[0];
+  const display = displays[0];
+  
+  // Get selected thermostat
+  currentThermostat = parseInt(selector.value) || 1;
+  const thermostatEntity = CONFIG[`HA_THERMOSTAT_${currentThermostat}`];
+  
+  if (!thermostatEntity) {
+    const errorHtml = `
+      <div class="thermostat-error">
+        <p>Thermostat ${currentThermostat} not configured</p>
+        <p style="font-size: 12px; color: #888;">Update CONFIG.HA_THERMOSTAT_${currentThermostat} in app.js</p>
+      </div>
+    `;
+    // Update all displays
+    displays.forEach(d => d.innerHTML = errorHtml);
+    return;
+  }
+  
+  try {
+    const entity = await fetchHAEntity(thermostatEntity);
+    if (!entity) {
+      const errorHtml = '<div class="thermostat-error">Thermostat not found</div>';
+      displays.forEach(d => d.innerHTML = errorHtml);
+      return;
+    }
+    
+    const state = entity.state;
+    const attrs = entity.attributes || {};
+    
+    // Get temperature values
+    const currentTemp = attrs.current_temperature || attrs.temperature || '--';
+    const targetTemp = attrs.temperature || attrs.target_temp_high || attrs.target_temp_low || '--';
+    const mode = attrs.hvac_modes && attrs.hvac_modes.length > 0 ? state : 'off';
+    const fanMode = attrs.fan_mode || 'auto';
+    const fanModes = attrs.fan_modes || ['auto', 'on'];
+    
+    // Determine if heating or cooling
+    const isHeating = mode === 'heat' || (mode === 'auto' && currentTemp < targetTemp);
+    const isCooling = mode === 'cool' || (mode === 'auto' && currentTemp > targetTemp);
+    
+    const displayHtml = `
+      <div class="thermostat-main">
+        <div class="thermostat-temp-display">
+          <div class="thermostat-current-temp">${Math.round(currentTemp)}°</div>
+          <div class="thermostat-target-temp">
+            <span class="thermostat-target-label">Target:</span>
+            <span class="thermostat-target-value" id="thermostat-target-value">${Math.round(targetTemp)}°</span>
+          </div>
+        </div>
+        <div class="thermostat-controls">
+          <div class="thermostat-mode">
+            <label>Mode:</label>
+            <select id="thermostat-mode-select" class="thermostat-control-select" ${isEditMode ? 'disabled' : ''}>
+              ${(attrs.hvac_modes || ['off']).map(m => 
+                `<option value="${m}" ${m === mode ? 'selected' : ''}>${m.charAt(0).toUpperCase() + m.slice(1)}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="thermostat-fan">
+            <label>Fan:</label>
+            <select id="thermostat-fan-select" class="thermostat-control-select" ${isEditMode ? 'disabled' : ''}>
+              ${fanModes.map(f => 
+                `<option value="${f}" ${f === fanMode ? 'selected' : ''}>${f.charAt(0).toUpperCase() + f.slice(1)}</option>`
+              ).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="thermostat-temp-control">
+          <button class="thermostat-temp-btn" id="thermostat-temp-down" ${isEditMode ? 'disabled' : ''}>−</button>
+          <input type="number" id="thermostat-temp-input" class="thermostat-temp-input" 
+                 value="${Math.round(targetTemp)}" min="50" max="90" step="1" ${isEditMode ? 'disabled' : ''}>
+          <button class="thermostat-temp-btn" id="thermostat-temp-up" ${isEditMode ? 'disabled' : ''}>+</button>
+        </div>
+        <div class="thermostat-status">
+          <span class="thermostat-status-indicator ${isHeating ? 'heating' : isCooling ? 'cooling' : 'idle'}">
+            ${isHeating ? '🔥 Heating' : isCooling ? '❄️ Cooling' : '⚪ Idle'}
+          </span>
+        </div>
+      </div>
+    `;
+    
+    // Update all displays across all pages
+    displays.forEach(d => d.innerHTML = displayHtml);
+    
+    // Sync all selectors to the current selection
+    selectors.forEach(s => {
+      if (s.value !== currentThermostat.toString()) {
+        s.value = currentThermostat.toString();
+      }
+    });
+    
+    // Apply dynamic styling to thermostat controls based on widget background
+    document.querySelectorAll('.thermostat-widget').forEach(widget => {
+      updateThermostatControlStyles(widget);
+    });
+    
+    // Add event listeners (only if not in edit mode) - setup for all widgets
+    if (!isEditMode) {
+      setupThermostatControls(thermostatEntity);
+    }
+  } catch (error) {
+    console.error('Error loading thermostat:', error);
+    const errorHtml = `<div class="thermostat-error">Error: ${error.message}</div>`;
+    displays.forEach(d => d.innerHTML = errorHtml);
+  }
+}
+
+// Setup thermostat controls
+function setupThermostatControls(entityId) {
+  // Use querySelectorAll to get all instances across pages and attach listeners with duplicate prevention
+  const tempInputs = document.querySelectorAll('#thermostat-temp-input');
+  const tempDowns = document.querySelectorAll('#thermostat-temp-down');
+  const tempUps = document.querySelectorAll('#thermostat-temp-up');
+  const targetValues = document.querySelectorAll('#thermostat-target-value');
+  const modeSelects = document.querySelectorAll('#thermostat-mode-select');
+  const fanSelects = document.querySelectorAll('#thermostat-fan-select');
+  
+  // Temperature input - attach to all instances
+  tempInputs.forEach(tempInput => {
+    if (!tempInput.dataset.listenerAttached) {
+      tempInput.dataset.listenerAttached = 'true';
+      tempInput.addEventListener('change', async () => {
+        const newTemp = parseFloat(tempInput.value);
+        await setThermostatTemperature(entityId, newTemp);
+      });
+    }
+  });
+  
+  // Temperature down button - attach to all instances
+  tempDowns.forEach(tempDown => {
+    if (!tempDown.dataset.listenerAttached) {
+      tempDown.dataset.listenerAttached = 'true';
+      tempDown.addEventListener('click', async () => {
+        const widget = tempDown.closest('.thermostat-widget');
+        const tempInput = widget?.querySelector('#thermostat-temp-input');
+        const targetValue = widget?.querySelector('#thermostat-target-value');
+        if (tempInput && targetValue) {
+          const current = parseFloat(tempInput.value);
+          const newTemp = Math.max(50, current - 1);
+          tempInput.value = newTemp;
+          targetValue.textContent = `${newTemp}°`;
+          await setThermostatTemperature(entityId, newTemp);
+        }
+      });
+    }
+  });
+  
+  // Temperature up button - attach to all instances
+  tempUps.forEach(tempUp => {
+    if (!tempUp.dataset.listenerAttached) {
+      tempUp.dataset.listenerAttached = 'true';
+      tempUp.addEventListener('click', async () => {
+        const widget = tempUp.closest('.thermostat-widget');
+        const tempInput = widget?.querySelector('#thermostat-temp-input');
+        const targetValue = widget?.querySelector('#thermostat-target-value');
+        if (tempInput && targetValue) {
+          const current = parseFloat(tempInput.value);
+          const newTemp = Math.min(90, current + 1);
+          tempInput.value = newTemp;
+          targetValue.textContent = `${newTemp}°`;
+          await setThermostatTemperature(entityId, newTemp);
+        }
+      });
+    }
+  });
+  
+  // Mode select - attach to all instances
+  modeSelects.forEach(modeSelect => {
+    if (!modeSelect.dataset.listenerAttached) {
+      modeSelect.dataset.listenerAttached = 'true';
+      modeSelect.addEventListener('change', async () => {
+        await setThermostatMode(entityId, modeSelect.value);
+      });
+    }
+  });
+  
+  // Fan select - attach to all instances
+  fanSelects.forEach(fanSelect => {
+    if (!fanSelect.dataset.listenerAttached) {
+      fanSelect.dataset.listenerAttached = 'true';
+      fanSelect.addEventListener('change', async () => {
+        await setThermostatFanMode(entityId, fanSelect.value);
+      });
+    }
+  });
+  
+  // Thermostat selector dropdown - attach to ALL selectors across all pages
+  const allSelectors = document.querySelectorAll('#thermostat-selector');
+  allSelectors.forEach(selector => {
+    if (!selector.dataset.listenerAttached) {
+      selector.dataset.listenerAttached = 'true';
+      selector.addEventListener('change', () => {
+        const selectedValue = selector.value;
+        document.querySelectorAll('#thermostat-selector').forEach(s => {
+          if (s !== selector && s.value !== selectedValue) {
+            s.value = selectedValue;
+          }
+        });
+        loadThermostat();
+      });
+    }
+  });
+}
+
+// Set thermostat temperature
+async function setThermostatTemperature(entityId, temperature) {
+  if (isEditMode) return;
+  
+  try {
+    await fetch('/api/ha-climate-set-temp', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        entity_id: entityId,
+        temperature: temperature
+      })
+    });
+    
+    showToast(`Temperature set to ${temperature}°F`, 1000);
+    setTimeout(() => loadThermostat(), 500);
+  } catch (error) {
+    console.error('Error setting temperature:', error);
+    showToast('Error setting temperature', 2000);
+  }
+}
+
+// Set thermostat mode
+async function setThermostatMode(entityId, mode) {
+  if (isEditMode) return;
+  
+  try {
+    await fetch('/api/ha-climate-set-mode', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        entity_id: entityId,
+        hvac_mode: mode
+      })
+    });
+    
+    showToast(`Mode set to ${mode}`, 1000);
+    setTimeout(() => loadThermostat(), 500);
+  } catch (error) {
+    console.error('Error setting mode:', error);
+    showToast('Error setting mode', 2000);
+  }
+}
+
+// Set thermostat fan mode
+async function setThermostatFanMode(entityId, fanMode) {
+  if (isEditMode) return;
+  
+  try {
+    await fetch('/api/ha-climate-set-fan', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        entity_id: entityId,
+        fan_mode: fanMode
+      })
+    });
+    
+    showToast(`Fan set to ${fanMode}`, 1000);
+    setTimeout(() => loadThermostat(), 500);
+  } catch (error) {
+    console.error('Error setting fan mode:', error);
+    showToast('Error setting fan mode', 2000);
+  }
+}
+
+// News loading state - prevent multiple simultaneous requests
+let newsLoading = false;
+let newsLastError = null;
+let newsErrorCount = 0;
+const MAX_NEWS_ERRORS = 3; // Stop retrying after 3 consecutive errors
+
+async function loadNews() {
+  // Find all news widgets across all pages
+  const containers = document.querySelectorAll('#news-content');
+  if (containers.length === 0) return;
+  
+  // Prevent multiple simultaneous requests
+  if (newsLoading) {
+    return;
+  }
+  
+  // If we've had too many errors, show a persistent error message and don't retry
+  if (newsErrorCount >= MAX_NEWS_ERRORS) {
+    if (newsLastError) {
+      const errorHtml = `
+        <div class="news-error">
+          <p>News feed unavailable</p>
+          <p style="font-size: 12px; color: #888; margin-top: 8px;">
+            ${newsLastError}
+          </p>
+          <p style="font-size: 11px; color: #666; margin-top: 8px;">
+            The news service is currently unavailable. Please check your API configuration.
+          </p>
+        </div>
+      `;
+      containers.forEach(c => c.innerHTML = errorHtml);
+    }
+    return;
+  }
+  
+  newsLoading = true;
+  
+  try {
+    // Use RSS feed (free, no API key required)
+    const response = await fetch('/api/news');
+    
+    if (!response.ok) {
+      let errorMessage = `Failed to fetch news: ${response.statusText}`;
+      
+      // Try to get more detailed error message
+      try {
+        const errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch (e) {
+        // If JSON parsing fails, use the status text
+      }
+      
+      if (response.status === 400) {
+        // Show error message for configuration issues
+        const errorHtml = `
+          <div class="news-error">
+            <p>News feed configuration error</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">
+              Please check your RSS feed configuration.
+            </p>
+          </div>
+        `;
+        containers.forEach(c => c.innerHTML = errorHtml);
+        newsErrorCount = MAX_NEWS_ERRORS; // Stop retrying
+        newsLastError = 'Configuration error';
+        return;
+      }
+      
+      // For 500 errors, show a user-friendly message
+      if (response.status === 500) {
+        newsErrorCount++;
+        newsLastError = errorMessage || 'Server error - news service unavailable';
+        const errorHtml = `
+          <div class="news-error">
+            <p>News feed unavailable</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">
+              ${newsLastError}
+            </p>
+            ${newsErrorCount < MAX_NEWS_ERRORS ? 
+              '<p style="font-size: 11px; color: #666; margin-top: 8px;">Retrying...</p>' :
+              '<p style="font-size: 11px; color: #666; margin-top: 8px;">Service temporarily unavailable</p>'
+            }
+          </div>
+        `;
+        containers.forEach(c => c.innerHTML = errorHtml);
+        throw new Error(errorMessage);
+      }
+      
+      throw new Error(errorMessage);
+    }
+    
+    const data = await response.json();
+    
+    // Reset error count on success
+    newsErrorCount = 0;
+    newsLastError = null;
+    
+    let contentHtml;
+    if (data.articles && data.articles.length > 0) {
+      contentHtml = `
+        <div class="news-list">
+          ${data.articles.slice(0, 5).map((article, index) => `
+            <div class="news-item">
+              <div class="news-item-title">
+                <a href="${article.url}" target="_blank" rel="noopener noreferrer">
+                  ${article.title}
+                </a>
+              </div>
+              <div class="news-item-source">${article.source?.name || 'Unknown'} • ${formatNewsDate(article.publishedAt)}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } else {
+      contentHtml = '<div class="news-error">No news articles found</div>';
+    }
+    
+    // Update all containers across all pages
+    containers.forEach(c => c.innerHTML = contentHtml);
+  } catch (error) {
+    console.error('Error loading news:', error);
+    newsErrorCount++;
+    newsLastError = error.message || 'Unknown error';
+    
+    // Only show error if we haven't exceeded max errors
+    if (newsErrorCount < MAX_NEWS_ERRORS) {
+      const errorHtml = `
+        <div class="news-error">
+          <p>Error loading news</p>
+          <p style="font-size: 12px; color: #888;">${error.message}</p>
+          <p style="font-size: 11px; color: #666; margin-top: 8px;">Retrying...</p>
+        </div>
+      `;
+      containers.forEach(c => c.innerHTML = errorHtml);
+    } else {
+      // Final error message - no more retries
+      const errorHtml = `
+        <div class="news-error">
+          <p>News feed unavailable</p>
+          <p style="font-size: 12px; color: #888; margin-top: 8px;">
+            ${newsLastError}
+          </p>
+          <p style="font-size: 11px; color: #666; margin-top: 8px;">
+            The news service is currently unavailable. Please check your API configuration.
+          </p>
+        </div>
+      `;
+      containers.forEach(c => c.innerHTML = errorHtml);
+    }
+  } finally {
+    newsLoading = false;
+  }
+}
+
+// Format news date
+function formatNewsDate(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// Whiteboard state
+let whiteboardCanvas = null;
+let whiteboardCtx = null;
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+
+// Initialize whiteboard
+function initializeWhiteboard() {
+  // Find whiteboard canvas on current page
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
+    ? window.currentPageIndex 
+    : 0;
+  const currentPage = document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
+  const canvas = currentPage ? currentPage.querySelector('#whiteboard-canvas') : document.getElementById('whiteboard-canvas');
+  if (!canvas) return;
+  
+  whiteboardCanvas = canvas;
+  whiteboardCtx = canvas.getContext('2d');
+  
+  // Set canvas size to match container
+  const container = canvas.closest('.whiteboard-container');
+  const widget = canvas.closest('.whiteboard-widget');
+  if (container && widget) {
+    const resizeCanvas = () => {
+      // Get the actual container dimensions
+      const containerRect = container.getBoundingClientRect();
+      
+      // Calculate available space for canvas (no toolbar in container anymore)
+      const availableWidth = containerRect.width - 2; // Account for border
+      const availableHeight = Math.max(50, containerRect.height - 2); // Account for border
+      
+      // Only resize if dimensions actually changed to avoid unnecessary redraws
+      if (canvas.width !== availableWidth || canvas.height !== availableHeight) {
+        const wasDrawing = canvas.width > 0 && canvas.height > 0;
+        const oldImage = wasDrawing ? canvas.toDataURL() : null;
+        
+        canvas.width = availableWidth;
+        canvas.height = availableHeight;
+        
+        // Restore drawing or set background
+        if (oldImage && wasDrawing) {
+          const img = new Image();
+          img.onload = () => {
+            whiteboardCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          };
+          img.src = oldImage;
+        } else {
+          const pageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+          const bgColor = localStorage.getItem(`whiteboard-bg-color-page-${pageIndex}`) || '#ffffff';
+          whiteboardCtx.fillStyle = bgColor;
+          whiteboardCtx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+    };
+    
+    resizeCanvas();
+    
+    // Observe both container and widget for resize
+    const resizeObserver = new ResizeObserver(resizeCanvas);
+    resizeObserver.observe(container);
+    resizeObserver.observe(widget);
+  }
+  
+  // Set default background color (page-specific)
+  const bgColor = localStorage.getItem(`whiteboard-bg-color-page-${currentPageIndex}`) || '#ffffff';
+  whiteboardCtx.fillStyle = bgColor;
+  whiteboardCtx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Load saved drawing (page-specific) - must be done after canvas is sized
+  const savedDrawing = localStorage.getItem(`whiteboard-drawing-page-${currentPageIndex}`);
+  if (savedDrawing) {
+    const img = new Image();
+    img.onload = () => {
+      whiteboardCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    };
+    img.src = savedDrawing;
+  }
+  
+  // Load saved settings (page-specific)
+  const savedInkColor = localStorage.getItem(`whiteboard-ink-color-page-${currentPageIndex}`) || '#000000';
+  const savedBrushSize = localStorage.getItem(`whiteboard-brush-size-page-${currentPageIndex}`) || '3';
+  
+  // Find controls on current page (whiteboard controls are in the widget header)
+  const whiteboardWidget = canvas.closest('.whiteboard-widget');
+  const inkColorInput = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-ink-color') : document.getElementById('whiteboard-ink-color');
+  const bgColorInput = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-bg-color') : document.getElementById('whiteboard-bg-color');
+  const brushSizeInput = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-brush-size') : document.getElementById('whiteboard-brush-size');
+  const brushSizeLabel = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-brush-size-label') : document.getElementById('whiteboard-brush-size-label');
+  const clearBtn = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-clear') : document.getElementById('whiteboard-clear');
+  
+  if (inkColorInput) inkColorInput.value = savedInkColor;
+  if (bgColorInput) bgColorInput.value = bgColor;
+  if (brushSizeInput) {
+    brushSizeInput.value = savedBrushSize;
+    if (brushSizeLabel) brushSizeLabel.textContent = `${savedBrushSize}px`;
+  }
+  
+  // Event listeners
+  if (clearBtn) {
+    clearBtn.addEventListener('click', clearWhiteboard);
+  }
+  
+  if (inkColorInput) {
+    inkColorInput.addEventListener('change', (e) => {
+      localStorage.setItem(`whiteboard-ink-color-page-${currentPageIndex}`, e.target.value);
+    });
+  }
+  
+  if (bgColorInput) {
+    bgColorInput.addEventListener('change', (e) => {
+      const newBgColor = e.target.value;
+      localStorage.setItem(`whiteboard-bg-color-page-${currentPageIndex}`, newBgColor);
+      // Redraw canvas with new background
+      const currentImage = canvas.toDataURL();
+      whiteboardCtx.fillStyle = newBgColor;
+      whiteboardCtx.fillRect(0, 0, canvas.width, canvas.height);
+      const img = new Image();
+      img.onload = () => {
+        whiteboardCtx.drawImage(img, 0, 0);
+      };
+      img.src = currentImage;
+      saveWhiteboard();
+    });
+  }
+  
+  if (brushSizeInput && brushSizeLabel) {
+    brushSizeInput.addEventListener('input', (e) => {
+      const size = e.target.value;
+      brushSizeLabel.textContent = `${size}px`;
+      localStorage.setItem(`whiteboard-brush-size-page-${currentPageIndex}`, size);
+    });
+  }
+  
+  // Drawing event listeners (only in normal mode)
+  setupWhiteboardDrawing();
+}
+
+// Setup whiteboard drawing
+function setupWhiteboardDrawing() {
+  if (!whiteboardCanvas) return;
+  
+  // Remove existing listeners
+  whiteboardCanvas.removeEventListener('mousedown', startDrawing);
+  whiteboardCanvas.removeEventListener('mousemove', draw);
+  whiteboardCanvas.removeEventListener('mouseup', stopDrawing);
+  whiteboardCanvas.removeEventListener('mouseout', stopDrawing);
+  whiteboardCanvas.removeEventListener('touchstart', startDrawingTouch);
+  whiteboardCanvas.removeEventListener('touchmove', drawTouch);
+  whiteboardCanvas.removeEventListener('touchend', stopDrawing);
+  
+  // Only enable drawing in normal mode
+  if (!isEditMode) {
+    whiteboardCanvas.addEventListener('mousedown', startDrawing);
+    whiteboardCanvas.addEventListener('mousemove', draw);
+    whiteboardCanvas.addEventListener('mouseup', stopDrawing);
+    whiteboardCanvas.addEventListener('mouseout', stopDrawing);
+    
+    // Touch events for mobile
+    whiteboardCanvas.addEventListener('touchstart', startDrawingTouch, { passive: false });
+    whiteboardCanvas.addEventListener('touchmove', drawTouch, { passive: false });
+    whiteboardCanvas.addEventListener('touchend', stopDrawing);
+    
+    whiteboardCanvas.style.cursor = 'crosshair';
+  } else {
+    whiteboardCanvas.style.cursor = 'default';
+  }
+}
+
+// Start drawing
+function startDrawing(e) {
+  if (isEditMode) return;
+  isDrawing = true;
+  const rect = whiteboardCanvas.getBoundingClientRect();
+  lastX = e.clientX - rect.left;
+  lastY = e.clientY - rect.top;
+}
+
+// Start drawing (touch)
+function startDrawingTouch(e) {
+  if (isEditMode) return;
+  e.preventDefault();
+  isDrawing = true;
+  const touch = e.touches[0];
+  const rect = whiteboardCanvas.getBoundingClientRect();
+  lastX = touch.clientX - rect.left;
+  lastY = touch.clientY - rect.top;
+}
+
+// Draw
+function draw(e) {
+  if (!isDrawing || isEditMode) return;
+  
+  const rect = whiteboardCanvas.getBoundingClientRect();
+  const currentX = e.clientX - rect.left;
+  const currentY = e.clientY - rect.top;
+  
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+  const inkColorInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-ink-color') || document.getElementById('whiteboard-ink-color');
+  const brushSizeInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-brush-size') || document.getElementById('whiteboard-brush-size');
+  const inkColor = inkColorInput?.value || localStorage.getItem(`whiteboard-ink-color-page-${currentPageIndex}`) || '#000000';
+  const brushSize = parseInt(brushSizeInput?.value || localStorage.getItem(`whiteboard-brush-size-page-${currentPageIndex}`) || '3');
+  
+  whiteboardCtx.strokeStyle = inkColor;
+  whiteboardCtx.lineWidth = brushSize;
+  whiteboardCtx.lineCap = 'round';
+  whiteboardCtx.lineJoin = 'round';
+  
+  whiteboardCtx.beginPath();
+  whiteboardCtx.moveTo(lastX, lastY);
+  whiteboardCtx.lineTo(currentX, currentY);
+  whiteboardCtx.stroke();
+  
+  lastX = currentX;
+  lastY = currentY;
+  
+  // Save drawing immediately after each stroke segment
+  saveWhiteboard();
+}
+
+// Draw (touch)
+function drawTouch(e) {
+  if (!isDrawing || isEditMode) return;
+  e.preventDefault();
+  
+  const touch = e.touches[0];
+  const rect = whiteboardCanvas.getBoundingClientRect();
+  const currentX = touch.clientX - rect.left;
+  const currentY = touch.clientY - rect.top;
+  
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+  const inkColorInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-ink-color') || document.getElementById('whiteboard-ink-color');
+  const brushSizeInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-brush-size') || document.getElementById('whiteboard-brush-size');
+  const inkColor = inkColorInput?.value || localStorage.getItem(`whiteboard-ink-color-page-${currentPageIndex}`) || '#000000';
+  const brushSize = parseInt(brushSizeInput?.value || localStorage.getItem(`whiteboard-brush-size-page-${currentPageIndex}`) || '3');
+  
+  whiteboardCtx.strokeStyle = inkColor;
+  whiteboardCtx.lineWidth = brushSize;
+  whiteboardCtx.lineCap = 'round';
+  whiteboardCtx.lineJoin = 'round';
+  
+  whiteboardCtx.beginPath();
+  whiteboardCtx.moveTo(lastX, lastY);
+  whiteboardCtx.lineTo(currentX, currentY);
+  whiteboardCtx.stroke();
+  
+  lastX = currentX;
+  lastY = currentY;
+  
+  // Save drawing immediately after each stroke segment
+  saveWhiteboard();
+}
+
+// Stop drawing
+function stopDrawing() {
+  if (isDrawing) {
+    isDrawing = false;
+    saveWhiteboard();
+  }
+}
+
+// Clear whiteboard
+function clearWhiteboard() {
+  if (!whiteboardCanvas || !whiteboardCtx) return;
+  
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+  const bgColorInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-bg-color') || document.getElementById('whiteboard-bg-color');
+  const bgColor = bgColorInput?.value || localStorage.getItem(`whiteboard-bg-color-page-${currentPageIndex}`) || '#ffffff';
+  whiteboardCtx.fillStyle = bgColor;
+  whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+  
+  localStorage.removeItem(`whiteboard-drawing-page-${currentPageIndex}`);
+  saveWhiteboard();
+}
+
+// Save whiteboard to localStorage (page-specific)
+function saveWhiteboard() {
+  if (!whiteboardCanvas) return;
+  
+  try {
+    const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+    const dataURL = whiteboardCanvas.toDataURL('image/png');
+    localStorage.setItem(`whiteboard-drawing-page-${currentPageIndex}`, dataURL);
+  } catch (error) {
+    console.error('Error saving whiteboard:', error);
+  }
+}
+
 // Fetch HA entity via API (works both locally and in production)
 async function fetchHAEntity(entityId) {
   try {
@@ -2545,7 +3383,6 @@ const WIDGET_CONFIG = {
   'alarm-widget': { name: 'Alarm Panel', icon: '🔒' },
   'blank-widget': { name: 'Blank', icon: '⬜' },
   'clock-widget': { name: 'Clock', icon: '🕐' },
-  'photos-widget': { name: 'Google Photos', icon: '📷' },
   'thermostat-widget': { name: 'Thermostat', icon: '🌡️' },
   'news-widget': { name: 'News', icon: '📰' },
   'whiteboard-widget': { name: 'Whiteboard', icon: '🖊️' }
