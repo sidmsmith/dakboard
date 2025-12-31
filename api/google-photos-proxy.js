@@ -27,24 +27,33 @@ export default async function (req, res) {
   // Decode the URL (it may be double-encoded from the query string)
   const decodedUrl = decodeURIComponent(url);
   
+  console.log('[google-photos-proxy] Fetching image:', decodedUrl.substring(0, 100) + '...');
+  console.log('[google-photos-proxy] Has accessToken:', !!accessToken);
+  
   try {
     // Picker API baseUrls are signed URLs that may or may not need authentication
     // Try without auth first (signed URLs work without headers)
     let imageResponse = await fetch(decodedUrl);
+    console.log('[google-photos-proxy] First attempt (no auth):', imageResponse.status, imageResponse.statusText);
     
     // If that fails with 403, try with authentication
     if (!imageResponse.ok && imageResponse.status === 403 && accessToken) {
+      console.log('[google-photos-proxy] Retrying with authentication header');
       imageResponse = await fetch(decodedUrl, {
         headers: {
           'Authorization': `Bearer ${accessToken}`
         }
       });
+      console.log('[google-photos-proxy] Second attempt (with auth):', imageResponse.status, imageResponse.statusText);
     }
     
     if (!imageResponse.ok) {
+      const errorText = await imageResponse.text().catch(() => '');
+      console.error('[google-photos-proxy] Failed to fetch image:', imageResponse.status, errorText);
       return res.status(imageResponse.status).json({ 
         error: `Failed to fetch image: ${imageResponse.status}`,
-        statusText: imageResponse.statusText
+        statusText: imageResponse.statusText,
+        details: errorText.substring(0, 200)
       });
     }
     
