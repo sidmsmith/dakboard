@@ -4427,11 +4427,9 @@ async function openGooglePicker() {
       console.log('[openGooglePicker] Full item:', JSON.stringify(item, null, 2));
       console.log('[openGooglePicker] Item mediaFile:', JSON.stringify(item.mediaFile, null, 2));
       
-      // According to Google Photos Picker API docs, mediaFile.baseUrl should contain the URL
-      // But we need to check the actual structure
-      const baseUrl = item.mediaFile?.baseUrl || 
-                      item.baseUrl || 
-                      null;
+      // According to Google Photos Picker API docs, mediaFile.baseUrl contains the URL
+      // The baseUrl from Picker API should be accessible directly
+      const baseUrl = item.mediaFile?.baseUrl || null;
       
       if (!baseUrl) {
         console.warn('[openGooglePicker] No baseUrl found for item:', item.id);
@@ -4448,10 +4446,11 @@ async function openGooglePicker() {
         filename: item.mediaFile?.filename || item.filename || `photo_${item.id.substring(0, 8)}`,
         baseUrl: baseUrl,
         mimeType: item.mediaFile?.mimeType || item.mimeType || 'image/jpeg',
-        // Add size variants for display (baseUrl can be used with size parameters)
-        thumbnail: baseUrl ? baseUrl + '=w300-h300-c' : null,
-        medium: baseUrl ? baseUrl + '=w800-h600' : null,
-        full: baseUrl ? baseUrl + '=w1920-h1080' : null
+        // Use baseUrl directly - Google Photos URLs from Picker API work without size parameters
+        // Size parameters might require authentication, so use baseUrl as-is
+        thumbnail: baseUrl || null,
+        medium: baseUrl || null,
+        full: baseUrl || null
       };
     });
     console.log('[openGooglePicker] Processed photos:', googlePhotosCache.photos);
