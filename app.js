@@ -2695,8 +2695,8 @@ function displayRandomGooglePhoto() {
   const randomIndex = Math.floor(Math.random() * googlePhotosCache.photos.length);
   const photo = googlePhotosCache.photos[randomIndex];
   
-  // Use baseUrl directly - Google Photos Picker API URLs work without size parameters
-  // Size parameters cause 403 errors, so use baseUrl as-is
+  // Use baseUrl - but proxy through our serverless function to add authentication
+  // Google Photos URLs require authentication headers which can't be added to <img> tags
   const imageUrl = photo.baseUrl;
   
   if (!imageUrl) {
@@ -2712,10 +2712,16 @@ function displayRandomGooglePhoto() {
     return;
   }
   
+  // Proxy the image through our serverless function to add authentication
+  const accessToken = googlePickerState.accessToken || localStorage.getItem('google_picker_access_token');
+  const proxiedUrl = accessToken 
+    ? `/api/google-photos-proxy?url=${encodeURIComponent(imageUrl)}&accessToken=${encodeURIComponent(accessToken)}`
+    : imageUrl; // Fallback to direct URL if no token
+  
   const photoHtml = `
     <div class="photos-display">
-      <img src="${imageUrl}" alt="Google Photo" class="photos-image" 
-           onerror="console.error('Image load error:', this.src); this.src='${photo.baseUrl || imageUrl}'" />
+      <img src="${proxiedUrl}" alt="Google Photo" class="photos-image" 
+           onerror="console.error('Image load error:', this.src);" />
     </div>
   `;
   containers.forEach(container => container.innerHTML = photoHtml);
