@@ -4081,12 +4081,14 @@ async function createPickerSession() {
 
 // Poll picker session to check if user has completed selection (via serverless function to avoid CORS)
 async function pollPickerSession(sessionId) {
+  console.log('[pollPickerSession] Starting to poll session:', sessionId);
   const maxAttempts = 60; // Poll for up to 5 minutes (5 second intervals)
   let attempts = 0;
   
   return new Promise((resolve, reject) => {
     const pollInterval = setInterval(async () => {
       attempts++;
+      console.log(`[pollPickerSession] Polling attempt ${attempts}/${maxAttempts}`);
       
       try {
         // Use serverless function to avoid CORS issues
@@ -4108,18 +4110,23 @@ async function pollPickerSession(sessionId) {
         }
         
         const data = await response.json();
+        console.log(`[pollPickerSession] Attempt ${attempts}: state=${data.state}`);
         
         if (data.state === 'COMPLETED') {
+          console.log('[pollPickerSession] Session completed!');
           clearInterval(pollInterval);
           resolve(data);
         } else if (data.state === 'CANCELLED' || data.state === 'EXPIRED') {
+          console.log(`[pollPickerSession] Session ${data.state.toLowerCase()}`);
           clearInterval(pollInterval);
           reject(new Error(`Session ${data.state.toLowerCase()}`));
         } else if (attempts >= maxAttempts) {
+          console.log('[pollPickerSession] Polling timeout reached');
           clearInterval(pollInterval);
           reject(new Error('Session polling timeout'));
         }
       } catch (error) {
+        console.error('[pollPickerSession] Error:', error);
         clearInterval(pollInterval);
         reject(error);
       }
@@ -4149,7 +4156,10 @@ async function getSelectedMediaItems(sessionId) {
     }
     
     const data = await response.json();
-    return data.selectedMediaItems || [];
+    console.log('[getSelectedMediaItems] Response data:', data);
+    const items = data.selectedMediaItems || [];
+    console.log(`[getSelectedMediaItems] Found ${items.length} selected items`);
+    return items;
   } catch (error) {
     console.error('Error getting selected media items:', error);
     throw error;
@@ -4279,15 +4289,58 @@ async function openGooglePicker() {
       throw new Error('Failed to open picker window (popup blocked?)');
     }
     
-    // Poll for completion
+    // Update UI to show waiting state
+    containers.forEach(container => {
+      container.innerHTML = `
+        <div class="photos-placeholder">
+          <div class="photos-icon">⏳</div>
+          <h3>Waiting for Selection</h3>
+          <p>Please select photos in the popup window, then close it when done.</p>
+        </div>
+      `;
+    });
+    
+    // Poll for completion (this will wait until user completes selection)
     if (!googlePickerState.pickerSessionId) {
       throw new Error('Session ID not available for polling');
     }
     
-    const sessionData = await pollPickerSession(googlePickerState.pickerSessionId);
+    let sessionData;
+    try {
+      sessionData = await pollPickerSession(googlePickerState.pickerSessionId);
+    } catch (error) {
+      console.error('Error polling picker session:', error);
+      containers.forEach(container => {
+        container.innerHTML = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">❌</div>
+            <h3>Selection Failed</h3>
+            <p>${error.message || 'Failed to complete photo selection'}</p>
+            <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Try Again</button>
+          </div>
+        `;
+      });
+      return;
+    }
     
     // Get selected media items
-    const selectedItems = await getSelectedMediaItems(googlePickerState.pickerSessionId);
+    let selectedItems;
+    try {
+      selectedItems = await getSelectedMediaItems(googlePickerState.pickerSessionId);
+    } catch (error) {
+      console.error('Error getting selected items:', error);
+      containers.forEach(container => {
+        container.innerHTML = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">❌</div>
+            <h3>Failed to Load Photos</h3>
+            <p>${error.message || 'Failed to retrieve selected photos'}</p>
+            <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Try Again</button>
+          </div>
+        `;
+      });
+      return;
+    }
     
     if (selectedItems.length === 0) {
       containers.forEach(container => {
