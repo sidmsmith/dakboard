@@ -4110,16 +4110,20 @@ async function pollPickerSession(sessionId) {
         }
         
         const data = await response.json();
-        console.log(`[pollPickerSession] Attempt ${attempts}: state=${data.state}`);
+        console.log(`[pollPickerSession] Attempt ${attempts}: Full response:`, JSON.stringify(data, null, 2));
+        console.log(`[pollPickerSession] Attempt ${attempts}: state=${data.state}, mediaItemsSet=${data.mediaItemsSet}`);
         
-        if (data.state === 'COMPLETED') {
+        // Check both state and mediaItemsSet fields
+        const isCompleted = data.state === 'COMPLETED' || data.mediaItemsSet === true;
+        
+        if (isCompleted) {
           console.log('[pollPickerSession] Session completed!');
           clearInterval(pollInterval);
           resolve(data);
-        } else if (data.state === 'CANCELLED' || data.state === 'EXPIRED') {
-          console.log(`[pollPickerSession] Session ${data.state.toLowerCase()}`);
+        } else if (data.state === 'CANCELLED' || data.state === 'EXPIRED' || data.state === 'EXPIRED') {
+          console.log(`[pollPickerSession] Session ${data.state ? data.state.toLowerCase() : 'unknown state'}`);
           clearInterval(pollInterval);
-          reject(new Error(`Session ${data.state.toLowerCase()}`));
+          reject(new Error(`Session ${data.state ? data.state.toLowerCase() : 'cancelled or expired'}`));
         } else if (attempts >= maxAttempts) {
           console.log('[pollPickerSession] Polling timeout reached');
           clearInterval(pollInterval);

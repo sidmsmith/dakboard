@@ -117,6 +117,7 @@ export default async function (req, res) {
         }
         
         const pollData = await pollResponse.json();
+        console.log('[poll] Google API response:', JSON.stringify(pollData, null, 2));
         return res.json(pollData);
         
       case 'getSelected':
