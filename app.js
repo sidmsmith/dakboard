@@ -4257,17 +4257,6 @@ async function openGooglePicker() {
     
     await authenticateGooglePicker();
     
-    // Show success message after authentication, then fetch photos automatically
-    containers.forEach(container => {
-      container.innerHTML = `
-        <div class="photos-placeholder">
-          <div class="photos-icon">✅</div>
-          <h3>Authentication Successful!</h3>
-          <p>Loading photos from your library...</p>
-        </div>
-      `;
-    });
-    
     // Store authentication success
     localStorage.setItem('google_picker_authenticated', 'true');
     
@@ -4612,29 +4601,7 @@ async function loadGooglePhotosWithPicker() {
       await initializeGooglePicker();
     }
     
-    // Check if user is already authenticated
-    const isAuthenticated = localStorage.getItem('google_picker_authenticated') === 'true' ||
-                           googlePickerState.accessToken ||
-                           localStorage.getItem('google_picker_access_token');
-    
-    if (isAuthenticated) {
-      // Show authenticated state (photos won't load until app is verified)
-      const authHtml = `
-        <div class="photos-placeholder">
-          <div class="photos-icon">✅</div>
-          <h3>Authentication Successful!</h3>
-          <p>You have successfully authenticated with Google Photos.</p>
-          <p style="font-size: 12px; color: #888; margin-top: 8px;">
-            Photos cannot be loaded until app verification is complete. This is expected behavior for unverified apps.
-          </p>
-          <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Try Selecting Photos</button>
-        </div>
-      `;
-      containers.forEach(container => container.innerHTML = authHtml);
-      return;
-    }
-    
-    // Check if we have previously selected photos
+    // Check if we have previously selected photos first
     const storedPhotos = localStorage.getItem('google_picker_selected_photos');
     if (storedPhotos) {
       try {
