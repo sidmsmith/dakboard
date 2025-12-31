@@ -3870,11 +3870,9 @@ function loadGooglePickerScript() {
 
 // Authenticate user and get access token for Picker API using Google Identity Services (GIS)
 async function authenticateGooglePicker() {
-  // Restore access token from localStorage first (might be expired, but check anyway)
-  const storedToken = localStorage.getItem('google_picker_access_token');
-  if (storedToken) {
-    googlePickerState.accessToken = storedToken;
-  }
+  // Clear any old tokens to force fresh authentication with correct scope
+  localStorage.removeItem('google_picker_access_token');
+  googlePickerState.accessToken = null;
   
   // Ensure initialization
   if (!googlePickerState.isInitialized) {
@@ -3931,6 +3929,16 @@ async function authenticateGooglePicker() {
           }
           
           const accessToken = response.access_token;
+          const scope = response.scope; // Check what scope was actually granted
+          
+          console.log('Token received. Granted scopes:', scope);
+          console.log('Expected scope:', requestedScope);
+          
+          // Verify the scope was granted
+          if (scope && !scope.includes('photospicker')) {
+            console.warn('Warning: Token may not have the photospicker scope. Granted scopes:', scope);
+          }
+          
           googlePickerState.accessToken = accessToken;
           
           // Store token in localStorage for persistence
@@ -3946,8 +3954,9 @@ async function authenticateGooglePicker() {
         }
       });
       
-      // Request access token (will show consent screen if needed)
-      tokenClient.requestAccessToken({ prompt: '' });
+      // Request access token - force consent to ensure scope is granted
+      // Using 'consent' instead of '' to ensure the scope is actually granted
+      tokenClient.requestAccessToken({ prompt: 'consent' });
     });
   } catch (error) {
     console.error('Error authenticating Google Picker:', error);
