@@ -2695,8 +2695,9 @@ function displayRandomGooglePhoto() {
   const randomIndex = Math.floor(Math.random() * googlePhotosCache.photos.length);
   const photo = googlePhotosCache.photos[randomIndex];
   
-  // Use medium size if available, fallback to baseUrl
-  const imageUrl = photo.medium || photo.baseUrl;
+  // Use baseUrl directly - Google Photos Picker API URLs work without size parameters
+  // Size parameters cause 403 errors, so use baseUrl as-is
+  const imageUrl = photo.baseUrl;
   
   if (!imageUrl) {
     console.error('Photo has no URL:', photo);
