@@ -124,8 +124,10 @@ document.addEventListener('DOMContentLoaded', () => {
   loadAllData();
   startAutoRefresh();
   
-  // Ensure all thermostat selectors have all options
+  // Ensure all thermostat selectors have all options - call multiple times to catch any timing issues
   ensureThermostatSelectOptions();
+  setTimeout(() => ensureThermostatSelectOptions(), 500);
+  setTimeout(() => ensureThermostatSelectOptions(), 1000);
 });
 
 // Calendar events cache
@@ -2463,20 +2465,35 @@ let currentThermostat = 1;
 
 // Ensure all thermostat selectors have all 3 options
 function ensureThermostatSelectOptions() {
-  const allSelectors = document.querySelectorAll('#thermostat-selector');
-  allSelectors.forEach(select => {
-    const options = select.querySelectorAll('option');
-    if (options.length !== 3) {
-      // Save current value before fixing
+  // Find all thermostat widgets, then find selectors within each widget
+  // This avoids issues with duplicate IDs
+  const allThermostatWidgets = document.querySelectorAll('.thermostat-widget');
+  allThermostatWidgets.forEach(widget => {
+    const select = widget.querySelector('#thermostat-selector');
+    if (select) {
       const currentValue = select.value || '1';
-      // Re-add all 3 options
-      select.innerHTML = `
-        <option value="1">Basement</option>
-        <option value="2">Living Room</option>
-        <option value="3">Master Bedroom</option>
-      `;
-      // Restore the previously selected value
-      select.value = currentValue;
+      const options = select.querySelectorAll('option');
+      
+      // Check if we have exactly 3 options with the correct values
+      const hasAllOptions = options.length === 3 && 
+                            options[0]?.value === '1' && 
+                            options[1]?.value === '2' && 
+                            options[2]?.value === '3';
+      
+      if (!hasAllOptions) {
+        // Re-add all 3 options
+        select.innerHTML = `
+          <option value="1">Basement</option>
+          <option value="2">Living Room</option>
+          <option value="3">Master Bedroom</option>
+        `;
+        // Restore the previously selected value
+        if (currentValue && ['1', '2', '3'].includes(currentValue)) {
+          select.value = currentValue;
+        } else {
+          select.value = '1';
+        }
+      }
     }
   });
 }
@@ -3439,23 +3456,15 @@ function loadWidgetVisibility() {
           widget = templateWidget.cloneNode(true);
           widget.classList.remove('hidden'); // Ensure it's visible
           
+          pageElement.appendChild(widget);
+          
           // Special handling for thermostat widget: ensure dropdown options are preserved
           if (widgetId === 'thermostat-widget') {
-            const clonedSelect = widget.querySelector('#thermostat-selector');
-            if (clonedSelect) {
-              // Always ensure all 3 options are present (fix any missing options)
-              const currentValue = clonedSelect.value || '1';
-              clonedSelect.innerHTML = `
-                <option value="1">Basement</option>
-                <option value="2">Living Room</option>
-                <option value="3">Master Bedroom</option>
-              `;
-              // Restore the previously selected value if it was set
-              clonedSelect.value = currentValue;
-            }
+            // Call ensureThermostatSelectOptions after widget is added to DOM
+            setTimeout(() => {
+              ensureThermostatSelectOptions();
+            }, 10);
           }
-          
-          pageElement.appendChild(widget);
           
           // Initialize widget-specific functionality if needed
           if (typeof initializeDragAndResize === 'function') {
@@ -3478,6 +3487,13 @@ function loadWidgetVisibility() {
           }
         }
       });
+      
+      // After all widgets are processed, ensure thermostat selectors have all options
+      if (widgetId === 'thermostat-widget') {
+        setTimeout(() => {
+          ensureThermostatSelectOptions();
+        }, 50);
+      }
   } catch (error) {
     console.error('Error loading widget visibility:', error);
   }
@@ -3524,24 +3540,16 @@ function toggleWidgetVisibility(widgetId) {
       // Clone the widget to the current page
       widget = templateWidget.cloneNode(true);
       
-      // Special handling for thermostat widget: ensure dropdown options are preserved
-      if (widgetId === 'thermostat-widget') {
-        const clonedSelect = widget.querySelector('#thermostat-selector');
-        if (clonedSelect) {
-          // Always ensure all 3 options are present (fix any missing options)
-          const currentValue = clonedSelect.value || '1';
-          clonedSelect.innerHTML = `
-            <option value="1">Basement</option>
-            <option value="2">Living Room</option>
-            <option value="3">Master Bedroom</option>
-          `;
-          // Restore the previously selected value if it was set
-          clonedSelect.value = currentValue;
-        }
-      }
-      
       // Don't set visibility here - let the toggle handle it
       pageElement.appendChild(widget);
+      
+      // Special handling for thermostat widget: ensure dropdown options are preserved
+      if (widgetId === 'thermostat-widget') {
+        // Call ensureThermostatSelectOptions after widget is added to DOM
+        setTimeout(() => {
+          ensureThermostatSelectOptions();
+        }, 10);
+      }
       
       // Initialize widget-specific functionality if needed
       if (typeof initializeDragAndResize === 'function') {
