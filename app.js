@@ -146,7 +146,6 @@ async function loadCalendarEvents() {
     weekEnd.setDate(weekEnd.getDate() + 7);
     weekEnd.setHours(23, 59, 59, 999);
     
-    let response;
     // Use serverless function for calendar API
     const response = await fetch(`/api/ha-calendar?startDate=${weekStart.toISOString()}&endDate=${weekEnd.toISOString()}`);
     
@@ -158,7 +157,7 @@ async function loadCalendarEvents() {
     const allEvents = data.events || [];
     
     // Format events
-      calendarEvents = allEvents.map(event => {
+    calendarEvents = allEvents.map(event => {
         const startTime = event.start || event.start_time || event.dtstart;
         const endTime = event.end || event.end_time || event.dtend;
         const summary = event.summary || event.title || event.name || 'Untitled Event';
@@ -207,49 +206,6 @@ async function loadCalendarEvents() {
       
       // De-duplicate events: compare by title and start/end times (ignore calendar source)
       calendarEvents = deduplicateEvents(calendarEvents);
-      
-    } else {
-      // Use serverless function (for Vercel production)
-      response = await fetch(`/api/ha-calendar?startDate=${weekStart.toISOString()}&endDate=${weekEnd.toISOString()}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        calendarEvents = data.events || [];
-        
-        // Detect and fix all-day events, then de-duplicate
-        calendarEvents = calendarEvents.map(event => {
-          let isAllDay = event.allDay || false;
-          if (!isAllDay && event.start) {
-            const start = new Date(event.start);
-            const startHour = start.getHours();
-            const startMinute = start.getMinutes();
-            const startSecond = start.getSeconds();
-            
-            if ((startHour === 0 && startMinute === 0 && startSecond === 0) || 
-                (startHour === 19 && startMinute === 0 && startSecond === 0)) {
-              if (event.end) {
-                const end = new Date(event.end);
-                const endHour = end.getHours();
-                const endMinute = end.getMinutes();
-                const endSecond = end.getSeconds();
-                if ((endHour === 0 && endMinute === 0 && endSecond === 0) ||
-                    (endHour === 19 && endMinute === 0 && endSecond === 0)) {
-                  isAllDay = true;
-                }
-              } else {
-                isAllDay = true;
-              }
-            }
-          }
-          return { ...event, allDay: isAllDay };
-        });
-        
-        calendarEvents = deduplicateEvents(calendarEvents);
-      } else {
-        console.error('Failed to fetch calendar events:', response.status);
-        calendarEvents = [];
-      }
-    }
     
     // Re-render calendar with events
     renderCalendar();
@@ -2652,9 +2608,6 @@ async function fetchGooglePhotos() {
     } else {
       const data = await response.json();
       googlePhotosCache.photos = data.photos || [];
-        count: googlePhotosCache.photos.length,
-        message: data.message || 'Success'
-      });
     }
     
     // If album is empty, fetch from all photos
