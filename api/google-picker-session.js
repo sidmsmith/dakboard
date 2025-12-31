@@ -2,7 +2,7 @@
 // Handles picker session creation, polling, and getting selected items
 // This serverless function is needed because Google's API doesn't allow direct browser calls due to CORS
 
-export default async function handler(req, res) {
+export default async function (req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');

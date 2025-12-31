@@ -3989,8 +3989,13 @@ async function createPickerSession() {
   }
   
   try {
+    console.log('Creating picker session with token:', googlePickerState.accessToken ? 'Token present' : 'No token');
+    
     // Use serverless function to avoid CORS issues
-    const response = await fetch('/api/google-picker-session', {
+    const url = '/api/google-picker-session';
+    console.log('Fetching:', url);
+    
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -4001,20 +4006,28 @@ async function createPickerSession() {
       })
     });
     
+    console.log('Response status:', response.status);
+    console.log('Response ok:', response.ok);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+    
     if (!response.ok) {
       let errorData;
+      let responseText;
       try {
-        errorData = await response.json();
+        responseText = await response.text();
+        console.log('Response text:', responseText);
+        errorData = JSON.parse(responseText);
       } catch (e) {
         // If response isn't JSON, use status text
-        errorData = { error: response.statusText || `HTTP ${response.status}` };
+        console.error('Failed to parse response:', e);
+        errorData = { error: response.statusText || `HTTP ${response.status}`, raw: responseText };
       }
       
       let errorMessage = errorData.error || `Failed to create picker session: ${response.status}`;
       
       // Check if it's a 404 (function not deployed)
       if (response.status === 404) {
-        errorMessage = 'Serverless function not found. Please ensure /api/google-picker-session.js is deployed to Vercel.';
+        errorMessage = `Serverless function not found (404). GET works but POST returns 404. This may be a Vercel routing issue. Response: ${responseText || 'No response text'}`;
       }
       // Check if it's an unverified app error
       else if (response.status === 403 || response.status === 401) {
