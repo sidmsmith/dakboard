@@ -2713,33 +2713,13 @@ function displayRandomGooglePhoto() {
     return;
   }
   
-  // Proxy the image through our serverless function to add authentication
-  // Make sure we have a token - try multiple sources
-  let accessToken = googlePickerState.accessToken;
-  if (!accessToken) {
-    accessToken = localStorage.getItem('google_picker_access_token');
-  }
-  
-  if (!accessToken) {
-    console.warn('[displayRandomGooglePhoto] No access token available, cannot display photo');
-    const errorHtml = `
-      <div class="photos-placeholder">
-        <div class="photos-icon">🔑</div>
-        <h3>Authentication Required</h3>
-        <p>Please reconnect to Google Photos.</p>
-        <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Connect Google Photos</button>
-      </div>
-    `;
-    containers.forEach(container => container.innerHTML = errorHtml);
-    return;
-  }
-  
-  const proxiedUrl = `/api/google-photos-proxy?url=${encodeURIComponent(imageUrl)}&accessToken=${encodeURIComponent(accessToken)}`;
-  
+  // Use baseUrl directly - Picker API baseUrls are signed URLs meant for direct browser access
+  // They cannot be accessed from server-side (proxy) because Google checks the client IP
+  // The browser's IP is authorized, but server IPs are not
   const photoHtml = `
     <div class="photos-display">
-      <img src="${proxiedUrl}" alt="Google Photo" class="photos-image" 
-           onerror="console.error('Image load error:', this.src);" />
+      <img src="${imageUrl}" alt="Google Photo" class="photos-image" 
+           onerror="console.error('Image load error - URL may have expired:', this.src.substring(0, 100)); this.parentElement.innerHTML = '<div class=\\'photos-placeholder\\'><div class=\\'photos-icon\\'>📷</div><h3>Photo Load Error</h3><p>The photo URL may have expired. Please reconnect to refresh photos.</p><button onclick=\\'openGooglePicker(true)\\'' class=\\'photos-connect-btn\\'>Reconnect Google Photos</button></div>';" />
     </div>
   `;
   containers.forEach(container => container.innerHTML = photoHtml);
