@@ -4113,14 +4113,13 @@ async function pollPickerSession(sessionId) {
         console.log(`[pollPickerSession] Attempt ${attempts}: Full response:`, JSON.stringify(data, null, 2));
         console.log(`[pollPickerSession] Attempt ${attempts}: state=${data.state}, mediaItemsSet=${data.mediaItemsSet}`);
         
-        // Check both state and mediaItemsSet fields
-        const isCompleted = data.state === 'COMPLETED' || data.mediaItemsSet === true;
-        
-        if (isCompleted) {
-          console.log('[pollPickerSession] Session completed!');
+        // The Google Photos Picker API uses mediaItemsSet to indicate completion
+        // When mediaItemsSet is true, the user has selected items and we can retrieve them
+        if (data.mediaItemsSet === true) {
+          console.log('[pollPickerSession] Session completed! mediaItemsSet is true');
           clearInterval(pollInterval);
           resolve(data);
-        } else if (data.state === 'CANCELLED' || data.state === 'EXPIRED' || data.state === 'EXPIRED') {
+        } else if (data.state === 'CANCELLED' || data.state === 'EXPIRED') {
           console.log(`[pollPickerSession] Session ${data.state ? data.state.toLowerCase() : 'unknown state'}`);
           clearInterval(pollInterval);
           reject(new Error(`Session ${data.state ? data.state.toLowerCase() : 'cancelled or expired'}`));
