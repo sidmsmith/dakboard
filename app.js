@@ -4137,6 +4137,43 @@ async function pollPickerSession(sessionId) {
   });
 }
 
+// Fetch photo URLs from Google Photos Library API using media item IDs
+async function fetchPhotoUrlsFromLibrary(accessToken, mediaItemIds) {
+  try {
+    // Use batchGet endpoint to get URLs for multiple media items at once
+    const response = await fetch('/api/google-photos', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: 'batchGet',
+        accessToken: accessToken,
+        mediaItemIds: mediaItemIds
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch photo URLs: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    // Return a map of mediaItemId -> baseUrl
+    const urlMap = {};
+    if (data.mediaItems) {
+      data.mediaItems.forEach(item => {
+        if (item.baseUrl) {
+          urlMap[item.id] = item.baseUrl;
+        }
+      });
+    }
+    return urlMap;
+  } catch (error) {
+    console.error('Error fetching photo URLs from Library API:', error);
+    return {};
+  }
+}
+
 // Get selected media items from completed session (via serverless function to avoid CORS)
 async function getSelectedMediaItems(sessionId) {
   try {
@@ -4219,6 +4256,28 @@ async function openGooglePicker() {
       try {
         const selectedPhotos = JSON.parse(storedPickerPhotos);
         if (selectedPhotos.length > 0) {
+          // Check if photos have URLs - if not, we need to fetch them from Library API
+          const photosWithoutUrls = selectedPhotos.filter(p => !p.baseUrl);
+          if (photosWithoutUrls.length > 0) {
+            console.log(`[loadGooglePhotos] ${photosWithoutUrls.length} photos missing URLs, fetching from Library API...`);
+            // Fetch URLs for photos that don't have them
+            const photoIds = photosWithoutUrls.map(p => p.id);
+            const photoUrls = await fetchPhotoUrlsFromLibrary(googlePickerState.accessToken, photoIds);
+            
+            // Update photos with URLs
+            selectedPhotos.forEach(photo => {
+              if (!photo.baseUrl && photoUrls[photo.id]) {
+                photo.baseUrl = photoUrls[photo.id];
+                photo.thumbnail = photo.baseUrl + '=w300-h300-c';
+                photo.medium = photo.baseUrl + '=w800-h600';
+                photo.full = photo.baseUrl + '=w1920-h1080';
+              }
+            });
+            
+            // Update localStorage with URLs
+            localStorage.setItem('google_picker_selected_photos', JSON.stringify(selectedPhotos));
+          }
+          
           // Use previously selected photos
           googlePhotosCache.photos = selectedPhotos;
           googlePhotosCache.lastUpdate = Date.now();

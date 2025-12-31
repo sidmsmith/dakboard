@@ -2,22 +2,65 @@
 // Handles fetching photos from Google Photos Library API
 
 export default async function (req, res) {
-  const { method, query } = req;
+  const { method, query, body } = req;
   
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   
-  if (method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  // Handle preflight
+  if (method === 'OPTIONS') {
+    return res.status(200).end();
   }
   
   // Get access token from request (passed from frontend)
-  const accessToken = query.access_token || req.headers.authorization?.replace('Bearer ', '');
+  const accessToken = query?.access_token || 
+                     req.headers.authorization?.replace('Bearer ', '') ||
+                     body?.accessToken;
   
   if (!accessToken) {
     return res.status(401).json({ error: 'Access token required' });
+  }
+  
+  // Handle POST request for batchGet (getting URLs for specific media item IDs)
+  if (method === 'POST' && body?.action === 'batchGet') {
+    const { mediaItemIds } = body;
+    if (!mediaItemIds || !Array.isArray(mediaItemIds)) {
+      return res.status(400).json({ error: 'mediaItemIds array is required' });
+    }
+    
+    try {
+      // Use batchGet endpoint to get URLs for multiple media items
+      const batchResponse = await fetch('https://photoslibrary.googleapis.com/v1/mediaItems:batchGet', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          mediaItemIds: mediaItemIds
+        })
+      });
+      
+      if (!batchResponse.ok) {
+        const errorText = await batchResponse.text();
+        return res.status(batchResponse.status).json({ 
+          error: `Failed to batch get media items: ${batchResponse.status}`,
+          details: errorText
+        });
+      }
+      
+      const batchData = await batchResponse.json();
+      return res.json({ mediaItems: batchData.mediaItemResults?.map(r => r.mediaItem).filter(Boolean) || [] });
+    } catch (error) {
+      console.error('Error in batchGet:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  }
+  
+  if (method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
   
   const albumId = query.album_id || null; // Optional album ID
