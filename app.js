@@ -1,8 +1,6 @@
 // Dakboard - Main Application Logic
 // Configuration - Update these with your HA entity IDs
 
-// Debug flag - set to false for production
-const DEBUG = true;
 
 const CONFIG = {
   // Home Assistant Entity IDs
@@ -58,11 +56,9 @@ let clockInterval = null;
 
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', () => {
-  if (DEBUG) console.log('DOMContentLoaded - Starting initialization');
   
   // Check if drag-resize functions are available
   if (typeof initializeDragAndResize === 'function') {
-    if (DEBUG) console.log('initializeDragAndResize function found');
   } else {
     console.error('initializeDragAndResize function NOT found! Check drag-resize.js loading.');
   }
@@ -126,7 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Retry after a short delay
     setTimeout(() => {
       if (typeof initializeDragAndResize === 'function') {
-        if (DEBUG) console.log('Retrying initializeDragAndResize');
         initializeDragAndResize();
       } else {
         console.error('initializeDragAndResize still not available after retry');
@@ -152,106 +147,17 @@ async function loadCalendarEvents() {
     weekEnd.setHours(23, 59, 59, 999);
     
     let response;
-    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
-      // Direct HA API call for local development
-      const haUrl = window.CONFIG.HA_URL;
-      const haToken = window.CONFIG.HA_TOKEN;
-      
-      // Get all calendar entities
-      const statesResponse = await fetch(`${haUrl}/api/states`, {
-        headers: {
-          'Authorization': `Bearer ${haToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!statesResponse.ok) {
-        throw new Error('Failed to fetch calendar entities');
-      }
-      
-      const allStates = await statesResponse.json();
-      const calendarEntities = allStates
-        .filter(state => state.entity_id.startsWith('calendar.'))
-        .map(state => state.entity_id);
-      
-      if (calendarEntities.length === 0) {
-        calendarEvents = [];
-        renderCalendar(); // Re-render without events
-        return;
-      }
-      
-      // Fetch events from all calendars
-      const allEvents = [];
-      for (const calEntityId of calendarEntities) {
-        try {
-          const serviceResponse = await fetch(`${haUrl}/api/services/calendar/get_events`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${haToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              entity_id: calEntityId,
-              start_date_time: weekStart.toISOString(),
-              end_date_time: weekEnd.toISOString()
-            })
-          });
-          
-          if (serviceResponse.ok) {
-            const serviceData = await serviceResponse.json();
-            
-            // Response structure with ?return_response=true:
-            // { "service_response": { "calendar.entity_id": { "events": [...] } } }
-            // OR direct structure: { "calendar.entity_id": { "events": [...] } }
-            let events = [];
-            
-            // Check service_response wrapper first (when using ?return_response=true)
-            if (serviceData.service_response && serviceData.service_response[calEntityId]) {
-              const calendarData = serviceData.service_response[calEntityId];
-              if (calendarData.events && Array.isArray(calendarData.events)) {
-                events = calendarData.events;
-              } else if (Array.isArray(calendarData)) {
-                events = calendarData;
-              }
-            } else if (serviceData[calEntityId]) {
-              // Direct structure: { "calendar.entity_id": { "events": [...] } }
-              const calendarData = serviceData[calEntityId];
-              if (calendarData.events && Array.isArray(calendarData.events)) {
-                events = calendarData.events;
-              } else if (Array.isArray(calendarData)) {
-                events = calendarData;
-              }
-            } else if (Array.isArray(serviceData)) {
-              // Direct array response
-              events = serviceData;
-            } else if (serviceData.events && Array.isArray(serviceData.events)) {
-              // Root level events array
-              events = serviceData.events;
-            }
-            
-            // Add calendar source to each event
-            if (Array.isArray(events)) {
-              events.forEach(event => {
-                event.calendar = calEntityId;
-                allEvents.push(event);
-              });
-            }
-          } else {
-            const errorText = await serviceResponse.text();
-            console.error(`Failed to fetch events for ${calEntityId}:`, serviceResponse.status);
-            console.error(`Error response:`, errorText);
-            console.error(`Request body was:`, JSON.stringify({
-              entity_id: calEntityId,
-              start_date_time: weekStart.toISOString(),
-              end_date_time: weekEnd.toISOString()
-            }, null, 2));
-          }
-        } catch (error) {
-          console.error(`Error fetching events for ${calEntityId}:`, error);
-        }
-      }
-      
-      // Format events
+    // Use serverless function for calendar API
+    const response = await fetch(`/api/ha-calendar?startDate=${weekStart.toISOString()}&endDate=${weekEnd.toISOString()}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch calendar events');
+    }
+    
+    const data = await response.json();
+    const allEvents = data.events || [];
+    
+    // Format events
       calendarEvents = allEvents.map(event => {
         const startTime = event.start || event.start_time || event.dtstart;
         const endTime = event.end || event.end_time || event.dtend;
@@ -2155,46 +2061,25 @@ async function loadTodoListItems(entityId) {
     // Use the todo/item/list endpoint
     let items = [];
     
-    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
-      // Direct HA API call for local development
-      const response = await fetch(`${window.CONFIG.HA_URL}/api/todo/item/list`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          entity_id: entityId
-        })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        items = data || [];
-      }
+    // Use serverless function - use ha-todo-action with list_items action
+    const response = await fetch('/api/ha-todo-action', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: 'list_items',
+        entity_id: entityId
+      })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      items = data.items || [];
     } else {
-      // Use serverless function (for Vercel production) - use ha-todo-action with list_items action
-      const response = await fetch('/api/ha-todo-action', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action: 'list_items',
-          entity_id: entityId
-        })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        // Todo API response received
-        items = data.items || [];
-        // Extracted items from response
-      } else {
-        console.error('Failed to fetch todo items:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-      }
+      console.error('Failed to fetch todo items:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
     }
     
     // Fetched todo items
@@ -2280,36 +2165,18 @@ async function toggleTodoItem(entityId, itemUid, complete) {
   try {
     const action = complete ? 'complete' : 'uncomplete';
     
-    let response;
-    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
-      // Direct HA API call for local development using todo.update_item
-      // Try flattened format for REST API
-      response = await fetch(`${window.CONFIG.HA_URL}/api/services/todo/update_item`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          entity_id: entityId,
-          item: itemUid,
-          status: complete ? 'completed' : 'needs_action'
-        })
-      });
-    } else {
-      // Use serverless function (for Vercel production)
-      response = await fetch('/api/ha-todo-action', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action: action,
-          entity_id: entityId,
-          uid: itemUid
-        })
-      });
-    }
+    // Use serverless function
+    const response = await fetch('/api/ha-todo-action', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: action,
+        entity_id: entityId,
+        uid: itemUid
+      })
+    });
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -2333,33 +2200,18 @@ async function addTodoItem(entityId, summary) {
   if (!summary || !summary.trim()) return;
   
   try {
-    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
-      // Direct HA API call for local development
-      await fetch(`${window.CONFIG.HA_URL}/api/services/todo/add_item`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          entity_id: entityId,
-          item: summary.trim()
-        })
-      });
-    } else {
-      // Use serverless function (for Vercel production)
-      await fetch('/api/ha-todo-action', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action: 'add',
-          entity_id: entityId,
-          item: summary.trim()
-        })
-      });
-    }
+    // Use serverless function
+    await fetch('/api/ha-todo-action', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: 'add',
+        entity_id: entityId,
+        item: summary.trim()
+      })
+    });
     
     // Clear input and reload
     // Clear all todo inputs across all pages
@@ -2620,7 +2472,6 @@ async function setAlarm() {
   // Check current state - only allow if disarmed (check first instance)
   const statusDivs = document.querySelectorAll('#alarm-status');
   if (statusDivs.length > 0 && statusDivs[0].classList.contains('armed')) {
-    if (DEBUG) console.log('Alarm is already armed - cannot set alarm');
     return;
   }
   
@@ -2801,7 +2652,6 @@ async function fetchGooglePhotos() {
     } else {
       const data = await response.json();
       googlePhotosCache.photos = data.photos || [];
-      if (DEBUG) console.log('Google Photos fetched:', {
         count: googlePhotosCache.photos.length,
         message: data.message || 'Success'
       });
@@ -2809,13 +2659,11 @@ async function fetchGooglePhotos() {
     
     // If album is empty, fetch from all photos
     if (googlePhotosCache.photos.length === 0 && CONFIG.GOOGLE_PHOTOS_ALBUM_ID) {
-      if (DEBUG) console.log('Album is empty, fetching from all photos');
       const allPhotosUrl = `/api/google-photos?access_token=${encodeURIComponent(accessToken)}&page_size=100`;
       const allPhotosResponse = await fetch(allPhotosUrl);
       if (allPhotosResponse.ok) {
         const allPhotosData = await allPhotosResponse.json();
         googlePhotosCache.photos = allPhotosData.photos || [];
-        if (DEBUG) console.log('Fetched all photos (fallback):', googlePhotosCache.photos.length);
       }
     }
     
@@ -2875,22 +2723,6 @@ function displayRandomGooglePhoto() {
   const containers = document.querySelectorAll('#photos-content');
   if (containers.length === 0) return;
   
-  // Demo mode for verification video - show placeholder photos
-  const demoMode = localStorage.getItem('google_photos_demo_mode') === 'true' || 
-                   new URLSearchParams(window.location.search).get('demo') === 'true';
-  
-  if (demoMode && googlePhotosCache.photos.length === 0) {
-    // Use placeholder images for demo
-    const demoPhotos = [
-      { medium: 'https://picsum.photos/800/600?random=1', baseUrl: 'https://picsum.photos/800/600?random=1' },
-      { medium: 'https://picsum.photos/800/600?random=2', baseUrl: 'https://picsum.photos/800/600?random=2' },
-      { medium: 'https://picsum.photos/800/600?random=3', baseUrl: 'https://picsum.photos/800/600?random=3' },
-      { medium: 'https://picsum.photos/800/600?random=4', baseUrl: 'https://picsum.photos/800/600?random=4' },
-      { medium: 'https://picsum.photos/800/600?random=5', baseUrl: 'https://picsum.photos/800/600?random=5' }
-    ];
-    googlePhotosCache.photos = demoPhotos;
-  }
-  
   if (googlePhotosCache.photos.length === 0) {
     const noPhotosHtml = `
       <div class="photos-placeholder">
@@ -2909,14 +2741,6 @@ function displayRandomGooglePhoto() {
   // Select random photo
   const randomIndex = Math.floor(Math.random() * googlePhotosCache.photos.length);
   const photo = googlePhotosCache.photos[randomIndex];
-  
-  if (DEBUG) console.log('Displaying photo:', {
-    index: randomIndex,
-    id: photo.id,
-    filename: photo.filename,
-    hasMedium: !!photo.medium,
-    hasBaseUrl: !!photo.baseUrl
-  });
   
   // Use medium size if available, fallback to baseUrl
   const imageUrl = photo.medium || photo.baseUrl;
@@ -2943,15 +2767,6 @@ function displayRandomGooglePhoto() {
   containers.forEach(container => container.innerHTML = photoHtml);
 }
 
-// Enable demo mode for verification video
-// Call this function or add ?demo=true to URL, or set localStorage: localStorage.setItem('google_photos_demo_mode', 'true')
-function enableGooglePhotosDemoMode() {
-  localStorage.setItem('google_photos_demo_mode', 'true');
-  loadGooglePhotos();
-}
-
-// Make function globally accessible
-window.enableGooglePhotosDemoMode = enableGooglePhotosDemoMode;
 
 // Thermostat state
 let currentThermostat = 1;
@@ -3444,7 +3259,6 @@ async function loadNews() {
   
   // Prevent multiple simultaneous requests
   if (newsLoading) {
-    if (DEBUG) console.log('News already loading, skipping...');
     return;
   }
   
@@ -3917,7 +3731,6 @@ function clearGooglePhotosTokens() {
   localStorage.removeItem('google_photos_access_token');
   localStorage.removeItem('google_photos_refresh_token');
   localStorage.removeItem('google_photos_token_expiry');
-  if (DEBUG) console.log('Google Photos tokens cleared');
 }
 
 // Make function globally accessible
@@ -3927,23 +3740,6 @@ window.clearGooglePhotosTokens = clearGooglePhotosTokens;
 async function loadGooglePhotos() {
   const containers = document.querySelectorAll('#photos-content');
   if (containers.length === 0) return;
-  
-  // Check for demo mode (for verification video)
-  const demoMode = localStorage.getItem('google_photos_demo_mode') === 'true' || 
-                   new URLSearchParams(window.location.search).get('demo') === 'true';
-  
-  if (demoMode) {
-    // In demo mode, show placeholder photos immediately
-    displayRandomGooglePhoto();
-    // Set up auto-refresh for demo mode too
-    if (googlePhotosCache.updateInterval) {
-      clearInterval(googlePhotosCache.updateInterval);
-    }
-    googlePhotosCache.updateInterval = setInterval(() => {
-      displayRandomGooglePhoto();
-    }, 60 * 1000); // Every 1 minute
-    return;
-  }
   
   // NEW: Use Google Picker API if enabled (replaces deprecated Library API)
   if (CONFIG.USE_GOOGLE_PICKER_API) {
@@ -3988,7 +3784,6 @@ async function loadGooglePhotos() {
 // Initialize Google Picker API
 async function initializeGooglePicker() {
   if (!CONFIG.USE_GOOGLE_PICKER_API) {
-    if (DEBUG) console.log('Google Picker API is disabled');
     throw new Error('Google Picker API is disabled');
   }
   
@@ -4040,7 +3835,6 @@ async function initializeGooglePicker() {
     });
     
     googlePickerState.isInitialized = true;
-    if (DEBUG) console.log('Google Picker API initialized');
   } catch (error) {
     console.error('Error initializing Google Picker API:', error);
     googlePickerState.isInitialized = false;
@@ -4156,7 +3950,6 @@ async function authenticateGooglePicker() {
     localStorage.setItem('google_picker_access_token', accessToken);
     localStorage.setItem('google_picker_authenticated', 'true');
     
-    if (DEBUG) console.log('Google Picker authentication successful');
     return accessToken;
   } catch (error) {
     console.error('Error authenticating Google Picker:', error);
@@ -4579,32 +4372,14 @@ window.openGooglePicker = openGooglePicker;
 // Fetch HA entity via API (works both locally and in production)
 async function fetchHAEntity(entityId) {
   try {
-    // Check if we have local config (for local development)
-    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
-      // Direct HA API call for local development
-      const response = await fetch(`${window.CONFIG.HA_URL}/api/states/${encodeURIComponent(entityId)}`, {
-        headers: {
-          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        // Don't log 404s/500s for missing entities (expected for some forecast days/hours)
-        // Just throw silently - caller will handle
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } else {
-      // Use serverless function (for Vercel production)
-      const response = await fetch(`/api/ha-fetch?entityId=${encodeURIComponent(entityId)}`);
-      if (!response.ok) {
-        // Don't log 404s/500s for missing entities (expected for some forecast days/hours)
-        // Just throw silently - caller will handle
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
+    // Use serverless function
+    const response = await fetch(`/api/ha-fetch?entityId=${encodeURIComponent(entityId)}`);
+    if (!response.ok) {
+      // Don't log 404s/500s for missing entities (expected for some forecast days/hours)
+      // Just throw silently - caller will handle
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+    return await response.json();
   } catch (error) {
     // Silently throw - caller will handle missing entities
     throw error;
@@ -4625,65 +4400,45 @@ async function triggerHAWebhook(webhookId) {
       }
     }
     
-    // Check if we have local config (for local development)
-    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
-      // Direct HA webhook call for local development
-      const webhookUrl = `${window.CONFIG.HA_URL}/api/webhook/${actualWebhookId}`;
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({})
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      return response.status === 204 ? { success: true } : await response.json();
+    // Use serverless function
+    const response = await fetch(`/api/ha-webhook?webhookId=${encodeURIComponent(actualWebhookId)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({})
+    });
+    
+    // Some serverless functions may return 500 even when webhook succeeds
+    // Try to parse response even if status is not ok
+    if (response.ok) {
+      return await response.json();
     } else {
-      // Use serverless function (for Vercel production)
-      const response = await fetch(`/api/ha-webhook?webhookId=${encodeURIComponent(actualWebhookId)}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({})
-      });
-      
-      // Some serverless functions may return 500 even when webhook succeeds
-      // Try to parse response even if status is not ok
-      if (response.ok) {
-        return await response.json();
-      } else {
-        // Try to get response text to see if there's useful info
+      // Try to get response text to see if there's useful info
+      try {
+        const errorText = await response.text();
+        // If we can parse it as JSON, return it (might contain success info)
         try {
-          const errorText = await response.text();
-          // If we can parse it as JSON, return it (might contain success info)
-          try {
-            const errorJson = JSON.parse(errorText);
-            // If it has a success field or message, treat it as success
-            if (errorJson.success || errorJson.message) {
-              return errorJson;
-            }
-          } catch {
-            // If not JSON, for 500 errors assume webhook succeeded (common with serverless functions)
-            if (response.status === 500) {
-              console.warn(`Webhook ${actualWebhookId} returned status 500, but webhook may have succeeded`);
-              return { success: true, warning: `Server returned 500 but webhook likely succeeded` };
-            }
+          const errorJson = JSON.parse(errorText);
+          // If it has a success field or message, treat it as success
+          if (errorJson.success || errorJson.message) {
+            return errorJson;
           }
-          throw new Error(`HTTP error! status: ${response.status}`);
-        } catch (parseError) {
-          // For 500 errors, assume webhook succeeded (common with serverless functions)
+        } catch {
+          // If not JSON, for 500 errors assume webhook succeeded (common with serverless functions)
           if (response.status === 500) {
             console.warn(`Webhook ${actualWebhookId} returned status 500, but webhook may have succeeded`);
             return { success: true, warning: `Server returned 500 but webhook likely succeeded` };
           }
-          throw new Error(`HTTP error! status: ${response.status}`);
         }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      } catch (parseError) {
+        // For 500 errors, assume webhook succeeded (common with serverless functions)
+        if (response.status === 500) {
+          console.warn(`Webhook ${actualWebhookId} returned status 500, but webhook may have succeeded`);
+          return { success: true, warning: `Server returned 500 but webhook likely succeeded` };
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
     }
   } catch (error) {
@@ -6315,8 +6070,6 @@ function exportConfiguration() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    if (DEBUG) console.log('Configuration exported successfully');
-    if (DEBUG) console.log(`Exported ${config.pages.length} pages with ${config.pages.reduce((sum, p) => sum + p.widgets.length, 0)} widgets total`);
   } catch (error) {
     console.error('Error exporting configuration:', error);
     alert('Error exporting configuration. Please check the console for details.');
@@ -6357,7 +6110,6 @@ function importConfiguration(file) {
         throw new Error('Invalid configuration format. Expected "pages" array.');
       }
       
-      if (DEBUG) console.log('Importing configuration in organized format (v2.0)');
       
       // Import metadata
       if (config.metadata) {
@@ -6442,7 +6194,6 @@ function importConfiguration(file) {
         }
       });
       
-      if (DEBUG) console.log(`Configuration imported successfully. ${importedCount} items restored.`);
       
       // Move widgets to their correct pages based on visibility
       // This ensures widgets are on the right pages after import
@@ -6498,11 +6249,9 @@ function setupPageManagement() {
     const newBtn = addPageBtn.cloneNode(true);
     addPageBtn.parentNode.replaceChild(newBtn, addPageBtn);
     
-    if (DEBUG) console.log('Setting up add page button listener');
     newBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (DEBUG) console.log('Add page button clicked!');
       addPage();
     });
   } else {
