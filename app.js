@@ -4256,26 +4256,26 @@ async function openGooglePicker() {
       try {
         const selectedPhotos = JSON.parse(storedPickerPhotos);
         if (selectedPhotos.length > 0) {
-          // Check if photos have URLs - if not, we need to fetch them from Library API
+          // Check if photos have URLs - if not, they need to be re-selected
           const photosWithoutUrls = selectedPhotos.filter(p => !p.baseUrl);
           if (photosWithoutUrls.length > 0) {
-            console.log(`[loadGooglePhotos] ${photosWithoutUrls.length} photos missing URLs, fetching from Library API...`);
-            // Fetch URLs for photos that don't have them
-            const photoIds = photosWithoutUrls.map(p => p.id);
-            const photoUrls = await fetchPhotoUrlsFromLibrary(googlePickerState.accessToken, photoIds);
-            
-            // Update photos with URLs
-            selectedPhotos.forEach(photo => {
-              if (!photo.baseUrl && photoUrls[photo.id]) {
-                photo.baseUrl = photoUrls[photo.id];
-                photo.thumbnail = photo.baseUrl + '=w300-h300-c';
-                photo.medium = photo.baseUrl + '=w800-h600';
-                photo.full = photo.baseUrl + '=w1920-h1080';
-              }
+            console.log(`[loadGooglePhotos] ${photosWithoutUrls.length} photos missing URLs. These photos were selected before URLs were properly extracted.`);
+            console.log(`[loadGooglePhotos] Clearing stored photos - please re-select photos to get URLs.`);
+            // Clear stored photos - user needs to re-select to get URLs
+            localStorage.removeItem('google_picker_selected_photos');
+            // Show message to re-select
+            containers.forEach(container => {
+              container.innerHTML = `
+                <div class="photos-placeholder">
+                  <div class="photos-icon">📷</div>
+                  <h3>Photos Need Re-Selection</h3>
+                  <p>Your previously selected photos don't have URLs.</p>
+                  <p>Please click below to re-select photos.</p>
+                  <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Select Photos</button>
+                </div>
+              `;
             });
-            
-            // Update localStorage with URLs
-            localStorage.setItem('google_picker_selected_photos', JSON.stringify(selectedPhotos));
+            return;
           }
           
           // Use previously selected photos
