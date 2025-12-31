@@ -51,6 +51,17 @@ export default async function (req, res) {
         
         if (!createResponse.ok) {
           const errorText = await createResponse.text();
+          console.error('Google Picker API error:', createResponse.status, errorText);
+          
+          // Check if it's a 404 - API might not be enabled
+          if (createResponse.status === 404) {
+            return res.status(404).json({ 
+              error: 'Google Photos Picker API endpoint not found (404). Please ensure the Google Photos Picker API is enabled in your Google Cloud Console project.',
+              details: 'Go to Google Cloud Console > APIs & Services > Library > Search for "Google Photos Picker API" > Enable',
+              googleError: errorText
+            });
+          }
+          
           return res.status(createResponse.status).json({ 
             error: `Failed to create picker session: ${createResponse.status}`,
             details: errorText
