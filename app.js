@@ -2716,10 +2716,12 @@ function displayRandomGooglePhoto() {
   // Use baseUrl directly - Picker API baseUrls are signed URLs meant for direct browser access
   // They cannot be accessed from server-side (proxy) because Google checks the client IP
   // The browser's IP is authorized, but server IPs are not
+  // Note: baseUrls expire after ~60 minutes, but authentication persists
+  // When URLs expire, user will need to re-select photos (one-time action, not re-authentication)
   const photoHtml = `
     <div class="photos-display">
       <img src="${imageUrl}" alt="Google Photo" class="photos-image" 
-           onerror="console.error('Image load error - URL may have expired:', this.src.substring(0, 100)); this.parentElement.innerHTML = '<div class=\\'photos-placeholder\\'><div class=\\'photos-icon\\'>📷</div><h3>Photo Load Error</h3><p>The photo URL may have expired. Please reconnect to refresh photos.</p><button onclick=\\'openGooglePicker(true)\\'' class=\\'photos-connect-btn\\'>Reconnect Google Photos</button></div>';" />
+           onerror="handleExpiredPhotoUrl(this);" />
     </div>
   `;
   containers.forEach(container => container.innerHTML = photoHtml);
