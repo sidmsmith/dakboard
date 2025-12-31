@@ -2714,10 +2714,27 @@ function displayRandomGooglePhoto() {
   }
   
   // Proxy the image through our serverless function to add authentication
-  const accessToken = googlePickerState.accessToken || localStorage.getItem('google_picker_access_token');
-  const proxiedUrl = accessToken 
-    ? `/api/google-photos-proxy?url=${encodeURIComponent(imageUrl)}&accessToken=${encodeURIComponent(accessToken)}`
-    : imageUrl; // Fallback to direct URL if no token
+  // Make sure we have a token - try multiple sources
+  let accessToken = googlePickerState.accessToken;
+  if (!accessToken) {
+    accessToken = localStorage.getItem('google_picker_access_token');
+  }
+  
+  if (!accessToken) {
+    console.warn('[displayRandomGooglePhoto] No access token available, cannot display photo');
+    const errorHtml = `
+      <div class="photos-placeholder">
+        <div class="photos-icon">🔑</div>
+        <h3>Authentication Required</h3>
+        <p>Please reconnect to Google Photos.</p>
+        <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Connect Google Photos</button>
+      </div>
+    `;
+    containers.forEach(container => container.innerHTML = errorHtml);
+    return;
+  }
+  
+  const proxiedUrl = `/api/google-photos-proxy?url=${encodeURIComponent(imageUrl)}&accessToken=${encodeURIComponent(accessToken)}`;
   
   const photoHtml = `
     <div class="photos-display">
