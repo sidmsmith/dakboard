@@ -5329,13 +5329,10 @@ function showPage(pageIndex, direction = null) {
         const finalOffset = (index - pageIndex) * 100;
         
         // Start from current position (relative to old page)
+        // Final positions are set in requestAnimationFrame below
         page.style.transform = `translateX(${currentOffset}vw)`;
         page.style.visibility = 'visible';
         page.style.zIndex = '1';
-        
-        // For pages that would move right (final > current), we need to handle them differently
-        // Actually, when looping right, all pages should move left visually
-        // So if a page's final position is to the right of current, we need to think about this
       }
     });
     
