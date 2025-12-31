@@ -4244,81 +4244,112 @@ async function openGooglePicker() {
       }
     }
     
-    // If no stored photos, fetch from Library API automatically using picker token
-    // The picker token has both photospicker and photoslibrary scopes
+    // If no stored photos, we need to use the Picker API to let user select photos
+    // Note: As of March 2025, the Library API can only access photos uploaded by your app
+    // So we must use the Picker API to let users select photos from their library
     if (!googlePickerState.accessToken) {
       throw new Error('Access token not available');
     }
     
-    // Use the picker access token to fetch photos from Library API
-    let apiUrl = `/api/google-photos?access_token=${encodeURIComponent(googlePickerState.accessToken)}&page_size=100`;
-    if (CONFIG.GOOGLE_PHOTOS_ALBUM_ID) {
-      apiUrl += `&album_id=${encodeURIComponent(CONFIG.GOOGLE_PHOTOS_ALBUM_ID)}`;
+    // Use Picker API to let user select photos (one-time setup)
+    containers.forEach(container => {
+      container.innerHTML = `
+        <div class="photos-placeholder">
+          <div class="photos-icon">📷</div>
+          <h3>Select Photos</h3>
+          <p>Please select photos from your Google Photos library.</p>
+          <p style="font-size: 12px; color: #888; margin-top: 8px;">
+            This is a one-time setup. Selected photos will be saved and displayed automatically.
+          </p>
+        </div>
+      `;
+    });
+    
+    // Create picker session
+    const pickerUri = await createPickerSession();
+    
+    if (!pickerUri) {
+      throw new Error('Failed to get picker URI');
     }
     
-    const response = await fetch(apiUrl);
-    if (response.ok) {
-      const data = await response.json();
-      googlePhotosCache.photos = data.photos || [];
-      googlePhotosCache.lastUpdate = Date.now();
-      
-      // Store photos for future use
-      localStorage.setItem('google_picker_selected_photos', JSON.stringify(googlePhotosCache.photos));
-      
-      // Display random photo
-      if (googlePhotosCache.photos.length > 0) {
-        displayRandomGooglePhoto();
-        
-        // Show success message
-        const rotationMinutes = CONFIG.GOOGLE_PHOTOS_ROTATION_MINUTES || 5;
-        containers.forEach(container => {
-          container.innerHTML = `
-            <div class="photos-placeholder">
-              <div class="photos-icon">✅</div>
-              <h3>Photos Loaded!</h3>
-              <p>Found ${googlePhotosCache.photos.length} photos in your library.</p>
-              <p style="font-size: 12px; color: #888; margin-top: 8px;">
-                Photos will rotate automatically every ${rotationMinutes} minutes.
-              </p>
-            </div>
-          `;
-        });
-        
-        // Show photo after brief delay
-        setTimeout(() => {
-          displayRandomGooglePhoto();
-        }, 1000);
-      } else {
-        containers.forEach(container => {
-          container.innerHTML = `
-            <div class="photos-placeholder">
-              <div class="photos-icon">📷</div>
-              <h3>No Photos Found</h3>
-              <p>No photos were found in your Google Photos library.</p>
-            </div>
-          `;
-        });
-      }
-    } else {
-      const errorText = await response.text();
-      let errorMessage = `Failed to fetch photos: ${response.status}`;
-      try {
-        const errorData = JSON.parse(errorText);
-        errorMessage = errorData.error || errorData.message || errorMessage;
-      } catch (e) {
-        errorMessage = errorText || errorMessage;
-      }
-      throw new Error(errorMessage);
+    // Open picker in new window
+    const pickerWindow = window.open(pickerUri, 'google-picker', 'width=800,height=600');
+    
+    if (!pickerWindow) {
+      throw new Error('Failed to open picker window (popup blocked?)');
     }
+    
+    // Poll for completion
+    if (!googlePickerState.pickerSessionId) {
+      throw new Error('Session ID not available for polling');
+    }
+    
+    const sessionData = await pollPickerSession(googlePickerState.pickerSessionId);
+    
+    // Get selected media items
+    const selectedItems = await getSelectedMediaItems(googlePickerState.pickerSessionId);
+    
+    if (selectedItems.length === 0) {
+      containers.forEach(container => {
+        container.innerHTML = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">📷</div>
+            <h3>No Photos Selected</h3>
+            <p>Please select at least one photo to display.</p>
+            <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Select Photos</button>
+          </div>
+        `;
+      });
+      return;
+    }
+    
+    // Update cache with selected photos
+    googlePhotosCache.photos = selectedItems.map(item => ({
+      id: item.id,
+      filename: item.filename,
+      baseUrl: item.baseUrl,
+      mimeType: item.mimeType,
+      // Add size variants for display
+      thumbnail: item.baseUrl ? item.baseUrl + '=w300-h300-c' : null,
+      medium: item.baseUrl ? item.baseUrl + '=w800-h600' : null,
+      full: item.baseUrl ? item.baseUrl + '=w1920-h1080' : null
+    }));
+    
+    googlePhotosCache.lastUpdate = Date.now();
+    
+    // Store selected photos in localStorage for future use
+    localStorage.setItem('google_picker_selected_photos', JSON.stringify(googlePhotosCache.photos));
+    
+    // Display random photo
+    displayRandomGooglePhoto();
     
     // Set up automatic rotation
     if (googlePhotosCache.updateInterval) {
       clearInterval(googlePhotosCache.updateInterval);
     }
-    const rotationMinutes = CONFIG.GOOGLE_PHOTOS_ROTATION_MINUTES || 5;
+    const rotationInterval = CONFIG.GOOGLE_PHOTOS_ROTATION_MINUTES || 5;
     googlePhotosCache.updateInterval = setInterval(() => {
       displayRandomGooglePhoto();
-    }, rotationMinutes * 60 * 1000);
+    }, rotationInterval * 60 * 1000);
+    
+    // Show success message
+    containers.forEach(container => {
+      container.innerHTML = `
+        <div class="photos-placeholder">
+          <div class="photos-icon">✅</div>
+          <h3>Photos Selected!</h3>
+          <p>${selectedItems.length} photos selected. Displaying random photos automatically.</p>
+          <p style="font-size: 12px; color: #888; margin-top: 8px;">
+            Photos will rotate every ${rotationInterval} minutes.
+          </p>
+        </div>
+      `;
+    });
+    
+    // Show photo after brief delay
+    setTimeout(() => {
+      displayRandomGooglePhoto();
+    }, 1000);
   } catch (error) {
     console.error('Error opening Google Picker:', error);
     
