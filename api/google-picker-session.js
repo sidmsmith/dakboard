@@ -52,8 +52,8 @@ export default async function (req, res) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            pickingExperienceConfig: {
-              multiSelect: true
+            pickingConfig: {
+              maxItemCount: 2000
             }
           })
         });
