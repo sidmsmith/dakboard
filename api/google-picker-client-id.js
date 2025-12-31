@@ -19,3 +19,4 @@ export default async function (req, res) {
   return res.json({ clientId: CLIENT_ID });
 }
 
+

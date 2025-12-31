@@ -3790,26 +3790,53 @@ async function initializeGooglePicker() {
     googlePickerState.isInitialized = true;
   } catch (error) {
     console.error('Error initializing Google Picker API:', error);
+    console.error('Error type:', typeof error);
+    console.error('Error keys:', error ? Object.keys(error) : 'null');
+    console.error('Error stringified:', JSON.stringify(error, null, 2));
+    console.error('Current origin:', window.location.origin);
+    console.error('Client ID being used:', CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID || 'Not found');
     googlePickerState.isInitialized = false;
     
     // Check if it's an origin registration error
-    if (error && (error.error === 'idpiframe_initialization_failed' || 
-                  (error.details && error.details.includes('not been registered')))) {
-      const originError = new Error('Origin not registered in Google Cloud Console. Please add your domain to Authorized JavaScript origins in your OAuth 2.0 client settings.');
+    const errorMessage = error?.message || error?.details || String(error);
+    const errorError = error?.error || error?.errorCode;
+    
+    if (errorError === 'idpiframe_initialization_failed' || 
+        errorMessage?.includes('not been registered') ||
+        errorMessage?.includes('origin') ||
+        errorError === 'origin_mismatch') {
+      const originError = new Error(`Google Picker API initialization failed. Current origin: ${window.location.origin}. Please check: 1) Origin '${window.location.origin}' is registered in Authorized JavaScript origins (exact match, no trailing slash), 2) Google Picker API is ENABLED in APIs & Services > Library, 3) The scope 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly' is added to OAuth consent screen, 4) Client ID matches. Error details: ${errorMessage || JSON.stringify(error)}`);
       originError.originalError = error;
       throw originError;
     }
     
-    throw error;
+    // Re-throw with more context
+    const enhancedError = new Error(`Google Picker API initialization failed: ${errorMessage || String(error)}. Check browser console for full error details.`);
+    enhancedError.originalError = error;
+    throw enhancedError;
   }
 }
 
 // Load Google Picker API script dynamically
 function loadGooglePickerScript() {
   return new Promise((resolve, reject) => {
-    if (window.gapi && window.gapi.auth2) {
-      // Already loaded and initialized
-      resolve();
+    // Check if gapi.auth2 is already loaded and has an initialized instance
+    if (window.gapi && window.gapi.auth2 && window.gapi.auth2.getAuthInstance) {
+      try {
+        const authInstance = window.gapi.auth2.getAuthInstance();
+        if (authInstance) {
+          // Already loaded and initialized
+          resolve();
+          return;
+        }
+      } catch (e) {
+        // Not fully initialized, continue with initialization
+      }
+    }
+    
+    // Ensure document is ready before loading script
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => loadGooglePickerScript().then(resolve).catch(reject));
       return;
     }
     
@@ -3822,8 +3849,10 @@ function loadGooglePickerScript() {
         return;
       }
       
-      // Load auth2 for OAuth
-      window.gapi.load('auth2', async () => {
+      // Small delay to ensure origin is fully established
+      setTimeout(() => {
+        // Load auth2 for OAuth
+        window.gapi.load('auth2', async () => {
         // Get Client ID - try config first, then fetch from API (environment variable)
         let clientId = CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID;
         
@@ -3851,12 +3880,24 @@ function loadGooglePickerScript() {
           return;
         }
         
+        // Initialize auth2 with explicit configuration
+        // The origin should be auto-detected, but we ensure it's set correctly
         window.gapi.auth2.init({
-          client_id: clientId
+          client_id: clientId,
+          // Don't specify scope here - we'll request it during signIn
+          // This helps avoid origin detection issues
         }).then(() => {
           resolve();
-        }, reject);
-      });
+        }, (error) => {
+          // Enhanced error logging for debugging
+          console.error('gapi.auth2.init error:', error);
+          console.error('Current origin:', window.location.origin);
+          console.error('Expected origin format: https://dakboard-smith.vercel.app (no trailing slash)');
+          console.error('Client ID:', clientId);
+          reject(error);
+        });
+        }); // End of gapi.load('auth2') callback
+      }, 100); // Small delay to ensure origin is stable
     };
     script.onerror = () => {
       reject(new Error('Failed to load Google API script'));
@@ -3891,9 +3932,13 @@ async function authenticateGooglePicker() {
     
     // Use Google Picker API scope (matches what's configured in Google Cloud Console)
     // This scope: https://www.googleapis.com/auth/photospicker.mediaitems.readonly
+    // Note: Removed 'prompt: consent' since app doesn't require verification for personal use
+    const requestedScope = 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly';
+    console.log('Requesting Google Picker scope:', requestedScope);
+    console.log('Current origin:', window.location.origin);
+    
     const user = await authInstance.signIn({
-      scope: 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly',
-      prompt: 'consent' // Force consent screen to show scopes for verification
+      scope: requestedScope
     });
     
     const accessToken = user.getAuthResponse().access_token;
@@ -3906,11 +3951,21 @@ async function authenticateGooglePicker() {
     return accessToken;
   } catch (error) {
     console.error('Error authenticating Google Picker:', error);
+    console.error('Error details:', {
+      type: error?.type,
+      error: error?.error,
+      message: error?.message,
+      details: error?.details,
+      originalError: error?.originalError
+    });
+    console.error('Current origin:', window.location.origin);
     
     // Check for specific error types
-    if (error && error.type === 'tokenFailed' && error.error === 'server_error') {
+    if (error && (error.type === 'tokenFailed' && error.error === 'server_error') ||
+        (error.error === 'idpiframe_initialization_failed') ||
+        (error.message && error.message.includes('not been registered'))) {
       // This usually means origin not registered or app not verified
-      const originError = new Error('Authentication failed. This may be due to: 1) Origin not registered in Google Cloud Console, 2) App not verified, or 3) OAuth configuration issue.');
+      const originError = new Error(`Authentication failed. Current origin: ${window.location.origin}. Please check: 1) Origin is registered exactly (including protocol, no trailing slash) in Authorized JavaScript origins, 2) The scope 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly' is ADDED to OAuth consent screen scopes (even in Production mode - go to OAuth consent screen > Scopes > Add or Remove Scopes > search for 'photospicker'), 3) Client ID matches the one in Google Cloud Console. Note: You can stay in Production mode, but the scope must be explicitly added.`);
       originError.originalError = error;
       originError.isTokenFailed = true;
       throw originError;
