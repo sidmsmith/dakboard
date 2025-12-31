@@ -5274,6 +5274,9 @@ function showPage(pageIndex, direction = null) {
   localStorage.setItem('dakboard-current-page', pageIndex.toString());
   
   // Determine if we're looping (wrapping around)
+  // NOTE: Smooth animations work correctly even when looping between first and last pages
+  // Right loop: Last page → First page (with Page 1 hidden during transition)
+  // Left loop: First page → Last page (with second-to-last page hidden during transition)
   const isLooping = (direction === 'right' && oldPageIndex === totalPages - 1 && pageIndex === 0) ||
                     (direction === 'left' && oldPageIndex === 0 && pageIndex === totalPages - 1);
   
@@ -6174,7 +6177,7 @@ function exportConfiguration() {
     const currentPage = parseInt(localStorage.getItem('dakboard-current-page')) || 0;
     
     const config = {
-      version: '2.0',
+      version: '2.1', // Updated: Added smooth loop animations
       exportDate: new Date().toISOString(),
       metadata: {
         totalPages: totalPages,
