@@ -4499,8 +4499,10 @@ async function openGooglePicker() {
       error.message.includes('unverified')
     );
     
-    // If authentication succeeded but API calls fail, show appropriate message
-    if (localStorage.getItem('google_picker_authenticated') === 'true' || isAuthError) {
+    // If authentication succeeded but API calls fail, check if we have stored photos first
+    // Only show error message if we don't have photos to display
+    const storedPhotos = localStorage.getItem('google_picker_selected_photos');
+    if ((localStorage.getItem('google_picker_authenticated') === 'true' || isAuthError) && !storedPhotos) {
       containers.forEach(container => {
         container.innerHTML = `
           <div class="photos-placeholder">
