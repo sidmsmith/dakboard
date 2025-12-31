@@ -3771,21 +3771,17 @@ async function initializeGooglePicker() {
   }
   
   try {
-    // Load Google Picker API script
+    // Load Google Identity Services and Picker API scripts
     await loadGooglePickerScript();
     
-    // Check if gapi is loaded
-    if (!window.gapi || !window.gapi.load) {
-      throw new Error('Google API client not loaded');
+    // Check if both GIS and gapi are loaded
+    if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
+      throw new Error('Google Identity Services not loaded');
     }
     
-    // Initialize Google API client
-    await new Promise((resolve, reject) => {
-      window.gapi.load('picker', {
-        callback: resolve,
-        onerror: reject
-      });
-    });
+    if (!window.gapi) {
+      throw new Error('Google API client not loaded');
+    }
     
     googlePickerState.isInitialized = true;
   } catch (error) {
@@ -3817,21 +3813,14 @@ async function initializeGooglePicker() {
   }
 }
 
-// Load Google Picker API script dynamically
+// Load Google Identity Services (GIS) script - replaces deprecated gapi.auth2
 function loadGooglePickerScript() {
   return new Promise((resolve, reject) => {
-    // Check if gapi.auth2 is already loaded and has an initialized instance
-    if (window.gapi && window.gapi.auth2 && window.gapi.auth2.getAuthInstance) {
-      try {
-        const authInstance = window.gapi.auth2.getAuthInstance();
-        if (authInstance) {
-          // Already loaded and initialized
-          resolve();
-          return;
-        }
-      } catch (e) {
-        // Not fully initialized, continue with initialization
-      }
+    // Check if Google Identity Services is already loaded
+    if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+      // Already loaded
+      resolve();
+      return;
     }
     
     // Ensure document is ready before loading script
@@ -3840,73 +3829,46 @@ function loadGooglePickerScript() {
       return;
     }
     
+    // Load Google Identity Services library (new, replaces deprecated gapi.auth2)
     const script = document.createElement('script');
-    script.src = 'https://apis.google.com/js/api.js';
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
     script.onload = () => {
-      // Check if gapi loaded successfully
-      if (!window.gapi || !window.gapi.load) {
-        reject(new Error('Failed to load Google API client'));
+      // Check if Google Identity Services loaded successfully
+      if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
+        reject(new Error('Failed to load Google Identity Services'));
         return;
       }
       
-      // Small delay to ensure origin is fully established
-      setTimeout(() => {
-        // Load auth2 for OAuth
-        window.gapi.load('auth2', async () => {
-        // Get Client ID - try config first, then fetch from API (environment variable)
-        let clientId = CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID;
-        
-        // If not in config, fetch from API endpoint (reads from environment variable)
-        if (!clientId) {
-          try {
-            const response = await fetch('/api/google-picker-client-id');
-            if (response.ok) {
-              const data = await response.json();
-              clientId = data.clientId;
-              // Cache it for future use
-              CONFIG.GOOGLE_PHOTOS_CLIENT_ID = clientId;
-            } else {
-              reject(new Error('Client ID not configured. Please set GOOGLE_PHOTOS_CLIENT_ID environment variable.'));
-              return;
-            }
-          } catch (error) {
-            reject(new Error('Failed to fetch Client ID from server'));
-            return;
-          }
-        }
-        
-        if (!clientId) {
-          reject(new Error('Client ID not configured'));
+      // Also load the Picker API
+      const pickerScript = document.createElement('script');
+      pickerScript.src = 'https://apis.google.com/js/api.js';
+      pickerScript.onload = () => {
+        if (!window.gapi || !window.gapi.load) {
+          reject(new Error('Failed to load Google API client'));
           return;
         }
         
-        // Initialize auth2 with explicit configuration
-        // The origin should be auto-detected, but we ensure it's set correctly
-        window.gapi.auth2.init({
-          client_id: clientId,
-          // Don't specify scope here - we'll request it during signIn
-          // This helps avoid origin detection issues
-        }).then(() => {
-          resolve();
-        }, (error) => {
-          // Enhanced error logging for debugging
-          console.error('gapi.auth2.init error:', error);
-          console.error('Current origin:', window.location.origin);
-          console.error('Expected origin format: https://dakboard-smith.vercel.app (no trailing slash)');
-          console.error('Client ID:', clientId);
-          reject(error);
+        // Load picker API
+        window.gapi.load('picker', {
+          callback: resolve,
+          onerror: reject
         });
-        }); // End of gapi.load('auth2') callback
-      }, 100); // Small delay to ensure origin is stable
+      };
+      pickerScript.onerror = () => {
+        reject(new Error('Failed to load Google Picker API script'));
+      };
+      document.head.appendChild(pickerScript);
     };
     script.onerror = () => {
-      reject(new Error('Failed to load Google API script'));
+      reject(new Error('Failed to load Google Identity Services script'));
     };
     document.head.appendChild(script);
   });
 }
 
-// Authenticate user and get access token for Picker API
+// Authenticate user and get access token for Picker API using Google Identity Services (GIS)
 async function authenticateGooglePicker() {
   // Restore access token from localStorage first (might be expired, but check anyway)
   const storedToken = localStorage.getItem('google_picker_access_token');
@@ -3919,36 +3881,74 @@ async function authenticateGooglePicker() {
     await initializeGooglePicker();
   }
   
-  // Check if gapi is available
-  if (!window.gapi || !window.gapi.auth2) {
-    throw new Error('Google API client not initialized. Please check your Client ID configuration.');
+  // Check if Google Identity Services is available
+  if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
+    throw new Error('Google Identity Services not loaded. Please check your Client ID configuration.');
   }
   
   try {
-    const authInstance = window.gapi.auth2.getAuthInstance();
-    if (!authInstance) {
-      throw new Error('Google Auth2 instance not available. Please check your Client ID configuration.');
+    // Get Client ID - try config first, then fetch from API (environment variable)
+    let clientId = CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID;
+    
+    // If not in config, fetch from API endpoint (reads from environment variable)
+    if (!clientId) {
+      try {
+        const response = await fetch('/api/google-picker-client-id');
+        if (response.ok) {
+          const data = await response.json();
+          clientId = data.clientId;
+          // Cache it for future use
+          CONFIG.GOOGLE_PHOTOS_CLIENT_ID = clientId;
+        } else {
+          throw new Error('Client ID not configured. Please set GOOGLE_PHOTOS_CLIENT_ID environment variable.');
+        }
+      } catch (error) {
+        throw new Error('Failed to fetch Client ID from server');
+      }
+    }
+    
+    if (!clientId) {
+      throw new Error('Client ID not configured');
     }
     
     // Use Google Picker API scope (matches what's configured in Google Cloud Console)
     // This scope: https://www.googleapis.com/auth/photospicker.mediaitems.readonly
-    // Note: Removed 'prompt: consent' since app doesn't require verification for personal use
     const requestedScope = 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly';
     console.log('Requesting Google Picker scope:', requestedScope);
     console.log('Current origin:', window.location.origin);
+    console.log('Client ID:', clientId);
     
-    const user = await authInstance.signIn({
-      scope: requestedScope
+    // Use new Google Identity Services OAuth2 token client
+    return new Promise((resolve, reject) => {
+      const tokenClient = window.google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: requestedScope,
+        callback: (response) => {
+          if (response.error) {
+            console.error('OAuth2 token error:', response);
+            reject(new Error(`Authentication failed: ${response.error}. Please check your OAuth configuration.`));
+            return;
+          }
+          
+          const accessToken = response.access_token;
+          googlePickerState.accessToken = accessToken;
+          
+          // Store token in localStorage for persistence
+          localStorage.setItem('google_picker_access_token', accessToken);
+          localStorage.setItem('google_picker_authenticated', 'true');
+          
+          console.log('Authentication successful');
+          resolve(accessToken);
+        },
+        error_callback: (error) => {
+          console.error('OAuth2 error callback:', error);
+          reject(new Error(`Authentication error: ${JSON.stringify(error)}`));
+        }
+      });
+      
+      // Request access token (will show consent screen if needed)
+      tokenClient.requestAccessToken({ prompt: '' });
     });
-    
-    const accessToken = user.getAuthResponse().access_token;
-    googlePickerState.accessToken = accessToken;
-    
-    // Store token in localStorage for persistence
-    localStorage.setItem('google_picker_access_token', accessToken);
-    localStorage.setItem('google_picker_authenticated', 'true');
-    
-    return accessToken;
   } catch (error) {
     console.error('Error authenticating Google Picker:', error);
     console.error('Error details:', {
