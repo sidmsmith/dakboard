@@ -4362,10 +4362,22 @@ async function openGooglePicker() {
     
     // Update cache with selected photos
     // The API returns items with mediaFile object containing the URL
-    console.log('[openGooglePicker] Processing selected items. First item structure:', selectedItems[0]);
+    console.log('[openGooglePicker] Processing selected items. First item structure:', JSON.stringify(selectedItems[0], null, 2));
     googlePhotosCache.photos = selectedItems.map(item => {
-      // The API structure has mediaFile with url field
-      const baseUrl = item.mediaFile?.url || item.baseUrl || null;
+      // Log the mediaFile structure to see what fields it has
+      console.log('[openGooglePicker] Item mediaFile:', JSON.stringify(item.mediaFile, null, 2));
+      
+      // The API structure might have different field names - try multiple possibilities
+      const baseUrl = item.mediaFile?.url || 
+                      item.mediaFile?.baseUrl || 
+                      item.mediaFile?.downloadUrl ||
+                      item.baseUrl || 
+                      null;
+      
+      if (!baseUrl) {
+        console.warn('[openGooglePicker] No URL found for item:', item.id, 'mediaFile keys:', item.mediaFile ? Object.keys(item.mediaFile) : 'no mediaFile');
+      }
+      
       return {
         id: item.id,
         filename: item.mediaFile?.filename || item.filename || `photo_${item.id.substring(0, 8)}`,
