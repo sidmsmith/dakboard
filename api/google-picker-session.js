@@ -52,9 +52,8 @@ export default async function (req, res) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            featureConfig: {
-              feature: 'PHOTOS',
-              allowedMimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+            pickingExperienceConfig: {
+              multiSelect: true
             }
           })
         });
