@@ -3412,6 +3412,24 @@ function loadWidgetVisibility() {
           // Clone the widget to the current page
           widget = templateWidget.cloneNode(true);
           widget.classList.remove('hidden'); // Ensure it's visible
+          
+          // Special handling for thermostat widget: ensure dropdown options are preserved
+          if (widgetId === 'thermostat-widget') {
+            const clonedSelect = widget.querySelector('#thermostat-selector');
+            if (clonedSelect) {
+              // Ensure all 3 options are present
+              const options = clonedSelect.querySelectorAll('option');
+              if (options.length < 3) {
+                // Re-add options if they're missing
+                clonedSelect.innerHTML = `
+                  <option value="1">Basement</option>
+                  <option value="2">Living Room</option>
+                  <option value="3">Master Bedroom</option>
+                `;
+              }
+            }
+          }
+          
           pageElement.appendChild(widget);
           
           // Initialize widget-specific functionality if needed
@@ -3480,6 +3498,24 @@ function toggleWidgetVisibility(widgetId) {
     if (templateWidget) {
       // Clone the widget to the current page
       widget = templateWidget.cloneNode(true);
+      
+      // Special handling for thermostat widget: ensure dropdown options are preserved
+      if (widgetId === 'thermostat-widget') {
+        const clonedSelect = widget.querySelector('#thermostat-selector');
+        if (clonedSelect) {
+          // Ensure all 3 options are present
+          const options = clonedSelect.querySelectorAll('option');
+          if (options.length < 3) {
+            // Re-add options if they're missing
+            clonedSelect.innerHTML = `
+              <option value="1">Basement</option>
+              <option value="2">Living Room</option>
+              <option value="3">Master Bedroom</option>
+            `;
+          }
+        }
+      }
+      
       // Don't set visibility here - let the toggle handle it
       pageElement.appendChild(widget);
       
