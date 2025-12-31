@@ -2,15 +2,23 @@
 // Handles picker session creation, polling, and getting selected items
 // This serverless function is needed because Google's API doesn't allow direct browser calls due to CORS
 
-export default async function (req, res) {
+export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   
   // Handle preflight
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
+  }
+  
+  // Allow GET for testing/debugging
+  if (req.method === 'GET') {
+    return res.status(200).json({ 
+      message: 'Google Picker Session API is working',
+      method: 'Use POST with action, accessToken, and optionally sessionId'
+    });
   }
   
   if (req.method !== 'POST') {
