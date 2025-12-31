@@ -5314,7 +5314,8 @@ function showPage(pageIndex, direction = null) {
         page.style.visibility = 'visible';
         page.style.zIndex = '10'; // Ensure it's on top
       } else if (index === 1) {
-        // Page 1: Keep it hidden and positioned off-screen to prevent flash
+        // Page at index 1 (second page): Keep it hidden during right loop to prevent flash
+        // This is the page that would be visible between last page and first page
         page.style.transform = `translateX(-100vw)`;
         page.style.visibility = 'hidden';
         page.style.zIndex = '1';
@@ -5352,7 +5353,8 @@ function showPage(pageIndex, direction = null) {
           // New page (0) animates to center
           page.style.transform = `translateX(0vw)`;
         } else if (index === 1) {
-          // Page 1: Keep hidden, will be at -100vw (off-screen left)
+          // Page at index 1 (second page): Keep hidden during animation
+          // This is the page that would be visible between last page and first page
           page.style.transform = `translateX(-100vw)`;
           page.style.visibility = 'hidden';
           setTimeout(() => {
@@ -5422,7 +5424,8 @@ function showPage(pageIndex, direction = null) {
         page.style.visibility = 'visible';
         page.style.zIndex = '10'; // Ensure it's on top
       } else if (index === totalPages - 2) {
-        // Page 2 (second to last): Keep it hidden and positioned off-screen to prevent flash
+        // Page at index totalPages - 2 (second to last): Keep it hidden during left loop to prevent flash
+        // This is the page that would be visible between first page and last page
         const finalOffset = (index - pageIndex) * 100;
         page.style.transform = `translateX(${finalOffset}vw)`;
         page.style.visibility = 'hidden';
@@ -5457,7 +5460,8 @@ function showPage(pageIndex, direction = null) {
           // New page (last) animates to center
           page.style.transform = `translateX(0vw)`;
         } else if (index === totalPages - 2) {
-          // Page 2: Keep hidden, will be at its final position
+          // Page at index totalPages - 2 (second to last): Keep hidden during animation
+          // This is the page that would be visible between first page and last page
           const finalOffset = (index - pageIndex) * 100;
           page.style.transform = `translateX(${finalOffset}vw)`;
           page.style.visibility = 'hidden';
