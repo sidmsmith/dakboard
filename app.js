@@ -4052,7 +4052,17 @@ async function createPickerSession() {
     }
     
     const data = await response.json();
+    console.log('Picker session response:', data);
+    
+    // The response should contain sessionId and pickerUri
+    if (!data.sessionId) {
+      console.error('No sessionId in response:', data);
+      throw new Error('Session ID not found in API response');
+    }
+    
     googlePickerState.pickerSessionId = data.sessionId;
+    console.log('Session ID:', data.sessionId);
+    console.log('Picker URI:', data.pickerUri);
     
     return data.pickerUri;
   } catch (error) {
@@ -4177,39 +4187,92 @@ async function openGooglePicker() {
     // Store authentication success
     localStorage.setItem('google_picker_authenticated', 'true');
     
-    // Create picker session
-    const pickerUri = await createPickerSession();
+    // For automatic random photos, use the Library API directly instead of picker
+    // The picker is optional and can be used to select specific photos/albums
+    // But for the main use case (random photos), we'll use the Library API
     
-    // Open picker in new window
-    const pickerWindow = window.open(pickerUri, 'google-picker', 'width=800,height=600');
-    
-    if (!pickerWindow) {
-      throw new Error('Failed to open picker window (popup blocked?)');
+    // Check if we have stored photo selections from picker
+    const storedPickerPhotos = localStorage.getItem('google_picker_selected_photos');
+    if (storedPickerPhotos) {
+      try {
+        const selectedPhotos = JSON.parse(storedPickerPhotos);
+        if (selectedPhotos.length > 0) {
+          // Use previously selected photos
+          googlePhotosCache.photos = selectedPhotos;
+          googlePhotosCache.lastUpdate = Date.now();
+          displayRandomGooglePhoto();
+          
+          // Set up automatic rotation
+          if (googlePhotosCache.updateInterval) {
+            clearInterval(googlePhotosCache.updateInterval);
+          }
+          const rotationMinutes = CONFIG.GOOGLE_PHOTOS_ROTATION_MINUTES || 5;
+          googlePhotosCache.updateInterval = setInterval(() => {
+            displayRandomGooglePhoto();
+          }, rotationMinutes * 60 * 1000);
+          
+          containers.forEach(container => {
+            container.innerHTML = `
+              <div class="photos-placeholder">
+                <div class="photos-icon">✅</div>
+                <h3>Photos Loaded!</h3>
+                <p>Displaying random photos from your selection.</p>
+                <p style="font-size: 12px; color: #888; margin-top: 8px;">
+                  Photos will rotate every ${rotationMinutes} minutes.
+                </p>
+              </div>
+            `;
+          });
+          
+          // Show photo after a brief delay
+          setTimeout(() => {
+            displayRandomGooglePhoto();
+          }, 500);
+          
+          return;
+        }
+      } catch (e) {
+        console.error('Error parsing stored picker photos:', e);
+      }
     }
     
-    // Poll for completion
-    const sessionData = await pollPickerSession(googlePickerState.pickerSessionId);
+    // If no stored photos, fetch from Library API automatically using picker token
+    // The picker token has both photospicker and photoslibrary scopes
+    if (!googlePickerState.accessToken) {
+      throw new Error('Access token not available');
+    }
     
-    // Get selected media items
-    const selectedItems = await getSelectedMediaItems(googlePickerState.pickerSessionId);
+    // Use the picker access token to fetch photos from Library API
+    let apiUrl = `/api/google-photos?access_token=${encodeURIComponent(googlePickerState.accessToken)}&page_size=100`;
+    if (CONFIG.GOOGLE_PHOTOS_ALBUM_ID) {
+      apiUrl += `&album_id=${encodeURIComponent(CONFIG.GOOGLE_PHOTOS_ALBUM_ID)}`;
+    }
     
-    // Update cache with selected photos
-    googlePhotosCache.photos = selectedItems.map(item => ({
-      id: item.id,
-      filename: item.filename,
-      baseUrl: item.baseUrl,
-      mimeType: item.mimeType
-    }));
+    const response = await fetch(apiUrl);
+    if (response.ok) {
+      const data = await response.json();
+      googlePhotosCache.photos = data.photos || [];
+      googlePhotosCache.lastUpdate = Date.now();
+      
+      // Store photos for future use
+      localStorage.setItem('google_picker_selected_photos', JSON.stringify(googlePhotosCache.photos));
+      
+      // Display random photo
+      if (googlePhotosCache.photos.length > 0) {
+        displayRandomGooglePhoto();
+      }
+    } else {
+      throw new Error(`Failed to fetch photos: ${response.status}`);
+    }
     
-    googlePhotosCache.lastUpdate = Date.now();
-    
-    // Display photos
-    displayRandomGooglePhoto();
-    
-    // Store selected photos in localStorage
-    localStorage.setItem('google_picker_selected_photos', JSON.stringify(googlePhotosCache.photos));
-    
-    return selectedItems;
+    // Set up automatic rotation
+    if (googlePhotosCache.updateInterval) {
+      clearInterval(googlePhotosCache.updateInterval);
+    }
+    const rotationMinutes = CONFIG.GOOGLE_PHOTOS_ROTATION_MINUTES || 5;
+    googlePhotosCache.updateInterval = setInterval(() => {
+      displayRandomGooglePhoto();
+    }, rotationMinutes * 60 * 1000);
   } catch (error) {
     console.error('Error opening Google Picker:', error);
     
