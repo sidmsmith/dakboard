@@ -24,17 +24,22 @@ export default async function (req, res) {
     return res.status(400).json({ error: 'URL parameter is required' });
   }
   
-  if (!accessToken) {
-    return res.status(400).json({ error: 'Access token is required' });
-  }
+  // Decode the URL (it may be double-encoded from the query string)
+  const decodedUrl = decodeURIComponent(url);
   
   try {
-    // Fetch the image from Google Photos with authentication
-    const imageResponse = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      }
-    });
+    // Picker API baseUrls are signed URLs that may or may not need authentication
+    // Try without auth first (signed URLs work without headers)
+    let imageResponse = await fetch(decodedUrl);
+    
+    // If that fails with 403, try with authentication
+    if (!imageResponse.ok && imageResponse.status === 403 && accessToken) {
+      imageResponse = await fetch(decodedUrl, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+    }
     
     if (!imageResponse.ok) {
       return res.status(imageResponse.status).json({ 
