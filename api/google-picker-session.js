@@ -122,25 +122,41 @@ export default async function (req, res) {
         
       case 'getSelected':
         // Get selected media items
+        // According to Google Photos Picker API docs, use POST to /v1/mediaItems:list with sessionId in body
         if (!sessionId) {
           return res.status(400).json({ error: 'Session ID is required for getting selected items' });
         }
         
-        const getResponse = await fetch(`https://photospicker.googleapis.com/v1/sessions/${sessionId}:getSelectedMediaItems`, {
+        console.log('[getSelected] Fetching media items for session:', sessionId);
+        const getResponse = await fetch('https://photospicker.googleapis.com/v1/mediaItems:list', {
+          method: 'POST',
           headers: {
-            'Authorization': `Bearer ${accessToken}`
-          }
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            sessionId: sessionId
+          })
         });
         
         if (!getResponse.ok) {
           const errorText = await getResponse.text();
+          console.error('[getSelected] API error:', getResponse.status, errorText);
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+          } catch (e) {
+            errorData = { error: { message: errorText } };
+          }
           return res.status(getResponse.status).json({ 
             error: `Failed to get selected media items: ${getResponse.status}`,
-            details: errorText
+            details: errorText,
+            googleError: errorData
           });
         }
         
         const getData = await getResponse.json();
+        console.log('[getSelected] Successfully retrieved media items:', getData);
         return res.json(getData);
         
       default:
