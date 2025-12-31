@@ -123,6 +123,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   loadAllData();
   startAutoRefresh();
+  
+  // Ensure all thermostat selectors have all options
+  ensureThermostatSelectOptions();
 });
 
 // Calendar events cache
@@ -2458,6 +2461,26 @@ async function setAlarm() {
 // Thermostat state
 let currentThermostat = 1;
 
+// Ensure all thermostat selectors have all 3 options
+function ensureThermostatSelectOptions() {
+  const allSelectors = document.querySelectorAll('#thermostat-selector');
+  allSelectors.forEach(select => {
+    const options = select.querySelectorAll('option');
+    if (options.length !== 3) {
+      // Save current value before fixing
+      const currentValue = select.value || '1';
+      // Re-add all 3 options
+      select.innerHTML = `
+        <option value="1">Basement</option>
+        <option value="2">Living Room</option>
+        <option value="3">Master Bedroom</option>
+      `;
+      // Restore the previously selected value
+      select.value = currentValue;
+    }
+  });
+}
+
 // Calculate relative luminance of a color (for contrast calculation)
 function getLuminance(r, g, b) {
   // Convert RGB to relative luminance using WCAG formula
@@ -2643,6 +2666,9 @@ async function loadThermostat() {
     
     // Update all displays across all pages
     displays.forEach(d => d.innerHTML = displayHtml);
+    
+    // Ensure all selectors have all 3 options before syncing
+    ensureThermostatSelectOptions();
     
     // Sync all selectors to the current selection
     selectors.forEach(s => {
@@ -3417,16 +3443,15 @@ function loadWidgetVisibility() {
           if (widgetId === 'thermostat-widget') {
             const clonedSelect = widget.querySelector('#thermostat-selector');
             if (clonedSelect) {
-              // Ensure all 3 options are present
-              const options = clonedSelect.querySelectorAll('option');
-              if (options.length < 3) {
-                // Re-add options if they're missing
-                clonedSelect.innerHTML = `
-                  <option value="1">Basement</option>
-                  <option value="2">Living Room</option>
-                  <option value="3">Master Bedroom</option>
-                `;
-              }
+              // Always ensure all 3 options are present (fix any missing options)
+              const currentValue = clonedSelect.value || '1';
+              clonedSelect.innerHTML = `
+                <option value="1">Basement</option>
+                <option value="2">Living Room</option>
+                <option value="3">Master Bedroom</option>
+              `;
+              // Restore the previously selected value if it was set
+              clonedSelect.value = currentValue;
             }
           }
           
@@ -3503,16 +3528,15 @@ function toggleWidgetVisibility(widgetId) {
       if (widgetId === 'thermostat-widget') {
         const clonedSelect = widget.querySelector('#thermostat-selector');
         if (clonedSelect) {
-          // Ensure all 3 options are present
-          const options = clonedSelect.querySelectorAll('option');
-          if (options.length < 3) {
-            // Re-add options if they're missing
-            clonedSelect.innerHTML = `
-              <option value="1">Basement</option>
-              <option value="2">Living Room</option>
-              <option value="3">Master Bedroom</option>
-            `;
-          }
+          // Always ensure all 3 options are present (fix any missing options)
+          const currentValue = clonedSelect.value || '1';
+          clonedSelect.innerHTML = `
+            <option value="1">Basement</option>
+            <option value="2">Living Room</option>
+            <option value="3">Master Bedroom</option>
+          `;
+          // Restore the previously selected value if it was set
+          clonedSelect.value = currentValue;
         }
       }
       
