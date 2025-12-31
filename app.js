@@ -4306,6 +4306,8 @@ async function openGooglePicker() {
           // Use previously selected photos
           googlePhotosCache.photos = selectedPhotos;
           googlePhotosCache.lastUpdate = Date.now();
+          
+          // Display random photo immediately
           displayRandomGooglePhoto();
           
           // Set up automatic rotation
@@ -4316,24 +4318,6 @@ async function openGooglePicker() {
           googlePhotosCache.updateInterval = setInterval(() => {
             displayRandomGooglePhoto();
           }, rotationMinutes * 60 * 1000);
-          
-          containers.forEach(container => {
-            container.innerHTML = `
-              <div class="photos-placeholder">
-                <div class="photos-icon">✅</div>
-                <h3>Photos Loaded!</h3>
-                <p>Displaying random photos from your selection.</p>
-                <p style="font-size: 12px; color: #888; margin-top: 8px;">
-                  Photos will rotate every ${rotationMinutes} minutes.
-                </p>
-              </div>
-            `;
-          });
-          
-          // Show photo after a brief delay
-          setTimeout(() => {
-            displayRandomGooglePhoto();
-          }, 500);
           
           return;
         }
@@ -4485,7 +4469,7 @@ async function openGooglePicker() {
     // Store selected photos in localStorage for future use
     localStorage.setItem('google_picker_selected_photos', JSON.stringify(googlePhotosCache.photos));
     
-    // Display random photo
+    // Display random photo immediately
     displayRandomGooglePhoto();
     
     // Set up automatic rotation
@@ -4496,25 +4480,6 @@ async function openGooglePicker() {
     googlePhotosCache.updateInterval = setInterval(() => {
       displayRandomGooglePhoto();
     }, rotationInterval * 60 * 1000);
-    
-    // Show success message
-    containers.forEach(container => {
-      container.innerHTML = `
-        <div class="photos-placeholder">
-          <div class="photos-icon">✅</div>
-          <h3>Photos Selected!</h3>
-          <p>${selectedItems.length} photos selected. Displaying random photos automatically.</p>
-          <p style="font-size: 12px; color: #888; margin-top: 8px;">
-            Photos will rotate every ${rotationInterval} minutes.
-          </p>
-        </div>
-      `;
-    });
-    
-    // Show photo after brief delay
-    setTimeout(() => {
-      displayRandomGooglePhoto();
-    }, 1000);
   } catch (error) {
     console.error('Error opening Google Picker:', error);
     
