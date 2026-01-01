@@ -514,8 +514,10 @@ function generateTitleTab() {
   
   // Get current widget's default title from WIDGET_CONFIG
   const defaultTitle = WIDGET_CONFIG[currentWidgetId]?.name || 'Widget';
+  const defaultIcon = WIDGET_CONFIG[currentWidgetId]?.icon || '';
   const titleText = currentStyles.titleText !== undefined ? currentStyles.titleText : defaultTitle;
   const titleVisible = currentStyles.titleVisible !== undefined ? currentStyles.titleVisible : true;
+  const titleIconVisible = currentStyles.titleIconVisible !== undefined ? currentStyles.titleIconVisible : true;
   const titleAlignment = currentStyles.titleAlignment || 'left';
   const isSpecialWidget = currentWidgetId === 'calendar-widget' || currentWidgetId === 'whiteboard-widget';
   const textColor = currentStyles.textColor || '#fff';
@@ -547,6 +549,17 @@ function generateTitleTab() {
             </label>
             <label class="styling-apply-all-checkbox">
               <input type="checkbox" id="title-visible-apply-all" ${applyToAllFlags.titleVisible ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Show Icon</label>
+          <div class="styling-form-control">
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="title-icon-visible" ${titleIconVisible ? 'checked' : ''} ${isSpecialWidget ? 'disabled' : ''}> Show icon
+            </label>
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="title-icon-visible-apply-all" ${applyToAllFlags.titleIconVisible ? 'checked' : ''}> Apply to all
             </label>
           </div>
         </div>
@@ -1256,13 +1269,24 @@ function updatePreview() {
   // Apply text
   const titleText = preview.querySelector('.styling-preview-title-text');
   if (titleText) {
+    // Get widget icon
+    const widgetIcon = WIDGET_CONFIG[currentWidgetId]?.icon || '';
+    const showIcon = currentStyles.titleIconVisible !== undefined ? currentStyles.titleIconVisible : true;
+    
     // Title text
+    let titleTextValue;
     if (currentStyles.titleText !== undefined) {
-      titleText.textContent = currentStyles.titleText;
+      titleTextValue = currentStyles.titleText;
     } else {
       // Use default from WIDGET_CONFIG
-      const defaultTitle = WIDGET_CONFIG[currentWidgetId]?.name || 'Widget';
-      titleText.textContent = defaultTitle;
+      titleTextValue = WIDGET_CONFIG[currentWidgetId]?.name || 'Widget';
+    }
+    
+    // Apply icon visibility
+    if (showIcon && widgetIcon) {
+      titleText.textContent = `${widgetIcon} ${titleTextValue}`;
+    } else {
+      titleText.textContent = titleTextValue;
     }
     // Handle text color: use dynamic color if textColorDynamic is true, otherwise use manual color
     if (currentStyles.textColorDynamic) {
@@ -1483,6 +1507,9 @@ function updateCurrentStylesFromForm() {
   // Title settings
   const titleVisible = document.getElementById('title-visible');
   if (titleVisible) currentStyles.titleVisible = titleVisible.checked;
+  
+  const titleIconVisible = document.getElementById('title-icon-visible');
+  if (titleIconVisible) currentStyles.titleIconVisible = titleIconVisible.checked;
   
   const titleText = document.getElementById('title-text');
   if (titleText) {
@@ -1876,6 +1903,7 @@ function updateApplyToAllFlags() {
   applyToAllFlags.shadowColor = document.getElementById('shadow-color-apply-all')?.checked || false;
   applyToAllFlags.shadowBlur = document.getElementById('shadow-blur-apply-all')?.checked || false;
   applyToAllFlags.titleVisible = document.getElementById('title-visible-apply-all')?.checked || false;
+  applyToAllFlags.titleIconVisible = document.getElementById('title-icon-visible-apply-all')?.checked || false;
   applyToAllFlags.titleText = document.getElementById('title-text-apply-all')?.checked || false;
   applyToAllFlags.titleAlignment = document.getElementById('title-alignment-apply-all')?.checked || false;
   applyToAllFlags.textColor = document.getElementById('text-color-apply-all')?.checked || false;
@@ -2006,6 +2034,7 @@ function loadWidgetStyles(widgetId) {
       shadowY: 4,
       shadowSpread: 0,
       titleVisible: defaultTitleVisible,
+      titleIconVisible: true, // Default to showing icons
       titleAlignment: 'left',
       textColorDynamic: true, // Default to dynamic for new widgets
       fontSize: 18,
@@ -2019,6 +2048,11 @@ function loadWidgetStyles(widgetId) {
   if (currentStyles.titleVisible === undefined) {
     // For clock and photos, default to false (was hardcoded hidden)
     currentStyles.titleVisible = (widgetId === 'clock-widget' || widgetId === 'photos-widget') ? false : true;
+  }
+  
+  // Ensure titleIconVisible is set (default to true)
+  if (currentStyles.titleIconVisible === undefined) {
+    currentStyles.titleIconVisible = true;
   }
   
   // Ensure titleAlignment is set (default to left)
