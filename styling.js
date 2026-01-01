@@ -1676,6 +1676,9 @@ function applyCurrentStylesToWidget(widget) {
       if (shouldApplyAlignment) {
         const justifyContent = alignment === 'center' ? 'center' : 'flex-start';
         const textAlign = alignment === 'center' ? 'center' : 'left';
+        // Ensure header always takes full width to prevent collapsing
+        widgetHeader.style.setProperty('width', '100%', 'important');
+        widgetHeader.style.setProperty('min-width', '100%', 'important');
         widgetHeader.style.setProperty('justify-content', justifyContent, 'important');
         widgetHeader.style.setProperty('text-align', textAlign, 'important');
         // Also ensure the title itself doesn't have centering and doesn't expand to full width
@@ -2053,6 +2056,9 @@ function loadStyles() {
           const widgetHeader = widget.querySelector('.widget-header');
           if (widgetHeader) {
             // Apply default left alignment to override CSS space-between
+            // Ensure header always takes full width to prevent collapsing
+            widgetHeader.style.setProperty('width', '100%', 'important');
+            widgetHeader.style.setProperty('min-width', '100%', 'important');
             widgetHeader.style.setProperty('justify-content', 'flex-start', 'important');
             widgetHeader.style.setProperty('text-align', 'left', 'important');
             const title = widgetHeader.querySelector('.widget-title');
@@ -2252,6 +2258,9 @@ function loadStylesToWidget(widget, styles) {
       const alignment = styles.titleAlignment || 'left';
       const justifyContent = alignment === 'center' ? 'center' : 'flex-start';
       const textAlign = alignment === 'center' ? 'center' : 'left';
+      // Ensure header always takes full width to prevent collapsing
+      widgetHeader.style.setProperty('width', '100%', 'important');
+      widgetHeader.style.setProperty('min-width', '100%', 'important');
       widgetHeader.style.setProperty('justify-content', justifyContent, 'important');
       widgetHeader.style.setProperty('text-align', textAlign, 'important');
       // Also ensure the title itself doesn't have centering and doesn't expand to full width
