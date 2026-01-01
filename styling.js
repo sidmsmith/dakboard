@@ -1668,10 +1668,27 @@ function applyCurrentStylesToWidget(widget) {
       
       // Title alignment - always apply to override CSS default (space-between)
       // Default to 'left' if not set
+      // Use setProperty with !important to ensure it overrides CSS defaults
       const alignment = currentStyles.titleAlignment || 'left';
       if (!isApplyingToAll || applyToAllFlags.titleAlignment) {
-        widgetHeader.style.justifyContent = alignment === 'center' ? 'center' : 'flex-start';
-        widgetHeader.style.textAlign = alignment === 'center' ? 'center' : 'left';
+        const justifyContent = alignment === 'center' ? 'center' : 'flex-start';
+        const textAlign = alignment === 'center' ? 'center' : 'left';
+        widgetHeader.style.setProperty('justify-content', justifyContent, 'important');
+        widgetHeader.style.setProperty('text-align', textAlign, 'important');
+        // Also ensure the title itself doesn't have centering and doesn't expand to full width
+        const title = widgetHeader.querySelector('.widget-title');
+        if (title) {
+          title.style.setProperty('justify-content', justifyContent, 'important');
+          title.style.setProperty('text-align', textAlign, 'important');
+          // Prevent title from expanding to full width when left-aligned
+          if (alignment === 'left') {
+            title.style.setProperty('width', 'auto', 'important');
+            title.style.setProperty('flex', '0 0 auto', 'important');
+          } else {
+            title.style.removeProperty('width');
+            title.style.removeProperty('flex');
+          }
+        }
       }
     }
   }
@@ -2078,9 +2095,26 @@ function loadStylesToWidget(widget, styles) {
       
       // Title alignment - always apply to override CSS default (space-between)
       // Default to 'left' if not set
+      // Use setProperty with !important to ensure it overrides CSS defaults
       const alignment = styles.titleAlignment || 'left';
-      widgetHeader.style.justifyContent = alignment === 'center' ? 'center' : 'flex-start';
-      widgetHeader.style.textAlign = alignment === 'center' ? 'center' : 'left';
+      const justifyContent = alignment === 'center' ? 'center' : 'flex-start';
+      const textAlign = alignment === 'center' ? 'center' : 'left';
+      widgetHeader.style.setProperty('justify-content', justifyContent, 'important');
+      widgetHeader.style.setProperty('text-align', textAlign, 'important');
+      // Also ensure the title itself doesn't have centering and doesn't expand to full width
+      const title = widgetHeader.querySelector('.widget-title');
+      if (title) {
+        title.style.setProperty('justify-content', justifyContent, 'important');
+        title.style.setProperty('text-align', textAlign, 'important');
+        // Prevent title from expanding to full width when left-aligned
+        if (alignment === 'left') {
+          title.style.setProperty('width', 'auto', 'important');
+          title.style.setProperty('flex', '0 0 auto', 'important');
+        } else {
+          title.style.removeProperty('width');
+          title.style.removeProperty('flex');
+        }
+      }
     }
   }
 
