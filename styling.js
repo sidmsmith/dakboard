@@ -1797,18 +1797,32 @@ function applyCurrentStylesToWidget(widget) {
   // Calendar has custom icon and month button, Whiteboard has toolbar in header
   const title = widget.querySelector('.widget-title');
   if (title && !isSpecialWidget) {
-    // Title text
-    if (currentStyles.titleText !== undefined) {
-      if (!isApplyingToAll || applyToAllFlags.titleText) {
-        title.textContent = currentStyles.titleText;
-      }
-    } else {
+    // Get widget ID and icon
+    const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
+    const widgetIcon = widgetId && WIDGET_CONFIG[widgetId] ? WIDGET_CONFIG[widgetId].icon : '';
+    
+    // Determine title text (custom or default)
+    let titleTextValue = currentStyles.titleText;
+    if (titleTextValue === undefined) {
       // Use default from WIDGET_CONFIG if no custom title
-      const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
       if (widgetId && WIDGET_CONFIG[widgetId]) {
-        if (!isApplyingToAll || applyToAllFlags.titleText) {
-          title.textContent = WIDGET_CONFIG[widgetId].name;
-        }
+        titleTextValue = WIDGET_CONFIG[widgetId].name;
+      } else {
+        titleTextValue = 'Widget';
+      }
+    }
+    
+    // Determine if icon should be shown
+    const showIcon = currentStyles.titleIconVisible !== undefined 
+      ? currentStyles.titleIconVisible 
+      : true; // Default to true if not set
+    
+    // Apply title text with optional icon
+    if (!isApplyingToAll || applyToAllFlags.titleText || applyToAllFlags.titleIconVisible) {
+      if (showIcon && widgetIcon) {
+        title.textContent = `${widgetIcon} ${titleTextValue}`;
+      } else {
+        title.textContent = titleTextValue;
       }
     }
     
@@ -2387,15 +2401,29 @@ function loadStylesToWidget(widget, styles) {
   // Calendar has custom icon and month button, Whiteboard has toolbar in header
   const title = widget.querySelector('.widget-title');
   if (title && !isSpecialWidget) {
-    // Title text
-    if (styles.titleText !== undefined) {
-      title.textContent = styles.titleText;
-    } else {
+    // Get widget ID and icon
+    const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
+    const widgetIcon = widgetId && WIDGET_CONFIG[widgetId] ? WIDGET_CONFIG[widgetId].icon : '';
+    
+    // Determine title text (custom or default)
+    let titleTextValue = styles.titleText;
+    if (titleTextValue === undefined) {
       // Use default from WIDGET_CONFIG if no custom title
-      const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
       if (widgetId && WIDGET_CONFIG[widgetId]) {
-        title.textContent = WIDGET_CONFIG[widgetId].name;
+        titleTextValue = WIDGET_CONFIG[widgetId].name;
+      } else {
+        titleTextValue = 'Widget';
       }
+    }
+    
+    // Determine if icon should be shown
+    const showIcon = styles.titleIconVisible !== undefined ? styles.titleIconVisible : true;
+    
+    // Apply title text with optional icon
+    if (showIcon && widgetIcon) {
+      title.textContent = `${widgetIcon} ${titleTextValue}`;
+    } else {
+      title.textContent = titleTextValue;
     }
     
     // Only apply inline color if textColorDynamic is false (manual mode)
