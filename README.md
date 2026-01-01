@@ -94,6 +94,10 @@ The dashboard will automatically use direct HA API calls when `config.js` is pre
 
 🔄 **Next Phase**: Calendar integration (Google Calendar & Office365)
 
+## ⚠️ Version 0.6.0 Changes
+
+**Google Photos Widget Removed**: The Google Photos widget has been removed due to Google security restrictions that required re-authentication and photo re-selection every hour, making it impractical for a dashboard application. All Google Photos code and API endpoints have been removed from the codebase.
+
 ## 📁 Project Structure
 
 ```
