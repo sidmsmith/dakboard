@@ -1614,12 +1614,6 @@ footer a:hover {
   opacity: 1;
 }
 
-/* Fallback for browsers that don't support :has() */
-.diagonal-watermark.show {
-  display: block;
-  opacity: 1;
-}
-
 .resize-handle:hover {
   background: rgba(74, 144, 226, 0.8);
   border-color: #5ba0f2;
