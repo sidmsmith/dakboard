@@ -3068,6 +3068,179 @@ async function setThermostatFanMode(entityId, fanMode) {
   }
 }
 
+// Load news feed
+// News loading state - prevent multiple simultaneous requests
+let newsLoading = false;
+let newsLastError = null;
+let newsErrorCount = 0;
+const MAX_NEWS_ERRORS = 3; // Stop retrying after 3 consecutive errors
+
+async function loadNews() {
+  // Find all news widgets across all pages
+  const containers = document.querySelectorAll('#news-content');
+  if (containers.length === 0) return;
+  
+  // Prevent multiple simultaneous requests
+  if (newsLoading) {
+    return;
+  }
+  
+  // If we've had too many errors, show a persistent error message and don't retry
+  if (newsErrorCount >= MAX_NEWS_ERRORS) {
+    if (newsLastError) {
+      const errorHtml = `
+        <div class="news-error">
+          <p>News feed unavailable</p>
+          <p style="font-size: 12px; color: #888; margin-top: 8px;">
+            ${newsLastError}
+          </p>
+          <p style="font-size: 11px; color: #666; margin-top: 8px;">
+            The news service is currently unavailable. Please check your API configuration.
+          </p>
+        </div>
+      `;
+      containers.forEach(c => c.innerHTML = errorHtml);
+    }
+    return;
+  }
+  
+  newsLoading = true;
+  
+  try {
+    // Use RSS feed (free, no API key required)
+    const response = await fetch('/api/news');
+    
+    if (!response.ok) {
+      let errorMessage = `Failed to fetch news: ${response.statusText}`;
+      
+      // Try to get more detailed error message
+      try {
+        const errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch (e) {
+        // If JSON parsing fails, use the status text
+      }
+      
+      if (response.status === 400) {
+        // Show error message for configuration issues
+        const errorHtml = `
+          <div class="news-error">
+            <p>News feed configuration error</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">
+              Please check your RSS feed configuration.
+              </p>
+            </div>
+          `;
+        containers.forEach(c => c.innerHTML = errorHtml);
+        newsErrorCount = MAX_NEWS_ERRORS; // Stop retrying
+        newsLastError = 'Configuration error';
+          return;
+        }
+      
+      // For 500 errors, show a user-friendly message
+      if (response.status === 500) {
+        newsErrorCount++;
+        newsLastError = errorMessage || 'Server error - news service unavailable';
+        const errorHtml = `
+          <div class="news-error">
+            <p>News feed unavailable</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">
+              ${newsLastError}
+            </p>
+            ${newsErrorCount < MAX_NEWS_ERRORS ? 
+              '<p style="font-size: 11px; color: #666; margin-top: 8px;">Retrying...</p>' :
+              '<p style="font-size: 11px; color: #666; margin-top: 8px;">Service temporarily unavailable</p>'
+            }
+          </div>
+        `;
+        containers.forEach(c => c.innerHTML = errorHtml);
+        throw new Error(errorMessage);
+      }
+      
+      throw new Error(errorMessage);
+    }
+    
+    const data = await response.json();
+    
+    // Reset error count on success
+    newsErrorCount = 0;
+    newsLastError = null;
+    
+    let contentHtml;
+    if (data.articles && data.articles.length > 0) {
+      contentHtml = `
+        <div class="news-list">
+          ${data.articles.slice(0, 5).map((article, index) => `
+            <div class="news-item">
+              <div class="news-item-title">
+                <a href="${article.url}" target="_blank" rel="noopener noreferrer">
+                  ${article.title}
+                </a>
+              </div>
+              <div class="news-item-source">${article.source?.name || 'Unknown'} • ${formatNewsDate(article.publishedAt)}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } else {
+      contentHtml = '<div class="news-error">No news articles found</div>';
+    }
+    
+    // Update all containers across all pages
+    containers.forEach(c => c.innerHTML = contentHtml);
+  } catch (error) {
+    console.error('Error loading news:', error);
+    newsErrorCount++;
+    newsLastError = error.message || 'Unknown error';
+    
+    // Only show error if we haven't exceeded max errors
+    if (newsErrorCount < MAX_NEWS_ERRORS) {
+      const errorHtml = `
+      <div class="news-error">
+        <p>Error loading news</p>
+        <p style="font-size: 12px; color: #888;">${error.message}</p>
+          <p style="font-size: 11px; color: #666; margin-top: 8px;">Retrying...</p>
+      </div>
+    `;
+      containers.forEach(c => c.innerHTML = errorHtml);
+    } else {
+      // Final error message - no more retries
+      const errorHtml = `
+        <div class="news-error">
+          <p>News feed unavailable</p>
+          <p style="font-size: 12px; color: #888; margin-top: 8px;">
+            ${newsLastError}
+          </p>
+          <p style="font-size: 11px; color: #666; margin-top: 8px;">
+            The news service is currently unavailable. Please check your API configuration.
+          </p>
+        </div>
+      `;
+      containers.forEach(c => c.innerHTML = errorHtml);
+    }
+  } finally {
+    newsLoading = false;
+  }
+}
+
+// Format news date
+function formatNewsDate(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 // Fetch HA entity via API (works both locally and in production)
 async function fetchHAEntity(entityId) {
   try {

@@ -1875,6 +1875,12 @@ footer a:hover {
   -webkit-backdrop-filter: blur(4px);
 }
 
+/* Fix dropdown options visibility - ensure options have proper background and text colors */
+.thermostat-dropdown option {
+  background: #2a2a2a !important;
+  color: #fff !important;
+}
+
 .thermostat-dropdown:hover {
   background: var(--thermostat-hover-bg, rgba(255, 255, 255, 0.25));
   border-color: var(--thermostat-hover-border, rgba(255, 255, 255, 0.4));
