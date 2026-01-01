@@ -1669,8 +1669,11 @@ function applyCurrentStylesToWidget(widget) {
       // Title alignment - always apply to override CSS default (space-between)
       // Default to 'left' if not set
       // Use setProperty with !important to ensure it overrides CSS defaults
+      // Always apply alignment when not applying to all, or when applying to all with flag checked
       const alignment = currentStyles.titleAlignment || 'left';
-      if (!isApplyingToAll || applyToAllFlags.titleAlignment) {
+      const shouldApplyAlignment = !isApplyingToAll || applyToAllFlags.titleAlignment;
+      
+      if (shouldApplyAlignment) {
         const justifyContent = alignment === 'center' ? 'center' : 'flex-start';
         const textAlign = alignment === 'center' ? 'center' : 'left';
         widgetHeader.style.setProperty('justify-content', justifyContent, 'important');
@@ -1976,6 +1979,25 @@ function loadStyles() {
       if (saved) {
         const styles = JSON.parse(saved);
         loadStylesToWidget(widget, styles);
+      } else {
+        // Apply default alignment even if no saved styles exist
+        // This ensures title alignment works for widgets that haven't been styled yet
+        const isSpecialWidget = widgetId === 'calendar-widget' || widgetId === 'whiteboard-widget';
+        if (!isSpecialWidget) {
+          const widgetHeader = widget.querySelector('.widget-header');
+          if (widgetHeader) {
+            // Apply default left alignment to override CSS space-between
+            widgetHeader.style.setProperty('justify-content', 'flex-start', 'important');
+            widgetHeader.style.setProperty('text-align', 'left', 'important');
+            const title = widgetHeader.querySelector('.widget-title');
+            if (title) {
+              title.style.setProperty('justify-content', 'flex-start', 'important');
+              title.style.setProperty('text-align', 'left', 'important');
+              title.style.setProperty('width', 'auto', 'important');
+              title.style.setProperty('flex', '0 0 auto', 'important');
+            }
+          }
+        }
       }
     }
   });
