@@ -1007,6 +1007,15 @@ function attachTabEventListeners(tabName) {
       });
     }
 
+    // Title icon visibility checkbox
+    const titleIconVisibleCheckbox = document.getElementById('title-icon-visible');
+    if (titleIconVisibleCheckbox) {
+      titleIconVisibleCheckbox.addEventListener('change', (e) => {
+        currentStyles.titleIconVisible = e.target.checked;
+        updatePreview();
+      });
+    }
+
     // Title text input
     const titleTextInput = document.getElementById('title-text');
     if (titleTextInput) {
