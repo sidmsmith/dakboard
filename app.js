@@ -2358,9 +2358,18 @@ async function toggleGarageDoor(doorElement) {
     setTimeout(() => {
       loadGarageDoors();
     }, 1000);
+    
+    // Trigger a full refresh after 2-3 seconds to ensure all widgets are updated
+    setTimeout(() => {
+      loadAllData();
+    }, 2500);
   } catch (error) {
     console.error('Error toggling garage door:', error);
     // Still show success message since the webhook likely worked
+    // Still trigger full refresh
+    setTimeout(() => {
+      loadAllData();
+    }, 2500);
   } finally {
     doorElement.classList.remove('loading');
   }
@@ -2452,6 +2461,11 @@ async function setAlarm() {
     setTimeout(() => {
       loadAlarm();
     }, 1000);
+    
+    // Trigger a full refresh after 2-3 seconds to ensure all widgets are updated
+    setTimeout(() => {
+      loadAllData();
+    }, 2500);
   } catch (error) {
     console.error('Error setting alarm:', error);
     // Still reload alarm since the webhook likely worked (serverless function may return 500 even on success)
@@ -2459,6 +2473,10 @@ async function setAlarm() {
     setTimeout(() => {
       loadAlarm();
     }, 1000);
+    // Still trigger full refresh
+    setTimeout(() => {
+      loadAllData();
+    }, 2500);
     // Don't show error toast since webhook likely succeeded despite the error
   } finally {
     // Remove loading state from all alarm icons
@@ -2554,12 +2572,21 @@ async function toggleCompressor() {
     setTimeout(() => {
       loadCompressor();
     }, 1000);
+    
+    // Trigger a full refresh after 2-3 seconds to ensure all widgets are updated
+    setTimeout(() => {
+      loadAllData();
+    }, 2500);
   } catch (error) {
     console.error('Error toggling compressor:', error);
     // Still reload compressor since the webhook likely worked
     setTimeout(() => {
       loadCompressor();
     }, 1000);
+    // Still trigger full refresh
+    setTimeout(() => {
+      loadAllData();
+    }, 2500);
   } finally {
     // Remove loading state from all compressor icons
     icons.forEach(icon => icon.classList.remove('loading'));
