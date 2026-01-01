@@ -1037,7 +1037,8 @@ body {
   padding: 8px !important; /* Minimal padding for drag handle */
 }
 
-.alarm-widget .widget-header {
+/* Custom header/title styles removed - now using standard Title styling system */
+/* .alarm-widget .widget-header {
   padding: 0 0 8px 0 !important;
   margin: 0 0 8px 0 !important;
   min-height: auto !important;
@@ -1046,7 +1047,7 @@ body {
 .alarm-widget .widget-title {
   font-size: 14px !important;
   margin: 0 !important;
-}
+} */
 
 .alarm-widget .alarm-status {
   width: 100%;
@@ -1116,7 +1117,8 @@ body {
   padding: 8px !important;
 }
 
-.compressor-widget .widget-header {
+/* Custom header/title styles removed - now using standard Title styling system */
+/* .compressor-widget .widget-header {
   padding: 0 0 8px 0 !important;
   margin: 0 0 8px 0 !important;
   min-height: auto !important;
@@ -1125,7 +1127,7 @@ body {
 .compressor-widget .widget-title {
   font-size: 14px !important;
   margin: 0 !important;
-}
+} */
 
 .compressor-content {
   width: 100%;
