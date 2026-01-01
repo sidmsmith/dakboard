@@ -1781,17 +1781,7 @@ footer a:hover {
   text-align: center;
 }
 
-/* Google Photos Widget */
-.photos-widget {
-  top: 240px;
-  right: 20px;
-  width: 400px;
-  height: 300px;
-}
-
-/* Title visibility now controlled by styling system - removed hardcoded display: none */
-/* .photos-widget .widget-header {
-  display: none;
+/* Google Photos Widget - REMOVED */
 } */
 
 .photos-content {

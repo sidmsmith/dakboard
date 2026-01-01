@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Personal Dashboard</title>
   <meta name="application-name" content="Personal Dashboard">
-  <meta name="description" content="Personal Dashboard - Smart home dashboard with calendar, weather, todo lists, and Google Photos">
+  <meta name="description" content="Personal Dashboard - Smart home dashboard with calendar, weather, todo lists, and more">
   <meta property="og:title" content="Personal Dashboard">
-  <meta property="og:description" content="Personal Dashboard - Smart home dashboard with calendar, weather, todo lists, and Google Photos">
+  <meta property="og:description" content="Personal Dashboard - Smart home dashboard with calendar, weather, todo lists, and more">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://dakboard-smith.vercel.app/">
   <link rel="stylesheet" href="styles.css">
@@ -90,7 +90,7 @@
   <div class="app-purpose-box" style="position: absolute; top: 10px; left: 10px; z-index: 10000; background: rgba(26, 26, 26, 0.9); padding: 12px 20px; border-radius: 8px; max-width: 400px;">
     <h1 style="margin: 0 0 8px 0; font-size: 20px; color: #fff; font-weight: 600;">Personal Dashboard</h1>
     <p style="margin: 0; font-size: 14px; color: #aaa; line-height: 1.4;">
-      A smart home dashboard application that integrates with Home Assistant and Google Photos to display calendar events, weather information, todo lists, garage door controls, alarm panel status, and personal photos in a customizable, widget-based interface.
+      A smart home dashboard application that integrates with Home Assistant to display calendar events, weather information, todo lists, garage door controls, alarm panel status, and more in a customizable, widget-based interface.
     </p>
   </div>
   -->
@@ -238,31 +238,6 @@
       <div class="clock-content" id="clock-content">
         <div class="clock-time" id="clock-time">--:--:--</div>
         <div class="clock-date" id="clock-date">-- --, ----</div>
-      </div>
-    </div>
-
-    <!-- Google Photos Widget -->
-    <div class="widget photos-widget">
-      <div class="widget-header">
-        <div class="widget-title">📷 Google Photos</div>
-      </div>
-      <div class="photos-content" id="photos-content">
-        <div class="photos-placeholder">
-          <div class="photos-icon">📷</div>
-          <h3>Google Photos Setup</h3>
-          <p>To connect your Google Photos account:</p>
-          <ol class="photos-instructions">
-            <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
-            <li>Create a new project or select an existing one</li>
-            <li>Enable the Google Photos Library API</li>
-            <li>Create OAuth 2.0 credentials (Web application)</li>
-            <li>Add your domain to authorized redirect URIs</li>
-            <li>Add your Client ID and Client Secret to config.js</li>
-            <li>Implement OAuth flow in <code>/api/google-photos-auth.js</code></li>
-            <li>Create <code>/api/google-photos.js</code> to fetch photos</li>
-          </ol>
-          <p class="photos-note">See README.md for detailed setup instructions.</p>
-        </div>
       </div>
     </div>
 

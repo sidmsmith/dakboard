@@ -2042,7 +2042,7 @@ function loadWidgetStyles(widgetId) {
   } else {
     // Set defaults
     // For clock and photos widgets, default titleVisible to false (was hardcoded hidden)
-    const defaultTitleVisible = (widgetId === 'clock-widget' || widgetId === 'photos-widget') ? false : true;
+    const defaultTitleVisible = (widgetId === 'clock-widget') ? false : true;
     
     currentStyles = {
       backgroundColor: '#2a2a2a',
@@ -2070,7 +2070,7 @@ function loadWidgetStyles(widgetId) {
   // Ensure titleVisible is set for existing widgets (migration)
   if (currentStyles.titleVisible === undefined) {
     // For clock and photos, default to false (was hardcoded hidden)
-    currentStyles.titleVisible = (widgetId === 'clock-widget' || widgetId === 'photos-widget') ? false : true;
+    currentStyles.titleVisible = (widgetId === 'clock-widget') ? false : true;
   }
   
   // Ensure titleIconVisible is set (default to true)
