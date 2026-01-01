@@ -1692,6 +1692,28 @@ function applyCurrentStylesToWidget(widget) {
             title.style.removeProperty('flex');
           }
         }
+        
+        // DEBUG LOGGING - Compare widget dimensions and styles
+        const widgetRect = widget.getBoundingClientRect();
+        const headerRect = widgetHeader.getBoundingClientRect();
+        const titleRect = title ? title.getBoundingClientRect() : null;
+        const computedHeaderStyle = window.getComputedStyle(widgetHeader);
+        const computedTitleStyle = title ? window.getComputedStyle(title) : null;
+        
+        console.log(`[TITLE ALIGN DEBUG] ${widgetId}:`, {
+          alignment: alignment,
+          widgetWidth: widgetRect.width,
+          headerWidth: headerRect.width,
+          titleWidth: titleRect ? titleRect.width : 'N/A',
+          headerJustifyContent: computedHeaderStyle.justifyContent,
+          headerTextAlign: computedHeaderStyle.textAlign,
+          titleJustifyContent: computedTitleStyle ? computedTitleStyle.justifyContent : 'N/A',
+          titleTextAlign: computedTitleStyle ? computedTitleStyle.textAlign : 'N/A',
+          titleFlex: computedTitleStyle ? computedTitleStyle.flex : 'N/A',
+          titleWidthStyle: computedTitleStyle ? computedTitleStyle.width : 'N/A',
+          headerInlineJustify: widgetHeader.style.justifyContent,
+          titleInlineJustify: title ? title.style.justifyContent : 'N/A'
+        });
       }
     }
   }
@@ -1996,6 +2018,30 @@ function loadStyles() {
               title.style.setProperty('width', 'auto', 'important');
               title.style.setProperty('flex', '0 0 auto', 'important');
             }
+            
+            // DEBUG LOGGING - Default alignment application
+            setTimeout(() => {
+              const widgetRect = widget.getBoundingClientRect();
+              const headerRect = widgetHeader.getBoundingClientRect();
+              const titleRect = title ? title.getBoundingClientRect() : null;
+              const computedHeaderStyle = window.getComputedStyle(widgetHeader);
+              const computedTitleStyle = title ? window.getComputedStyle(title) : null;
+              
+              console.log(`[TITLE ALIGN DEBUG - DEFAULT] ${widgetId}:`, {
+                alignment: 'left (default)',
+                widgetWidth: widgetRect.width,
+                headerWidth: headerRect.width,
+                titleWidth: titleRect ? titleRect.width : 'N/A',
+                headerJustifyContent: computedHeaderStyle.justifyContent,
+                headerTextAlign: computedHeaderStyle.textAlign,
+                titleJustifyContent: computedTitleStyle ? computedTitleStyle.justifyContent : 'N/A',
+                titleTextAlign: computedTitleStyle ? computedTitleStyle.textAlign : 'N/A',
+                titleFlex: computedTitleStyle ? computedTitleStyle.flex : 'N/A',
+                titleWidthStyle: computedTitleStyle ? computedTitleStyle.width : 'N/A',
+                headerInlineJustify: widgetHeader.style.justifyContent,
+                titleInlineJustify: title ? title.style.justifyContent : 'N/A'
+              });
+            }, 100);
           }
         }
       }
@@ -2137,6 +2183,30 @@ function loadStylesToWidget(widget, styles) {
           title.style.removeProperty('flex');
         }
       }
+      
+      // DEBUG LOGGING - Compare widget dimensions and styles on page load
+      setTimeout(() => {
+        const widgetRect = widget.getBoundingClientRect();
+        const headerRect = widgetHeader.getBoundingClientRect();
+        const titleRect = title ? title.getBoundingClientRect() : null;
+        const computedHeaderStyle = window.getComputedStyle(widgetHeader);
+        const computedTitleStyle = title ? window.getComputedStyle(title) : null;
+        
+        console.log(`[TITLE ALIGN DEBUG - PAGE LOAD] ${widgetId}:`, {
+          alignment: alignment,
+          widgetWidth: widgetRect.width,
+          headerWidth: headerRect.width,
+          titleWidth: titleRect ? titleRect.width : 'N/A',
+          headerJustifyContent: computedHeaderStyle.justifyContent,
+          headerTextAlign: computedHeaderStyle.textAlign,
+          titleJustifyContent: computedTitleStyle ? computedTitleStyle.justifyContent : 'N/A',
+          titleTextAlign: computedTitleStyle ? computedTitleStyle.textAlign : 'N/A',
+          titleFlex: computedTitleStyle ? computedTitleStyle.flex : 'N/A',
+          titleWidthStyle: computedTitleStyle ? computedTitleStyle.width : 'N/A',
+          headerInlineJustify: widgetHeader.style.justifyContent,
+          titleInlineJustify: title ? title.style.justifyContent : 'N/A'
+        });
+      }, 100); // Small delay to ensure DOM is fully rendered
     }
   }
 
