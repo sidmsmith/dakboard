@@ -3409,6 +3409,20 @@ function loadWidgetVisibility() {
         // Find the widget template (usually on page 0)
         const templateWidget = document.querySelector(`.${widgetId}`);
         if (templateWidget) {
+          // Special handling for thermostat: ensure template has all options before cloning
+          if (widgetId === 'thermostat-widget') {
+            const templateSelect = templateWidget.querySelector('#thermostat-selector');
+            if (templateSelect && templateSelect.querySelectorAll('option').length !== 3) {
+              const currentValue = templateSelect.value || '1';
+              templateSelect.innerHTML = `
+                <option value="1">Basement</option>
+                <option value="2">Living Room</option>
+                <option value="3">Master Bedroom</option>
+              `;
+              templateSelect.value = currentValue;
+            }
+          }
+          
           // Clone the widget to the current page
           widget = templateWidget.cloneNode(true);
           widget.classList.remove('hidden'); // Ensure it's visible
@@ -3479,6 +3493,20 @@ function toggleWidgetVisibility(widgetId) {
     // Find the widget template (usually on page 0 or in the original HTML)
     const templateWidget = document.querySelector(`.${widgetId}`);
     if (templateWidget) {
+      // Special handling for thermostat: ensure template has all options before cloning
+      if (widgetId === 'thermostat-widget') {
+        const templateSelect = templateWidget.querySelector('#thermostat-selector');
+        if (templateSelect && templateSelect.querySelectorAll('option').length !== 3) {
+          const currentValue = templateSelect.value || '1';
+          templateSelect.innerHTML = `
+            <option value="1">Basement</option>
+            <option value="2">Living Room</option>
+            <option value="3">Master Bedroom</option>
+          `;
+          templateSelect.value = currentValue;
+        }
+      }
+      
       // Clone the widget to the current page
       widget = templateWidget.cloneNode(true);
       
