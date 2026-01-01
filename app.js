@@ -10,11 +10,21 @@ const CONFIG = {
   HA_GARAGE_DOOR_2: 'binary_sensor.z_wave_garage_door_sensor_sensor_state_any_2',
   HA_GARAGE_DOOR_3: 'binary_sensor.z_wave_garage_door_sensor_sensor_state_any_3',
   HA_ALARM_ENTITY: 'alarm_control_panel.dev_ttyusb0_alarm_panel', // Update with your alarm entity ID
+  HA_COMPRESSOR_ENTITY: 'switch.z_wave_outdoor_smart_plug', // Air Compressor switch
   
   // Thermostat Configuration
   HA_THERMOSTAT_1: 'climate.trane_z_wave_programmable_thermostat', // Basement
   HA_THERMOSTAT_2: 'climate.trane_z_wave_programmable_thermostat_2', // Living Room
   HA_THERMOSTAT_3: 'climate.trane_z_wave_programmable_thermostat_3', // Master Bedroom
+  
+  // Google Photos Configuration
+  GOOGLE_PHOTOS_ALBUM_ID: null, // Optional: Specific album ID to display photos from. If null or empty, randomizes from all photos.
+  GOOGLE_PHOTOS_ROTATION_MINUTES: 0.5, // Photo rotation interval in minutes (0.5 = 30 seconds for testing)
+  
+  // Google Picker API Configuration (NEW - replaces deprecated Library API)
+  // Set to true to enable Google Picker API (requires app verification)
+  USE_GOOGLE_PICKER_API: true, // Enabled for video recording (app verification pending)
+  GOOGLE_PICKER_CLIENT_ID: null, // Your Google OAuth 2.0 Client ID (falls back to GOOGLE_PHOTOS_CLIENT_ID if not set)
   
   // Home Assistant Webhook IDs (for triggering actions)
   // Just the webhook ID, not the full URL - the code will handle the URL construction
@@ -22,6 +32,7 @@ const CONFIG = {
   HA_GARAGE_WEBHOOK_2: 'garage2toggle',
   HA_GARAGE_WEBHOOK_3: 'garage3toggle',
   HA_ALARM_WEBHOOK: 'setalarm', // Alarm set webhook (only used when disarmed)
+  HA_COMPRESSOR_WEBHOOK: 'http://homeassistant.local:8123/api/webhook/compressor', // Air Compressor webhook
   
   // Refresh interval (milliseconds)
   REFRESH_INTERVAL: 30000, // 30 seconds
@@ -1407,6 +1418,8 @@ async function loadAllData() {
       loadTodos(),
       loadGarageDoors(),
       loadAlarm(),
+      loadCompressor(), // Load air compressor
+      loadGooglePhotos(), // Load Google Photos (using Picker API if enabled)
       loadThermostat(), // Load thermostat
       loadNews(), // Load news feed
       initializeWhiteboard(), // Initialize whiteboard
@@ -2454,6 +2467,386 @@ async function setAlarm() {
   }
 }
 
+// Load air compressor status from HA
+async function loadCompressor() {
+  try {
+    const entity = await fetchHAEntity(CONFIG.HA_COMPRESSOR_ENTITY);
+    if (!entity) {
+      const icons = document.querySelectorAll('#compressor-icon');
+      icons.forEach(icon => {
+        icon.innerHTML = '<div style="color: #999;">Not Available</div>';
+      });
+      return;
+    }
+    
+    const state = entity.state;
+    const isOn = state === 'on';
+    const icons = document.querySelectorAll('#compressor-icon');
+    
+    if (icons.length === 0) return;
+    
+    // Fetch fan icon if not already cached
+    const fanIcon = await fetchMDIIcon('fan');
+    
+    // Update all compressor widgets across all pages
+    icons.forEach((iconElement) => {
+      // Clear existing content
+      iconElement.innerHTML = '';
+      
+      // Remove existing state classes
+      iconElement.classList.remove('on', 'off');
+      
+      // Add state class
+      if (isOn) {
+        iconElement.classList.add('on');
+      } else {
+        iconElement.classList.add('off');
+      }
+      
+      // Set icon color
+      const iconColor = isOn ? '#28a745' : '#dc3545'; // Green for ON, Red for OFF
+      
+      // Insert fan icon SVG with color
+      if (fanIcon) {
+        // Replace fill attributes and add inline style to ensure color is applied
+        let iconSvg = fanIcon.replace(/fill="[^"]*"/g, ''); // Remove existing fill attributes
+        iconSvg = iconSvg.replace('<svg', `<svg style="fill: ${iconColor}; width: 100%; height: 100%;"`);
+        iconElement.innerHTML = iconSvg;
+      } else {
+        // Fallback if icon fails to load
+        iconElement.innerHTML = `<div style="font-size: 80px; color: ${iconColor};">🌬️</div>`;
+      }
+      
+      // Make icon clickable
+      iconElement.style.cursor = 'pointer';
+      iconElement.onclick = () => {
+        if (!isEditMode) {
+          toggleCompressor();
+        }
+      };
+    });
+  } catch (error) {
+    console.error('Error loading compressor:', error);
+    const icons = document.querySelectorAll('#compressor-icon');
+    icons.forEach(icon => {
+      icon.innerHTML = '<div style="color: #999;">Error</div>';
+    });
+  }
+}
+
+// Toggle air compressor (trigger webhook)
+async function toggleCompressor() {
+  // Don't allow interaction in edit mode
+  if (isEditMode) return;
+  
+  // Add loading state to all compressor icons
+  const icons = document.querySelectorAll('#compressor-icon');
+  icons.forEach(icon => icon.classList.add('loading'));
+  
+  // Show toast notification immediately
+  showToast('Compressor Button Pressed', 1500);
+  
+  try {
+    // Use triggerHAWebhook which handles both webhook IDs and full URLs
+    await triggerHAWebhook(CONFIG.HA_COMPRESSOR_WEBHOOK);
+    
+    // Reload compressor after a short delay to get updated state
+    setTimeout(() => {
+      loadCompressor();
+    }, 1000);
+  } catch (error) {
+    console.error('Error toggling compressor:', error);
+    // Still reload compressor since the webhook likely worked
+    setTimeout(() => {
+      loadCompressor();
+    }, 1000);
+  } finally {
+    // Remove loading state from all compressor icons
+    icons.forEach(icon => icon.classList.remove('loading'));
+  }
+}
+
+// Google Photos state
+let googlePhotosCache = {
+  photos: [],
+  currentIndex: 0,
+  lastUpdate: 0,
+  updateInterval: null
+};
+
+// Google Picker API state (NEW - replaces deprecated Library API)
+let googlePickerState = {
+  accessToken: null,
+  selectedPhotos: [],
+  pickerSessionId: null,
+  isInitialized: false
+};
+
+// Check if Google Photos is authenticated
+function isGooglePhotosAuthenticated() {
+  const accessToken = localStorage.getItem('google_photos_access_token');
+  const refreshToken = localStorage.getItem('google_photos_refresh_token');
+  return !!(accessToken || refreshToken);
+}
+
+// Get valid access token (refresh if needed)
+async function getGooglePhotosAccessToken() {
+  const accessToken = localStorage.getItem('google_photos_access_token');
+  const refreshToken = localStorage.getItem('google_photos_refresh_token');
+  const tokenExpiry = parseInt(localStorage.getItem('google_photos_token_expiry') || '0');
+  
+  // If token is still valid, return it
+  if (accessToken && Date.now() < tokenExpiry - 60000) { // Refresh 1 minute before expiry
+    return accessToken;
+  }
+  
+  // If we have a refresh token, use it to get a new access token
+  if (refreshToken) {
+    try {
+      const response = await fetch('/api/google-photos-refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      
+      if (response.ok) {
+        const tokens = await response.json();
+        localStorage.setItem('google_photos_access_token', tokens.access_token);
+        localStorage.setItem('google_photos_token_expiry', tokens.expiry.toString());
+        return tokens.access_token;
+      } else {
+        // Refresh token expired or invalid, need to re-authenticate
+        localStorage.removeItem('google_photos_access_token');
+        localStorage.removeItem('google_photos_refresh_token');
+        localStorage.removeItem('google_photos_token_expiry');
+        return null;
+      }
+    } catch (error) {
+      console.error('Error refreshing Google Photos token:', error);
+      return null;
+    }
+  }
+  
+  return null;
+}
+
+// Initiate Google Photos OAuth flow
+function connectGooglePhotos() {
+  window.open('/api/google-photos-auth', 'google-photos-auth', 'width=600,height=700');
+  
+  // Listen for auth success message
+  const messageHandler = (event) => {
+    if (event.data.type === 'GOOGLE_PHOTOS_AUTH_SUCCESS') {
+      // Reload photos after successful auth
+      loadGooglePhotos();
+      window.removeEventListener('message', messageHandler);
+    }
+  };
+  window.addEventListener('message', messageHandler);
+}
+
+// Make function globally accessible for onclick handlers
+window.connectGooglePhotos = connectGooglePhotos;
+
+// Fetch photos from Google Photos API
+async function fetchGooglePhotos() {
+  try {
+    const accessToken = await getGooglePhotosAccessToken();
+    
+    if (!accessToken) {
+      // Not authenticated, show connect button
+      showGooglePhotosAuthPrompt();
+      return;
+    }
+    
+    // Build API URL
+    let apiUrl = `/api/google-photos?access_token=${encodeURIComponent(accessToken)}&page_size=100`;
+    if (CONFIG.GOOGLE_PHOTOS_ALBUM_ID) {
+      apiUrl += `&album_id=${encodeURIComponent(CONFIG.GOOGLE_PHOTOS_ALBUM_ID)}`;
+    }
+    
+    const response = await fetch(apiUrl);
+    
+    if (response.status === 401) {
+      // Token expired, try to refresh
+      const newToken = await getGooglePhotosAccessToken();
+      if (!newToken) {
+        showGooglePhotosAuthPrompt();
+        return;
+      }
+      // Retry with new token
+      apiUrl = `/api/google-photos?access_token=${encodeURIComponent(newToken)}&page_size=100`;
+      if (CONFIG.GOOGLE_PHOTOS_ALBUM_ID) {
+        apiUrl += `&album_id=${encodeURIComponent(CONFIG.GOOGLE_PHOTOS_ALBUM_ID)}`;
+      }
+      const retryResponse = await fetch(apiUrl);
+      if (!retryResponse.ok) {
+        throw new Error('Failed to fetch photos after token refresh');
+      }
+      const data = await retryResponse.json();
+      googlePhotosCache.photos = data.photos || [];
+    } else if (!response.ok) {
+      // Try to get error details from response
+      let errorMessage = `Failed to fetch photos: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+        console.error('Google Photos API error details:', errorData);
+        
+        // If it's a scope error (403), clear tokens and prompt for re-auth
+        if (response.status === 403 && (errorMessage.includes('insufficient authentication scopes') || 
+            errorMessage.includes('PERMISSION_DENIED'))) {
+          console.warn('Scope error detected - clearing tokens and prompting for re-authentication');
+          clearGooglePhotosTokens();
+          showGooglePhotosAuthPrompt();
+          return;
+        }
+      } catch (e) {
+        const errorText = await response.text();
+        console.error('Google Photos API error text:', errorText);
+      }
+      throw new Error(errorMessage);
+    } else {
+      const data = await response.json();
+      googlePhotosCache.photos = data.photos || [];
+    }
+    
+    // If album is empty, fetch from all photos
+    if (googlePhotosCache.photos.length === 0 && CONFIG.GOOGLE_PHOTOS_ALBUM_ID) {
+      const allPhotosUrl = `/api/google-photos?access_token=${encodeURIComponent(accessToken)}&page_size=100`;
+      const allPhotosResponse = await fetch(allPhotosUrl);
+      if (allPhotosResponse.ok) {
+        const allPhotosData = await allPhotosResponse.json();
+        googlePhotosCache.photos = allPhotosData.photos || [];
+      }
+    }
+    
+    googlePhotosCache.lastUpdate = Date.now();
+    
+    // Display a random photo
+    if (googlePhotosCache.photos.length > 0) {
+      displayRandomGooglePhoto();
+    } else {
+      // Show message if no photos found
+      const containers = document.querySelectorAll('#photos-content');
+      const noPhotosHtml = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">📷</div>
+            <h3>No Photos Found</h3>
+            <p>Your Google Photos library appears to be empty, or photos are not accessible.</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">
+              Check the browser console (F12) for more details.
+            </p>
+          </div>
+        `;
+      containers.forEach(container => container.innerHTML = noPhotosHtml);
+    }
+  } catch (error) {
+    console.error('Error fetching Google Photos:', error);
+    const containers = document.querySelectorAll('#photos-content');
+    if (containers.length > 0) {
+      let errorMessage = error.message;
+      let showReconnect = true;
+      
+      // Check if it's a scope error
+      if (errorMessage.includes('insufficient authentication scopes') || 
+          errorMessage.includes('PERMISSION_DENIED')) {
+        errorMessage = 'Authentication scope error. Please reconnect to grant proper permissions.';
+        showReconnect = true;
+      }
+      
+      const errorHtml = `
+        <div class="photos-placeholder">
+          <div class="photos-icon">📷</div>
+          <h3>Error Loading Photos</h3>
+          <p>${errorMessage}</p>
+          ${showReconnect ? `
+            <button onclick="clearGooglePhotosTokens(); connectGooglePhotos();" class="photos-connect-btn">
+              Reconnect Google Photos
+            </button>
+          ` : ''}
+        </div>
+      `;
+      containers.forEach(container => container.innerHTML = errorHtml);
+    }
+  }
+}
+
+// Display a random photo from cache
+function displayRandomGooglePhoto() {
+  const containers = document.querySelectorAll('#photos-content');
+  if (containers.length === 0) return;
+  
+  if (googlePhotosCache.photos.length === 0) {
+    const noPhotosHtml = `
+      <div class="photos-placeholder">
+        <div class="photos-icon">📷</div>
+        <h3>No Photos Found</h3>
+        <p>No photos available in your Google Photos library.</p>
+        <p style="font-size: 12px; color: #888; margin-top: 8px;">
+          Make sure you have photos in your Google Photos account.
+        </p>
+      </div>
+    `;
+    containers.forEach(container => container.innerHTML = noPhotosHtml);
+    return;
+  }
+  
+  // Select random photo
+  const randomIndex = Math.floor(Math.random() * googlePhotosCache.photos.length);
+  const photo = googlePhotosCache.photos[randomIndex];
+  
+  // Use baseUrl - but proxy through our serverless function to add authentication
+  // Google Photos URLs require authentication headers which can't be added to <img> tags
+  const imageUrl = photo.baseUrl;
+  
+  if (!imageUrl) {
+    console.error('Photo has no URL:', photo);
+    const errorHtml = `
+      <div class="photos-placeholder">
+        <div class="photos-icon">📷</div>
+        <h3>Photo Error</h3>
+        <p>Photo found but URL is missing.</p>
+      </div>
+    `;
+    containers.forEach(container => container.innerHTML = errorHtml);
+    return;
+  }
+  
+  // Proxy the image through our serverless function to add authentication
+  // Make sure we have a token - try multiple sources
+  let accessToken = googlePickerState.accessToken;
+  if (!accessToken) {
+    accessToken = localStorage.getItem('google_picker_access_token');
+  }
+  
+  if (!accessToken) {
+    console.warn('[displayRandomGooglePhoto] No access token available, cannot display photo');
+    const errorHtml = `
+      <div class="photos-placeholder">
+        <div class="photos-icon">🔑</div>
+        <h3>Authentication Required</h3>
+        <p>Please reconnect to Google Photos.</p>
+        <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Connect Google Photos</button>
+      </div>
+    `;
+    containers.forEach(container => container.innerHTML = errorHtml);
+    return;
+  }
+  
+  const proxiedUrl = `/api/google-photos-proxy?url=${encodeURIComponent(imageUrl)}&accessToken=${encodeURIComponent(accessToken)}`;
+  
+  const photoHtml = `
+    <div class="photos-display">
+      <img src="${proxiedUrl}" alt="Google Photo" class="photos-image" 
+           onerror="console.error('Image load error:', this.src);" />
+    </div>
+  `;
+  containers.forEach(container => container.innerHTML = photoHtml);
+}
+
 
 // Thermostat state
 let currentThermostat = 1;
@@ -2539,6 +2932,56 @@ function updateWidgetDynamicStyles(widget) {
 // Update thermostat control styles based on widget background color (kept for backward compatibility)
 function updateThermostatControlStyles(widget) {
   if (!widget) return;
+  
+  // Get computed background color from the widget
+  const computedStyle = window.getComputedStyle(widget);
+  let bgColor = computedStyle.backgroundColor;
+  
+  // If background is transparent or rgba(0,0,0,0), try to get from background-image or use fallback
+  if (!bgColor || bgColor === 'rgba(0, 0, 0, 0)' || bgColor === 'transparent') {
+    // Check if there's a background image (we can't extract color from it, so use a neutral approach)
+    const bgImage = computedStyle.backgroundImage;
+    if (bgImage && bgImage !== 'none') {
+      // For images/gradients, assume dark background (use light text)
+      bgColor = 'rgb(42, 42, 42)';
+    } else {
+      // Try to get from parent or use default
+      bgColor = computedStyle.backgroundColor || 'rgb(42, 42, 42)';
+    }
+  }
+  
+  // Extract RGB values from rgba/rgb string
+  let rgbMatch = bgColor.match(/\d+/g);
+  if (!rgbMatch || rgbMatch.length < 3) {
+    // Fallback to default if parsing fails
+    bgColor = 'rgb(42, 42, 42)';
+    rgbMatch = [42, 42, 42];
+  }
+  
+  const r = parseInt(rgbMatch[0]);
+  const g = parseInt(rgbMatch[1]);
+  const b = parseInt(rgbMatch[2]);
+  
+  // Determine if background is light or dark
+  const isLight = isLightColor(r, g, b);
+  
+  // Set text colors based on background brightness
+  const primaryTextColor = isLight ? '#1a1a1a' : '#ffffff'; // Dark text for light bg, white for dark bg
+  const secondaryTextColor = isLight ? '#4a4a4a' : '#aaaaaa'; // Darker gray for light bg, lighter gray for dark bg
+  
+  // Calculate darker shade for borders (reduce brightness by 25-30%)
+  const darkenFactor = 0.25;
+  const borderR = Math.max(0, Math.floor(r * (1 - darkenFactor)));
+  const borderG = Math.max(0, Math.floor(g * (1 - darkenFactor)));
+  const borderB = Math.max(0, Math.floor(b * (1 - darkenFactor)));
+  
+  // Calculate even darker for hover states
+  const hoverDarkenFactor = 0.15; // Additional darkening on top of border
+  const hoverR = Math.max(0, Math.floor(borderR * (1 - hoverDarkenFactor)));
+  const hoverG = Math.max(0, Math.floor(borderG * (1 - hoverDarkenFactor)));
+  const hoverB = Math.max(0, Math.floor(borderB * (1 - hoverDarkenFactor)));
+  
+  // Call the generic function and also set thermostat-specific variables for backward compatibility
   updateWidgetDynamicStyles(widget);
   
   // Set thermostat-specific CSS variables (aliases to widget variables for backward compatibility)
@@ -2681,46 +3124,46 @@ function setupThermostatControls(entityId) {
   tempInputs.forEach(tempInput => {
     if (!tempInput.dataset.listenerAttached) {
       tempInput.dataset.listenerAttached = 'true';
-      tempInput.addEventListener('change', async () => {
-        const newTemp = parseFloat(tempInput.value);
-        await setThermostatTemperature(entityId, newTemp);
-      });
-    }
+    tempInput.addEventListener('change', async () => {
+      const newTemp = parseFloat(tempInput.value);
+      await setThermostatTemperature(entityId, newTemp);
+    });
+  }
   });
   
   // Temperature down button - attach to all instances
   tempDowns.forEach(tempDown => {
     if (!tempDown.dataset.listenerAttached) {
       tempDown.dataset.listenerAttached = 'true';
-      tempDown.addEventListener('click', async () => {
+    tempDown.addEventListener('click', async () => {
         const widget = tempDown.closest('.thermostat-widget');
         const tempInput = widget?.querySelector('#thermostat-temp-input');
         const targetValue = widget?.querySelector('#thermostat-target-value');
         if (tempInput && targetValue) {
-          const current = parseFloat(tempInput.value);
-          const newTemp = Math.max(50, current - 1);
-          tempInput.value = newTemp;
-          targetValue.textContent = `${newTemp}°`;
-          await setThermostatTemperature(entityId, newTemp);
+      const current = parseFloat(tempInput.value);
+      const newTemp = Math.max(50, current - 1);
+      tempInput.value = newTemp;
+      targetValue.textContent = `${newTemp}°`;
+      await setThermostatTemperature(entityId, newTemp);
         }
-      });
-    }
+    });
+  }
   });
   
   // Temperature up button - attach to all instances
   tempUps.forEach(tempUp => {
     if (!tempUp.dataset.listenerAttached) {
       tempUp.dataset.listenerAttached = 'true';
-      tempUp.addEventListener('click', async () => {
+    tempUp.addEventListener('click', async () => {
         const widget = tempUp.closest('.thermostat-widget');
         const tempInput = widget?.querySelector('#thermostat-temp-input');
         const targetValue = widget?.querySelector('#thermostat-target-value');
         if (tempInput && targetValue) {
-          const current = parseFloat(tempInput.value);
-          const newTemp = Math.min(90, current + 1);
-          tempInput.value = newTemp;
-          targetValue.textContent = `${newTemp}°`;
-          await setThermostatTemperature(entityId, newTemp);
+      const current = parseFloat(tempInput.value);
+      const newTemp = Math.min(90, current + 1);
+      tempInput.value = newTemp;
+      targetValue.textContent = `${newTemp}°`;
+      await setThermostatTemperature(entityId, newTemp);
         }
       });
     }
@@ -2730,37 +3173,40 @@ function setupThermostatControls(entityId) {
   modeSelects.forEach(modeSelect => {
     if (!modeSelect.dataset.listenerAttached) {
       modeSelect.dataset.listenerAttached = 'true';
-      modeSelect.addEventListener('change', async () => {
-        await setThermostatMode(entityId, modeSelect.value);
-      });
-    }
+    modeSelect.addEventListener('change', async () => {
+      await setThermostatMode(entityId, modeSelect.value);
+    });
+  }
   });
   
   // Fan select - attach to all instances
   fanSelects.forEach(fanSelect => {
     if (!fanSelect.dataset.listenerAttached) {
       fanSelect.dataset.listenerAttached = 'true';
-      fanSelect.addEventListener('change', async () => {
-        await setThermostatFanMode(entityId, fanSelect.value);
-      });
-    }
+    fanSelect.addEventListener('change', async () => {
+      await setThermostatFanMode(entityId, fanSelect.value);
+    });
+  }
   });
   
   // Thermostat selector dropdown - attach to ALL selectors across all pages
+  // Use querySelectorAll to get all selectors and attach listeners to each
   const allSelectors = document.querySelectorAll('#thermostat-selector');
   allSelectors.forEach(selector => {
+    // Check if listener is already attached (avoid duplicates)
     if (!selector.dataset.listenerAttached) {
       selector.dataset.listenerAttached = 'true';
-      selector.addEventListener('change', () => {
+    selector.addEventListener('change', () => {
+        // Sync all selectors to the same value
         const selectedValue = selector.value;
         document.querySelectorAll('#thermostat-selector').forEach(s => {
           if (s !== selector && s.value !== selectedValue) {
             s.value = selectedValue;
           }
         });
-        loadThermostat();
-      });
-    }
+      loadThermostat();
+    });
+  }
   });
 }
 
@@ -2769,16 +3215,31 @@ async function setThermostatTemperature(entityId, temperature) {
   if (isEditMode) return;
   
   try {
-    await fetch('/api/ha-climate-set-temp', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        entity_id: entityId,
-        temperature: temperature
-      })
-    });
+    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
+      await fetch(`${window.CONFIG.HA_URL}/api/services/climate/set_temperature`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          temperature: temperature
+        })
+      });
+    } else {
+      // Use serverless function
+      await fetch('/api/ha-climate-set-temp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          temperature: temperature
+        })
+      });
+    }
     
     showToast(`Temperature set to ${temperature}°F`, 1000);
     setTimeout(() => loadThermostat(), 500);
@@ -2793,16 +3254,30 @@ async function setThermostatMode(entityId, mode) {
   if (isEditMode) return;
   
   try {
-    await fetch('/api/ha-climate-set-mode', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        entity_id: entityId,
-        hvac_mode: mode
-      })
-    });
+    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
+      await fetch(`${window.CONFIG.HA_URL}/api/services/climate/set_hvac_mode`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          hvac_mode: mode
+        })
+      });
+    } else {
+      await fetch('/api/ha-climate-set-mode', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          hvac_mode: mode
+        })
+      });
+    }
     
     showToast(`Mode set to ${mode}`, 1000);
     setTimeout(() => loadThermostat(), 500);
@@ -2817,16 +3292,30 @@ async function setThermostatFanMode(entityId, fanMode) {
   if (isEditMode) return;
   
   try {
-    await fetch('/api/ha-climate-set-fan', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        entity_id: entityId,
-        fan_mode: fanMode
-      })
-    });
+    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
+      await fetch(`${window.CONFIG.HA_URL}/api/services/climate/set_fan_mode`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          fan_mode: fanMode
+        })
+      });
+    } else {
+      await fetch('/api/ha-climate-set-fan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          fan_mode: fanMode
+        })
+      });
+    }
     
     showToast(`Fan set to ${fanMode}`, 1000);
     setTimeout(() => loadThermostat(), 500);
@@ -2836,6 +3325,7 @@ async function setThermostatFanMode(entityId, fanMode) {
   }
 }
 
+// Load news feed
 // News loading state - prevent multiple simultaneous requests
 let newsLoading = false;
 let newsLastError = null;
@@ -2897,14 +3387,14 @@ async function loadNews() {
             <p>News feed configuration error</p>
             <p style="font-size: 12px; color: #888; margin-top: 8px;">
               Please check your RSS feed configuration.
-            </p>
-          </div>
-        `;
+              </p>
+            </div>
+          `;
         containers.forEach(c => c.innerHTML = errorHtml);
         newsErrorCount = MAX_NEWS_ERRORS; // Stop retrying
         newsLastError = 'Configuration error';
-        return;
-      }
+          return;
+        }
       
       // For 500 errors, show a user-friendly message
       if (response.status === 500) {
@@ -2965,12 +3455,12 @@ async function loadNews() {
     // Only show error if we haven't exceeded max errors
     if (newsErrorCount < MAX_NEWS_ERRORS) {
       const errorHtml = `
-        <div class="news-error">
-          <p>Error loading news</p>
-          <p style="font-size: 12px; color: #888;">${error.message}</p>
+      <div class="news-error">
+        <p>Error loading news</p>
+        <p style="font-size: 12px; color: #888;">${error.message}</p>
           <p style="font-size: 11px; color: #666; margin-top: 8px;">Retrying...</p>
-        </div>
-      `;
+      </div>
+    `;
       containers.forEach(c => c.innerHTML = errorHtml);
     } else {
       // Final error message - no more retries
@@ -3226,6 +3716,8 @@ function draw(e) {
   
   // Save drawing immediately after each stroke segment
   saveWhiteboard();
+  
+  saveWhiteboard();
 }
 
 // Draw (touch)
@@ -3258,6 +3750,8 @@ function drawTouch(e) {
   lastY = currentY;
   
   // Save drawing immediately after each stroke segment
+  saveWhiteboard();
+  
   saveWhiteboard();
 }
 
@@ -3295,6 +3789,1008 @@ function saveWhiteboard() {
     console.error('Error saving whiteboard:', error);
   }
 }
+
+// Show authentication prompt
+function showGooglePhotosAuthPrompt() {
+  const containers = document.querySelectorAll('#photos-content');
+  if (containers.length === 0) return;
+  
+  const authHtml = `
+    <div class="photos-placeholder">
+      <div class="photos-icon">📷</div>
+      <h3>Connect Google Photos</h3>
+      <p>Click the button below to connect your Google Photos account.</p>
+      <button onclick="connectGooglePhotos()" class="photos-connect-btn">Connect Google Photos</button>
+    </div>
+  `;
+  containers.forEach(container => container.innerHTML = authHtml);
+}
+
+// Clear Google Photos tokens (for re-authentication)
+function clearGooglePhotosTokens() {
+  localStorage.removeItem('google_photos_access_token');
+  localStorage.removeItem('google_photos_refresh_token');
+  localStorage.removeItem('google_photos_token_expiry');
+}
+
+// Make function globally accessible
+window.clearGooglePhotosTokens = clearGooglePhotosTokens;
+
+// Load Google Photos
+async function loadGooglePhotos() {
+  const containers = document.querySelectorAll('#photos-content');
+  if (containers.length === 0) return;
+  
+  // NEW: Use Google Picker API if enabled (replaces deprecated Library API)
+  if (CONFIG.USE_GOOGLE_PICKER_API) {
+    await loadGooglePhotosWithPicker();
+    return;
+  }
+  
+  // OLD: Legacy Google Photos Library API (deprecated)
+  // Check if authenticated
+  if (!isGooglePhotosAuthenticated()) {
+    showGooglePhotosAuthPrompt();
+    return;
+  }
+  
+  // Fetch photos
+  await fetchGooglePhotos();
+  
+  // Set up auto-refresh every 1 minute
+  if (googlePhotosCache.updateInterval) {
+    clearInterval(googlePhotosCache.updateInterval);
+  }
+  
+  googlePhotosCache.updateInterval = setInterval(() => {
+    // Refresh photo cache every 5 minutes, but display new random photo every minute
+    if (Date.now() - googlePhotosCache.lastUpdate > 5 * 60 * 1000) {
+      fetchGooglePhotos();
+    } else {
+      // Just display a new random photo from cache
+      displayRandomGooglePhoto();
+    }
+  }, 60 * 1000); // Every 1 minute
+}
+
+// ============================================================================
+// GOOGLE PICKER API IMPLEMENTATION (NEW - replaces deprecated Library API)
+// ============================================================================
+// This implementation uses the Google Photos Picker API which allows users
+// to explicitly select photos to share, providing better privacy controls.
+// Currently disabled until app verification is complete.
+// ============================================================================
+
+// Initialize Google Picker API
+async function initializeGooglePicker() {
+  if (!CONFIG.USE_GOOGLE_PICKER_API) {
+    throw new Error('Google Picker API is disabled');
+  }
+  
+  // Get Client ID - try config first, then fetch from API (environment variable)
+  let clientId = CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID;
+  
+  // If not in config, fetch from API endpoint (reads from environment variable)
+  if (!clientId) {
+    try {
+      const response = await fetch('/api/google-picker-client-id');
+      if (response.ok) {
+        const data = await response.json();
+        clientId = data.clientId;
+        // Cache it for future use
+        CONFIG.GOOGLE_PHOTOS_CLIENT_ID = clientId;
+      } else {
+        const errorMsg = 'Google Picker API Client ID not configured. Please set GOOGLE_PHOTOS_CLIENT_ID environment variable in Vercel.';
+        console.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+    } catch (error) {
+      const errorMsg = 'Failed to fetch Google Client ID from server. Please check your environment variables.';
+      console.error(errorMsg, error);
+      throw new Error(errorMsg);
+    }
+  }
+  
+  if (!clientId) {
+    const errorMsg = 'Google Picker API Client ID not configured. Set GOOGLE_PICKER_CLIENT_ID in config.js or GOOGLE_PHOTOS_CLIENT_ID environment variable.';
+    console.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+  
+  try {
+    // Load Google Identity Services and Picker API scripts
+    await loadGooglePickerScript();
+    
+    // Check if both GIS and gapi are loaded
+    if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
+      throw new Error('Google Identity Services not loaded');
+    }
+    
+    if (!window.gapi) {
+      throw new Error('Google API client not loaded');
+    }
+    
+    googlePickerState.isInitialized = true;
+  } catch (error) {
+    console.error('Error initializing Google Picker API:', error);
+    console.error('Error type:', typeof error);
+    console.error('Error keys:', error ? Object.keys(error) : 'null');
+    console.error('Error stringified:', JSON.stringify(error, null, 2));
+    console.error('Current origin:', window.location.origin);
+    console.error('Client ID being used:', CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID || 'Not found');
+    googlePickerState.isInitialized = false;
+    
+    // Check if it's an origin registration error
+    const errorMessage = error?.message || error?.details || String(error);
+    const errorError = error?.error || error?.errorCode;
+    
+    if (errorError === 'idpiframe_initialization_failed' || 
+        errorMessage?.includes('not been registered') ||
+        errorMessage?.includes('origin') ||
+        errorError === 'origin_mismatch') {
+      const originError = new Error(`Google Picker API initialization failed. Current origin: ${window.location.origin}. Please check: 1) Origin '${window.location.origin}' is registered in Authorized JavaScript origins (exact match, no trailing slash), 2) Google Picker API is ENABLED in APIs & Services > Library, 3) The scope 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly' is added to OAuth consent screen, 4) Client ID matches. Error details: ${errorMessage || JSON.stringify(error)}`);
+      originError.originalError = error;
+      throw originError;
+    }
+    
+    // Re-throw with more context
+    const enhancedError = new Error(`Google Picker API initialization failed: ${errorMessage || String(error)}. Check browser console for full error details.`);
+    enhancedError.originalError = error;
+    throw enhancedError;
+  }
+}
+
+// Load Google Identity Services (GIS) script - replaces deprecated gapi.auth2
+function loadGooglePickerScript() {
+  return new Promise((resolve, reject) => {
+    // Check if Google Identity Services is already loaded
+    if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+      // Already loaded
+      resolve();
+      return;
+    }
+    
+    // Ensure document is ready before loading script
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => loadGooglePickerScript().then(resolve).catch(reject));
+      return;
+    }
+    
+    // Load Google Identity Services library (new, replaces deprecated gapi.auth2)
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      // Check if Google Identity Services loaded successfully
+      if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
+        reject(new Error('Failed to load Google Identity Services'));
+        return;
+      }
+      
+      // Also load the Picker API
+      const pickerScript = document.createElement('script');
+      pickerScript.src = 'https://apis.google.com/js/api.js';
+      pickerScript.onload = () => {
+        if (!window.gapi || !window.gapi.load) {
+          reject(new Error('Failed to load Google API client'));
+          return;
+        }
+        
+        // Load picker API
+        window.gapi.load('picker', {
+          callback: resolve,
+          onerror: reject
+        });
+      };
+      pickerScript.onerror = () => {
+        reject(new Error('Failed to load Google Picker API script'));
+      };
+      document.head.appendChild(pickerScript);
+    };
+    script.onerror = () => {
+      reject(new Error('Failed to load Google Identity Services script'));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+// Authenticate user and get access token for Picker API using Google Identity Services (GIS)
+async function authenticateGooglePicker() {
+  // Clear any old tokens to force fresh authentication with correct scope
+  localStorage.removeItem('google_picker_access_token');
+  googlePickerState.accessToken = null;
+  
+  // Ensure initialization
+  if (!googlePickerState.isInitialized) {
+    await initializeGooglePicker();
+  }
+  
+  // Check if Google Identity Services is available
+  if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
+    throw new Error('Google Identity Services not loaded. Please check your Client ID configuration.');
+  }
+  
+  try {
+    // Get Client ID - try config first, then fetch from API (environment variable)
+    let clientId = CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID;
+    
+    // If not in config, fetch from API endpoint (reads from environment variable)
+    if (!clientId) {
+      try {
+        const response = await fetch('/api/google-picker-client-id');
+        if (response.ok) {
+          const data = await response.json();
+          clientId = data.clientId;
+          // Cache it for future use
+          CONFIG.GOOGLE_PHOTOS_CLIENT_ID = clientId;
+        } else {
+          throw new Error('Client ID not configured. Please set GOOGLE_PHOTOS_CLIENT_ID environment variable.');
+        }
+      } catch (error) {
+        throw new Error('Failed to fetch Client ID from server');
+      }
+    }
+    
+    if (!clientId) {
+      throw new Error('Client ID not configured');
+    }
+    
+    // Use Google Picker API scope (matches what's configured in Google Cloud Console)
+    // This scope: https://www.googleapis.com/auth/photospicker.mediaitems.readonly
+    const requestedScope = 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly';
+    console.log('Requesting Google Picker scope:', requestedScope);
+    console.log('Current origin:', window.location.origin);
+    console.log('Client ID:', clientId);
+    
+    // Use new Google Identity Services OAuth2 token client
+    return new Promise((resolve, reject) => {
+      const tokenClient = window.google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: requestedScope,
+        callback: (response) => {
+          if (response.error) {
+            console.error('OAuth2 token error:', response);
+            reject(new Error(`Authentication failed: ${response.error}. Please check your OAuth configuration.`));
+            return;
+          }
+          
+          const accessToken = response.access_token;
+          const scope = response.scope; // Check what scope was actually granted
+          
+          console.log('Token received. Granted scopes:', scope);
+          console.log('Expected scope:', requestedScope);
+          
+          // Verify the scope was granted
+          if (scope && !scope.includes('photospicker')) {
+            console.warn('Warning: Token may not have the photospicker scope. Granted scopes:', scope);
+          }
+          
+          googlePickerState.accessToken = accessToken;
+          
+          // Store token in localStorage for persistence
+          localStorage.setItem('google_picker_access_token', accessToken);
+          localStorage.setItem('google_picker_authenticated', 'true');
+          
+          console.log('Authentication successful');
+          resolve(accessToken);
+        },
+        error_callback: (error) => {
+          console.error('OAuth2 error callback:', error);
+          reject(new Error(`Authentication error: ${JSON.stringify(error)}`));
+        }
+      });
+      
+      // Request access token - force consent to ensure scope is granted
+      // Using 'consent' instead of '' to ensure the scope is actually granted
+      tokenClient.requestAccessToken({ prompt: 'consent' });
+    });
+  } catch (error) {
+    console.error('Error authenticating Google Picker:', error);
+    console.error('Error details:', {
+      type: error?.type,
+      error: error?.error,
+      message: error?.message,
+      details: error?.details,
+      originalError: error?.originalError
+    });
+    console.error('Current origin:', window.location.origin);
+    
+    // Check for specific error types
+    if (error && (error.type === 'tokenFailed' && error.error === 'server_error') ||
+        (error.error === 'idpiframe_initialization_failed') ||
+        (error.message && error.message.includes('not been registered'))) {
+      // This usually means origin not registered or app not verified
+      const originError = new Error(`Authentication failed. Current origin: ${window.location.origin}. Please check: 1) Origin is registered exactly (including protocol, no trailing slash) in Authorized JavaScript origins, 2) The scope 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly' is ADDED to OAuth consent screen scopes (even in Production mode - go to OAuth consent screen > Scopes > Add or Remove Scopes > search for 'photospicker'), 3) Client ID matches the one in Google Cloud Console. Note: You can stay in Production mode, but the scope must be explicitly added.`);
+      originError.originalError = error;
+      originError.isTokenFailed = true;
+      throw originError;
+    }
+    
+    // Don't clear authentication flag if it was previously set
+    throw error;
+  }
+}
+
+// Create a Picker API session (via serverless function to avoid CORS)
+async function createPickerSession() {
+  // Always re-authenticate to ensure we have a fresh token with the correct scope
+  // Don't reuse stored tokens as they might be from old authentication without the right scope
+  if (!googlePickerState.accessToken) {
+    await authenticateGooglePicker();
+  }
+  
+  // Verify we have a token
+  if (!googlePickerState.accessToken) {
+    throw new Error('Failed to obtain access token. Please try authenticating again.');
+  }
+  
+  console.log('Using access token (first 20 chars):', googlePickerState.accessToken.substring(0, 20) + '...');
+  
+  try {
+    console.log('Creating picker session with token:', googlePickerState.accessToken ? 'Token present' : 'No token');
+    
+    // Use serverless function to avoid CORS issues
+    const url = '/api/google-picker-session';
+    console.log('Fetching:', url);
+    
+    const response = await fetch(url, {
+      method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: 'create',
+        accessToken: googlePickerState.accessToken
+      })
+    });
+    
+    console.log('Response status:', response.status);
+    console.log('Response ok:', response.ok);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+    
+    if (!response.ok) {
+      let errorData;
+      let responseText;
+      try {
+        responseText = await response.text();
+        console.log('Response text:', responseText);
+        errorData = JSON.parse(responseText);
+      } catch (e) {
+        // If response isn't JSON, use status text
+        console.error('Failed to parse response:', e);
+        errorData = { error: response.statusText || `HTTP ${response.status}`, raw: responseText };
+      }
+      
+      let errorMessage = errorData.error || `Failed to create picker session: ${response.status}`;
+      
+      // Check if it's a 404 (function not deployed)
+      if (response.status === 404) {
+        errorMessage = `Serverless function not found (404). GET works but POST returns 404. This may be a Vercel routing issue. Response: ${responseText || 'No response text'}`;
+      }
+      // Check if it's an unverified app error
+      else if (response.status === 403 || response.status === 401) {
+        errorMessage = `App verification required (${response.status}). Authentication succeeded, but API access requires app verification.`;
+        // Still mark authentication as successful
+        localStorage.setItem('google_picker_authenticated', 'true');
+      }
+      
+      throw new Error(errorMessage);
+    }
+    
+    const data = await response.json();
+    console.log('Picker session response:', JSON.stringify(data, null, 2));
+    
+    // The response structure might vary - check for different possible field names
+    const sessionId = data.sessionId || data.session?.id || data.id;
+    const pickerUri = data.pickerUri || data.uri || data.url;
+    
+    if (!sessionId) {
+      console.error('No sessionId found in response. Response keys:', Object.keys(data));
+      // Don't throw error - we're not using the picker anymore, just log it
+      console.warn('Picker session created but sessionId not found. This is OK if using Library API directly.');
+    } else {
+      googlePickerState.pickerSessionId = sessionId;
+      console.log('Session ID:', sessionId);
+    }
+    
+    if (pickerUri) {
+      console.log('Picker URI:', pickerUri);
+    }
+    
+    // Return pickerUri if available, but we won't use it for automatic flow
+    return pickerUri || null;
+  } catch (error) {
+    console.error('Error creating picker session:', error);
+    throw error;
+  }
+}
+
+// Poll picker session to check if user has completed selection (via serverless function to avoid CORS)
+async function pollPickerSession(sessionId) {
+  console.log('[pollPickerSession] Starting to poll session:', sessionId);
+  const maxAttempts = 60; // Poll for up to 5 minutes (5 second intervals)
+  let attempts = 0;
+  
+  return new Promise((resolve, reject) => {
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      console.log(`[pollPickerSession] Polling attempt ${attempts}/${maxAttempts}`);
+      
+      try {
+        // Use serverless function to avoid CORS issues
+        const response = await fetch('/api/google-picker-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'poll',
+            accessToken: googlePickerState.accessToken,
+            sessionId: sessionId
+          })
+      });
+      
+      if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to poll session: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log(`[pollPickerSession] Attempt ${attempts}: Full response:`, JSON.stringify(data, null, 2));
+        console.log(`[pollPickerSession] Attempt ${attempts}: state=${data.state}, mediaItemsSet=${data.mediaItemsSet}`);
+        
+        // The Google Photos Picker API uses mediaItemsSet to indicate completion
+        // When mediaItemsSet is true, the user has selected items and we can retrieve them
+        if (data.mediaItemsSet === true) {
+          console.log('[pollPickerSession] Session completed! mediaItemsSet is true');
+          clearInterval(pollInterval);
+          resolve(data);
+        } else if (data.state === 'CANCELLED' || data.state === 'EXPIRED') {
+          console.log(`[pollPickerSession] Session ${data.state ? data.state.toLowerCase() : 'unknown state'}`);
+          clearInterval(pollInterval);
+          reject(new Error(`Session ${data.state ? data.state.toLowerCase() : 'cancelled or expired'}`));
+        } else if (attempts >= maxAttempts) {
+          console.log('[pollPickerSession] Polling timeout reached');
+          clearInterval(pollInterval);
+          reject(new Error('Session polling timeout'));
+        }
+      } catch (error) {
+        console.error('[pollPickerSession] Error:', error);
+        clearInterval(pollInterval);
+        reject(error);
+      }
+    }, 5000); // Poll every 5 seconds
+  });
+}
+
+// Fetch photo URLs from Google Photos Library API using media item IDs
+async function fetchPhotoUrlsFromLibrary(accessToken, mediaItemIds) {
+  try {
+    // Use batchGet endpoint to get URLs for multiple media items at once
+    const response = await fetch('/api/google-photos', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: 'batchGet',
+        accessToken: accessToken,
+        mediaItemIds: mediaItemIds
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch photo URLs: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    // Return a map of mediaItemId -> baseUrl
+    const urlMap = {};
+    if (data.mediaItems) {
+      data.mediaItems.forEach(item => {
+        if (item.baseUrl) {
+          urlMap[item.id] = item.baseUrl;
+        }
+      });
+    }
+    return urlMap;
+  } catch (error) {
+    console.error('Error fetching photo URLs from Library API:', error);
+    return {};
+  }
+}
+
+// Get selected media items from completed session (via serverless function to avoid CORS)
+async function getSelectedMediaItems(sessionId) {
+  try {
+    // Use serverless function to avoid CORS issues
+    const response = await fetch('/api/google-picker-session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: 'getSelected',
+        accessToken: googlePickerState.accessToken,
+        sessionId: sessionId
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Failed to get selected media items: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('[getSelectedMediaItems] Response data:', data);
+    // The API returns mediaItems, not selectedMediaItems
+    const items = data.mediaItems || [];
+    console.log(`[getSelectedMediaItems] Found ${items.length} selected items`);
+    return items;
+  } catch (error) {
+    console.error('Error getting selected media items:', error);
+    throw error;
+  }
+}
+
+// Open Google Picker and handle photo selection
+async function openGooglePicker() {
+  const containers = document.querySelectorAll('#photos-content');
+  
+  try {
+    // Always clear old tokens to force fresh authentication with correct scope
+    // This ensures we get a token with the photospicker scope
+    localStorage.removeItem('google_picker_access_token');
+    localStorage.removeItem('google_picker_authenticated');
+    googlePickerState.accessToken = null;
+    
+    // Always authenticate to ensure we have a fresh token with the correct scope
+    // Show loading message
+    containers.forEach(container => {
+      container.innerHTML = `
+        <div class="photos-placeholder">
+          <div class="photos-icon">📷</div>
+          <h3>Authenticating...</h3>
+          <p>Please complete authentication in the popup window.</p>
+        </div>
+      `;
+    });
+    
+    await authenticateGooglePicker();
+    
+    // Show success message after authentication, then fetch photos automatically
+    containers.forEach(container => {
+      container.innerHTML = `
+        <div class="photos-placeholder">
+          <div class="photos-icon">✅</div>
+          <h3>Authentication Successful!</h3>
+          <p>Loading photos from your library...</p>
+        </div>
+      `;
+    });
+    
+    // Store authentication success
+    localStorage.setItem('google_picker_authenticated', 'true');
+    
+    // For automatic random photos, use the Library API directly instead of picker
+    // The picker is optional and can be used to select specific photos/albums
+    // But for the main use case (random photos), we'll use the Library API
+    
+    // Check if we have stored photo selections from picker
+    const storedPickerPhotos = localStorage.getItem('google_picker_selected_photos');
+    if (storedPickerPhotos) {
+      try {
+        const selectedPhotos = JSON.parse(storedPickerPhotos);
+        if (selectedPhotos.length > 0) {
+          // Check if photos have URLs - if not, they need to be re-selected
+          const photosWithoutUrls = selectedPhotos.filter(p => !p.baseUrl);
+          if (photosWithoutUrls.length > 0) {
+            console.log(`[loadGooglePhotos] ${photosWithoutUrls.length} photos missing URLs. These photos were selected before URLs were properly extracted.`);
+            console.log(`[loadGooglePhotos] Clearing stored photos - please re-select photos to get URLs.`);
+            // Clear stored photos - user needs to re-select to get URLs
+            localStorage.removeItem('google_picker_selected_photos');
+            // Show message to re-select
+            containers.forEach(container => {
+              container.innerHTML = `
+                <div class="photos-placeholder">
+                  <div class="photos-icon">📷</div>
+                  <h3>Photos Need Re-Selection</h3>
+                  <p>Your previously selected photos don't have URLs.</p>
+                  <p>Please click below to re-select photos.</p>
+                  <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Select Photos</button>
+                </div>
+              `;
+            });
+            return;
+          }
+          
+          // Use previously selected photos
+          googlePhotosCache.photos = selectedPhotos;
+          googlePhotosCache.lastUpdate = Date.now();
+          
+          // Display random photo immediately
+          displayRandomGooglePhoto();
+          
+          // Set up automatic rotation
+          if (googlePhotosCache.updateInterval) {
+            clearInterval(googlePhotosCache.updateInterval);
+          }
+          const rotationMinutes = CONFIG.GOOGLE_PHOTOS_ROTATION_MINUTES || 5;
+          googlePhotosCache.updateInterval = setInterval(() => {
+            displayRandomGooglePhoto();
+          }, rotationMinutes * 60 * 1000);
+          
+          return;
+        }
+      } catch (e) {
+        console.error('Error parsing stored picker photos:', e);
+      }
+    }
+    
+    // If no stored photos, we need to use the Picker API to let user select photos
+    // Note: As of March 2025, the Library API can only access photos uploaded by your app
+    // So we must use the Picker API to let users select photos from their library
+    if (!googlePickerState.accessToken) {
+      throw new Error('Access token not available');
+    }
+    
+    // Use Picker API to let user select photos (one-time setup)
+    containers.forEach(container => {
+      container.innerHTML = `
+        <div class="photos-placeholder">
+          <div class="photos-icon">📷</div>
+          <h3>Select Photos</h3>
+          <p>Please select photos from your Google Photos library.</p>
+          <p style="font-size: 12px; color: #888; margin-top: 8px;">
+            This is a one-time setup. Selected photos will be saved and displayed automatically.
+          </p>
+        </div>
+      `;
+    });
+    
+    // Create picker session
+    const pickerUri = await createPickerSession();
+    
+    if (!pickerUri) {
+      throw new Error('Failed to get picker URI');
+    }
+    
+    // Open picker in new window
+    const pickerWindow = window.open(pickerUri, 'google-picker', 'width=800,height=600');
+    
+    if (!pickerWindow) {
+      throw new Error('Failed to open picker window (popup blocked?)');
+    }
+    
+    // Update UI to show waiting state
+    containers.forEach(container => {
+      container.innerHTML = `
+        <div class="photos-placeholder">
+          <div class="photos-icon">⏳</div>
+          <h3>Waiting for Selection</h3>
+          <p>Please select photos in the popup window, then close it when done.</p>
+        </div>
+      `;
+    });
+    
+    // Poll for completion (this will wait until user completes selection)
+    if (!googlePickerState.pickerSessionId) {
+      throw new Error('Session ID not available for polling');
+    }
+    
+    let sessionData;
+    try {
+      sessionData = await pollPickerSession(googlePickerState.pickerSessionId);
+    } catch (error) {
+      console.error('Error polling picker session:', error);
+      containers.forEach(container => {
+        container.innerHTML = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">❌</div>
+            <h3>Selection Failed</h3>
+            <p>${error.message || 'Failed to complete photo selection'}</p>
+            <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Try Again</button>
+          </div>
+        `;
+      });
+      return;
+    }
+    
+    // Get selected media items
+    let selectedItems;
+    try {
+      selectedItems = await getSelectedMediaItems(googlePickerState.pickerSessionId);
+    } catch (error) {
+      console.error('Error getting selected items:', error);
+      containers.forEach(container => {
+        container.innerHTML = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">❌</div>
+            <h3>Failed to Load Photos</h3>
+            <p>${error.message || 'Failed to retrieve selected photos'}</p>
+            <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Try Again</button>
+          </div>
+        `;
+      });
+      return;
+    }
+    
+    if (selectedItems.length === 0) {
+      containers.forEach(container => {
+        container.innerHTML = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">📷</div>
+            <h3>No Photos Selected</h3>
+            <p>Please select at least one photo to display.</p>
+            <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Select Photos</button>
+          </div>
+        `;
+      });
+      return;
+    }
+    
+    // Update cache with selected photos
+    // The API returns items with mediaFile object containing the URL
+    console.log('[openGooglePicker] Processing selected items. First item full structure:', JSON.stringify(selectedItems[0], null, 2));
+    googlePhotosCache.photos = selectedItems.map(item => {
+      // Log the full item and mediaFile structure to see what fields it has
+      console.log('[openGooglePicker] Full item:', JSON.stringify(item, null, 2));
+      console.log('[openGooglePicker] Item mediaFile:', JSON.stringify(item.mediaFile, null, 2));
+      
+      // According to Google Photos Picker API docs, mediaFile.baseUrl contains the URL
+      // The baseUrl from Picker API should be accessible directly
+      const baseUrl = item.mediaFile?.baseUrl || null;
+      
+      if (!baseUrl) {
+        console.warn('[openGooglePicker] No baseUrl found for item:', item.id);
+        console.warn('[openGooglePicker] Item structure:', {
+          id: item.id,
+          hasMediaFile: !!item.mediaFile,
+          mediaFileKeys: item.mediaFile ? Object.keys(item.mediaFile) : [],
+          allItemKeys: Object.keys(item)
+        });
+      }
+      
+      return {
+        id: item.id,
+        filename: item.mediaFile?.filename || item.filename || `photo_${item.id.substring(0, 8)}`,
+        baseUrl: baseUrl,
+        mimeType: item.mediaFile?.mimeType || item.mimeType || 'image/jpeg',
+        // Use baseUrl directly - Google Photos URLs from Picker API work without size parameters
+        // Size parameters might require authentication, so use baseUrl as-is
+        thumbnail: baseUrl || null,
+        medium: baseUrl || null,
+        full: baseUrl || null
+      };
+    });
+    console.log('[openGooglePicker] Processed photos:', googlePhotosCache.photos);
+    
+    googlePhotosCache.lastUpdate = Date.now();
+    
+    // Store selected photos in localStorage for future use
+    localStorage.setItem('google_picker_selected_photos', JSON.stringify(googlePhotosCache.photos));
+    
+    // Display random photo immediately
+    displayRandomGooglePhoto();
+    
+    // Set up automatic rotation
+    if (googlePhotosCache.updateInterval) {
+      clearInterval(googlePhotosCache.updateInterval);
+    }
+    const rotationInterval = CONFIG.GOOGLE_PHOTOS_ROTATION_MINUTES || 5;
+    googlePhotosCache.updateInterval = setInterval(() => {
+      displayRandomGooglePhoto();
+    }, rotationInterval * 60 * 1000);
+  } catch (error) {
+    console.error('Error opening Google Picker:', error);
+    
+    // Check if it's a configuration error
+    const isConfigError = error.message && (
+      error.message.includes('not configured') ||
+      error.message.includes('Client ID') ||
+      error.message.includes('not initialized')
+    );
+    
+    // Check if it's an origin registration error
+    const isOriginError = error.message && (
+      error.message.includes('not been registered') ||
+      error.message.includes('Authorized JavaScript origins') ||
+      (error.originalError && error.originalError.error === 'idpiframe_initialization_failed')
+    );
+    
+    // Check if it's a token failed error (server_error)
+    const isTokenFailed = error.isTokenFailed || 
+                         (error.originalError && error.originalError.type === 'tokenFailed') ||
+                         (error.error === 'server_error' && error.type === 'tokenFailed');
+    
+    // Check if it's an authentication error (403/401) - likely due to unverified app
+    const isAuthError = error.message && (
+      error.message.includes('403') || 
+      error.message.includes('401') ||
+      error.message.includes('verification') ||
+      error.message.includes('unverified')
+    );
+    
+    // If authentication succeeded but API calls fail, show appropriate message
+    if (localStorage.getItem('google_picker_authenticated') === 'true' || isAuthError) {
+      containers.forEach(container => {
+        container.innerHTML = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">✅</div>
+            <h3>Authentication Successful</h3>
+            <p>You have successfully authenticated with Google Photos.</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">
+              Photos cannot be loaded until app verification is complete. This is expected behavior for unverified apps.
+            </p>
+          </div>
+        `;
+      });
+    } else if (isOriginError || isTokenFailed) {
+      // Show origin registration or token failed error message
+      containers.forEach(container => {
+        container.innerHTML = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">⚠️</div>
+            <h3>Authentication Configuration Issue</h3>
+            <p>There's an issue with your Google OAuth configuration.</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">
+              <strong>Possible causes and fixes:</strong><br>
+              1. <strong>Origin not registered:</strong> Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color: #66b3ff;">Google Cloud Console → APIs & Services → Credentials</a>, click your OAuth 2.0 Client ID, and add <code style="background: #333; padding: 2px 6px; border-radius: 3px;">https://dakboard-smith.vercel.app</code> to "Authorized JavaScript origins"<br>
+              2. <strong>App not verified:</strong> Your app may need to be verified by Google (this is expected for unverified apps)<br>
+              3. <strong>Wait for propagation:</strong> If you just added the origin, wait 5-10 minutes for changes to take effect<br>
+              4. <strong>Check OAuth consent screen:</strong> Make sure your OAuth consent screen is properly configured
+            </p>
+            <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Try Again</button>
+          </div>
+        `;
+      });
+    } else if (isConfigError) {
+      // Show configuration error message
+      containers.forEach(container => {
+        container.innerHTML = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">📷</div>
+            <h3>Configuration Required</h3>
+            <p>${error.message || 'Google Picker API is not properly configured.'}</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">
+              Please set GOOGLE_PHOTOS_CLIENT_ID in your config.js file.
+            </p>
+            <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Try Again</button>
+          </div>
+        `;
+      });
+    } else {
+      // Show generic error
+      containers.forEach(container => {
+        container.innerHTML = `
+          <div class="photos-placeholder">
+            <div class="photos-icon">📷</div>
+            <h3>Error</h3>
+            <p>${error.message || 'An error occurred'}</p>
+            <button onclick="openGooglePicker()" class="photos-connect-btn">Try Again</button>
+          </div>
+        `;
+      });
+    }
+    
+    throw error;
+  }
+}
+
+// Load Google Photos using Picker API
+async function loadGooglePhotosWithPicker() {
+  const containers = document.querySelectorAll('#photos-content');
+  if (containers.length === 0) return;
+  
+  // Restore access token from localStorage if available
+  const storedToken = localStorage.getItem('google_picker_access_token');
+  if (storedToken && !googlePickerState.accessToken) {
+    googlePickerState.accessToken = storedToken;
+  }
+  
+  // Check if Client ID is configured
+  const clientId = CONFIG.GOOGLE_PICKER_CLIENT_ID || CONFIG.GOOGLE_PHOTOS_CLIENT_ID;
+  if (!clientId) {
+    // Show connect button with instructions
+    const promptHtml = `
+      <div class="photos-placeholder">
+        <div class="photos-icon">📷</div>
+        <h3>Connect Google Photos</h3>
+        <p>Click the button below to connect your Google Photos account.</p>
+        <button onclick="openGooglePicker()" class="photos-connect-btn">Connect Google Photos</button>
+        <p style="font-size: 11px; color: #888; margin-top: 12px;">
+          Note: Make sure GOOGLE_PHOTOS_CLIENT_ID is configured in your config.js file.
+        </p>
+      </div>
+    `;
+    containers.forEach(container => container.innerHTML = promptHtml);
+    return;
+  }
+  
+  try {
+    // Initialize if needed
+    if (!googlePickerState.isInitialized) {
+      await initializeGooglePicker();
+    }
+    
+    // Check if user is already authenticated
+    const isAuthenticated = localStorage.getItem('google_picker_authenticated') === 'true' ||
+                           googlePickerState.accessToken ||
+                           localStorage.getItem('google_picker_access_token');
+    
+    if (isAuthenticated) {
+      // Show authenticated state (photos won't load until app is verified)
+      const authHtml = `
+        <div class="photos-placeholder">
+          <div class="photos-icon">✅</div>
+          <h3>Authentication Successful!</h3>
+          <p>You have successfully authenticated with Google Photos.</p>
+          <p style="font-size: 12px; color: #888; margin-top: 8px;">
+            Photos cannot be loaded until app verification is complete. This is expected behavior for unverified apps.
+          </p>
+          <button onclick="openGooglePicker()" class="photos-connect-btn" style="margin-top: 12px;">Try Selecting Photos</button>
+        </div>
+      `;
+      containers.forEach(container => container.innerHTML = authHtml);
+      return;
+    }
+    
+    // Check if we have previously selected photos
+    const storedPhotos = localStorage.getItem('google_picker_selected_photos');
+    if (storedPhotos) {
+      try {
+        googlePhotosCache.photos = JSON.parse(storedPhotos);
+        if (googlePhotosCache.photos.length > 0) {
+          displayRandomGooglePhoto();
+          
+          // Set up auto-refresh to show different random photo
+          if (googlePhotosCache.updateInterval) {
+            clearInterval(googlePhotosCache.updateInterval);
+          }
+          googlePhotosCache.updateInterval = setInterval(() => {
+            displayRandomGooglePhoto();
+          }, 60 * 1000); // Every 1 minute
+          return;
+        }
+      } catch (e) {
+        console.error('Error parsing stored photos:', e);
+      }
+    }
+    
+    // No photos selected yet, show prompt to open picker
+    const promptHtml = `
+      <div class="photos-placeholder">
+        <div class="photos-icon">📷</div>
+        <h3>Connect Google Photos</h3>
+        <p>Click the button below to connect your Google Photos account.</p>
+        <button onclick="openGooglePicker()" class="photos-connect-btn">Connect Google Photos</button>
+      </div>
+    `;
+    containers.forEach(container => container.innerHTML = promptHtml);
+    
+  } catch (error) {
+    console.error('Error loading Google Photos with Picker:', error);
+    // Show connect button even on error
+    const errorHtml = `
+      <div class="photos-placeholder">
+        <div class="photos-icon">📷</div>
+        <h3>Connect Google Photos</h3>
+        <p>Click the button below to connect your Google Photos account.</p>
+        <button onclick="openGooglePicker()" class="photos-connect-btn">Connect Google Photos</button>
+        ${error.message ? `<p style="font-size: 11px; color: #888; margin-top: 8px;">Error: ${error.message}</p>` : ''}
+      </div>
+    `;
+    containers.forEach(container => container.innerHTML = errorHtml);
+  }
+}
+
+// Make openGooglePicker globally accessible
+window.openGooglePicker = openGooglePicker;
+
+// ============================================================================
+// END GOOGLE PICKER API IMPLEMENTATION
+// ============================================================================
 
 // Fetch HA entity via API (works both locally and in production)
 async function fetchHAEntity(entityId) {
@@ -3383,6 +4879,7 @@ const WIDGET_CONFIG = {
   'alarm-widget': { name: 'Alarm Panel', icon: '🔒' },
   'blank-widget': { name: 'Blank', icon: '⬜' },
   'clock-widget': { name: 'Clock', icon: '🕐' },
+  'photos-widget': { name: 'Google Photos', icon: '📷' },
   'thermostat-widget': { name: 'Thermostat', icon: '🌡️' },
   'news-widget': { name: 'News', icon: '📰' },
   'whiteboard-widget': { name: 'Whiteboard', icon: '🖊️' }
@@ -3409,24 +4906,9 @@ function loadWidgetVisibility() {
         // Find the widget template (usually on page 0)
         const templateWidget = document.querySelector(`.${widgetId}`);
         if (templateWidget) {
-          // Special handling for thermostat: ensure template has all options before cloning
-          if (widgetId === 'thermostat-widget') {
-            const templateSelect = templateWidget.querySelector('#thermostat-selector');
-            if (templateSelect && templateSelect.querySelectorAll('option').length !== 3) {
-              const currentValue = templateSelect.value || '1';
-              templateSelect.innerHTML = `
-                <option value="1">Basement</option>
-                <option value="2">Living Room</option>
-                <option value="3">Master Bedroom</option>
-              `;
-              templateSelect.value = currentValue;
-            }
-          }
-          
           // Clone the widget to the current page
           widget = templateWidget.cloneNode(true);
           widget.classList.remove('hidden'); // Ensure it's visible
-          
           pageElement.appendChild(widget);
           
           // Initialize widget-specific functionality if needed
@@ -3493,23 +4975,8 @@ function toggleWidgetVisibility(widgetId) {
     // Find the widget template (usually on page 0 or in the original HTML)
     const templateWidget = document.querySelector(`.${widgetId}`);
     if (templateWidget) {
-      // Special handling for thermostat: ensure template has all options before cloning
-      if (widgetId === 'thermostat-widget') {
-        const templateSelect = templateWidget.querySelector('#thermostat-selector');
-        if (templateSelect && templateSelect.querySelectorAll('option').length !== 3) {
-          const currentValue = templateSelect.value || '1';
-          templateSelect.innerHTML = `
-            <option value="1">Basement</option>
-            <option value="2">Living Room</option>
-            <option value="3">Master Bedroom</option>
-          `;
-          templateSelect.value = currentValue;
-        }
-      }
-      
       // Clone the widget to the current page
       widget = templateWidget.cloneNode(true);
-      
       // Don't set visibility here - let the toggle handle it
       pageElement.appendChild(widget);
       
