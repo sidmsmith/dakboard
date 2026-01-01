@@ -3241,6 +3241,294 @@ function formatNewsDate(dateString) {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+// Whiteboard state
+let whiteboardCanvas = null;
+let whiteboardCtx = null;
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+
+// Initialize whiteboard
+function initializeWhiteboard() {
+  // Find whiteboard canvas on current page
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
+    ? window.currentPageIndex 
+    : 0;
+  const currentPage = document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
+  const canvas = currentPage ? currentPage.querySelector('#whiteboard-canvas') : document.getElementById('whiteboard-canvas');
+  if (!canvas) return;
+  
+  whiteboardCanvas = canvas;
+  whiteboardCtx = canvas.getContext('2d');
+  
+  // Set canvas size to match container
+  const container = canvas.closest('.whiteboard-container');
+  const widget = canvas.closest('.whiteboard-widget');
+  if (container && widget) {
+    const resizeCanvas = () => {
+      // Get the actual container dimensions
+      const containerRect = container.getBoundingClientRect();
+      
+      // Calculate available space for canvas (no toolbar in container anymore)
+      const availableWidth = containerRect.width - 2; // Account for border
+      const availableHeight = Math.max(50, containerRect.height - 2); // Account for border
+      
+      // Only resize if dimensions actually changed to avoid unnecessary redraws
+      if (canvas.width !== availableWidth || canvas.height !== availableHeight) {
+        const wasDrawing = canvas.width > 0 && canvas.height > 0;
+        const oldImage = wasDrawing ? canvas.toDataURL() : null;
+        
+        canvas.width = availableWidth;
+        canvas.height = availableHeight;
+        
+        // Restore drawing or set background
+        if (oldImage && wasDrawing) {
+          const img = new Image();
+          img.onload = () => {
+            whiteboardCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          };
+          img.src = oldImage;
+        } else {
+          const pageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+          const bgColor = localStorage.getItem(`whiteboard-bg-color-page-${pageIndex}`) || '#ffffff';
+          whiteboardCtx.fillStyle = bgColor;
+          whiteboardCtx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+    };
+    
+    resizeCanvas();
+    
+    // Observe both container and widget for resize
+    const resizeObserver = new ResizeObserver(resizeCanvas);
+    resizeObserver.observe(container);
+    resizeObserver.observe(widget);
+  }
+  
+  // Set default background color (page-specific)
+  const bgColor = localStorage.getItem(`whiteboard-bg-color-page-${currentPageIndex}`) || '#ffffff';
+  whiteboardCtx.fillStyle = bgColor;
+  whiteboardCtx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Load saved drawing (page-specific) - must be done after canvas is sized
+  const savedDrawing = localStorage.getItem(`whiteboard-drawing-page-${currentPageIndex}`);
+  if (savedDrawing) {
+    const img = new Image();
+    img.onload = () => {
+      whiteboardCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    };
+    img.src = savedDrawing;
+  }
+  
+  // Load saved settings (page-specific)
+  const savedInkColor = localStorage.getItem(`whiteboard-ink-color-page-${currentPageIndex}`) || '#000000';
+  const savedBrushSize = localStorage.getItem(`whiteboard-brush-size-page-${currentPageIndex}`) || '3';
+  
+  // Find controls on current page (whiteboard controls are in the widget header)
+  const whiteboardWidget = canvas.closest('.whiteboard-widget');
+  const inkColorInput = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-ink-color') : document.getElementById('whiteboard-ink-color');
+  const bgColorInput = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-bg-color') : document.getElementById('whiteboard-bg-color');
+  const brushSizeInput = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-brush-size') : document.getElementById('whiteboard-brush-size');
+  const brushSizeLabel = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-brush-size-label') : document.getElementById('whiteboard-brush-size-label');
+  const clearBtn = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-clear') : document.getElementById('whiteboard-clear');
+  
+  if (inkColorInput) inkColorInput.value = savedInkColor;
+  if (bgColorInput) bgColorInput.value = bgColor;
+  if (brushSizeInput) {
+    brushSizeInput.value = savedBrushSize;
+    if (brushSizeLabel) brushSizeLabel.textContent = `${savedBrushSize}px`;
+  }
+  
+  // Event listeners
+  if (clearBtn) {
+    clearBtn.addEventListener('click', clearWhiteboard);
+  }
+  
+  if (inkColorInput) {
+    inkColorInput.addEventListener('change', (e) => {
+      localStorage.setItem(`whiteboard-ink-color-page-${currentPageIndex}`, e.target.value);
+    });
+  }
+  
+  if (bgColorInput) {
+    bgColorInput.addEventListener('change', (e) => {
+      const newBgColor = e.target.value;
+      localStorage.setItem(`whiteboard-bg-color-page-${currentPageIndex}`, newBgColor);
+      // Redraw canvas with new background
+      const currentImage = canvas.toDataURL();
+      whiteboardCtx.fillStyle = newBgColor;
+      whiteboardCtx.fillRect(0, 0, canvas.width, canvas.height);
+      const img = new Image();
+      img.onload = () => {
+        whiteboardCtx.drawImage(img, 0, 0);
+      };
+      img.src = currentImage;
+      saveWhiteboard();
+    });
+  }
+  
+  if (brushSizeInput && brushSizeLabel) {
+    brushSizeInput.addEventListener('input', (e) => {
+      const size = e.target.value;
+      brushSizeLabel.textContent = `${size}px`;
+      localStorage.setItem(`whiteboard-brush-size-page-${currentPageIndex}`, size);
+    });
+  }
+  
+  // Drawing event listeners (only in normal mode)
+  setupWhiteboardDrawing();
+}
+
+// Setup whiteboard drawing
+function setupWhiteboardDrawing() {
+  if (!whiteboardCanvas) return;
+  
+  // Remove existing listeners
+  whiteboardCanvas.removeEventListener('mousedown', startDrawing);
+  whiteboardCanvas.removeEventListener('mousemove', draw);
+  whiteboardCanvas.removeEventListener('mouseup', stopDrawing);
+  whiteboardCanvas.removeEventListener('mouseout', stopDrawing);
+  whiteboardCanvas.removeEventListener('touchstart', startDrawingTouch);
+  whiteboardCanvas.removeEventListener('touchmove', drawTouch);
+  whiteboardCanvas.removeEventListener('touchend', stopDrawing);
+  
+  // Only enable drawing in normal mode
+  if (!isEditMode) {
+    whiteboardCanvas.addEventListener('mousedown', startDrawing);
+    whiteboardCanvas.addEventListener('mousemove', draw);
+    whiteboardCanvas.addEventListener('mouseup', stopDrawing);
+    whiteboardCanvas.addEventListener('mouseout', stopDrawing);
+    
+    // Touch events for mobile
+    whiteboardCanvas.addEventListener('touchstart', startDrawingTouch, { passive: false });
+    whiteboardCanvas.addEventListener('touchmove', drawTouch, { passive: false });
+    whiteboardCanvas.addEventListener('touchend', stopDrawing);
+    
+    whiteboardCanvas.style.cursor = 'crosshair';
+  } else {
+    whiteboardCanvas.style.cursor = 'default';
+  }
+}
+
+// Start drawing
+function startDrawing(e) {
+  if (isEditMode) return;
+  isDrawing = true;
+  const rect = whiteboardCanvas.getBoundingClientRect();
+  lastX = e.clientX - rect.left;
+  lastY = e.clientY - rect.top;
+}
+
+// Start drawing (touch)
+function startDrawingTouch(e) {
+  if (isEditMode) return;
+  e.preventDefault();
+  isDrawing = true;
+  const touch = e.touches[0];
+  const rect = whiteboardCanvas.getBoundingClientRect();
+  lastX = touch.clientX - rect.left;
+  lastY = touch.clientY - rect.top;
+}
+
+// Draw
+function draw(e) {
+  if (!isDrawing || isEditMode) return;
+  
+  const rect = whiteboardCanvas.getBoundingClientRect();
+  const currentX = e.clientX - rect.left;
+  const currentY = e.clientY - rect.top;
+  
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+  const inkColorInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-ink-color') || document.getElementById('whiteboard-ink-color');
+  const brushSizeInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-brush-size') || document.getElementById('whiteboard-brush-size');
+  const inkColor = inkColorInput?.value || localStorage.getItem(`whiteboard-ink-color-page-${currentPageIndex}`) || '#000000';
+  const brushSize = parseInt(brushSizeInput?.value || localStorage.getItem(`whiteboard-brush-size-page-${currentPageIndex}`) || '3');
+  
+  whiteboardCtx.strokeStyle = inkColor;
+  whiteboardCtx.lineWidth = brushSize;
+  whiteboardCtx.lineCap = 'round';
+  whiteboardCtx.lineJoin = 'round';
+  
+  whiteboardCtx.beginPath();
+  whiteboardCtx.moveTo(lastX, lastY);
+  whiteboardCtx.lineTo(currentX, currentY);
+  whiteboardCtx.stroke();
+  
+  lastX = currentX;
+  lastY = currentY;
+  
+  // Save drawing immediately after each stroke segment
+  saveWhiteboard();
+}
+
+// Draw (touch)
+function drawTouch(e) {
+  if (!isDrawing || isEditMode) return;
+  e.preventDefault();
+  
+  const touch = e.touches[0];
+  const rect = whiteboardCanvas.getBoundingClientRect();
+  const currentX = touch.clientX - rect.left;
+  const currentY = touch.clientY - rect.top;
+  
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+  const inkColorInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-ink-color') || document.getElementById('whiteboard-ink-color');
+  const brushSizeInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-brush-size') || document.getElementById('whiteboard-brush-size');
+  const inkColor = inkColorInput?.value || localStorage.getItem(`whiteboard-ink-color-page-${currentPageIndex}`) || '#000000';
+  const brushSize = parseInt(brushSizeInput?.value || localStorage.getItem(`whiteboard-brush-size-page-${currentPageIndex}`) || '3');
+  
+  whiteboardCtx.strokeStyle = inkColor;
+  whiteboardCtx.lineWidth = brushSize;
+  whiteboardCtx.lineCap = 'round';
+  whiteboardCtx.lineJoin = 'round';
+  
+  whiteboardCtx.beginPath();
+  whiteboardCtx.moveTo(lastX, lastY);
+  whiteboardCtx.lineTo(currentX, currentY);
+  whiteboardCtx.stroke();
+  
+  lastX = currentX;
+  lastY = currentY;
+  
+  // Save drawing immediately after each stroke segment
+  saveWhiteboard();
+}
+
+// Stop drawing
+function stopDrawing() {
+  if (isDrawing) {
+    isDrawing = false;
+    saveWhiteboard();
+  }
+}
+
+// Clear whiteboard
+function clearWhiteboard() {
+  if (!whiteboardCanvas || !whiteboardCtx) return;
+  
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+  const bgColorInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-bg-color') || document.getElementById('whiteboard-bg-color');
+  const bgColor = bgColorInput?.value || localStorage.getItem(`whiteboard-bg-color-page-${currentPageIndex}`) || '#ffffff';
+  whiteboardCtx.fillStyle = bgColor;
+  whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+  
+  localStorage.removeItem(`whiteboard-drawing-page-${currentPageIndex}`);
+  saveWhiteboard();
+}
+
+// Save whiteboard to localStorage (page-specific)
+function saveWhiteboard() {
+  if (!whiteboardCanvas) return;
+  
+  try {
+    const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+    const dataURL = whiteboardCanvas.toDataURL('image/png');
+    localStorage.setItem(`whiteboard-drawing-page-${currentPageIndex}`, dataURL);
+  } catch (error) {
+    console.error('Error saving whiteboard:', error);
+  }
+}
+
 // Fetch HA entity via API (works both locally and in production)
 async function fetchHAEntity(entityId) {
   try {
