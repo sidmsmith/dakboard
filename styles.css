@@ -1817,6 +1817,19 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
   background: var(--thermostat-hover-bg, rgba(255, 255, 255, 0.25));
 }
 
+/* Ensure dropdown options are visible */
+.thermostat-dropdown option {
+  background: rgba(42, 42, 42, 0.95);
+  color: #fff;
+  padding: 8px;
+}
+
+.thermostat-dropdown option:hover,
+.thermostat-dropdown option:checked {
+  background: rgba(66, 66, 66, 0.95);
+  color: #fff;
+}
+
 .thermostat-display {
   flex: 1;
   display: flex;
