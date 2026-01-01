@@ -1687,9 +1687,15 @@ function applyCurrentStylesToWidget(widget) {
           if (alignment === 'left') {
             title.style.setProperty('width', 'auto', 'important');
             title.style.setProperty('flex', '0 0 auto', 'important');
+            title.style.setProperty('max-width', 'fit-content', 'important');
+            title.style.setProperty('flex-grow', '0', 'important');
+            title.style.setProperty('flex-shrink', '0', 'important');
           } else {
             title.style.removeProperty('width');
             title.style.removeProperty('flex');
+            title.style.removeProperty('max-width');
+            title.style.removeProperty('flex-grow');
+            title.style.removeProperty('flex-shrink');
           }
         }
         
@@ -2017,6 +2023,9 @@ function loadStyles() {
               title.style.setProperty('text-align', 'left', 'important');
               title.style.setProperty('width', 'auto', 'important');
               title.style.setProperty('flex', '0 0 auto', 'important');
+              title.style.setProperty('max-width', 'fit-content', 'important');
+              title.style.setProperty('flex-grow', '0', 'important');
+              title.style.setProperty('flex-shrink', '0', 'important');
             }
             
             // DEBUG LOGGING - Default alignment application
@@ -2178,9 +2187,15 @@ function loadStylesToWidget(widget, styles) {
         if (alignment === 'left') {
           title.style.setProperty('width', 'auto', 'important');
           title.style.setProperty('flex', '0 0 auto', 'important');
+          title.style.setProperty('max-width', 'fit-content', 'important');
+          title.style.setProperty('flex-grow', '0', 'important');
+          title.style.setProperty('flex-shrink', '0', 'important');
         } else {
           title.style.removeProperty('width');
           title.style.removeProperty('flex');
+          title.style.removeProperty('max-width');
+          title.style.removeProperty('flex-grow');
+          title.style.removeProperty('flex-shrink');
         }
       }
       
