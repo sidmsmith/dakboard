@@ -1753,9 +1753,10 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
   height: 200px;
 }
 
-.clock-widget .widget-header {
+/* Title visibility now controlled by styling system - removed hardcoded display: none */
+/* .clock-widget .widget-header {
   display: none;
-}
+} */
 
 .clock-content {
   display: flex;
@@ -1788,9 +1789,10 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
   height: 300px;
 }
 
-.photos-widget .widget-header {
+/* Title visibility now controlled by styling system - removed hardcoded display: none */
+/* .photos-widget .widget-header {
   display: none;
-}
+} */
 
 .photos-content {
   height: 100%;

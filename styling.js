@@ -117,8 +117,8 @@ function generateTabContent(tabName) {
       return generateBorderTab();
     case 'shadow':
       return generateShadowTab();
-    case 'text':
-      return generateTextTab();
+    case 'title':
+      return generateTitleTab();
     case 'layout':
       return generateLayoutTab();
     case 'advanced':
@@ -495,7 +495,12 @@ function generateShadowTab() {
 }
 
 // Generate Text Tab
-function generateTextTab() {
+function generateTitleTab() {
+  // Get current widget's default title from WIDGET_CONFIG
+  const defaultTitle = WIDGET_CONFIG[currentWidgetId]?.name || 'Widget';
+  const titleText = currentStyles.titleText !== undefined ? currentStyles.titleText : defaultTitle;
+  const titleVisible = currentStyles.titleVisible !== undefined ? currentStyles.titleVisible : true;
+  const titleAlignment = currentStyles.titleAlignment || 'left';
   const textColor = currentStyles.textColor || '#fff';
   const fontSize = currentStyles.fontSize !== undefined ? currentStyles.fontSize : 18;
   const fontWeight = currentStyles.fontWeight || '600';
@@ -506,8 +511,40 @@ function generateTextTab() {
   
   return `
     <div class="styling-form-section">
-      <div class="styling-section-title">Text Styling</div>
+      <div class="styling-section-title">Title Styling</div>
       <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Visible</label>
+          <div class="styling-form-control">
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="title-visible" ${titleVisible ? 'checked' : ''}> Show title
+            </label>
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="title-visible-apply-all" ${applyToAllFlags.titleVisible ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Title Text</label>
+          <div class="styling-form-control">
+            <input type="text" id="title-text" value="${titleText}" placeholder="${defaultTitle}">
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="title-text-apply-all" ${applyToAllFlags.titleText ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Alignment</label>
+          <div class="styling-form-control">
+            <select id="title-alignment">
+              <option value="left" ${titleAlignment === 'left' ? 'selected' : ''}>Left</option>
+              <option value="center" ${titleAlignment === 'center' ? 'selected' : ''}>Center</option>
+            </select>
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="title-alignment-apply-all" ${applyToAllFlags.titleAlignment ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
         <div class="styling-form-row">
           <label class="styling-form-label">Color</label>
           <div class="styling-form-control">
@@ -921,7 +958,34 @@ function attachTabEventListeners(tabName) {
     });
   }
   
-  if (tabName === 'text') {
+  if (tabName === 'title') {
+    // Title visibility checkbox
+    const titleVisibleCheckbox = document.getElementById('title-visible');
+    if (titleVisibleCheckbox) {
+      titleVisibleCheckbox.addEventListener('change', (e) => {
+        currentStyles.titleVisible = e.target.checked;
+        updatePreview();
+      });
+    }
+
+    // Title text input
+    const titleTextInput = document.getElementById('title-text');
+    if (titleTextInput) {
+      titleTextInput.addEventListener('input', (e) => {
+        currentStyles.titleText = e.target.value;
+        updatePreview();
+      });
+    }
+
+    // Title alignment select
+    const titleAlignmentSelect = document.getElementById('title-alignment');
+    if (titleAlignmentSelect) {
+      titleAlignmentSelect.addEventListener('change', (e) => {
+        currentStyles.titleAlignment = e.target.value;
+        updatePreview();
+      });
+    }
+
     // Dynamic checkbox for text color
     const textColorDynamicCheckbox = document.getElementById('text-color-dynamic');
     const textColorInput = document.getElementById('text-color');
@@ -1148,9 +1212,32 @@ function updatePreview() {
     preview.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
   }
 
+  // Apply title visibility and alignment
+  const previewHeader = preview.querySelector('.styling-preview-header');
+  if (previewHeader) {
+    // Title visibility
+    if (currentStyles.titleVisible !== undefined) {
+      previewHeader.style.display = currentStyles.titleVisible ? '' : 'none';
+    }
+    
+    // Title alignment
+    if (currentStyles.titleAlignment !== undefined) {
+      previewHeader.style.justifyContent = currentStyles.titleAlignment === 'center' ? 'center' : 'flex-start';
+      previewHeader.style.textAlign = currentStyles.titleAlignment === 'center' ? 'center' : 'left';
+    }
+  }
+
   // Apply text
   const titleText = preview.querySelector('.styling-preview-title-text');
   if (titleText) {
+    // Title text
+    if (currentStyles.titleText !== undefined) {
+      titleText.textContent = currentStyles.titleText;
+    } else {
+      // Use default from WIDGET_CONFIG
+      const defaultTitle = WIDGET_CONFIG[currentWidgetId]?.name || 'Widget';
+      titleText.textContent = defaultTitle;
+    }
     // Handle text color: use dynamic color if textColorDynamic is true, otherwise use manual color
     if (currentStyles.textColorDynamic) {
       // Dynamic mode: calculate color based on preview background
@@ -1367,6 +1454,24 @@ function updateCurrentStylesFromForm() {
   const shadowSpread = document.getElementById('shadow-spread');
   if (shadowSpread) currentStyles.shadowSpread = parseInt(shadowSpread.value);
   
+  // Title settings
+  const titleVisible = document.getElementById('title-visible');
+  if (titleVisible) currentStyles.titleVisible = titleVisible.checked;
+  
+  const titleText = document.getElementById('title-text');
+  if (titleText) {
+    const defaultTitle = WIDGET_CONFIG[currentWidgetId]?.name || 'Widget';
+    // Only save if different from default (to allow resetting to default)
+    if (titleText.value && titleText.value !== defaultTitle) {
+      currentStyles.titleText = titleText.value;
+    } else {
+      delete currentStyles.titleText; // Use default
+    }
+  }
+  
+  const titleAlignment = document.getElementById('title-alignment');
+  if (titleAlignment) currentStyles.titleAlignment = titleAlignment.value;
+  
   const textColor = document.getElementById('text-color');
   const textColorDynamic = document.getElementById('text-color-dynamic');
   if (textColorDynamic) {
@@ -1519,9 +1624,43 @@ function applyCurrentStylesToWidget(widget) {
     }
   }
 
+  // Title visibility, text, and alignment
+  const widgetHeader = widget.querySelector('.widget-header');
+  if (widgetHeader) {
+    // Title visibility
+    if (currentStyles.titleVisible !== undefined) {
+      if (!isApplyingToAll || applyToAllFlags.titleVisible) {
+        widgetHeader.style.display = currentStyles.titleVisible ? '' : 'none';
+      }
+    }
+    
+    // Title alignment
+    if (currentStyles.titleAlignment !== undefined) {
+      if (!isApplyingToAll || applyToAllFlags.titleAlignment) {
+        widgetHeader.style.justifyContent = currentStyles.titleAlignment === 'center' ? 'center' : 'flex-start';
+        widgetHeader.style.textAlign = currentStyles.titleAlignment === 'center' ? 'center' : 'left';
+      }
+    }
+  }
+
   // Text (widget title)
   const title = widget.querySelector('.widget-title');
   if (title) {
+    // Title text
+    if (currentStyles.titleText !== undefined) {
+      if (!isApplyingToAll || applyToAllFlags.titleText) {
+        title.textContent = currentStyles.titleText;
+      }
+    } else {
+      // Use default from WIDGET_CONFIG if no custom title
+      const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
+      if (widgetId && WIDGET_CONFIG[widgetId]) {
+        if (!isApplyingToAll || applyToAllFlags.titleText) {
+          title.textContent = WIDGET_CONFIG[widgetId].name;
+        }
+      }
+    }
+    
     // Only apply inline color if textColorDynamic is false (manual mode)
     // If textColorDynamic is true or undefined, let CSS variable handle it
     if (currentStyles.textColorDynamic === false && currentStyles.textColor !== undefined) {
@@ -1612,6 +1751,9 @@ function updateApplyToAllFlags() {
   applyToAllFlags.borderRadius = document.getElementById('border-radius-apply-all')?.checked || false;
   applyToAllFlags.shadowColor = document.getElementById('shadow-color-apply-all')?.checked || false;
   applyToAllFlags.shadowBlur = document.getElementById('shadow-blur-apply-all')?.checked || false;
+  applyToAllFlags.titleVisible = document.getElementById('title-visible-apply-all')?.checked || false;
+  applyToAllFlags.titleText = document.getElementById('title-text-apply-all')?.checked || false;
+  applyToAllFlags.titleAlignment = document.getElementById('title-alignment-apply-all')?.checked || false;
   applyToAllFlags.textColor = document.getElementById('text-color-apply-all')?.checked || false;
   applyToAllFlags.fontSize = document.getElementById('font-size-apply-all')?.checked || false;
   applyToAllFlags.fontWeight = document.getElementById('font-weight-apply-all')?.checked || false;
@@ -1724,6 +1866,9 @@ function loadWidgetStyles(widgetId) {
     }
   } else {
     // Set defaults
+    // For clock and photos widgets, default titleVisible to false (was hardcoded hidden)
+    const defaultTitleVisible = (widgetId === 'clock-widget' || widgetId === 'photos-widget') ? false : true;
+    
     currentStyles = {
       backgroundColor: '#2a2a2a',
       opacity: 100,
@@ -1736,12 +1881,25 @@ function loadWidgetStyles(widgetId) {
       shadowX: 0,
       shadowY: 4,
       shadowSpread: 0,
+      titleVisible: defaultTitleVisible,
+      titleAlignment: 'left',
       textColorDynamic: true, // Default to dynamic for new widgets
       fontSize: 18,
       fontWeight: '600',
       padding: 24,
       widgetOpacity: 100
     };
+  }
+  
+  // Ensure titleVisible is set for existing widgets (migration)
+  if (currentStyles.titleVisible === undefined) {
+    // For clock and photos, default to false (was hardcoded hidden)
+    currentStyles.titleVisible = (widgetId === 'clock-widget' || widgetId === 'photos-widget') ? false : true;
+  }
+  
+  // Ensure titleAlignment is set (default to left)
+  if (currentStyles.titleAlignment === undefined) {
+    currentStyles.titleAlignment = 'left';
   }
 }
 
@@ -1869,9 +2027,35 @@ function loadStylesToWidget(widget, styles) {
     widget.style.boxShadow = `${x}px ${y}px ${blur}px ${spread}px ${color}`;
   }
   
+  // Title visibility, text, and alignment
+  const widgetHeader = widget.querySelector('.widget-header');
+  if (widgetHeader) {
+    // Title visibility
+    if (styles.titleVisible !== undefined) {
+      widgetHeader.style.display = styles.titleVisible ? '' : 'none';
+    }
+    
+    // Title alignment
+    if (styles.titleAlignment !== undefined) {
+      widgetHeader.style.justifyContent = styles.titleAlignment === 'center' ? 'center' : 'flex-start';
+      widgetHeader.style.textAlign = styles.titleAlignment === 'center' ? 'center' : 'left';
+    }
+  }
+
   // Text (widget title)
   const title = widget.querySelector('.widget-title');
   if (title) {
+    // Title text
+    if (styles.titleText !== undefined) {
+      title.textContent = styles.titleText;
+    } else {
+      // Use default from WIDGET_CONFIG if no custom title
+      const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
+      if (widgetId && WIDGET_CONFIG[widgetId]) {
+        title.textContent = WIDGET_CONFIG[widgetId].name;
+      }
+    }
+    
     // Only apply inline color if textColorDynamic is false (manual mode)
     // If textColorDynamic is true or undefined, let CSS variable handle it
     if (styles.textColorDynamic === false && styles.textColor !== undefined) {
