@@ -182,6 +182,11 @@ body {
 }
 
 /* Calendar - Default position and size */
+/* SPECIAL CASE: Calendar widget has custom header layout with:
+   - Calendar icon SVG inside widget-title
+   - Month-view button in widget-header (opens month modal)
+   Title styling system (visibility, alignment, editable text) is disabled for this widget
+   to preserve these functional elements. See styling.js for implementation details. */
 .calendar-widget {
   top: 20px;
   left: 20px;
@@ -2250,6 +2255,10 @@ body:has(.dashboard.edit-mode) .diagonal-watermark {
   min-height: 0; /* Allow container to shrink below content */
 }
 
+/* SPECIAL CASE: Whiteboard widget has custom header layout with toolbar controls
+   (clear button, color pickers, brush size) in the header.
+   Title styling system (visibility, alignment, editable text) is disabled for this widget
+   to preserve these functional elements. See styling.js for implementation details. */
 .whiteboard-widget .widget-header {
   display: flex;
   justify-content: space-between;

@@ -1,5 +1,15 @@
 // Widget Styling System
 // Handles dynamic styling of widgets and dashboard background
+//
+// SPECIAL WIDGET CASES - Title Styling:
+// =====================================
+// Calendar Widget: Has custom header layout with month-view button (opens month modal) and calendar icon.
+//                  Title visibility, editable text, and alignment are disabled to preserve functional elements.
+//                  Still supports title color, font size, and font weight styling.
+//
+// Whiteboard Widget: Has custom header layout with toolbar (clear button, color pickers, brush size controls).
+//                    Title visibility, editable text, and alignment are disabled to preserve functional elements.
+//                    Still supports title color, font size, and font weight styling.
 
 let currentWidgetId = null;
 let currentStyles = {};
@@ -496,11 +506,18 @@ function generateShadowTab() {
 
 // Generate Text Tab
 function generateTitleTab() {
+  // SPECIAL CASE: Calendar and Whiteboard widgets have custom header layouts with functional elements
+  // - Calendar widget: Has month-view button in header (opens month modal) and custom calendar icon
+  // - Whiteboard widget: Has toolbar in header (clear button, color pickers, brush size controls)
+  // These widgets are excluded from standard title styling (visibility, alignment, editable text)
+  // to preserve their functional elements. They still support title color, font size, and font weight styling.
+  
   // Get current widget's default title from WIDGET_CONFIG
   const defaultTitle = WIDGET_CONFIG[currentWidgetId]?.name || 'Widget';
   const titleText = currentStyles.titleText !== undefined ? currentStyles.titleText : defaultTitle;
   const titleVisible = currentStyles.titleVisible !== undefined ? currentStyles.titleVisible : true;
   const titleAlignment = currentStyles.titleAlignment || 'left';
+  const isSpecialWidget = currentWidgetId === 'calendar-widget' || currentWidgetId === 'whiteboard-widget';
   const textColor = currentStyles.textColor || '#fff';
   const fontSize = currentStyles.fontSize !== undefined ? currentStyles.fontSize : 18;
   const fontWeight = currentStyles.fontWeight || '600';
@@ -513,11 +530,20 @@ function generateTitleTab() {
     <div class="styling-form-section">
       <div class="styling-section-title">Title Styling</div>
       <div class="styling-form-group">
+        ${isSpecialWidget ? `
+        <div class="styling-form-row" style="background: rgba(74, 144, 226, 0.1); padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 3px solid #4a90e2;">
+          <div style="font-size: 12px; color: #aaa; line-height: 1.4;">
+            <strong style="color: #4a90e2;">Note:</strong> ${currentWidgetId === 'calendar-widget' 
+              ? 'Calendar widget has a custom header with month-view button and calendar icon. Title visibility, text editing, and alignment are not available for this widget to preserve its functional elements.'
+              : 'Whiteboard widget has a custom header with toolbar controls (clear, color pickers, brush size). Title visibility, text editing, and alignment are not available for this widget to preserve its functional elements.'}
+          </div>
+        </div>
+        ` : ''}
         <div class="styling-form-row">
           <label class="styling-form-label">Visible</label>
           <div class="styling-form-control">
             <label class="styling-apply-all-checkbox">
-              <input type="checkbox" id="title-visible" ${titleVisible ? 'checked' : ''}> Show title
+              <input type="checkbox" id="title-visible" ${titleVisible ? 'checked' : ''} ${isSpecialWidget ? 'disabled' : ''}> Show title
             </label>
             <label class="styling-apply-all-checkbox">
               <input type="checkbox" id="title-visible-apply-all" ${applyToAllFlags.titleVisible ? 'checked' : ''}> Apply to all
@@ -527,7 +553,7 @@ function generateTitleTab() {
         <div class="styling-form-row">
           <label class="styling-form-label">Title Text</label>
           <div class="styling-form-control">
-            <input type="text" id="title-text" value="${titleText}" placeholder="${defaultTitle}">
+            <input type="text" id="title-text" value="${titleText}" placeholder="${defaultTitle}" ${isSpecialWidget ? 'disabled' : ''}>
             <label class="styling-apply-all-checkbox">
               <input type="checkbox" id="title-text-apply-all" ${applyToAllFlags.titleText ? 'checked' : ''}> Apply to all
             </label>
@@ -536,7 +562,7 @@ function generateTitleTab() {
         <div class="styling-form-row">
           <label class="styling-form-label">Alignment</label>
           <div class="styling-form-control">
-            <select id="title-alignment">
+            <select id="title-alignment" ${isSpecialWidget ? 'disabled' : ''}>
               <option value="left" ${titleAlignment === 'left' ? 'selected' : ''}>Left</option>
               <option value="center" ${titleAlignment === 'center' ? 'selected' : ''}>Center</option>
             </select>
@@ -1625,27 +1651,36 @@ function applyCurrentStylesToWidget(widget) {
   }
 
   // Title visibility, text, and alignment
-  const widgetHeader = widget.querySelector('.widget-header');
-  if (widgetHeader) {
-    // Title visibility
-    if (currentStyles.titleVisible !== undefined) {
-      if (!isApplyingToAll || applyToAllFlags.titleVisible) {
-        widgetHeader.style.display = currentStyles.titleVisible ? '' : 'none';
+  // SPECIAL CASE: Calendar and Whiteboard widgets have custom header layouts with functional elements
+  // (Calendar has month-view button, Whiteboard has toolbar) - skip standard title styling for these
+  const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
+  const isSpecialWidget = widgetId === 'calendar-widget' || widgetId === 'whiteboard-widget';
+  
+  if (!isSpecialWidget) {
+    const widgetHeader = widget.querySelector('.widget-header');
+    if (widgetHeader) {
+      // Title visibility
+      if (currentStyles.titleVisible !== undefined) {
+        if (!isApplyingToAll || applyToAllFlags.titleVisible) {
+          widgetHeader.style.display = currentStyles.titleVisible ? '' : 'none';
+        }
       }
-    }
-    
-    // Title alignment
-    if (currentStyles.titleAlignment !== undefined) {
-      if (!isApplyingToAll || applyToAllFlags.titleAlignment) {
-        widgetHeader.style.justifyContent = currentStyles.titleAlignment === 'center' ? 'center' : 'flex-start';
-        widgetHeader.style.textAlign = currentStyles.titleAlignment === 'center' ? 'center' : 'left';
+      
+      // Title alignment
+      if (currentStyles.titleAlignment !== undefined) {
+        if (!isApplyingToAll || applyToAllFlags.titleAlignment) {
+          widgetHeader.style.justifyContent = currentStyles.titleAlignment === 'center' ? 'center' : 'flex-start';
+          widgetHeader.style.textAlign = currentStyles.titleAlignment === 'center' ? 'center' : 'left';
+        }
       }
     }
   }
 
   // Text (widget title)
+  // SPECIAL CASE: Calendar and Whiteboard widgets - skip editable title text for these
+  // Calendar has custom icon and month button, Whiteboard has toolbar in header
   const title = widget.querySelector('.widget-title');
-  if (title) {
+  if (title && !isSpecialWidget) {
     // Title text
     if (currentStyles.titleText !== undefined) {
       if (!isApplyingToAll || applyToAllFlags.titleText) {
@@ -2028,23 +2063,32 @@ function loadStylesToWidget(widget, styles) {
   }
   
   // Title visibility, text, and alignment
-  const widgetHeader = widget.querySelector('.widget-header');
-  if (widgetHeader) {
-    // Title visibility
-    if (styles.titleVisible !== undefined) {
-      widgetHeader.style.display = styles.titleVisible ? '' : 'none';
-    }
-    
-    // Title alignment
-    if (styles.titleAlignment !== undefined) {
-      widgetHeader.style.justifyContent = styles.titleAlignment === 'center' ? 'center' : 'flex-start';
-      widgetHeader.style.textAlign = styles.titleAlignment === 'center' ? 'center' : 'left';
+  // SPECIAL CASE: Calendar and Whiteboard widgets have custom header layouts with functional elements
+  // (Calendar has month-view button, Whiteboard has toolbar) - skip standard title styling for these
+  const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
+  const isSpecialWidget = widgetId === 'calendar-widget' || widgetId === 'whiteboard-widget';
+  
+  if (!isSpecialWidget) {
+    const widgetHeader = widget.querySelector('.widget-header');
+    if (widgetHeader) {
+      // Title visibility
+      if (styles.titleVisible !== undefined) {
+        widgetHeader.style.display = styles.titleVisible ? '' : 'none';
+      }
+      
+      // Title alignment
+      if (styles.titleAlignment !== undefined) {
+        widgetHeader.style.justifyContent = styles.titleAlignment === 'center' ? 'center' : 'flex-start';
+        widgetHeader.style.textAlign = styles.titleAlignment === 'center' ? 'center' : 'left';
+      }
     }
   }
 
   // Text (widget title)
+  // SPECIAL CASE: Calendar and Whiteboard widgets - skip editable title text for these
+  // Calendar has custom icon and month button, Whiteboard has toolbar in header
   const title = widget.querySelector('.widget-title');
-  if (title) {
+  if (title && !isSpecialWidget) {
     // Title text
     if (styles.titleText !== undefined) {
       title.textContent = styles.titleText;
