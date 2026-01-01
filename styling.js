@@ -1770,33 +1770,6 @@ function applyCurrentStylesToWidget(widget) {
             }
           }
         }
-        
-        console.log(`[TITLE ALIGN DEBUG] ${widgetId}:`, {
-          alignment: alignment,
-          widgetWidth: widgetRect.width,
-          headerWidth: headerRect.width,
-          titleWidth: titleRect ? titleRect.width : 'N/A',
-          titleContentWidth: title ? title.scrollWidth : 'N/A',
-          headerJustifyContent: computedHeaderStyle.justifyContent,
-          headerTextAlign: computedHeaderStyle.textAlign,
-          titleJustifyContent: computedTitleStyle ? computedTitleStyle.justifyContent : 'N/A',
-          titleTextAlign: computedTitleStyle ? computedTitleStyle.textAlign : 'N/A',
-          titleFlex: computedTitleStyle ? computedTitleStyle.flex : 'N/A',
-          titleFlexGrow: computedTitleStyle ? computedTitleStyle.flexGrow : 'N/A',
-          titleFlexShrink: computedTitleStyle ? computedTitleStyle.flexShrink : 'N/A',
-          titleFlexBasis: computedTitleStyle ? computedTitleStyle.flexBasis : 'N/A',
-          titleWidthStyle: computedTitleStyle ? computedTitleStyle.width : 'N/A',
-          titleMaxWidth: computedTitleStyle ? computedTitleStyle.maxWidth : 'N/A',
-          titleDisplay: computedTitleStyle ? computedTitleStyle.display : 'N/A',
-          headerInlineJustify: widgetHeader.style.justifyContent,
-          titleInlineJustify: title ? title.style.justifyContent : 'N/A',
-          titleInlineWidth: title ? title.style.width : 'N/A',
-          titleInlineFlex: title ? title.style.flex : 'N/A',
-          titleInlineMaxWidth: title ? title.style.maxWidth : 'N/A',
-          titleInlineFlexGrow: title ? title.style.flexGrow : 'N/A',
-          titleInlineFlexShrink: title ? title.style.flexShrink : 'N/A',
-          cssRules: titleRules.length > 0 ? titleRules : 'No matching CSS rules found'
-        });
       }
     }
   }
@@ -2162,33 +2135,6 @@ function loadStyles() {
                   }
                 }
               }
-              
-              console.log(`[TITLE ALIGN DEBUG - DEFAULT] ${widgetId}:`, {
-                alignment: 'left (default)',
-                widgetWidth: widgetRect.width,
-                headerWidth: headerRect.width,
-                titleWidth: titleRect ? titleRect.width : 'N/A',
-                titleContentWidth: title ? title.scrollWidth : 'N/A',
-                headerJustifyContent: computedHeaderStyle.justifyContent,
-                headerTextAlign: computedHeaderStyle.textAlign,
-                titleJustifyContent: computedTitleStyle ? computedTitleStyle.justifyContent : 'N/A',
-                titleTextAlign: computedTitleStyle ? computedTitleStyle.textAlign : 'N/A',
-                titleFlex: computedTitleStyle ? computedTitleStyle.flex : 'N/A',
-                titleFlexGrow: computedTitleStyle ? computedTitleStyle.flexGrow : 'N/A',
-                titleFlexShrink: computedTitleStyle ? computedTitleStyle.flexShrink : 'N/A',
-                titleFlexBasis: computedTitleStyle ? computedTitleStyle.flexBasis : 'N/A',
-                titleWidthStyle: computedTitleStyle ? computedTitleStyle.width : 'N/A',
-                titleMaxWidth: computedTitleStyle ? computedTitleStyle.maxWidth : 'N/A',
-                titleDisplay: computedTitleStyle ? computedTitleStyle.display : 'N/A',
-                headerInlineJustify: widgetHeader.style.justifyContent,
-                titleInlineJustify: title ? title.style.justifyContent : 'N/A',
-                titleInlineWidth: title ? title.style.width : 'N/A',
-                titleInlineFlex: title ? title.style.flex : 'N/A',
-                titleInlineMaxWidth: title ? title.style.maxWidth : 'N/A',
-                titleInlineFlexGrow: title ? title.style.flexGrow : 'N/A',
-                titleInlineFlexShrink: title ? title.style.flexShrink : 'N/A',
-                cssRules: titleRules.length > 0 ? titleRules : 'No matching CSS rules found'
-              });
             }, 100);
           }
         }
@@ -2374,33 +2320,6 @@ function loadStylesToWidget(widget, styles) {
             }
           }
         }
-        
-        console.log(`[TITLE ALIGN DEBUG - PAGE LOAD] ${widgetId}:`, {
-          alignment: alignment,
-          widgetWidth: widgetRect.width,
-          headerWidth: headerRect.width,
-          titleWidth: titleRect ? titleRect.width : 'N/A',
-          titleContentWidth: title ? title.scrollWidth : 'N/A',
-          headerJustifyContent: computedHeaderStyle.justifyContent,
-          headerTextAlign: computedHeaderStyle.textAlign,
-          titleJustifyContent: computedTitleStyle ? computedTitleStyle.justifyContent : 'N/A',
-          titleTextAlign: computedTitleStyle ? computedTitleStyle.textAlign : 'N/A',
-          titleFlex: computedTitleStyle ? computedTitleStyle.flex : 'N/A',
-          titleFlexGrow: computedTitleStyle ? computedTitleStyle.flexGrow : 'N/A',
-          titleFlexShrink: computedTitleStyle ? computedTitleStyle.flexShrink : 'N/A',
-          titleFlexBasis: computedTitleStyle ? computedTitleStyle.flexBasis : 'N/A',
-          titleWidthStyle: computedTitleStyle ? computedTitleStyle.width : 'N/A',
-          titleMaxWidth: computedTitleStyle ? computedTitleStyle.maxWidth : 'N/A',
-          titleDisplay: computedTitleStyle ? computedTitleStyle.display : 'N/A',
-          headerInlineJustify: widgetHeader.style.justifyContent,
-          titleInlineJustify: title ? title.style.justifyContent : 'N/A',
-          titleInlineWidth: title ? title.style.width : 'N/A',
-          titleInlineFlex: title ? title.style.flex : 'N/A',
-          titleInlineMaxWidth: title ? title.style.maxWidth : 'N/A',
-          titleInlineFlexGrow: title ? title.style.flexGrow : 'N/A',
-          titleInlineFlexShrink: title ? title.style.flexShrink : 'N/A',
-          cssRules: titleRules.length > 0 ? titleRules : 'No matching CSS rules found'
-        });
       }, 100); // Small delay to ensure DOM is fully rendered
     }
   }

@@ -2591,6 +2591,482 @@ async function toggleCompressor() {
   }
 }
 
+// Thermostat state
+let currentThermostat = 1;
+
+// Calculate relative luminance of a color (for contrast calculation)
+function getLuminance(r, g, b) {
+  // Convert RGB to relative luminance using WCAG formula
+  const [rs, gs, bs] = [r, g, b].map(val => {
+    val = val / 255;
+    return val <= 0.03928 ? val / 12.92 : Math.pow((val + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+// Determine if a color is light or dark based on luminance
+function isLightColor(r, g, b) {
+  const luminance = getLuminance(r, g, b);
+  // Threshold of 0.5 - above is light, below is dark
+  return luminance > 0.5;
+}
+
+// Update widget control and text styles based on widget background color (generic for all widgets)
+function updateWidgetDynamicStyles(widget) {
+  if (!widget) return;
+  
+  // Get computed background color from the widget
+  const computedStyle = window.getComputedStyle(widget);
+  let bgColor = computedStyle.backgroundColor;
+  
+  // If background is transparent or rgba(0,0,0,0), try to get from background-image or use fallback
+  if (!bgColor || bgColor === 'rgba(0, 0, 0, 0)' || bgColor === 'transparent') {
+    // Check if there's a background image (we can't extract color from it, so use a neutral approach)
+    const bgImage = computedStyle.backgroundImage;
+    if (bgImage && bgImage !== 'none') {
+      // For images/gradients, assume dark background (use light text)
+      bgColor = 'rgb(42, 42, 42)';
+    } else {
+      // Try to get from parent or use default
+      bgColor = computedStyle.backgroundColor || 'rgb(42, 42, 42)';
+    }
+  }
+  
+  // Extract RGB values from rgba/rgb string
+  let rgbMatch = bgColor.match(/\d+/g);
+  if (!rgbMatch || rgbMatch.length < 3) {
+    // Fallback to default if parsing fails
+    bgColor = 'rgb(42, 42, 42)';
+    rgbMatch = [42, 42, 42];
+  }
+  
+  const r = parseInt(rgbMatch[0]);
+  const g = parseInt(rgbMatch[1]);
+  const b = parseInt(rgbMatch[2]);
+  
+  // Determine if background is light or dark
+  const isLight = isLightColor(r, g, b);
+  
+  // Set text colors based on background brightness
+  const primaryTextColor = isLight ? '#1a1a1a' : '#ffffff'; // Dark text for light bg, white for dark bg
+  const secondaryTextColor = isLight ? '#4a4a4a' : '#aaaaaa'; // Darker gray for light bg, lighter gray for dark bg
+  
+  // Calculate darker shade for borders (reduce brightness by 25-30%)
+  const darkenFactor = 0.25;
+  const borderR = Math.max(0, Math.floor(r * (1 - darkenFactor)));
+  const borderG = Math.max(0, Math.floor(g * (1 - darkenFactor)));
+  const borderB = Math.max(0, Math.floor(b * (1 - darkenFactor)));
+  
+  // Calculate even darker for hover states
+  const hoverDarkenFactor = 0.15; // Additional darkening on top of border
+  const hoverR = Math.max(0, Math.floor(borderR * (1 - hoverDarkenFactor)));
+  const hoverG = Math.max(0, Math.floor(borderG * (1 - hoverDarkenFactor)));
+  const hoverB = Math.max(0, Math.floor(borderB * (1 - hoverDarkenFactor)));
+  
+  // Set CSS custom properties on the widget
+  widget.style.setProperty('--widget-bg-overlay', isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.15)');
+  widget.style.setProperty('--widget-border-color', `rgb(${borderR}, ${borderG}, ${borderB})`);
+  widget.style.setProperty('--widget-hover-border', `rgb(${hoverR}, ${hoverG}, ${hoverB})`);
+  widget.style.setProperty('--widget-hover-bg', isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.25)');
+  widget.style.setProperty('--widget-text-primary', primaryTextColor);
+  widget.style.setProperty('--widget-text-secondary', secondaryTextColor);
+}
+
+// Update thermostat control styles based on widget background color (kept for backward compatibility)
+function updateThermostatControlStyles(widget) {
+  if (!widget) return;
+  
+  // Get computed background color from the widget
+  const computedStyle = window.getComputedStyle(widget);
+  let bgColor = computedStyle.backgroundColor;
+  
+  // If background is transparent or rgba(0,0,0,0), try to get from background-image or use fallback
+  if (!bgColor || bgColor === 'rgba(0, 0, 0, 0)' || bgColor === 'transparent') {
+    // Check if there's a background image (we can't extract color from it, so use a neutral approach)
+    const bgImage = computedStyle.backgroundImage;
+    if (bgImage && bgImage !== 'none') {
+      // For images/gradients, assume dark background (use light text)
+      bgColor = 'rgb(42, 42, 42)';
+    } else {
+      // Try to get from parent or use default
+      bgColor = computedStyle.backgroundColor || 'rgb(42, 42, 42)';
+    }
+  }
+  
+  // Extract RGB values from rgba/rgb string
+  let rgbMatch = bgColor.match(/\d+/g);
+  if (!rgbMatch || rgbMatch.length < 3) {
+    // Fallback to default if parsing fails
+    bgColor = 'rgb(42, 42, 42)';
+    rgbMatch = [42, 42, 42];
+  }
+  
+  const r = parseInt(rgbMatch[0]);
+  const g = parseInt(rgbMatch[1]);
+  const b = parseInt(rgbMatch[2]);
+  
+  // Determine if background is light or dark
+  const isLight = isLightColor(r, g, b);
+  
+  // Set text colors based on background brightness
+  const primaryTextColor = isLight ? '#1a1a1a' : '#ffffff'; // Dark text for light bg, white for dark bg
+  const secondaryTextColor = isLight ? '#4a4a4a' : '#aaaaaa'; // Darker gray for light bg, lighter gray for dark bg
+  
+  // Calculate darker shade for borders (reduce brightness by 25-30%)
+  const darkenFactor = 0.25;
+  const borderR = Math.max(0, Math.floor(r * (1 - darkenFactor)));
+  const borderG = Math.max(0, Math.floor(g * (1 - darkenFactor)));
+  const borderB = Math.max(0, Math.floor(b * (1 - darkenFactor)));
+  
+  // Calculate even darker for hover states
+  const hoverDarkenFactor = 0.15; // Additional darkening on top of border
+  const hoverR = Math.max(0, Math.floor(borderR * (1 - hoverDarkenFactor)));
+  const hoverG = Math.max(0, Math.floor(borderG * (1 - hoverDarkenFactor)));
+  const hoverB = Math.max(0, Math.floor(borderB * (1 - hoverDarkenFactor)));
+  
+  // Call the generic function and also set thermostat-specific variables for backward compatibility
+  updateWidgetDynamicStyles(widget);
+  
+  // Set thermostat-specific CSS variables (aliases to widget variables for backward compatibility)
+  widget.style.setProperty('--thermostat-bg-overlay', widget.style.getPropertyValue('--widget-bg-overlay'));
+  widget.style.setProperty('--thermostat-border-color', widget.style.getPropertyValue('--widget-border-color'));
+  widget.style.setProperty('--thermostat-hover-border', widget.style.getPropertyValue('--widget-hover-border'));
+  widget.style.setProperty('--thermostat-hover-bg', widget.style.getPropertyValue('--widget-hover-bg'));
+  widget.style.setProperty('--thermostat-text-primary', widget.style.getPropertyValue('--widget-text-primary'));
+  widget.style.setProperty('--thermostat-text-secondary', widget.style.getPropertyValue('--widget-text-secondary'));
+}
+
+// Load thermostat data
+async function loadThermostat() {
+  // Find all thermostat widgets across all pages
+  const selectors = document.querySelectorAll('#thermostat-selector');
+  const displays = document.querySelectorAll('#thermostat-display');
+  
+  if (selectors.length === 0 || displays.length === 0) return;
+  
+  // Use the first selector to get the value (they should all be in sync)
+  const selector = selectors[0];
+  const display = displays[0];
+  
+  // Get selected thermostat
+  currentThermostat = parseInt(selector.value) || 1;
+  const thermostatEntity = CONFIG[`HA_THERMOSTAT_${currentThermostat}`];
+  
+  if (!thermostatEntity) {
+    const errorHtml = `
+      <div class="thermostat-error">
+        <p>Thermostat ${currentThermostat} not configured</p>
+        <p style="font-size: 12px; color: #888;">Update CONFIG.HA_THERMOSTAT_${currentThermostat} in app.js</p>
+      </div>
+    `;
+    // Update all displays
+    displays.forEach(d => d.innerHTML = errorHtml);
+    return;
+  }
+  
+  try {
+    const entity = await fetchHAEntity(thermostatEntity);
+    if (!entity) {
+      const errorHtml = '<div class="thermostat-error">Thermostat not found</div>';
+      displays.forEach(d => d.innerHTML = errorHtml);
+      return;
+    }
+    
+    const state = entity.state;
+    const attrs = entity.attributes || {};
+    
+    // Get temperature values
+    const currentTemp = attrs.current_temperature || attrs.temperature || '--';
+    const targetTemp = attrs.temperature || attrs.target_temp_high || attrs.target_temp_low || '--';
+    const mode = attrs.hvac_modes && attrs.hvac_modes.length > 0 ? state : 'off';
+    const fanMode = attrs.fan_mode || 'auto';
+    const fanModes = attrs.fan_modes || ['auto', 'on'];
+    
+    // Determine if heating or cooling
+    const isHeating = mode === 'heat' || (mode === 'auto' && currentTemp < targetTemp);
+    const isCooling = mode === 'cool' || (mode === 'auto' && currentTemp > targetTemp);
+    
+    const displayHtml = `
+      <div class="thermostat-main">
+        <div class="thermostat-temp-display">
+          <div class="thermostat-current-temp">${Math.round(currentTemp)}°</div>
+          <div class="thermostat-target-temp">
+            <span class="thermostat-target-label">Target:</span>
+            <span class="thermostat-target-value" id="thermostat-target-value">${Math.round(targetTemp)}°</span>
+          </div>
+        </div>
+        <div class="thermostat-controls">
+          <div class="thermostat-mode">
+            <label>Mode:</label>
+            <select id="thermostat-mode-select" class="thermostat-control-select" ${isEditMode ? 'disabled' : ''}>
+              ${(attrs.hvac_modes || ['off']).map(m => 
+                `<option value="${m}" ${m === mode ? 'selected' : ''}>${m.charAt(0).toUpperCase() + m.slice(1)}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="thermostat-fan">
+            <label>Fan:</label>
+            <select id="thermostat-fan-select" class="thermostat-control-select" ${isEditMode ? 'disabled' : ''}>
+              ${fanModes.map(f => 
+                `<option value="${f}" ${f === fanMode ? 'selected' : ''}>${f.charAt(0).toUpperCase() + f.slice(1)}</option>`
+              ).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="thermostat-temp-control">
+          <button class="thermostat-temp-btn" id="thermostat-temp-down" ${isEditMode ? 'disabled' : ''}>−</button>
+          <input type="number" id="thermostat-temp-input" class="thermostat-temp-input" 
+                 value="${Math.round(targetTemp)}" min="50" max="90" step="1" ${isEditMode ? 'disabled' : ''}>
+          <button class="thermostat-temp-btn" id="thermostat-temp-up" ${isEditMode ? 'disabled' : ''}>+</button>
+        </div>
+        <div class="thermostat-status">
+          <span class="thermostat-status-indicator ${isHeating ? 'heating' : isCooling ? 'cooling' : 'idle'}">
+            ${isHeating ? '🔥 Heating' : isCooling ? '❄️ Cooling' : '⚪ Idle'}
+          </span>
+        </div>
+      </div>
+    `;
+    
+    // Update all displays across all pages
+    displays.forEach(d => d.innerHTML = displayHtml);
+    
+    // Sync all selectors to the current selection
+    selectors.forEach(s => {
+      if (s.value !== currentThermostat.toString()) {
+        s.value = currentThermostat.toString();
+      }
+    });
+    
+    // Apply dynamic styling to thermostat controls based on widget background
+    document.querySelectorAll('.thermostat-widget').forEach(widget => {
+      updateThermostatControlStyles(widget);
+    });
+    
+    // Add event listeners (only if not in edit mode) - setup for all widgets
+    if (!isEditMode) {
+      setupThermostatControls(thermostatEntity);
+    }
+  } catch (error) {
+    console.error('Error loading thermostat:', error);
+    const errorHtml = `<div class="thermostat-error">Error: ${error.message}</div>`;
+    displays.forEach(d => d.innerHTML = errorHtml);
+  }
+}
+
+// Setup thermostat controls
+function setupThermostatControls(entityId) {
+  // Use querySelectorAll to get all instances across pages and attach listeners with duplicate prevention
+  const tempInputs = document.querySelectorAll('#thermostat-temp-input');
+  const tempDowns = document.querySelectorAll('#thermostat-temp-down');
+  const tempUps = document.querySelectorAll('#thermostat-temp-up');
+  const targetValues = document.querySelectorAll('#thermostat-target-value');
+  const modeSelects = document.querySelectorAll('#thermostat-mode-select');
+  const fanSelects = document.querySelectorAll('#thermostat-fan-select');
+  
+  // Temperature input - attach to all instances
+  tempInputs.forEach(tempInput => {
+    if (!tempInput.dataset.listenerAttached) {
+      tempInput.dataset.listenerAttached = 'true';
+    tempInput.addEventListener('change', async () => {
+      const newTemp = parseFloat(tempInput.value);
+      await setThermostatTemperature(entityId, newTemp);
+    });
+  }
+  });
+  
+  // Temperature down button - attach to all instances
+  tempDowns.forEach(tempDown => {
+    if (!tempDown.dataset.listenerAttached) {
+      tempDown.dataset.listenerAttached = 'true';
+    tempDown.addEventListener('click', async () => {
+        const widget = tempDown.closest('.thermostat-widget');
+        const tempInput = widget?.querySelector('#thermostat-temp-input');
+        const targetValue = widget?.querySelector('#thermostat-target-value');
+        if (tempInput && targetValue) {
+      const current = parseFloat(tempInput.value);
+      const newTemp = Math.max(50, current - 1);
+      tempInput.value = newTemp;
+      targetValue.textContent = `${newTemp}°`;
+      await setThermostatTemperature(entityId, newTemp);
+        }
+    });
+  }
+  });
+  
+  // Temperature up button - attach to all instances
+  tempUps.forEach(tempUp => {
+    if (!tempUp.dataset.listenerAttached) {
+      tempUp.dataset.listenerAttached = 'true';
+    tempUp.addEventListener('click', async () => {
+        const widget = tempUp.closest('.thermostat-widget');
+        const tempInput = widget?.querySelector('#thermostat-temp-input');
+        const targetValue = widget?.querySelector('#thermostat-target-value');
+        if (tempInput && targetValue) {
+      const current = parseFloat(tempInput.value);
+      const newTemp = Math.min(90, current + 1);
+      tempInput.value = newTemp;
+      targetValue.textContent = `${newTemp}°`;
+      await setThermostatTemperature(entityId, newTemp);
+        }
+      });
+    }
+  });
+  
+  // Mode select - attach to all instances
+  modeSelects.forEach(modeSelect => {
+    if (!modeSelect.dataset.listenerAttached) {
+      modeSelect.dataset.listenerAttached = 'true';
+    modeSelect.addEventListener('change', async () => {
+      await setThermostatMode(entityId, modeSelect.value);
+    });
+  }
+  });
+  
+  // Fan select - attach to all instances
+  fanSelects.forEach(fanSelect => {
+    if (!fanSelect.dataset.listenerAttached) {
+      fanSelect.dataset.listenerAttached = 'true';
+    fanSelect.addEventListener('change', async () => {
+      await setThermostatFanMode(entityId, fanSelect.value);
+    });
+  }
+  });
+  
+  // Thermostat selector dropdown - attach to ALL selectors across all pages
+  // Use querySelectorAll to get all selectors and attach listeners to each
+  const allSelectors = document.querySelectorAll('#thermostat-selector');
+  allSelectors.forEach(selector => {
+    // Check if listener is already attached (avoid duplicates)
+    if (!selector.dataset.listenerAttached) {
+      selector.dataset.listenerAttached = 'true';
+    selector.addEventListener('change', () => {
+        // Sync all selectors to the same value
+        const selectedValue = selector.value;
+        document.querySelectorAll('#thermostat-selector').forEach(s => {
+          if (s !== selector && s.value !== selectedValue) {
+            s.value = selectedValue;
+          }
+        });
+      loadThermostat();
+    });
+  }
+  });
+}
+
+// Set thermostat temperature
+async function setThermostatTemperature(entityId, temperature) {
+  if (isEditMode) return;
+  
+  try {
+    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
+      await fetch(`${window.CONFIG.HA_URL}/api/services/climate/set_temperature`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          temperature: temperature
+        })
+      });
+    } else {
+      // Use serverless function
+      await fetch('/api/ha-climate-set-temp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          temperature: temperature
+        })
+      });
+    }
+    
+    showToast(`Temperature set to ${temperature}°F`, 1000);
+    setTimeout(() => loadThermostat(), 500);
+  } catch (error) {
+    console.error('Error setting temperature:', error);
+    showToast('Error setting temperature', 2000);
+  }
+}
+
+// Set thermostat mode
+async function setThermostatMode(entityId, mode) {
+  if (isEditMode) return;
+  
+  try {
+    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
+      await fetch(`${window.CONFIG.HA_URL}/api/services/climate/set_hvac_mode`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          hvac_mode: mode
+        })
+      });
+    } else {
+      await fetch('/api/ha-climate-set-mode', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          hvac_mode: mode
+        })
+      });
+    }
+    
+    showToast(`Mode set to ${mode}`, 1000);
+    setTimeout(() => loadThermostat(), 500);
+  } catch (error) {
+    console.error('Error setting mode:', error);
+    showToast('Error setting mode', 2000);
+  }
+}
+
+// Set thermostat fan mode
+async function setThermostatFanMode(entityId, fanMode) {
+  if (isEditMode) return;
+  
+  try {
+    if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
+      await fetch(`${window.CONFIG.HA_URL}/api/services/climate/set_fan_mode`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          fan_mode: fanMode
+        })
+      });
+    } else {
+      await fetch('/api/ha-climate-set-fan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          fan_mode: fanMode
+        })
+      });
+    }
+    
+    showToast(`Fan set to ${fanMode}`, 1000);
+    setTimeout(() => loadThermostat(), 500);
+  } catch (error) {
+    console.error('Error setting fan mode:', error);
+    showToast('Error setting fan mode', 2000);
+  }
+}
 
 // Fetch HA entity via API (works both locally and in production)
 async function fetchHAEntity(entityId) {
