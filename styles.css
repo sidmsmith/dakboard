@@ -1608,9 +1608,8 @@ footer a:hover {
   letter-spacing: 0.1em;
 }
 
-/* Show watermark when dashboard has edit-mode class */
-.dashboard.edit-mode ~ .diagonal-watermark,
-body:has(.dashboard.edit-mode) .diagonal-watermark {
+/* Show watermark when it has the 'show' class (controlled by JavaScript) */
+.diagonal-watermark.show {
   display: block;
   opacity: 1;
 }
