@@ -1666,12 +1666,12 @@ function applyCurrentStylesToWidget(widget) {
         }
       }
       
-      // Title alignment
-      if (currentStyles.titleAlignment !== undefined) {
-        if (!isApplyingToAll || applyToAllFlags.titleAlignment) {
-          widgetHeader.style.justifyContent = currentStyles.titleAlignment === 'center' ? 'center' : 'flex-start';
-          widgetHeader.style.textAlign = currentStyles.titleAlignment === 'center' ? 'center' : 'left';
-        }
+      // Title alignment - always apply to override CSS default (space-between)
+      // Default to 'left' if not set
+      const alignment = currentStyles.titleAlignment || 'left';
+      if (!isApplyingToAll || applyToAllFlags.titleAlignment) {
+        widgetHeader.style.justifyContent = alignment === 'center' ? 'center' : 'flex-start';
+        widgetHeader.style.textAlign = alignment === 'center' ? 'center' : 'left';
       }
     }
   }
@@ -2076,11 +2076,11 @@ function loadStylesToWidget(widget, styles) {
         widgetHeader.style.display = styles.titleVisible ? '' : 'none';
       }
       
-      // Title alignment
-      if (styles.titleAlignment !== undefined) {
-        widgetHeader.style.justifyContent = styles.titleAlignment === 'center' ? 'center' : 'flex-start';
-        widgetHeader.style.textAlign = styles.titleAlignment === 'center' ? 'center' : 'left';
-      }
+      // Title alignment - always apply to override CSS default (space-between)
+      // Default to 'left' if not set
+      const alignment = styles.titleAlignment || 'left';
+      widgetHeader.style.justifyContent = alignment === 'center' ? 'center' : 'flex-start';
+      widgetHeader.style.textAlign = alignment === 'center' ? 'center' : 'left';
     }
   }
 
