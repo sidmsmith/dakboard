@@ -3784,6 +3784,13 @@ function toggleWidgetVisibility(widgetId) {
       // Don't set visibility here - let the toggle handle it
       pageElement.appendChild(widget);
       
+      // Set initial z-index to bring new widget to front
+      const maxZIndex = Math.max(...Array.from(document.querySelectorAll('.widget:not(.hidden)')).map(w => {
+        const z = parseInt(window.getComputedStyle(w).zIndex) || 1;
+        return isNaN(z) ? 1 : z;
+      }), 1);
+      widget.style.zIndex = (maxZIndex + 1).toString();
+      
       // Initialize widget-specific functionality if needed
       if (typeof initializeDragAndResize === 'function') {
         // Reinitialize drag/resize for the new widget
