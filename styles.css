@@ -2494,6 +2494,34 @@ footer a:hover {
   white-space: nowrap;
 }
 
+/* Edit Layout Toggle Container (always visible, positioned to left of Manage Widgets) */
+.edit-layout-toggle-container {
+  position: fixed;
+  bottom: 20px;
+  right: 80px;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  background: rgba(42, 42, 42, 0.9);
+  padding: 8px 12px;
+  border-radius: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.edit-layout-toggle-container .edit-mode-toggle {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.edit-layout-toggle-container .edit-mode-toggle:hover {
+  opacity: 0.9;
+}
+
 /* Widget Visibility Control Panel */
 .widget-control-toggle {
   position: fixed;
