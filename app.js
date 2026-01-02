@@ -2592,8 +2592,8 @@ async function toggleCompressor() {
   }
 }
 
-// Generate SVG dice face for a given number (1-6)
-function generateDiceFace(number) {
+// Generate 3D dice cube HTML for a given number (1-6)
+function generate3DDice(number, faceColor = '#4a90e2', dotColor = '#ffffff') {
   const size = 120;
   const dotRadius = 8;
   const positions = {
@@ -2607,26 +2607,77 @@ function generateDiceFace(number) {
   
   const dots = positions[number] || positions[1];
   const dotsHtml = dots.map(pos => 
-    `<circle cx="${pos.x}" cy="${pos.y}" r="${dotRadius}" fill="#fff"/>`
+    `<circle cx="${pos.x}" cy="${pos.y}" r="${dotRadius}" fill="${dotColor}"/>`
+  ).join('');
+  
+  // Generate all 6 faces of the cube
+  const faceHtml = `
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="dice-face-svg">
+      <rect width="${size}" height="${size}" rx="12" ry="12" fill="${faceColor}" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+      ${dotsHtml}
+    </svg>
+  `;
+  
+  // Create 3D cube with 6 faces
+  return `
+    <div class="dice-3d-cube" data-face="${number}">
+      <div class="dice-face dice-face-front" style="background-color: ${faceColor};">
+        ${faceHtml}
+      </div>
+      <div class="dice-face dice-face-back" style="background-color: ${faceColor};">
+        ${generateDiceFaceSVG(7 - number, faceColor, dotColor)}
+      </div>
+      <div class="dice-face dice-face-right" style="background-color: ${faceColor};">
+        ${generateDiceFaceSVG(3, faceColor, dotColor)}
+      </div>
+      <div class="dice-face dice-face-left" style="background-color: ${faceColor};">
+        ${generateDiceFaceSVG(4, faceColor, dotColor)}
+      </div>
+      <div class="dice-face dice-face-top" style="background-color: ${faceColor};">
+        ${generateDiceFaceSVG(5, faceColor, dotColor)}
+      </div>
+      <div class="dice-face dice-face-bottom" style="background-color: ${faceColor};">
+        ${generateDiceFaceSVG(2, faceColor, dotColor)}
+      </div>
+    </div>
+  `;
+}
+
+// Generate SVG for a dice face (helper function)
+function generateDiceFaceSVG(number, faceColor, dotColor) {
+  const size = 120;
+  const dotRadius = 8;
+  const positions = {
+    1: [{ x: size / 2, y: size / 2 }],
+    2: [{ x: size / 4, y: size / 4 }, { x: 3 * size / 4, y: 3 * size / 4 }],
+    3: [{ x: size / 4, y: size / 4 }, { x: size / 2, y: size / 2 }, { x: 3 * size / 4, y: 3 * size / 4 }],
+    4: [{ x: size / 4, y: size / 4 }, { x: 3 * size / 4, y: size / 4 }, { x: size / 4, y: 3 * size / 4 }, { x: 3 * size / 4, y: 3 * size / 4 }],
+    5: [{ x: size / 4, y: size / 4 }, { x: 3 * size / 4, y: size / 4 }, { x: size / 2, y: size / 2 }, { x: size / 4, y: 3 * size / 4 }, { x: 3 * size / 4, y: 3 * size / 4 }],
+    6: [{ x: size / 4, y: size / 4 }, { x: 3 * size / 4, y: size / 4 }, { x: size / 4, y: size / 2 }, { x: 3 * size / 4, y: size / 2 }, { x: size / 4, y: 3 * size / 4 }, { x: 3 * size / 4, y: 3 * size / 4 }]
+  };
+  
+  const dots = positions[number] || positions[1];
+  const dotsHtml = dots.map(pos => 
+    `<circle cx="${pos.x}" cy="${pos.y}" r="${dotRadius}" fill="${dotColor}"/>`
   ).join('');
   
   return `
-    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="dice-face">
-      <rect width="${size}" height="${size}" rx="12" ry="12" fill="#4a90e2" stroke="#fff" stroke-width="2"/>
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="dice-face-svg">
+      <rect width="${size}" height="${size}" rx="12" ry="12" fill="${faceColor}" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
       ${dotsHtml}
     </svg>
   `;
 }
 
-// Generate multiple dice face variations (different rotations/positions for same number)
-function generateDiceFaces() {
+// Generate multiple 3D dice variations (different rotations for same number)
+function generateDiceFaces(faceColor = '#4a90e2', dotColor = '#ffffff') {
   const faces = [];
-  // Generate 3-4 variations of each number (1-6) for more visual variety
+  // Generate 3-4 variations of each number (1-6) with different 3D rotations
   for (let num = 1; num <= 6; num++) {
     for (let variant = 0; variant < 3; variant++) {
       faces.push({
         number: num,
-        html: generateDiceFace(num),
+        html: generate3DDice(num, faceColor, dotColor),
         rotation: variant * 90 // Different rotations for visual variety
       });
     }
@@ -2640,11 +2691,32 @@ function loadDice() {
   
   if (diceContainers.length === 0) return;
   
-  // Generate all dice faces once
-  const diceFaces = generateDiceFaces();
-  
   // Initialize all dice widgets across all pages
   diceContainers.forEach((container) => {
+    const widget = container.closest('.dice-widget');
+    if (!widget) return;
+    
+    // Get widget-specific colors from saved styles or use defaults
+    const widgetId = 'dice-widget';
+    const pageIndex = typeof currentPageIndex !== 'undefined' ? currentPageIndex : 0;
+    const stylesKey = `dakboard-widget-styles-${widgetId}-page-${pageIndex}`;
+    const savedStyles = localStorage.getItem(stylesKey);
+    let diceFaceColor = '#4a90e2';
+    let diceDotColor = '#ffffff';
+    
+    if (savedStyles) {
+      try {
+        const styles = JSON.parse(savedStyles);
+        diceFaceColor = styles.diceFaceColor || diceFaceColor;
+        diceDotColor = styles.diceDotColor || diceDotColor;
+      } catch (e) {
+        console.error('Error parsing dice styles:', e);
+      }
+    }
+    
+    // Generate all dice faces with widget-specific colors
+    const diceFaces = generateDiceFaces(diceFaceColor, diceDotColor);
+    
     // Clear existing content
     container.innerHTML = '';
     
@@ -2654,11 +2726,17 @@ function loadDice() {
     diceElement.innerHTML = diceFaces[0].html; // Start with first face
     container.appendChild(diceElement);
     
+    // Store dice faces for rolling
+    diceElement.dataset.faceColor = diceFaceColor;
+    diceElement.dataset.dotColor = diceDotColor;
+    
     // Make dice clickable (only in normal mode)
     diceElement.style.cursor = 'pointer';
     diceElement.onclick = () => {
       if (!isEditMode) {
-        rollDice(diceElement, diceFaces);
+        // Regenerate faces with current colors in case they changed
+        const currentFaces = generateDiceFaces(diceFaceColor, diceDotColor);
+        rollDice(diceElement, currentFaces);
       }
     };
   });
@@ -2672,19 +2750,29 @@ function rollDice(diceElement, diceFaces) {
   // Add rolling animation class
   diceElement.classList.add('rolling');
   
+  // Get 3D cube element
+  const cube = diceElement.querySelector('.dice-3d-cube');
+  if (!cube) return;
+  
   // Generate random number of rolls (6-20) for animation effect
   const numRolls = Math.floor(Math.random() * 15) + 6;
   let currentRoll = 0;
   
-  // Animate through random dice faces
+  // Animate through random dice faces with 3D rotations
   const rollInterval = setInterval(() => {
     // Pick a random dice face
     const randomFace = diceFaces[Math.floor(Math.random() * diceFaces.length)];
     diceElement.innerHTML = randomFace.html;
     
-    // Add random rotation for more realistic effect
-    const rotation = Math.random() * 360;
-    diceElement.style.transform = `rotate(${rotation}deg) scale(${0.9 + Math.random() * 0.2})`;
+    // Update cube reference after innerHTML change
+    const newCube = diceElement.querySelector('.dice-3d-cube');
+    if (newCube) {
+      // Add random 3D rotation for realistic effect
+      const rotateX = Math.random() * 360;
+      const rotateY = Math.random() * 360;
+      const rotateZ = Math.random() * 360;
+      newCube.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg)`;
+    }
     
     currentRoll++;
     
@@ -2696,9 +2784,13 @@ function rollDice(diceElement, diceFaces) {
       const finalFace = diceFaces.find(f => f.number === finalNumber) || diceFaces[0];
       diceElement.innerHTML = finalFace.html;
       
-      // Remove rolling animation and reset transform
+      // Remove rolling animation and set final rotation to show the correct face
       diceElement.classList.remove('rolling');
-      diceElement.style.transform = '';
+      const finalCube = diceElement.querySelector('.dice-3d-cube');
+      if (finalCube) {
+        // Set rotation to show the front face clearly
+        finalCube.style.transform = 'rotateX(0deg) rotateY(0deg) rotateZ(0deg)';
+      }
       
       // Add a brief highlight effect
       diceElement.classList.add('highlight');

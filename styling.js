@@ -652,6 +652,9 @@ function generateLayoutTab() {
 // Generate Advanced Tab
 function generateAdvancedTab() {
   const widgetOpacity = currentStyles.widgetOpacity !== undefined ? currentStyles.widgetOpacity : 100;
+  const diceFaceColor = currentStyles.diceFaceColor || '#4a90e2';
+  const diceDotColor = currentStyles.diceDotColor || '#ffffff';
+  const isDiceWidget = currentWidgetId === 'dice-widget';
   
   return `
     <div class="styling-form-section">
@@ -669,6 +672,33 @@ function generateAdvancedTab() {
         </div>
       </div>
     </div>
+    ${isDiceWidget ? `
+    <div class="styling-form-section">
+      <div class="styling-section-title">Dice Colors</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Dice Face Color</label>
+          <div class="styling-form-control">
+            <input type="color" id="dice-face-color" value="${diceFaceColor}">
+            <input type="text" id="dice-face-color-text" value="${diceFaceColor}" pattern="^#[0-9A-F]{6}$" placeholder="#4a90e2">
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="dice-face-color-apply-all" ${applyToAllFlags.diceFaceColor ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Dot Color</label>
+          <div class="styling-form-control">
+            <input type="color" id="dice-dot-color" value="${diceDotColor}">
+            <input type="text" id="dice-dot-color-text" value="${diceDotColor}" pattern="^#[0-9A-F]{6}$" placeholder="#ffffff">
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="dice-dot-color-apply-all" ${applyToAllFlags.diceDotColor ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    ` : ''}
   `;
 }
 
@@ -1559,6 +1589,19 @@ function updateCurrentStylesFromForm() {
   const widgetOpacity = document.getElementById('widget-opacity');
   if (widgetOpacity) currentStyles.widgetOpacity = parseInt(widgetOpacity.value);
   
+  // Dice widget colors
+  const diceFaceColor = stylingModal.querySelector('#dice-face-color');
+  const diceFaceColorText = stylingModal.querySelector('#dice-face-color-text');
+  if (diceFaceColor && diceFaceColorText) {
+    currentStyles.diceFaceColor = diceFaceColor.value;
+  }
+  
+  const diceDotColor = stylingModal.querySelector('#dice-dot-color');
+  const diceDotColorText = stylingModal.querySelector('#dice-dot-color-text');
+  if (diceDotColor && diceDotColorText) {
+    currentStyles.diceDotColor = diceDotColor.value;
+  }
+  
   console.log('updateCurrentStylesFromForm - Updated currentStyles:', currentStyles);
 }
 
@@ -1885,6 +1928,18 @@ function applyCurrentStylesToWidget(widget) {
     // Use setTimeout to ensure background styles are applied first
     setTimeout(() => updateThermostatControlStyles(widget), 0);
   }
+  
+  // Update dice colors if this is a dice widget
+  if (widget.classList.contains('dice-widget')) {
+    const diceFaceColor = currentStyles.diceFaceColor || '#4a90e2';
+    const diceDotColor = currentStyles.diceDotColor || '#ffffff';
+    if (!isApplyingToAll || applyToAllFlags.diceFaceColor || applyToAllFlags.diceDotColor) {
+      // Reload dice with new colors
+      if (typeof loadDice === 'function') {
+        setTimeout(() => loadDice(), 0);
+      }
+    }
+  }
 }
 
 // Update apply-to-all flags from checkboxes
@@ -1907,6 +1962,8 @@ function updateApplyToAllFlags() {
   applyToAllFlags.fontWeight = document.getElementById('font-weight-apply-all')?.checked || false;
   applyToAllFlags.padding = document.getElementById('padding-apply-all')?.checked || false;
   applyToAllFlags.widgetOpacity = document.getElementById('widget-opacity-apply-all')?.checked || false;
+  applyToAllFlags.diceFaceColor = document.getElementById('dice-face-color-apply-all')?.checked || false;
+  applyToAllFlags.diceDotColor = document.getElementById('dice-dot-color-apply-all')?.checked || false;
   
   // Check if any apply-to-all is checked
   applyToAllFlags.global = Object.values(applyToAllFlags).some(v => v === true);
@@ -2144,6 +2201,11 @@ function loadStyles() {
   
   // Load dashboard background (new format)
   loadBackgroundSettings();
+  
+  // Reload dice widget if it exists to apply saved colors
+  if (typeof loadDice === 'function') {
+    setTimeout(() => loadDice(), 100);
+  }
 }
 
 // Load saved styles to widget (for page load)
