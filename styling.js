@@ -1132,12 +1132,62 @@ function attachTabEventListeners(tabName) {
   if (tabName === 'advanced') {
     const widgetOpacity = document.getElementById('widget-opacity');
     const widgetOpacityValue = document.getElementById('widget-opacity-value');
-    widgetOpacity.addEventListener('input', (e) => {
-      const val = e.target.value;
-      widgetOpacityValue.textContent = val + '%';
-      currentStyles.widgetOpacity = parseInt(val);
-      updatePreview();
-    });
+    if (widgetOpacity && widgetOpacityValue) {
+      widgetOpacity.addEventListener('input', (e) => {
+        const val = e.target.value;
+        widgetOpacityValue.textContent = val + '%';
+        currentStyles.widgetOpacity = parseInt(val);
+        updatePreview();
+      });
+    }
+    
+    // Dice color pickers
+    const stylingModal = document.getElementById('styling-modal');
+    if (stylingModal) {
+      const diceFaceColor = stylingModal.querySelector('#dice-face-color');
+      const diceFaceColorText = stylingModal.querySelector('#dice-face-color-text');
+      if (diceFaceColor && diceFaceColorText) {
+        diceFaceColor.addEventListener('input', (e) => {
+          diceFaceColorText.value = e.target.value;
+          currentStyles.diceFaceColor = e.target.value;
+          updatePreview();
+        });
+        diceFaceColor.addEventListener('change', (e) => {
+          diceFaceColorText.value = e.target.value;
+          currentStyles.diceFaceColor = e.target.value;
+          updatePreview();
+        });
+        diceFaceColorText.addEventListener('input', (e) => {
+          if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+            diceFaceColor.value = e.target.value;
+            currentStyles.diceFaceColor = e.target.value;
+            updatePreview();
+          }
+        });
+      }
+      
+      const diceDotColor = stylingModal.querySelector('#dice-dot-color');
+      const diceDotColorText = stylingModal.querySelector('#dice-dot-color-text');
+      if (diceDotColor && diceDotColorText) {
+        diceDotColor.addEventListener('input', (e) => {
+          diceDotColorText.value = e.target.value;
+          currentStyles.diceDotColor = e.target.value;
+          updatePreview();
+        });
+        diceDotColor.addEventListener('change', (e) => {
+          diceDotColorText.value = e.target.value;
+          currentStyles.diceDotColor = e.target.value;
+          updatePreview();
+        });
+        diceDotColorText.addEventListener('input', (e) => {
+          if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+            diceDotColor.value = e.target.value;
+            currentStyles.diceDotColor = e.target.value;
+            updatePreview();
+          }
+        });
+      }
+    }
   }
 }
 
