@@ -2592,6 +2592,71 @@ async function toggleCompressor() {
   }
 }
 
+// Load and initialize dice widget
+function loadDice() {
+  const diceIcons = document.querySelectorAll('#dice-icon');
+  const diceNumbers = document.querySelectorAll('#dice-number');
+  
+  if (diceIcons.length === 0) return;
+  
+  // Initialize all dice widgets across all pages
+  diceIcons.forEach((iconElement, index) => {
+    const numberElement = diceNumbers[index];
+    if (!numberElement) return;
+    
+    // Make dice clickable (only in normal mode)
+    iconElement.style.cursor = 'pointer';
+    iconElement.onclick = () => {
+      if (!isEditMode) {
+        rollDice(iconElement, numberElement);
+      }
+    };
+    
+    // Initialize with default state if no number is set
+    if (!numberElement.textContent || numberElement.textContent === '-') {
+      numberElement.textContent = '-';
+    }
+  });
+}
+
+// Roll dice with animation
+function rollDice(iconElement, numberElement) {
+  // Don't allow interaction in edit mode
+  if (isEditMode) return;
+  
+  // Add rolling animation class
+  iconElement.classList.add('rolling');
+  numberElement.textContent = '...';
+  
+  // Generate random number of rolls (3-8) for animation effect
+  const numRolls = Math.floor(Math.random() * 6) + 3;
+  let currentRoll = 0;
+  
+  // Animate through random numbers
+  const rollInterval = setInterval(() => {
+    const randomNum = Math.floor(Math.random() * 6) + 1;
+    numberElement.textContent = randomNum;
+    currentRoll++;
+    
+    if (currentRoll >= numRolls) {
+      clearInterval(rollInterval);
+      
+      // Final random number
+      const finalNumber = Math.floor(Math.random() * 6) + 1;
+      numberElement.textContent = finalNumber;
+      
+      // Remove rolling animation
+      iconElement.classList.remove('rolling');
+      
+      // Add a brief highlight effect
+      numberElement.classList.add('highlight');
+      setTimeout(() => {
+        numberElement.classList.remove('highlight');
+      }, 500);
+    }
+  }, 100); // Change number every 100ms
+}
+
 // Thermostat state
 let currentThermostat = 1;
 
