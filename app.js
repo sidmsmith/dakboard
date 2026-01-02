@@ -1418,6 +1418,7 @@ async function loadAllData() {
       loadGarageDoors(),
       loadAlarm(),
       loadCompressor(), // Load air compressor
+      loadDice(), // Load dice widget
       loadThermostat(), // Load thermostat
       loadNews(), // Load news feed
       initializeWhiteboard(), // Initialize whiteboard
