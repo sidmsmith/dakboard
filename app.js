@@ -3837,6 +3837,25 @@ function setEditMode(enabled) {
     }
   }
   
+  // Disable scrolling in edit mode (only allow drag and resize)
+  if (enabled) {
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none'; // Prevent touch scrolling on mobile
+    const pagesContainer = document.getElementById('pages-container');
+    if (pagesContainer) {
+      pagesContainer.style.overflow = 'hidden';
+      pagesContainer.style.touchAction = 'none';
+    }
+  } else {
+    document.body.style.overflow = '';
+    document.body.style.touchAction = '';
+    const pagesContainer = document.getElementById('pages-container');
+    if (pagesContainer) {
+      pagesContainer.style.overflow = '';
+      pagesContainer.style.touchAction = '';
+    }
+  }
+  
   // Update whiteboard drawing state
   if (typeof setupWhiteboardDrawing === 'function') {
     setupWhiteboardDrawing();
