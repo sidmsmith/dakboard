@@ -1449,22 +1449,97 @@ function updatePreview() {
     const diceFaceColor = currentStyles.diceFaceColor || '#4a90e2';
     const diceDotColor = currentStyles.diceDotColor || '#ffffff';
     
-    // Generate dice preview with current colors
-    if (typeof generate3DDice === 'function') {
+    // Generate static 3D dice preview showing faces 4, 1, 5
+    // Front face: 4 dots, Top face: 1 dot, Right face: 5 dots
+    if (typeof generateDiceFaceSVG === 'function') {
+      const size = 100;
+      const dotRadius = 6;
+      
+      // Face 4 (front)
+      const face4Positions = [
+        { x: size / 4, y: size / 4 },
+        { x: 3 * size / 4, y: size / 4 },
+        { x: size / 4, y: 3 * size / 4 },
+        { x: 3 * size / 4, y: 3 * size / 4 }
+      ];
+      const face4Dots = face4Positions.map(pos => 
+        `<circle cx="${pos.x}" cy="${pos.y}" r="${dotRadius}" fill="${diceDotColor}"/>`
+      ).join('');
+      
+      // Face 1 (top)
+      const face1Positions = [{ x: size / 2, y: size / 2 }];
+      const face1Dots = face1Positions.map(pos => 
+        `<circle cx="${pos.x}" cy="${pos.y}" r="${dotRadius}" fill="${diceDotColor}"/>`
+      ).join('');
+      
+      // Face 5 (right)
+      const face5Positions = [
+        { x: size / 4, y: size / 4 },
+        { x: 3 * size / 4, y: size / 4 },
+        { x: size / 2, y: size / 2 },
+        { x: size / 4, y: 3 * size / 4 },
+        { x: 3 * size / 4, y: 3 * size / 4 }
+      ];
+      const face5Dots = face5Positions.map(pos => 
+        `<circle cx="${pos.x}" cy="${pos.y}" r="${dotRadius}" fill="${diceDotColor}"/>`
+      ).join('');
+      
       previewContent.innerHTML = `
-        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
-          <div class="dice-display" style="width: 100px; height: 100px; perspective: 1000px;">
-            ${generate3DDice(1, diceFaceColor, diceDotColor)}
+        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; perspective: 1000px;">
+          <div style="width: 100px; height: 100px; position: relative; transform-style: preserve-3d; transform: rotateX(-20deg) rotateY(25deg);">
+            <!-- Front face (4 dots) -->
+            <div style="position: absolute; width: 100%; height: 100%; background-color: ${diceFaceColor}; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4); transform: rotateY(0deg) translateZ(50px);">
+              <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="width: 100%; height: 100%;">
+                <rect width="${size}" height="${size}" rx="8" ry="8" fill="${diceFaceColor}" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                ${face4Dots}
+              </svg>
+            </div>
+            <!-- Top face (1 dot) -->
+            <div style="position: absolute; width: 100%; height: 100%; background-color: ${diceFaceColor}; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4); transform: rotateX(90deg) translateZ(50px);">
+              <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="width: 100%; height: 100%;">
+                <rect width="${size}" height="${size}" rx="8" ry="8" fill="${diceFaceColor}" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                ${face1Dots}
+              </svg>
+            </div>
+            <!-- Right face (5 dots) -->
+            <div style="position: absolute; width: 100%; height: 100%; background-color: ${diceFaceColor}; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4); transform: rotateY(90deg) translateZ(50px);">
+              <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="width: 100%; height: 100%;">
+                <rect width="${size}" height="${size}" rx="8" ry="8" fill="${diceFaceColor}" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                ${face5Dots}
+              </svg>
+            </div>
+            <!-- Back face (opposite of 4 = 3 dots) -->
+            <div style="position: absolute; width: 100%; height: 100%; background-color: ${diceFaceColor}; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4); transform: rotateY(180deg) translateZ(50px);">
+              <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="width: 100%; height: 100%;">
+                <rect width="${size}" height="${size}" rx="8" ry="8" fill="${diceFaceColor}" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                <circle cx="${size / 4}" cy="${size / 4}" r="${dotRadius}" fill="${diceDotColor}"/>
+                <circle cx="${size / 2}" cy="${size / 2}" r="${dotRadius}" fill="${diceDotColor}"/>
+                <circle cx="${3 * size / 4}" cy="${3 * size / 4}" r="${dotRadius}" fill="${diceDotColor}"/>
+              </svg>
+            </div>
+            <!-- Left face (opposite of 5 = 2 dots) -->
+            <div style="position: absolute; width: 100%; height: 100%; background-color: ${diceFaceColor}; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4); transform: rotateY(-90deg) translateZ(50px);">
+              <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="width: 100%; height: 100%;">
+                <rect width="${size}" height="${size}" rx="8" ry="8" fill="${diceFaceColor}" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                <circle cx="${size / 4}" cy="${size / 4}" r="${dotRadius}" fill="${diceDotColor}"/>
+                <circle cx="${3 * size / 4}" cy="${3 * size / 4}" r="${dotRadius}" fill="${diceDotColor}"/>
+              </svg>
+            </div>
+            <!-- Bottom face (opposite of 1 = 6 dots) -->
+            <div style="position: absolute; width: 100%; height: 100%; background-color: ${diceFaceColor}; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4); transform: rotateX(-90deg) translateZ(50px);">
+              <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="width: 100%; height: 100%;">
+                <rect width="${size}" height="${size}" rx="8" ry="8" fill="${diceFaceColor}" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+                <circle cx="${size / 4}" cy="${size / 4}" r="${dotRadius}" fill="${diceDotColor}"/>
+                <circle cx="${3 * size / 4}" cy="${size / 4}" r="${dotRadius}" fill="${diceDotColor}"/>
+                <circle cx="${size / 4}" cy="${size / 2}" r="${dotRadius}" fill="${diceDotColor}"/>
+                <circle cx="${3 * size / 4}" cy="${size / 2}" r="${dotRadius}" fill="${diceDotColor}"/>
+                <circle cx="${size / 4}" cy="${3 * size / 4}" r="${dotRadius}" fill="${diceDotColor}"/>
+                <circle cx="${3 * size / 4}" cy="${3 * size / 4}" r="${dotRadius}" fill="${diceDotColor}"/>
+              </svg>
+            </div>
           </div>
         </div>
       `;
-      // Add a slight 3D rotation to show it's 3D (same as default)
-      setTimeout(() => {
-        const cube = previewContent.querySelector('.dice-3d-cube');
-        if (cube) {
-          cube.style.transform = 'rotateX(-15deg) rotateY(15deg)';
-        }
-      }, 0);
     }
   } else if (previewContent && currentWidgetId !== 'dice-widget') {
     // Reset to default text for other widgets
