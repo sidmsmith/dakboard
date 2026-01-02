@@ -2790,12 +2790,12 @@ function rollDice(diceElement, diceFaces) {
       const finalFace = diceFaces.find(f => f.number === finalNumber) || diceFaces[0];
       diceElement.innerHTML = finalFace.html;
       
-      // Remove rolling animation and set final rotation to show the correct face
+      // Remove rolling animation and restore default 3D rotation
       diceElement.classList.remove('rolling');
       const finalCube = diceElement.querySelector('.dice-3d-cube');
       if (finalCube) {
-        // Set rotation to show the front face clearly
-        finalCube.style.transform = 'rotateX(0deg) rotateY(0deg) rotateZ(0deg)';
+        // Restore default 3D rotation to show it's 3D (same as initial state)
+        finalCube.style.transform = 'rotateX(-15deg) rotateY(15deg)';
       }
       
       // Add a brief highlight effect

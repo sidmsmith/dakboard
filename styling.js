@@ -1402,15 +1402,19 @@ function updatePreview() {
     // Generate dice preview with current colors
     if (typeof generate3DDice === 'function') {
       previewContent.innerHTML = `
-        <div class="dice-display" style="width: 100px; height: 100px; margin: 0 auto;">
-          ${generate3DDice(1, diceFaceColor, diceDotColor)}
+        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+          <div class="dice-display" style="width: 100px; height: 100px; perspective: 1000px;">
+            ${generate3DDice(1, diceFaceColor, diceDotColor)}
+          </div>
         </div>
       `;
-      // Add a slight 3D rotation to show it's 3D
-      const cube = previewContent.querySelector('.dice-3d-cube');
-      if (cube) {
-        cube.style.transform = 'rotateX(-20deg) rotateY(20deg)';
-      }
+      // Add a slight 3D rotation to show it's 3D (same as default)
+      setTimeout(() => {
+        const cube = previewContent.querySelector('.dice-3d-cube');
+        if (cube) {
+          cube.style.transform = 'rotateX(-15deg) rotateY(15deg)';
+        }
+      }, 0);
     }
   } else if (previewContent && currentWidgetId !== 'dice-widget') {
     // Reset to default text for other widgets
