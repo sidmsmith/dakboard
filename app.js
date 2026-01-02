@@ -3802,6 +3802,36 @@ function toggleWidgetVisibility(widgetId) {
     const isCurrentlyHidden = widget.classList.contains('hidden');
     if (isCurrentlyHidden) {
       widget.classList.remove('hidden');
+      
+      // Bring widget to front when shown (set high z-index)
+      const maxZIndex = Math.max(...Array.from(document.querySelectorAll('.widget:not(.hidden)')).map(w => {
+        const z = parseInt(window.getComputedStyle(w).zIndex) || 1;
+        return isNaN(z) ? 1 : z;
+      }), 1);
+      widget.style.zIndex = (maxZIndex + 1).toString();
+      
+      // Initialize widget-specific functionality after showing
+      if (widgetId === 'dice-widget' && typeof loadDice === 'function') {
+        setTimeout(() => loadDice(), 50);
+      } else if (widgetId === 'compressor-widget' && typeof loadCompressor === 'function') {
+        setTimeout(() => loadCompressor(), 50);
+      } else if (widgetId === 'alarm-widget' && typeof loadAlarm === 'function') {
+        setTimeout(() => loadAlarm(), 50);
+      } else if (widgetId === 'garage-widget' && typeof loadGarageDoors === 'function') {
+        setTimeout(() => loadGarageDoors(), 50);
+      } else if (widgetId === 'thermostat-widget' && typeof loadThermostat === 'function') {
+        setTimeout(() => loadThermostat(), 50);
+      } else if (widgetId === 'news-widget' && typeof loadNews === 'function') {
+        setTimeout(() => loadNews(), 50);
+      } else if (widgetId === 'whiteboard-widget' && typeof initializeWhiteboard === 'function') {
+        setTimeout(() => initializeWhiteboard(), 50);
+      } else if (widgetId === 'weather-widget' && typeof loadWeather === 'function') {
+        setTimeout(() => loadWeather(), 50);
+      } else if (widgetId === 'todo-widget' && typeof loadTodos === 'function') {
+        setTimeout(() => loadTodos(), 50);
+      } else if (widgetId === 'calendar-widget' && typeof loadCalendarEvents === 'function') {
+        setTimeout(() => loadCalendarEvents(), 50);
+      }
     } else {
       widget.classList.add('hidden');
     }
