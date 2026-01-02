@@ -1393,6 +1393,30 @@ function updatePreview() {
     preview.style.padding = currentStyles.padding + 'px';
   }
 
+  // Update preview content for dice widget
+  const previewContent = preview.querySelector('.styling-preview-content');
+  if (previewContent && currentWidgetId === 'dice-widget') {
+    const diceFaceColor = currentStyles.diceFaceColor || '#4a90e2';
+    const diceDotColor = currentStyles.diceDotColor || '#ffffff';
+    
+    // Generate dice preview with current colors
+    if (typeof generate3DDice === 'function') {
+      previewContent.innerHTML = `
+        <div class="dice-display" style="width: 100px; height: 100px; margin: 0 auto;">
+          ${generate3DDice(1, diceFaceColor, diceDotColor)}
+        </div>
+      `;
+      // Add a slight 3D rotation to show it's 3D
+      const cube = previewContent.querySelector('.dice-3d-cube');
+      if (cube) {
+        cube.style.transform = 'rotateX(-20deg) rotateY(20deg)';
+      }
+    }
+  } else if (previewContent && currentWidgetId !== 'dice-widget') {
+    // Reset to default text for other widgets
+    previewContent.innerHTML = 'Preview updates in real-time as you adjust settings';
+  }
+
   // Apply widget opacity to border and shadow (via rgba if widget opacity < 100)
   if (currentStyles.widgetOpacity !== undefined && currentStyles.widgetOpacity < 100) {
     if (currentStyles.borderColor) {

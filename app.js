@@ -2726,6 +2726,12 @@ function loadDice() {
     diceElement.innerHTML = diceFaces[0].html; // Start with first face
     container.appendChild(diceElement);
     
+    // Add default 3D rotation to show it's 3D (slight angle)
+    const cube = diceElement.querySelector('.dice-3d-cube');
+    if (cube) {
+      cube.style.transform = 'rotateX(-15deg) rotateY(15deg)';
+    }
+    
     // Store dice faces for rolling
     diceElement.dataset.faceColor = diceFaceColor;
     diceElement.dataset.dotColor = diceDotColor;
