@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dashboard">
   <title>Personal Dashboard</title>
   <meta name="application-name" content="Personal Dashboard">
   <meta name="description" content="Personal Dashboard - Smart home dashboard with calendar, weather, todo lists, and more">
@@ -10,6 +14,7 @@
   <meta property="og:description" content="Personal Dashboard - Smart home dashboard with calendar, weather, todo lists, and more">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://dakboard-smith.vercel.app/">
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="styles.css">
   <!-- Google Picker API (loaded conditionally when USE_GOOGLE_PICKER_API is enabled) -->
   <!-- This will be loaded dynamically in app.js if CONFIG.USE_GOOGLE_PICKER_API is true -->
