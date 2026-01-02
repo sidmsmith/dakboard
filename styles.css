@@ -1622,69 +1622,97 @@ footer a:hover {
 .resize-handle.bottom-right {
   bottom: 0;
   right: 0;
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   cursor: nwse-resize;
+  /* Increase touch target area */
+  padding: 4px;
+  margin-bottom: -4px;
+  margin-right: -4px;
 }
 
 .resize-handle.bottom-left {
   bottom: 0;
   left: 0;
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   cursor: nesw-resize;
+  /* Increase touch target area */
+  padding: 4px;
+  margin-bottom: -4px;
+  margin-left: -4px;
 }
 
 .resize-handle.top-right {
   top: 0;
   right: 0;
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   cursor: nesw-resize;
+  /* Increase touch target area */
+  padding: 4px;
+  margin-top: -4px;
+  margin-right: -4px;
 }
 
 .resize-handle.top-left {
   top: 0;
   left: 0;
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   cursor: nwse-resize;
+  /* Increase touch target area */
+  padding: 4px;
+  margin-top: -4px;
+  margin-left: -4px;
 }
 
 .resize-handle.right {
   top: 50%;
   right: 0;
-  width: 8px;
-  height: 40px;
+  width: 16px;
+  height: 60px;
   transform: translateY(-50%);
   cursor: ew-resize;
+  /* Increase touch target area */
+  padding: 0 4px;
+  margin-right: -4px;
 }
 
 .resize-handle.left {
   top: 50%;
   left: 0;
-  width: 8px;
-  height: 40px;
+  width: 16px;
+  height: 60px;
   transform: translateY(-50%);
   cursor: ew-resize;
+  /* Increase touch target area */
+  padding: 0 4px;
+  margin-left: -4px;
 }
 
 .resize-handle.bottom {
   bottom: 0;
   left: 50%;
-  width: 40px;
-  height: 8px;
+  width: 60px;
+  height: 16px;
   transform: translateX(-50%);
   cursor: ns-resize;
+  /* Increase touch target area */
+  padding: 4px 0;
+  margin-bottom: -4px;
 }
 
 .resize-handle.top {
   top: 0;
   left: 50%;
-  width: 40px;
-  height: 8px;
+  width: 60px;
+  height: 16px;
   transform: translateX(-50%);
   cursor: ns-resize;
+  /* Increase touch target area */
+  padding: 4px 0;
+  margin-top: -4px;
 }
 
 /* Smart content scaling - responsive font sizes */
