@@ -2593,6 +2593,7 @@ async function toggleCompressor() {
 }
 
 // Generate 3D dice cube HTML for a given number (1-6)
+// Uses standard die layout where opposite faces sum to 7
 function generate3DDice(number, faceColor = '#4a90e2', dotColor = '#ffffff') {
   const size = 120;
   const dotRadius = 8;
@@ -2618,6 +2619,39 @@ function generate3DDice(number, faceColor = '#4a90e2', dotColor = '#ffffff') {
     </svg>
   `;
   
+  // Standard die layout: opposite faces sum to 7
+  // Front and back are opposites
+  const back = 7 - number;
+  
+  // Get remaining 4 numbers (excluding front and back)
+  const allNumbers = [1, 2, 3, 4, 5, 6];
+  const remaining = allNumbers.filter(n => n !== number && n !== back);
+  
+  // Standard die arrangement based on front number
+  // This ensures consistent, unique faces for each orientation
+  // Using a deterministic arrangement based on front number
+  let top, bottom, right, left;
+  
+  if (number === 1) {
+    // Front: 1, Back: 6
+    top = 2; bottom = 5; right = 3; left = 4;
+  } else if (number === 2) {
+    // Front: 2, Back: 5
+    top = 6; bottom = 1; right = 3; left = 4;
+  } else if (number === 3) {
+    // Front: 3, Back: 4
+    top = 1; bottom = 6; right = 2; left = 5;
+  } else if (number === 4) {
+    // Front: 4, Back: 3
+    top = 1; bottom = 6; right = 5; left = 2;
+  } else if (number === 5) {
+    // Front: 5, Back: 2
+    top = 1; bottom = 6; right = 4; left = 3;
+  } else { // number === 6
+    // Front: 6, Back: 1
+    top = 5; bottom = 2; right = 3; left = 4;
+  }
+  
   // Create 3D cube with 6 faces
   return `
     <div class="dice-3d-cube" data-face="${number}">
@@ -2625,19 +2659,19 @@ function generate3DDice(number, faceColor = '#4a90e2', dotColor = '#ffffff') {
         ${faceHtml}
       </div>
       <div class="dice-face dice-face-back" style="background-color: ${faceColor};">
-        ${generateDiceFaceSVG(7 - number, faceColor, dotColor)}
+        ${generateDiceFaceSVG(back, faceColor, dotColor)}
       </div>
       <div class="dice-face dice-face-right" style="background-color: ${faceColor};">
-        ${generateDiceFaceSVG(3, faceColor, dotColor)}
+        ${generateDiceFaceSVG(right, faceColor, dotColor)}
       </div>
       <div class="dice-face dice-face-left" style="background-color: ${faceColor};">
-        ${generateDiceFaceSVG(4, faceColor, dotColor)}
+        ${generateDiceFaceSVG(left, faceColor, dotColor)}
       </div>
       <div class="dice-face dice-face-top" style="background-color: ${faceColor};">
-        ${generateDiceFaceSVG(5, faceColor, dotColor)}
+        ${generateDiceFaceSVG(top, faceColor, dotColor)}
       </div>
       <div class="dice-face dice-face-bottom" style="background-color: ${faceColor};">
-        ${generateDiceFaceSVG(2, faceColor, dotColor)}
+        ${generateDiceFaceSVG(bottom, faceColor, dotColor)}
       </div>
     </div>
   `;
