@@ -1531,12 +1531,18 @@ body {
   opacity: 0;
 }
 
-/* Only show resize handles in edit mode */
+/* Always show resize handles in edit mode (for better tablet touch interaction) */
+.dashboard.edit-mode .widget .resize-handle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Enhanced visibility on hover/drag/resize */
 .dashboard.edit-mode .widget:hover .resize-handle,
 .dashboard.edit-mode .widget.dragging .resize-handle,
 .dashboard.edit-mode .widget.resizing .resize-handle {
-  opacity: 1;
-  pointer-events: auto;
+  background: rgba(74, 144, 226, 0.8);
+  border-color: #5ba0f2;
 }
 
 /* Hide resize handles completely in normal mode */
