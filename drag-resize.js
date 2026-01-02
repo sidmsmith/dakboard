@@ -172,7 +172,8 @@ function initializeDragAndResize() {
       
       // Make widget draggable (only in edit mode)
       // In edit mode, entire widget is draggable; in normal mode, no dragging
-      widget.addEventListener('mousedown', (e) => {
+      // Support both mouse and touch events for desktop and tablet
+      const handleDragStart = (e) => {
         // Check if edit mode is active on the current page
         const dashboard = widget.closest('.dashboard.page');
         const inEditMode = dashboard && dashboard.classList.contains('edit-mode');
@@ -182,31 +183,38 @@ function initializeDragAndResize() {
         }
         
         // Don't drag if clicking on resize handles
-        if (e.target.classList.contains('resize-handle') || e.target.closest('.resize-handle')) {
+        const target = e.target || (e.touches && e.touches[0] ? document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY) : null);
+        if (target && (target.classList.contains('resize-handle') || target.closest('.resize-handle'))) {
           return;
         }
         
         // Don't drag if clicking on buttons or interactive elements
-        if (e.target.tagName === 'BUTTON' || 
-            e.target.tagName === 'INPUT' || 
-            e.target.tagName === 'SELECT' ||
-            e.target.closest('button') ||
-            e.target.closest('input') ||
-            e.target.closest('select')) {
+        if (target && (target.tagName === 'BUTTON' || 
+            target.tagName === 'INPUT' || 
+            target.tagName === 'SELECT' ||
+            target.closest('button') ||
+            target.closest('input') ||
+            target.closest('select'))) {
           return;
         }
         
         startDrag(widget, e);
-      });
+      };
+      
+      widget.addEventListener('mousedown', handleDragStart);
+      widget.addEventListener('touchstart', handleDragStart, { passive: false });
       
       // Update scale on initial load
       updateWidgetScale(widget);
     });
   }, 100);
   
-  // Global mouse events
+  // Global mouse and touch events
   document.addEventListener('mousemove', handleMouseMove);
   document.addEventListener('mouseup', handleMouseUp);
+  document.addEventListener('touchmove', handleTouchMove, { passive: false });
+  document.addEventListener('touchend', handleTouchEnd);
+  document.addEventListener('touchcancel', handleTouchEnd);
 }
 
 // Add resize handles to widget
@@ -230,7 +238,7 @@ function addResizeHandles(widget) {
     const handleEl = document.createElement('div');
     handleEl.className = `resize-handle ${handle.class}`;
     handleEl.style.cursor = handle.cursor;
-    handleEl.addEventListener('mousedown', (e) => {
+    const handleResizeStart = (e) => {
       // Only allow resize in edit mode - check the widget's parent dashboard
       const dashboard = widget.closest('.dashboard.page');
       const inEditMode = dashboard && dashboard.classList.contains('edit-mode');
@@ -240,7 +248,10 @@ function addResizeHandles(widget) {
       
       e.stopPropagation();
       startResize(widget, handle.class, e);
-    });
+    };
+    
+    handleEl.addEventListener('mousedown', handleResizeStart);
+    handleEl.addEventListener('touchstart', handleResizeStart, { passive: false });
     widget.appendChild(handleEl);
   });
   
@@ -253,10 +264,17 @@ function startDrag(widget, e) {
   widget.classList.add('dragging');
   
   const rect = widget.getBoundingClientRect();
-  dragOffset.x = e.clientX - rect.left;
-  dragOffset.y = e.clientY - rect.top;
+  // Support both mouse and touch events
+  const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+  const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+  
+  dragOffset.x = clientX - rect.left;
+  dragOffset.y = clientY - rect.top;
   
   e.preventDefault();
+  if (e.touches) {
+    e.stopPropagation();
+  }
 }
 
 // Start resizing widget
@@ -270,8 +288,12 @@ function startResize(widget, direction, e) {
   if (!dashboard) return;
   const dashboardRect = dashboard.getBoundingClientRect();
   
-  resizeStart.x = e.clientX;
-  resizeStart.y = e.clientY;
+  // Support both mouse and touch events
+  const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+  const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+  
+  resizeStart.x = clientX;
+  resizeStart.y = clientY;
   resizeStart.width = rect.width;
   resizeStart.height = rect.height;
   resizeStart.left = rect.left - dashboardRect.left;
