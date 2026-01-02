@@ -2480,6 +2480,11 @@ function loadStylesToWidget(widget, styles) {
   if (widget.classList.contains('thermostat-widget') && typeof updateThermostatControlStyles === 'function') {
     setTimeout(() => updateThermostatControlStyles(widget), 0);
   }
+  
+  // Reload dice widget with saved colors if this is a dice widget
+  if (widget.classList.contains('dice-widget') && typeof loadDice === 'function') {
+    setTimeout(() => loadDice(), 0);
+  }
 }
 
 // Initialize background configuration modal
