@@ -466,6 +466,35 @@ function handleMouseMove(e) {
   }
 }
 
+// Handle touch move for drag and resize
+function handleTouchMove(e) {
+  if (!draggedWidget && !resizeWidget) return;
+  
+  // Only process if we have a touch
+  if (!e.touches || e.touches.length === 0) return;
+  
+  e.preventDefault();
+  e.stopPropagation();
+  
+  // Create a synthetic mouse event for compatibility
+  const touch = e.touches[0];
+  const syntheticEvent = {
+    clientX: touch.clientX,
+    clientY: touch.clientY,
+    preventDefault: () => e.preventDefault(),
+    stopPropagation: () => e.stopPropagation()
+  };
+  
+  handleMouseMove(syntheticEvent);
+}
+
+// Handle touch end - end drag/resize
+function handleTouchEnd(e) {
+  if (draggedWidget || resizeWidget) {
+    handleMouseUp();
+  }
+}
+
 // Handle mouse up - end drag/resize
 function handleMouseUp() {
   if (draggedWidget) {
@@ -477,6 +506,7 @@ function handleMouseUp() {
   
   if (resizeWidget) {
     resizeWidget.classList.remove('resizing', 'snapping');
+    updateWidgetScale(resizeWidget);
     saveWidgetLayout();
     resizeWidget = null;
     resizeDirection = '';
