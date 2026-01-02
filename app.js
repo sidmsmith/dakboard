@@ -2592,69 +2592,121 @@ async function toggleCompressor() {
   }
 }
 
+// Generate SVG dice face for a given number (1-6)
+function generateDiceFace(number) {
+  const size = 120;
+  const dotRadius = 8;
+  const positions = {
+    1: [{ x: size / 2, y: size / 2 }],
+    2: [{ x: size / 4, y: size / 4 }, { x: 3 * size / 4, y: 3 * size / 4 }],
+    3: [{ x: size / 4, y: size / 4 }, { x: size / 2, y: size / 2 }, { x: 3 * size / 4, y: 3 * size / 4 }],
+    4: [{ x: size / 4, y: size / 4 }, { x: 3 * size / 4, y: size / 4 }, { x: size / 4, y: 3 * size / 4 }, { x: 3 * size / 4, y: 3 * size / 4 }],
+    5: [{ x: size / 4, y: size / 4 }, { x: 3 * size / 4, y: size / 4 }, { x: size / 2, y: size / 2 }, { x: size / 4, y: 3 * size / 4 }, { x: 3 * size / 4, y: 3 * size / 4 }],
+    6: [{ x: size / 4, y: size / 4 }, { x: 3 * size / 4, y: size / 4 }, { x: size / 4, y: size / 2 }, { x: 3 * size / 4, y: size / 2 }, { x: size / 4, y: 3 * size / 4 }, { x: 3 * size / 4, y: 3 * size / 4 }]
+  };
+  
+  const dots = positions[number] || positions[1];
+  const dotsHtml = dots.map(pos => 
+    `<circle cx="${pos.x}" cy="${pos.y}" r="${dotRadius}" fill="#fff"/>`
+  ).join('');
+  
+  return `
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="dice-face">
+      <rect width="${size}" height="${size}" rx="12" ry="12" fill="#4a90e2" stroke="#fff" stroke-width="2"/>
+      ${dotsHtml}
+    </svg>
+  `;
+}
+
+// Generate multiple dice face variations (different rotations/positions for same number)
+function generateDiceFaces() {
+  const faces = [];
+  // Generate 3-4 variations of each number (1-6) for more visual variety
+  for (let num = 1; num <= 6; num++) {
+    for (let variant = 0; variant < 3; variant++) {
+      faces.push({
+        number: num,
+        html: generateDiceFace(num),
+        rotation: variant * 90 // Different rotations for visual variety
+      });
+    }
+  }
+  return faces; // 18 total faces
+}
+
 // Load and initialize dice widget
 function loadDice() {
-  const diceIcons = document.querySelectorAll('#dice-icon');
-  const diceNumbers = document.querySelectorAll('#dice-number');
+  const diceContainers = document.querySelectorAll('#dice-container');
   
-  if (diceIcons.length === 0) return;
+  if (diceContainers.length === 0) return;
+  
+  // Generate all dice faces once
+  const diceFaces = generateDiceFaces();
   
   // Initialize all dice widgets across all pages
-  diceIcons.forEach((iconElement, index) => {
-    const numberElement = diceNumbers[index];
-    if (!numberElement) return;
+  diceContainers.forEach((container) => {
+    // Clear existing content
+    container.innerHTML = '';
+    
+    // Create dice element
+    const diceElement = document.createElement('div');
+    diceElement.className = 'dice-display';
+    diceElement.innerHTML = diceFaces[0].html; // Start with first face
+    container.appendChild(diceElement);
     
     // Make dice clickable (only in normal mode)
-    iconElement.style.cursor = 'pointer';
-    iconElement.onclick = () => {
+    diceElement.style.cursor = 'pointer';
+    diceElement.onclick = () => {
       if (!isEditMode) {
-        rollDice(iconElement, numberElement);
+        rollDice(diceElement, diceFaces);
       }
     };
-    
-    // Initialize with default state if no number is set
-    if (!numberElement.textContent || numberElement.textContent === '-') {
-      numberElement.textContent = '-';
-    }
   });
 }
 
 // Roll dice with animation
-function rollDice(iconElement, numberElement) {
+function rollDice(diceElement, diceFaces) {
   // Don't allow interaction in edit mode
   if (isEditMode) return;
   
   // Add rolling animation class
-  iconElement.classList.add('rolling');
-  numberElement.textContent = '...';
+  diceElement.classList.add('rolling');
   
-  // Generate random number of rolls (3-8) for animation effect
-  const numRolls = Math.floor(Math.random() * 6) + 3;
+  // Generate random number of rolls (6-20) for animation effect
+  const numRolls = Math.floor(Math.random() * 15) + 6;
   let currentRoll = 0;
   
-  // Animate through random numbers
+  // Animate through random dice faces
   const rollInterval = setInterval(() => {
-    const randomNum = Math.floor(Math.random() * 6) + 1;
-    numberElement.textContent = randomNum;
+    // Pick a random dice face
+    const randomFace = diceFaces[Math.floor(Math.random() * diceFaces.length)];
+    diceElement.innerHTML = randomFace.html;
+    
+    // Add random rotation for more realistic effect
+    const rotation = Math.random() * 360;
+    diceElement.style.transform = `rotate(${rotation}deg) scale(${0.9 + Math.random() * 0.2})`;
+    
     currentRoll++;
     
     if (currentRoll >= numRolls) {
       clearInterval(rollInterval);
       
-      // Final random number
+      // Final random number (1-6)
       const finalNumber = Math.floor(Math.random() * 6) + 1;
-      numberElement.textContent = finalNumber;
+      const finalFace = diceFaces.find(f => f.number === finalNumber) || diceFaces[0];
+      diceElement.innerHTML = finalFace.html;
       
-      // Remove rolling animation
-      iconElement.classList.remove('rolling');
+      // Remove rolling animation and reset transform
+      diceElement.classList.remove('rolling');
+      diceElement.style.transform = '';
       
       // Add a brief highlight effect
-      numberElement.classList.add('highlight');
+      diceElement.classList.add('highlight');
       setTimeout(() => {
-        numberElement.classList.remove('highlight');
+        diceElement.classList.remove('highlight');
       }, 500);
     }
-  }, 100); // Change number every 100ms
+  }, 80); // Change face every 80ms for smooth animation
 }
 
 // Thermostat state
