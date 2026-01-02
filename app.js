@@ -5089,7 +5089,7 @@ function exportConfiguration() {
     const currentPage = parseInt(localStorage.getItem('dakboard-current-page')) || 0;
     
     const config = {
-      version: '2.1', // Updated: Added smooth loop animations
+      version: '2.2', // Updated: Added Air Compressor widget, enhanced title styling (visibility, alignment, editable text, icon toggle), removed Google Photos integration, fixed thermostat dropdown visibility, restored missing widget functions
       exportDate: new Date().toISOString(),
       metadata: {
         totalPages: totalPages,
