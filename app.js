@@ -3615,6 +3615,7 @@ const WIDGET_CONFIG = {
   'garage-widget': { name: 'Garage Doors', icon: '🚗' },
   'alarm-widget': { name: 'Alarm Panel', icon: '🔒' },
   'compressor-widget': { name: 'Air Compressor', icon: '🌬️' },
+  'dice-widget': { name: 'Dice', icon: '🎲' },
   'blank-widget': { name: 'Blank', icon: '⬜' },
   'clock-widget': { name: 'Clock', icon: '🕐' },
   'thermostat-widget': { name: 'Thermostat', icon: '🌡️' },

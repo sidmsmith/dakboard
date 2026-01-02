@@ -113,6 +113,9 @@ function updateWidgetScale(widget) {
   } else if (widget.classList.contains('compressor-widget')) {
     defaultWidth = 300;
     defaultHeight = 200;
+  } else if (widget.classList.contains('dice-widget')) {
+    defaultWidth = 300;
+    defaultHeight = 200;
   }
   
   // Calculate scale factor based on the smaller dimension to maintain aspect ratio

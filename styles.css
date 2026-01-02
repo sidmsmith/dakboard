@@ -1189,6 +1189,80 @@ body {
   animation: none; /* Stop spinning during loading */
 }
 
+/* Dice Widget */
+.dice-widget {
+  top: 760px;
+  left: 1700px;
+  width: 300px;
+  height: 200px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px !important;
+}
+
+.dice-content {
+  width: 100%;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 0;
+  gap: 10px;
+}
+
+.dice-icon {
+  font-size: calc(80px * var(--scale-factor, 1));
+  cursor: pointer;
+  transition: transform 0.2s;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dice-icon:hover {
+  transform: scale(1.1);
+}
+
+.dice-icon.rolling {
+  animation: diceRoll 0.6s ease-in-out infinite;
+}
+
+@keyframes diceRoll {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(90deg) scale(1.1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1);
+  }
+  75% {
+    transform: rotate(270deg) scale(1.1);
+  }
+}
+
+.dice-number {
+  font-size: calc(48px * var(--scale-factor, 1));
+  font-weight: bold;
+  color: #4a90e2;
+  min-height: calc(48px * var(--scale-factor, 1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.dice-number.highlight {
+  color: #5ba0f2;
+  transform: scale(1.2);
+  text-shadow: 0 0 10px rgba(74, 144, 226, 0.5);
+}
+
 /* Modal Styles */
 .modal {
   display: none;
