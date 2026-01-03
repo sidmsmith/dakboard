@@ -840,27 +840,31 @@ function generateAdvancedTab() {
         <div class="styling-form-row">
           <label class="styling-form-label">Shadow Color</label>
           <div class="styling-form-control">
-            <label class="styling-apply-all-checkbox" style="margin-bottom: 8px;">
+            <label class="styling-apply-all-checkbox" style="margin-bottom: 8px; display: block;">
               <input type="checkbox" id="clipart-shadow-enabled" ${currentStyles.clipArtShadowEnabled !== false ? 'checked' : ''}> Enable Shadow
             </label>
-            <input type="color" id="clipart-color" value="${clipArtColor}" ${currentStyles.clipArtShadowEnabled === false ? 'disabled' : ''}>
-            <input type="text" id="clipart-color-text" value="${clipArtColor}" pattern="^#[0-9A-F]{6}$" placeholder="#4a90e2" ${currentStyles.clipArtShadowEnabled === false ? 'disabled' : ''}>
-            <label class="styling-apply-all-checkbox">
-              <input type="checkbox" id="clipart-color-apply-all" ${applyToAllFlags.clipArtColor ? 'checked' : ''}> Apply to all
-            </label>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <input type="color" id="clipart-color" value="${clipArtColor}" ${currentStyles.clipArtShadowEnabled === false ? 'disabled' : ''} style="width: 50px; height: 40px; padding: 2px; border-radius: 4px;">
+              <input type="text" id="clipart-color-text" value="${clipArtColor}" pattern="^#[0-9A-F]{6}$" placeholder="#4a90e2" ${currentStyles.clipArtShadowEnabled === false ? 'disabled' : ''} style="width: 80px; padding: 6px 8px; border-radius: 4px; border: 1px solid #4a4a4a; background: #1a1a1a; color: #e0e0e0; font-size: 12px;">
+              <label class="styling-apply-all-checkbox" style="margin: 0;">
+                <input type="checkbox" id="clipart-color-apply-all" ${applyToAllFlags.clipArtColor ? 'checked' : ''}> Apply to all
+              </label>
+            </div>
           </div>
         </div>
         <div class="styling-form-row">
           <label class="styling-form-label">Image Color (Tint)</label>
           <div class="styling-form-control">
-            <label class="styling-apply-all-checkbox" style="margin-bottom: 8px;">
+            <label class="styling-apply-all-checkbox" style="margin-bottom: 8px; display: block;">
               <input type="checkbox" id="clipart-tint-enabled" ${currentStyles.clipArtTintEnabled !== false ? 'checked' : ''}> Enable Tint
             </label>
-            <input type="color" id="clipart-tint-color" value="${currentStyles.clipArtTintColor || '#ffffff'}" ${currentStyles.clipArtTintEnabled === false ? 'disabled' : ''}>
-            <input type="text" id="clipart-tint-color-text" value="${currentStyles.clipArtTintColor || '#ffffff'}" pattern="^#[0-9A-F]{6}$" placeholder="#ffffff" ${currentStyles.clipArtTintEnabled === false ? 'disabled' : ''}>
-            <label class="styling-apply-all-checkbox">
-              <input type="checkbox" id="clipart-tint-color-apply-all" ${applyToAllFlags.clipArtTintColor ? 'checked' : ''}> Apply to all
-            </label>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <input type="color" id="clipart-tint-color" value="${currentStyles.clipArtTintColor || '#ffffff'}" ${currentStyles.clipArtTintEnabled === false ? 'disabled' : ''} style="width: 50px; height: 40px; padding: 2px; border-radius: 4px;">
+              <input type="text" id="clipart-tint-color-text" value="${currentStyles.clipArtTintColor || '#ffffff'}" pattern="^#[0-9A-F]{6}$" placeholder="#ffffff" ${currentStyles.clipArtTintEnabled === false ? 'disabled' : ''} style="width: 80px; padding: 6px 8px; border-radius: 4px; border: 1px solid #4a4a4a; background: #1a1a1a; color: #e0e0e0; font-size: 12px;">
+              <label class="styling-apply-all-checkbox" style="margin: 0;">
+                <input type="checkbox" id="clipart-tint-color-apply-all" ${applyToAllFlags.clipArtTintColor ? 'checked' : ''}> Apply to all
+              </label>
+            </div>
             <div style="font-size: 11px; color: #888; margin-top: 5px;">Makes images look like stickers. Use white for classic sticker look.</div>
           </div>
         </div>
