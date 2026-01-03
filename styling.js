@@ -1620,7 +1620,10 @@ function updateRemoveButtonsVisibility() {
         // Update data-team-index
         removeBtn.dataset.teamIndex = index;
       }
+      // Ensure button is visible and has listener
       removeBtn.style.display = '';
+      // Clear listener flag so it gets reattached
+      removeBtn.dataset.listenerAttached = '';
     } else {
       // Need to hide remove button
       if (removeBtn) {
