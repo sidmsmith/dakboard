@@ -5057,18 +5057,54 @@ function toggleWidgetVisibility(fullWidgetId) {
   const instanceIndex = parsed.instanceIndex;
   
   const pageElement = getPageElement(pageIndex);
-  if (!pageElement) return;
+  if (!pageElement) {
+    console.error(`Page element not found for page ${pageIndex}`);
+    return;
+  }
   
-  // Find widget on current page using full ID
+  // Find widget on current page using full ID (including hidden widgets)
+  // querySelector finds hidden elements too, so this should work
   let widget = pageElement.querySelector(`.${fullWidgetId}`);
   
-  // If not found, try legacy format or find by widget type
+  // If not found by full ID, try to find by widget type and instance index
   if (!widget) {
-    // Try legacy format first
-    widget = pageElement.querySelector(`.${widgetType}`);
-    if (widget) {
-      // Update widget to use new ID format, but preserve 'widget' class
-      widget.className = `widget ${widgetType} ${fullWidgetId}`;
+    // Get all widgets of this type on the page
+    const allWidgets = Array.from(pageElement.querySelectorAll(`.${widgetType}`));
+    
+    // Try to find the one with matching instance index
+    for (const w of allWidgets) {
+      const classes = Array.from(w.classList);
+      const instanceClass = classes.find(c => {
+        const pattern = new RegExp(`^${widgetType}-page-${pageIndex}-instance-${instanceIndex}$`);
+        return pattern.test(c);
+      });
+      
+      if (instanceClass) {
+        widget = w;
+        break;
+      }
+    }
+    
+    // If still not found and instanceIndex is 0, try legacy format
+    if (!widget && instanceIndex === 0) {
+      widget = pageElement.querySelector(`.${widgetType}`);
+      if (widget) {
+        // Check if this widget already has an instance ID
+        const classes = Array.from(widget.classList);
+        const hasInstanceId = classes.some(c => {
+          const pattern = new RegExp(`^${widgetType}-page-${pageIndex}-instance-\\d+$`);
+          return pattern.test(c);
+        });
+        
+        // Only use it if it doesn't have an instance ID yet
+        if (!hasInstanceId) {
+          // Update widget to use new ID format, but preserve 'widget' class
+          widget.className = `widget ${widgetType} ${fullWidgetId}`;
+        } else {
+          // This widget already has a different instance ID, don't use it
+          widget = null;
+        }
+      }
     }
   }
   
@@ -5076,7 +5112,15 @@ function toggleWidgetVisibility(fullWidgetId) {
   // If widget doesn't exist on current page, create it
   if (!widget) {
     // Find the widget template (usually on page 0 or in the original HTML)
-    const templateWidget = document.querySelector(`.${widgetType}`);
+    // Look for a template on page 0 first
+    const page0 = getPageElement(0);
+    let templateWidget = page0 ? page0.querySelector(`.${widgetType}`) : null;
+    
+    // If not found on page 0, search all pages
+    if (!templateWidget) {
+      templateWidget = document.querySelector(`.${widgetType}`);
+    }
+    
     if (templateWidget) {
       // Clone the widget to the current page
       widget = templateWidget.cloneNode(true);
@@ -5113,6 +5157,11 @@ function toggleWidgetVisibility(fullWidgetId) {
       widget.classList.add(fullWidgetId);
     }
     
+    // Ensure widget has the widget class
+    if (!widget.classList.contains('widget')) {
+      widget.classList.add('widget');
+    }
+    
     // Toggle visibility - if it's hidden, show it; if it's visible, hide it
     // If widget was just created, treat it as hidden so it gets shown
     const isCurrentlyHidden = widget.classList.contains('hidden') || widgetJustCreated;
@@ -5128,6 +5177,38 @@ function toggleWidgetVisibility(fullWidgetId) {
       
       // Initialize widget instance
       initializeWidgetInstance(fullWidgetId, widget);
+      
+      // Load widget-specific data and styles
+      loadWidgetStyles(fullWidgetId);
+      
+      // Load widget-specific functionality based on type
+      if (widgetType === 'dice-widget') {
+        loadDice();
+      } else if (widgetType === 'stopwatch-widget') {
+        loadStopwatch();
+      } else if (widgetType === 'scoreboard-widget') {
+        loadScoreboard();
+      } else if (widgetType === 'clip-art-widget') {
+        loadClipArt();
+      } else if (widgetType === 'weather-widget') {
+        loadWeather();
+      } else if (widgetType === 'todos-widget') {
+        loadTodos();
+      } else if (widgetType === 'garage-doors-widget') {
+        loadGarageDoors();
+      } else if (widgetType === 'alarm-widget') {
+        loadAlarm();
+      } else if (widgetType === 'thermostat-widget') {
+        loadThermostat();
+      } else if (widgetType === 'compressor-widget') {
+        loadCompressor();
+      } else if (widgetType === 'news-widget') {
+        loadNews();
+      } else if (widgetType === 'calendar-widget') {
+        loadCalendarEvents();
+      } else if (widgetType === 'blank-widget') {
+        // Blank widget doesn't need special loading
+      }
     } else {
       widget.classList.add('hidden');
     }
@@ -5136,6 +5217,8 @@ function toggleWidgetVisibility(fullWidgetId) {
     setTimeout(() => {
       updateWidgetControlPanel();
     }, 10);
+  } else {
+    console.error(`Widget ${fullWidgetId} not found and could not be created`);
   }
 }
 
