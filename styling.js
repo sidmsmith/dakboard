@@ -1498,35 +1498,39 @@ function setupScoreboardTeamListeners() {
   const stylingModal = document.getElementById('styling-modal');
   if (!stylingModal) return;
   
-  // Remove team buttons
+  // Remove team buttons - clone to remove old listeners and attach fresh ones
   const removeBtns = stylingModal.querySelectorAll('.scoreboard-remove-team-btn');
-  removeBtns.forEach(btn => {
-    if (!btn.dataset.listenerAttached) {
-      btn.dataset.listenerAttached = 'true';
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log('🗑️ Remove button clicked (setupScoreboardTeamListeners) for team:', e.target.dataset.teamIndex);
-        const teamsList = stylingModal.querySelector('#scoreboard-teams-list');
-        const currentTeams = stylingModal.querySelectorAll('.scoreboard-team-config');
-        console.log('🗑️ Current team count:', currentTeams.length);
-        // Button should only be visible if there are 3+ teams, so we can safely remove
-        if (currentTeams.length > 2) {
-          const teamIndex = parseInt(e.target.dataset.teamIndex);
-          const teamEl = stylingModal.querySelector(`.scoreboard-team-config[data-team-index="${teamIndex}"]`);
-          if (teamEl) {
-            console.log('🗑️ Removing team:', teamIndex);
-            teamEl.remove();
-            // Update labels
-            updateScoreboardTeamLabels();
-            // Update remove buttons visibility
-            updateRemoveButtonsVisibility();
-            updateScoreboardConfig();
-          }
+  console.log('🔧 setupScoreboardTeamListeners: Found', removeBtns.length, 'remove buttons');
+  removeBtns.forEach((btn, index) => {
+    // Clone button to remove any old listeners
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    
+    newBtn.dataset.listenerAttached = 'true';
+    console.log('🔧 Attaching listener to remove button', index, 'for team', newBtn.dataset.teamIndex);
+    newBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('🗑️ Remove button clicked (setupScoreboardTeamListeners) for team:', e.target.dataset.teamIndex);
+      const teamsList = stylingModal.querySelector('#scoreboard-teams-list');
+      const currentTeams = stylingModal.querySelectorAll('.scoreboard-team-config');
+      console.log('🗑️ Current team count:', currentTeams.length);
+      // Button should only be visible if there are 3+ teams, so we can safely remove
+      if (currentTeams.length > 2) {
+        const teamIndex = parseInt(e.target.dataset.teamIndex);
+        const teamEl = stylingModal.querySelector(`.scoreboard-team-config[data-team-index="${teamIndex}"]`);
+        if (teamEl) {
+          console.log('🗑️ Removing team:', teamIndex);
+          teamEl.remove();
+          // Update labels
+          updateScoreboardTeamLabels();
+          // Update remove buttons visibility
+          updateRemoveButtonsVisibility();
+          updateScoreboardConfig();
         }
-        // No else clause - button shouldn't be visible if there are only 2 teams
-      });
-    }
+      }
+      // No else clause - button shouldn't be visible if there are only 2 teams
+    });
   });
   
   // Team name inputs
