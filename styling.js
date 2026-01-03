@@ -2967,6 +2967,8 @@ function updateApplyToAllFlags() {
   applyToAllFlags.stopwatchTextColor = document.getElementById('stopwatch-text-color-apply-all')?.checked || false;
   applyToAllFlags.stopwatchPlayButtonColor = document.getElementById('stopwatch-play-button-color-apply-all')?.checked || false;
   applyToAllFlags.stopwatchResetButtonColor = document.getElementById('stopwatch-reset-button-color-apply-all')?.checked || false;
+  applyToAllFlags.clipArtColor = document.getElementById('clipart-color-apply-all')?.checked || false;
+  applyToAllFlags.clipArtTintColor = document.getElementById('clipart-tint-color-apply-all')?.checked || false;
   
   // Check if any apply-to-all is checked
   applyToAllFlags.global = Object.values(applyToAllFlags).some(v => v === true);
