@@ -5051,10 +5051,13 @@ function saveWidgetVisibility() {
 
 // Toggle widget visibility (page-specific)
 function toggleWidgetVisibility(fullWidgetId) {
+  console.log(`toggleWidgetVisibility called for: ${fullWidgetId}`);
   const parsed = parseWidgetId(fullWidgetId);
   const widgetType = parsed.widgetType;
   const pageIndex = parsed.pageIndex;
   const instanceIndex = parsed.instanceIndex;
+  
+  console.log(`Parsed: widgetType=${widgetType}, pageIndex=${pageIndex}, instanceIndex=${instanceIndex}`);
   
   const pageElement = getPageElement(pageIndex);
   if (!pageElement) {
@@ -5065,6 +5068,7 @@ function toggleWidgetVisibility(fullWidgetId) {
   // Find widget on current page using full ID (including hidden widgets)
   // querySelector finds hidden elements too, so this should work
   let widget = pageElement.querySelector(`.${fullWidgetId}`);
+  console.log(`Found widget by full ID: ${widget ? 'YES' : 'NO'}`);
   
   // If not found by full ID, try to find by widget type and instance index
   if (!widget) {
@@ -5152,21 +5156,31 @@ function toggleWidgetVisibility(fullWidgetId) {
   }
   
   if (widget) {
+    console.log(`Widget found! Classes: ${Array.from(widget.classList).join(', ')}`);
+    console.log(`Widget is currently hidden: ${widget.classList.contains('hidden')}`);
+    console.log(`Widget was just created: ${widgetJustCreated}`);
+    
     // Ensure widget has the correct class
     if (!widget.classList.contains(fullWidgetId)) {
       widget.classList.add(fullWidgetId);
+      console.log(`Added fullWidgetId class: ${fullWidgetId}`);
     }
     
     // Ensure widget has the widget class
     if (!widget.classList.contains('widget')) {
       widget.classList.add('widget');
+      console.log(`Added 'widget' class`);
     }
     
     // Toggle visibility - if it's hidden, show it; if it's visible, hide it
     // If widget was just created, treat it as hidden so it gets shown
     const isCurrentlyHidden = widget.classList.contains('hidden') || widgetJustCreated;
+    console.log(`isCurrentlyHidden: ${isCurrentlyHidden}`);
+    
     if (isCurrentlyHidden) {
+      console.log(`Showing widget...`);
       widget.classList.remove('hidden');
+      console.log(`Hidden class removed. Widget classes now: ${Array.from(widget.classList).join(', ')}`);
       
       // Bring widget to front when shown (set high z-index)
       const maxZIndex = Math.max(...Array.from(document.querySelectorAll('.widget:not(.hidden)')).map(w => {
@@ -5210,7 +5224,9 @@ function toggleWidgetVisibility(fullWidgetId) {
         // Blank widget doesn't need special loading
       }
     } else {
+      console.log(`Hiding widget...`);
       widget.classList.add('hidden');
+      console.log(`Hidden class added. Widget classes now: ${Array.from(widget.classList).join(', ')}`);
     }
     saveWidgetVisibility();
     // Update panel after a brief delay to ensure DOM is updated
