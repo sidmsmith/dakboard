@@ -45,6 +45,19 @@ Four different layout options are available for you to choose from:
 
 ## 📝 Changelog
 
+### Version 2.4
+- **Widget Rotation**: Added rotation support for Blank/Clip Art widget with 15-degree snapping and visual rotate handle in Edit Mode
+- **Z-index Controls**: Moved z-index controls (Bring Forward, Send Backward, Bring to Front, Send to Back) from side panel to individual widget headers, visible in Edit Mode
+- **Clip Art Updates**:
+  - Removed OpenClipart integration (API was unstable in beta)
+  - Clip Art widget now supports emoji selector and Pixabay API integration only
+  - Added image visibility checkbox to enable/disable image display
+  - Improved color picker normalization (handles 3-digit hex colors)
+- **Improvements**:
+  - Fixed title visibility toggle for widgets without visible headers
+  - Minimal edit header automatically appears for widgets with hidden titles in Edit Mode
+  - Preview updates in real-time when image visibility is toggled
+
 ### Version 2.3
 - **New Widgets**:
   - **Dice Widget**: Interactive 3D dice with customizable face and dot colors, click to roll animation
