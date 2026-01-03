@@ -1585,19 +1585,10 @@ function setupScoreboardDragAndDrop() {
     teamEl.setAttribute('draggable', 'true');
     teamEl.dataset.dragSetup = 'true';
     
-    // Make drag handle trigger drag
+    // Make drag handle not interfere with dragging
     const dragHandle = teamEl.querySelector('.scoreboard-drag-handle');
     if (dragHandle) {
-      dragHandle.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        // Trigger drag on the parent element
-        const dragEvent = new DragEvent('dragstart', {
-          bubbles: true,
-          cancelable: true,
-          dataTransfer: new DataTransfer()
-        });
-        teamEl.dispatchEvent(dragEvent);
-      });
+      dragHandle.style.pointerEvents = 'none';
     }
     
     // Drag start
