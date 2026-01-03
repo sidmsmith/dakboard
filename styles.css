@@ -3551,6 +3551,79 @@ footer a:hover {
   color: #fff;
 }
 
+.widget-control-clone-btn,
+.widget-control-remove-btn,
+.widget-control-move-btn {
+  background: transparent;
+  border: 2px solid #4a4a4a;
+  color: #e0e0e0;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-size: 16px;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.widget-control-clone-btn:hover {
+  background: rgba(74, 144, 226, 0.3);
+  border-color: #4a90e2;
+}
+
+.widget-control-remove-btn {
+  color: #e74c3c;
+  border-color: #e74c3c;
+}
+
+.widget-control-remove-btn:hover {
+  background: rgba(231, 76, 60, 0.3);
+  border-color: #e74c3c;
+}
+
+.widget-control-move-btn {
+  position: relative;
+}
+
+.widget-control-move-btn:hover {
+  background: rgba(74, 144, 226, 0.3);
+  border-color: #4a90e2;
+}
+
+.widget-control-move-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: #2a2a2a;
+  border: 1px solid #4a4a4a;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10010;
+  min-width: 120px;
+  overflow: hidden;
+}
+
+.widget-control-move-option {
+  width: 100%;
+  padding: 10px 15px;
+  background: transparent;
+  border: none;
+  color: #e0e0e0;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.widget-control-move-option:hover {
+  background: rgba(74, 144, 226, 0.2);
+}
+
 /* Z-index Control Buttons */
 .widget-control-zindex-group {
   display: flex;

@@ -465,13 +465,25 @@ function initializeEventListeners() {
 
 // Render weekly calendar
 function renderCalendar() {
-  const grids = document.querySelectorAll('#calendar-grid');
-  const weekRanges = document.querySelectorAll('#week-range');
-  if (grids.length === 0) return;
+  // Get all calendar widget instances on the current page
+  const pageElement = getPageElement(currentPageIndex);
+  if (!pageElement) return;
   
-  // Update all calendar widgets across all pages
-  grids.forEach((grid, index) => {
-    const weekRange = weekRanges[index];
+  const instances = getWidgetInstances('calendar-widget', currentPageIndex);
+  const calendarWidgets = [];
+  
+  instances.forEach(instance => {
+    const widget = instance.element;
+    if (!widget || widget.classList.contains('hidden')) return;
+    const grid = widget.querySelector('#calendar-grid');
+    const weekRange = widget.querySelector('#week-range');
+    if (grid) calendarWidgets.push({ grid, weekRange });
+  });
+  
+  if (calendarWidgets.length === 0) return;
+  
+  // Update each calendar widget instance
+  calendarWidgets.forEach(({ grid, weekRange }) => {
   
   // Clear existing days (keep headers)
   const headers = Array.from(grid.querySelectorAll('.calendar-day-header'));
@@ -1441,49 +1453,82 @@ async function loadWeather() {
     const state = entity.state;
     const attrs = entity.attributes;
     
-    // Find all weather widgets across all pages
-    const icons = document.querySelectorAll('#weather-icon');
-    const temps = document.querySelectorAll('#weather-temp');
-    const conditions = document.querySelectorAll('#weather-conditions');
-    const feelsLikes = document.querySelectorAll('#weather-feels-like');
-    const humidities = document.querySelectorAll('#weather-humidity');
-    const winds = document.querySelectorAll('#weather-wind');
-    const weatherTimes = document.querySelectorAll('#weather-time');
+    // Get all weather widget instances on the current page
+    const pageElement = getPageElement(currentPageIndex);
+    if (!pageElement) return;
     
-    // Update current conditions
-    const icon = getWeatherIcon(attrs.condition || state);
-    icons.forEach(el => el.textContent = icon);
+    const instances = getWidgetInstances('weather-widget', currentPageIndex);
     
-    // Primary temp is now "Feels Like" (apparent temperature)
-    const feelsLike = attrs.apparent_temperature || attrs.temperature || attrs.temp || '--';
-    temps.forEach(el => el.textContent = `${Math.round(feelsLike)}°F`);
+    // Update each instance
+    instances.forEach(instance => {
+      const widget = instance.element;
+      if (!widget || widget.classList.contains('hidden')) return;
+      
+      // Find elements within this specific widget instance
+      const iconEl = widget.querySelector('#weather-icon');
+      const temp = widget.querySelector('#weather-temp');
+      const condition = widget.querySelector('#weather-conditions');
+      const feelsLike = widget.querySelector('#weather-feels-like');
+      const humidity = widget.querySelector('#weather-humidity');
+      const wind = widget.querySelector('#weather-wind');
+      const weatherTime = widget.querySelector('#weather-time');
+      
+      // Update current conditions
+      const icon = getWeatherIcon(attrs.condition || state);
+      if (iconEl) iconEl.textContent = icon;
+      
+      // Primary temp is now "Feels Like" (apparent temperature)
+      const feelsLikeTemp = attrs.apparent_temperature || attrs.temperature || attrs.temp || '--';
+      if (temp) temp.textContent = `${Math.round(feelsLikeTemp)}°F`;
+      
+      // Update condition text
+      const conditionText = attrs.condition || state || '--';
+      if (condition) condition.textContent = conditionText;
+      
+      // Hide date/time (removed since we have clock widget)
+      if (weatherTime) weatherTime.style.display = 'none';
+      
+      // Update details - "Actual Temperature" shows the current temp
+      const actualTemp = attrs.temperature || attrs.temp || '--';
+      const actualTempText = actualTemp !== '--' ? `${Math.round(actualTemp)}°F` : '--°F';
+      if (feelsLike) feelsLike.textContent = actualTempText;
+      if (humidity) humidity.textContent = attrs.humidity ? `${Math.round(attrs.humidity)}%` : '--%';
+      if (wind) wind.textContent = attrs.wind_speed ? `${Math.round(attrs.wind_speed)} mph` : '-- mph';
+    });
     
-    // Update condition text
-    const condition = attrs.condition || state || '--';
-    conditions.forEach(el => el.textContent = condition);
-    
-    // Hide date/time (removed since we have clock widget)
-    weatherTimes.forEach(el => el.style.display = 'none');
-    
-    // Update details - "Actual Temperature" shows the current temp
-    const actualTemp = attrs.temperature || attrs.temp || '--';
-    const actualTempText = actualTemp !== '--' ? `${Math.round(actualTemp)}°F` : '--°F';
-    feelsLikes.forEach(el => el.textContent = actualTempText);
-    humidities.forEach(el => el.textContent = attrs.humidity ? `${Math.round(attrs.humidity)}%` : '--%');
-    winds.forEach(el => el.textContent = attrs.wind_speed ? `${Math.round(attrs.wind_speed)} mph` : '-- mph');
-    
-    // Load forecast
+    // Load forecast (updates all instances)
     loadWeatherForecast(attrs);
   } catch (error) {
     console.error('Error loading weather:', error);
-    const conditions = document.querySelectorAll('#weather-conditions');
-    conditions.forEach(el => el.textContent = 'Error loading weather');
+    const pageElement = getPageElement(currentPageIndex);
+    if (pageElement) {
+      const instances = getWidgetInstances('weather-widget', currentPageIndex);
+      instances.forEach(instance => {
+        const widget = instance.element;
+        if (!widget || widget.classList.contains('hidden')) return;
+        const condition = widget.querySelector('#weather-conditions');
+        if (condition) condition.textContent = 'Error loading weather';
+      });
+    }
   }
 }
 
 // Load weather forecast from Pirate Weather entities
 async function loadWeatherForecast(attrs) {
-  const forecastLists = document.querySelectorAll('#weather-forecast-list');
+  // Get all weather widget instances on the current page
+  const pageElement = getPageElement(currentPageIndex);
+  if (!pageElement) return;
+  
+  const instances = getWidgetInstances('weather-widget', currentPageIndex);
+  const forecastLists = [];
+  
+  instances.forEach(instance => {
+    const widget = instance.element;
+    if (!widget || widget.classList.contains('hidden')) return;
+    const forecastList = widget.querySelector('#weather-forecast-list');
+    if (forecastList) forecastLists.push(forecastList);
+  });
+  
   if (forecastLists.length === 0) return;
   
   forecastLists.forEach(list => {
@@ -1932,8 +1977,20 @@ let activeTodoList = null;
 // Load todos from HA - discover all todo lists
 async function loadTodos() {
   try {
-    // Find all todo widgets across all pages
-    const todoListElements = document.querySelectorAll('#todo-list');
+    // Get all todo widget instances on the current page
+    const pageElement = getPageElement(currentPageIndex);
+    if (!pageElement) return;
+    
+    const instances = getWidgetInstances('todo-widget', currentPageIndex);
+    const todoListElements = [];
+    
+    instances.forEach(instance => {
+      const widget = instance.element;
+      if (!widget || widget.classList.contains('hidden')) return;
+      const todoList = widget.querySelector('#todo-list');
+      if (todoList) todoListElements.push(todoList);
+    });
+    
     if (todoListElements.length === 0) return;
     
     // Discover all todo list entities
@@ -1992,7 +2049,20 @@ async function loadTodos() {
 
 // Render todo list tabs
 function renderTodoTabs() {
-  const tabsContainers = document.querySelectorAll('#todo-tabs');
+  // Get all todo widget instances on the current page
+  const pageElement = getPageElement(currentPageIndex);
+  if (!pageElement) return;
+  
+  const instances = getWidgetInstances('todo-widget', currentPageIndex);
+  const tabsContainers = [];
+  
+  instances.forEach(instance => {
+    const widget = instance.element;
+    if (!widget || widget.classList.contains('hidden')) return;
+    const tabsContainer = widget.querySelector('#todo-tabs');
+    if (tabsContainer) tabsContainers.push(tabsContainer);
+  });
+  
   if (tabsContainers.length === 0) return;
   
   tabsContainers.forEach(tabsContainer => {
@@ -2218,7 +2288,20 @@ async function loadGarageDoors() {
     { id: 3, entity: CONFIG.HA_GARAGE_DOOR_3, webhook: CONFIG.HA_GARAGE_WEBHOOK_3, name: 'Garage 3: Sidney' },
   ];
   
-  const containers = document.querySelectorAll('#garage-doors');
+  // Get all garage widget instances on the current page
+  const pageElement = getPageElement(currentPageIndex);
+  if (!pageElement) return;
+  
+  const instances = getWidgetInstances('garage-widget', currentPageIndex);
+  const containers = [];
+  
+  instances.forEach(instance => {
+    const widget = instance.element;
+    if (!widget || widget.classList.contains('hidden')) return;
+    const container = widget.querySelector('#garage-doors');
+    if (container) containers.push(container);
+  });
+  
   if (containers.length === 0) return;
   
   // Clear all containers first to prevent duplicate rows
@@ -2380,24 +2463,35 @@ async function toggleGarageDoor(doorElement) {
 async function loadAlarm() {
   try {
     const entity = await fetchHAEntity(CONFIG.HA_ALARM_ENTITY);
+    
+    // Get all alarm widget instances on the current page
+    const pageElement = getPageElement(currentPageIndex);
+    if (!pageElement) return;
+    
+    const instances = getWidgetInstances('alarm-widget', currentPageIndex);
+    
     if (!entity) {
-      const statusTexts = document.querySelectorAll('#alarm-status-text');
-      statusTexts.forEach(el => el.textContent = 'Not Available');
+      instances.forEach(instance => {
+        const widget = instance.element;
+        if (!widget || widget.classList.contains('hidden')) return;
+        const statusText = widget.querySelector('#alarm-status-text');
+        if (statusText) statusText.textContent = 'Not Available';
+      });
       return;
     }
     
     const state = entity.state;
-    const statusDivs = document.querySelectorAll('#alarm-status');
-    const icons = document.querySelectorAll('#alarm-icon');
-    const texts = document.querySelectorAll('#alarm-status-text');
     
-    if (statusDivs.length === 0) return;
-    
-    // Update all alarm widgets across all pages
-    statusDivs.forEach((statusDiv, index) => {
-      const icon = icons[index];
-      const text = texts[index];
-      if (!icon || !text) return;
+    // Update each alarm widget instance
+    instances.forEach(instance => {
+      const widget = instance.element;
+      if (!widget || widget.classList.contains('hidden')) return;
+      
+      const statusDiv = widget.querySelector('#alarm-status');
+      const icon = widget.querySelector('#alarm-icon');
+      const text = widget.querySelector('#alarm-status-text');
+      
+      if (!statusDiv || !icon || !text) return;
     
     // Remove existing state classes
     statusDiv.classList.remove('armed', 'disarmed');
@@ -2412,25 +2506,33 @@ async function loadAlarm() {
       text.textContent = 'DISARMED';
     }
     
-    // Add click handler - only clickable when DISARMED
-    if (state === 'disarmed' || state === 'disarming' || (!state.includes('armed'))) {
-      // Only allow clicking when disarmed
-      icon.style.cursor = 'pointer';
-      icon.onclick = () => {
-        if (!isEditMode) {
-          setAlarm();
-        }
-      };
-    } else {
-      // Armed states are not clickable
-      icon.style.cursor = 'not-allowed';
-      icon.onclick = null;
-    }
+      // Add click handler - only clickable when DISARMED
+      if (state === 'disarmed' || state === 'disarming' || (!state.includes('armed'))) {
+        // Only allow clicking when disarmed
+        icon.style.cursor = 'pointer';
+        icon.onclick = () => {
+          if (!isEditMode) {
+            setAlarm();
+          }
+        };
+      } else {
+        // Armed states are not clickable
+        icon.style.cursor = 'not-allowed';
+        icon.onclick = null;
+      }
     });
   } catch (error) {
     console.error('Error loading alarm:', error);
-    const statusTexts = document.querySelectorAll('#alarm-status-text');
-    statusTexts.forEach(el => el.textContent = 'Error');
+    const pageElement = getPageElement(currentPageIndex);
+    if (pageElement) {
+      const instances = getWidgetInstances('alarm-widget', currentPageIndex);
+      instances.forEach(instance => {
+        const widget = instance.element;
+        if (!widget || widget.classList.contains('hidden')) return;
+        const statusText = widget.querySelector('#alarm-status-text');
+        if (statusText) statusText.textContent = 'Error';
+      });
+    }
   }
 }
 
@@ -2439,15 +2541,29 @@ async function setAlarm() {
   // Don't allow interaction in edit mode
   if (isEditMode) return;
   
-  // Check current state - only allow if disarmed (check first instance)
-  const statusDivs = document.querySelectorAll('#alarm-status');
-  if (statusDivs.length > 0 && statusDivs[0].classList.contains('armed')) {
-    return;
+  // Check current state - only allow if disarmed (check first instance on current page)
+  const pageElement = getPageElement(currentPageIndex);
+  if (pageElement) {
+    const instances = getWidgetInstances('alarm-widget', currentPageIndex);
+    if (instances.length > 0) {
+      const firstWidget = instances[0].element;
+      const firstStatusDiv = firstWidget ? firstWidget.querySelector('#alarm-status') : null;
+      if (firstStatusDiv && firstStatusDiv.classList.contains('armed')) {
+        return;
+      }
+    }
   }
   
-  // Add loading state to all alarm icons
-  const icons = document.querySelectorAll('#alarm-icon');
-  icons.forEach(icon => icon.classList.add('loading'));
+  // Add loading state to all alarm icons on current page
+  if (pageElement) {
+    const instances = getWidgetInstances('alarm-widget', currentPageIndex);
+    instances.forEach(instance => {
+      const widget = instance.element;
+      if (!widget || widget.classList.contains('hidden')) return;
+      const icon = widget.querySelector('#alarm-icon');
+      if (icon) icon.classList.add('loading');
+    });
+  }
   
   // Show toast notification immediately (like garage widget)
   showToast('Alarm Button Pressed', 1500);
@@ -2490,25 +2606,37 @@ async function setAlarm() {
 async function loadCompressor() {
   try {
     const entity = await fetchHAEntity(CONFIG.HA_COMPRESSOR_ENTITY);
+    
+    // Get all compressor widget instances on the current page
+    const pageElement = getPageElement(currentPageIndex);
+    if (!pageElement) return;
+    
+    const instances = getWidgetInstances('compressor-widget', currentPageIndex);
+    
     if (!entity) {
-      const icons = document.querySelectorAll('#compressor-icon');
-      icons.forEach(icon => {
-        icon.innerHTML = '<div style="color: #999;">Not Available</div>';
+      instances.forEach(instance => {
+        const widget = instance.element;
+        if (!widget || widget.classList.contains('hidden')) return;
+        const icon = widget.querySelector('#compressor-icon');
+        if (icon) icon.innerHTML = '<div style="color: #999;">Not Available</div>';
       });
       return;
     }
     
     const state = entity.state;
     const isOn = state === 'on';
-    const icons = document.querySelectorAll('#compressor-icon');
     
-    if (icons.length === 0) return;
+    if (instances.length === 0) return;
     
     // Fetch fan icon if not already cached
     const fanIcon = await fetchMDIIcon('fan');
     
-    // Update all compressor widgets across all pages
-    icons.forEach((iconElement) => {
+    // Update each compressor widget instance
+    instances.forEach(instance => {
+      const widget = instance.element;
+      if (!widget || widget.classList.contains('hidden')) return;
+      const iconElement = widget.querySelector('#compressor-icon');
+      if (!iconElement) return;
       // Clear existing content
       iconElement.innerHTML = '';
       
@@ -2544,12 +2672,18 @@ async function loadCompressor() {
         }
       };
     });
-    } catch (error) {
+  } catch (error) {
     console.error('Error loading compressor:', error);
-    const icons = document.querySelectorAll('#compressor-icon');
-    icons.forEach(icon => {
-      icon.innerHTML = '<div style="color: #999;">Error</div>';
-    });
+    const pageElement = getPageElement(currentPageIndex);
+    if (pageElement) {
+      const instances = getWidgetInstances('compressor-widget', currentPageIndex);
+      instances.forEach(instance => {
+        const widget = instance.element;
+        if (!widget || widget.classList.contains('hidden')) return;
+        const icon = widget.querySelector('#compressor-icon');
+        if (icon) icon.innerHTML = '<div style="color: #999;">Error</div>';
+      });
+    }
   }
 }
 
@@ -2558,9 +2692,17 @@ async function toggleCompressor() {
   // Don't allow interaction in edit mode
   if (isEditMode) return;
   
-  // Add loading state to all compressor icons
-  const icons = document.querySelectorAll('#compressor-icon');
-  icons.forEach(icon => icon.classList.add('loading'));
+  // Add loading state to all compressor icons on current page
+  const pageElement = getPageElement(currentPageIndex);
+  if (pageElement) {
+    const instances = getWidgetInstances('compressor-widget', currentPageIndex);
+    instances.forEach(instance => {
+      const widget = instance.element;
+      if (!widget || widget.classList.contains('hidden')) return;
+      const icon = widget.querySelector('#compressor-icon');
+      if (icon) icon.classList.add('loading');
+    });
+  }
   
   // Show toast notification immediately
   showToast('Compressor Button Pressed', 1500);
@@ -2589,8 +2731,17 @@ async function toggleCompressor() {
       loadAllData();
     }, 2500);
   } finally {
-    // Remove loading state from all compressor icons
-    icons.forEach(icon => icon.classList.remove('loading'));
+    // Remove loading state from all compressor icons on current page
+    const pageElement = getPageElement(currentPageIndex);
+    if (pageElement) {
+      const instances = getWidgetInstances('compressor-widget', currentPageIndex);
+      instances.forEach(instance => {
+        const widget = instance.element;
+        if (!widget || widget.classList.contains('hidden')) return;
+        const icon = widget.querySelector('#compressor-icon');
+        if (icon) icon.classList.remove('loading');
+      });
+    }
   }
 }
 
@@ -2736,9 +2887,18 @@ function loadDice() {
     const pageElement = widget.closest('.dashboard.page');
     const pageIndex = pageElement ? parseInt(pageElement.getAttribute('data-page-id')) || 0 : 0;
     
+    // Get widget instance ID from widget's class list
+    const classes = Array.from(widget.classList);
+    const instanceIdClass = classes.find(c => c.startsWith('dice-widget-page-') && c.includes('-instance-'));
+    const fullWidgetId = instanceIdClass || generateWidgetId('dice-widget', pageIndex, 0);
+    
+    // If widget doesn't have instance ID, add it
+    if (!instanceIdClass) {
+      widget.classList.add(fullWidgetId);
+    }
+    
     // Get widget-specific colors from saved styles or use defaults
-    const widgetId = 'dice-widget';
-    const stylesKey = `dakboard-widget-styles-${widgetId}-page-${pageIndex}`;
+    const stylesKey = `dakboard-widget-styles-${fullWidgetId}-page-${pageIndex}`;
     const savedStyles = localStorage.getItem(stylesKey);
     let diceFaceColor = '#4a90e2';
     let diceDotColor = '#ffffff';
@@ -2806,13 +2966,18 @@ function loadStopwatch() {
     const pageElement = widget.closest('.dashboard.page');
     const pageIndex = pageElement ? parseInt(pageElement.getAttribute('data-page-id')) || 0 : 0;
     
-    // Create unique ID for this widget instance (page + index within page)
-    const widgetsOnPage = pageElement ? pageElement.querySelectorAll('.stopwatch-widget') : [];
-    const widgetIndex = Array.from(widgetsOnPage).indexOf(widget);
-    const widgetId = `stopwatch-${pageIndex}-${widgetIndex}`;
+    // Get widget instance ID from widget's class list
+    const classes = Array.from(widget.classList);
+    const instanceIdClass = classes.find(c => c.startsWith('stopwatch-widget-page-') && c.includes('-instance-'));
+    const fullWidgetId = instanceIdClass || generateWidgetId('stopwatch-widget', pageIndex, 0);
+    
+    // If widget doesn't have instance ID, add it
+    if (!instanceIdClass) {
+      widget.classList.add(fullWidgetId);
+    }
     
     // Get saved state from localStorage
-    const stateKey = `dakboard-stopwatch-state-${widgetId}`;
+    const stateKey = `dakboard-stopwatch-${fullWidgetId}`;
     const savedState = localStorage.getItem(stateKey);
     let state = {
       elapsed: 0, // milliseconds
@@ -2839,10 +3004,10 @@ function loadStopwatch() {
       }
     }
     
-    stopwatchStates.set(widgetId, state);
+    stopwatchStates.set(fullWidgetId, state);
     
     // Get widget-specific colors from saved styles or use defaults
-    const stylesKey = `dakboard-widget-styles-stopwatch-widget-page-${pageIndex}`;
+    const stylesKey = `dakboard-widget-styles-${fullWidgetId}-page-${pageIndex}`;
     const savedStyles = localStorage.getItem(stylesKey);
     let textColor = '#1a1a1a';
     let playButtonColor = '#4a90e2';
@@ -2876,7 +3041,7 @@ function loadStopwatch() {
     }
     
     // Update display
-    updateStopwatchDisplay(widgetId, container);
+    updateStopwatchDisplay(fullWidgetId, container);
     
     // Set up button handlers (always reattach to ensure they work)
     if (playPauseBtn) {
@@ -2888,11 +3053,11 @@ function loadStopwatch() {
         const widget = container.closest('.widget');
         const isEditMode = widget && widget.closest('.dashboard.page') && widget.closest('.dashboard.page').classList.contains('edit-mode');
         if (!isEditMode) {
-          toggleStopwatch(widgetId, container);
+          toggleStopwatch(fullWidgetId, container);
         }
       });
       // Update button state after cloning
-      updateStopwatchButton(widgetId, container);
+      updateStopwatchButton(fullWidgetId, container);
     }
     
     if (resetBtn) {
@@ -2904,17 +3069,17 @@ function loadStopwatch() {
         const widget = container.closest('.widget');
         const isEditMode = widget && widget.closest('.dashboard.page') && widget.closest('.dashboard.page').classList.contains('edit-mode');
         if (!isEditMode) {
-          resetStopwatch(widgetId, container);
+          resetStopwatch(fullWidgetId, container);
         }
       });
     }
     
     // Update button state
-    updateStopwatchButton(widgetId, container);
+    updateStopwatchButton(fullWidgetId, container);
     
     // Start interval if running
     if (state.isRunning) {
-      startStopwatchInterval(widgetId, container);
+      startStopwatchInterval(fullWidgetId, container);
     }
   });
 }
@@ -3096,19 +3261,22 @@ function loadScoreboard() {
     const container = widget.querySelector('.scoreboard-content');
     if (!container) return;
   
-    
-    
     // Get the page index from the widget's parent page
     const pageElement = widget.closest('.dashboard.page');
     const pageIndex = pageElement ? parseInt(pageElement.getAttribute('data-page-id')) || 0 : 0;
     
-    // Create unique ID for this widget instance (page + index within page)
-    const widgetsOnPage = pageElement ? pageElement.querySelectorAll('.scoreboard-widget') : [];
-    const widgetIndex = Array.from(widgetsOnPage).indexOf(widget);
-    const widgetId = `scoreboard-${pageIndex}-${widgetIndex}`;
+    // Get widget instance ID from widget's class list
+    const classes = Array.from(widget.classList);
+    const instanceIdClass = classes.find(c => c.startsWith('scoreboard-widget-page-') && c.includes('-instance-'));
+    const fullWidgetId = instanceIdClass || generateWidgetId('scoreboard-widget', pageIndex, 0);
+    
+    // If widget doesn't have instance ID, add it
+    if (!instanceIdClass) {
+      widget.classList.add(fullWidgetId);
+    }
     
     // Get saved configuration from localStorage
-    const configKey = `dakboard-scoreboard-config-${widgetId}`;
+    const configKey = `dakboard-scoreboard-config-${fullWidgetId}`;
     const savedConfig = localStorage.getItem(configKey);
     
     let config = {
@@ -3135,10 +3303,10 @@ function loadScoreboard() {
       }
     }
     
-    scoreboardConfigs.set(widgetId, config);
+    scoreboardConfigs.set(fullWidgetId, config);
     
     // Get saved scores
-    const scoresKey = `dakboard-scoreboard-scores-${widgetId}`;
+    const scoresKey = `dakboard-scoreboard-scores-${fullWidgetId}`;
     const savedScores = localStorage.getItem(scoresKey);
     let scores = {};
     if (savedScores) {
@@ -3156,10 +3324,10 @@ function loadScoreboard() {
       }
     });
     
-    scoreboardScores.set(widgetId, scores);
+    scoreboardScores.set(fullWidgetId, scores);
     
     // Get saved winners
-    const winnersKey = `dakboard-scoreboard-winners-${widgetId}`;
+    const winnersKey = `dakboard-scoreboard-winners-${fullWidgetId}`;
     const savedWinners = localStorage.getItem(winnersKey);
     let winners = new Set();
     if (savedWinners) {
@@ -3170,13 +3338,13 @@ function loadScoreboard() {
       }
     }
     
-    scoreboardWinners.set(widgetId, winners);
+    scoreboardWinners.set(fullWidgetId, winners);
     
     // Render the scoreboard
-    renderScoreboard(widgetId, container);
+    renderScoreboard(fullWidgetId, container);
     
     // Set up reset button (always reattach after render)
-    setupResetButton(widgetId, container);
+    setupResetButton(fullWidgetId, container);
   });
 }
 
@@ -3389,9 +3557,18 @@ function loadClipArt() {
     const pageElement = widget.closest('.dashboard.page');
     const pageIndex = pageElement ? parseInt(pageElement.getAttribute('data-page-id')) || 0 : 0;
     
+    // Get widget instance ID from widget's class list
+    const classes = Array.from(widget.classList);
+    const instanceIdClass = classes.find(c => c.startsWith('blank-widget-page-') && c.includes('-instance-'));
+    const fullWidgetId = instanceIdClass || generateWidgetId('blank-widget', pageIndex, 0);
+    
+    // If widget doesn't have instance ID, add it
+    if (!instanceIdClass) {
+      widget.classList.add(fullWidgetId);
+    }
+    
     // Get saved clip art and color from localStorage
-    const widgetId = 'blank-widget';
-    const stylesKey = `dakboard-widget-styles-${widgetId}-page-${pageIndex}`;
+    const stylesKey = `dakboard-widget-styles-${fullWidgetId}-page-${pageIndex}`;
     const savedStyles = localStorage.getItem(stylesKey);
     
     let clipArtEmoji = '🎨'; // Default
@@ -3731,9 +3908,22 @@ function updateThermostatControlStyles(widget) {
 
 // Load thermostat data
 async function loadThermostat() {
-  // Find all thermostat widgets across all pages
-  const selectors = document.querySelectorAll('#thermostat-selector');
-  const displays = document.querySelectorAll('#thermostat-display');
+  // Get all thermostat widget instances on the current page
+  const pageElement = getPageElement(currentPageIndex);
+  if (!pageElement) return;
+  
+  const instances = getWidgetInstances('thermostat-widget', currentPageIndex);
+  const selectors = [];
+  const displays = [];
+  
+  instances.forEach(instance => {
+    const widget = instance.element;
+    if (!widget || widget.classList.contains('hidden')) return;
+    const selector = widget.querySelector('#thermostat-selector');
+    const display = widget.querySelector('#thermostat-display');
+    if (selector) selectors.push(selector);
+    if (display) displays.push(display);
+  });
   
   if (selectors.length === 0 || displays.length === 0) return;
   
@@ -3820,7 +4010,7 @@ async function loadThermostat() {
       </div>
     `;
     
-    // Update all displays across all pages
+    // Update all displays on current page
     displays.forEach(d => d.innerHTML = displayHtml);
     
     // Sync all selectors to the current selection
@@ -4069,8 +4259,20 @@ let newsErrorCount = 0;
 const MAX_NEWS_ERRORS = 3; // Stop retrying after 3 consecutive errors
 
 async function loadNews() {
-  // Find all news widgets across all pages
-  const containers = document.querySelectorAll('#news-content');
+  // Get all news widget instances on the current page
+  const pageElement = getPageElement(currentPageIndex);
+  if (!pageElement) return;
+  
+  const instances = getWidgetInstances('news-widget', currentPageIndex);
+  const containers = [];
+  
+  instances.forEach(instance => {
+    const widget = instance.element;
+    if (!widget || widget.classList.contains('hidden')) return;
+    const container = widget.querySelector('#news-content');
+    if (container) containers.push(container);
+  });
+  
   if (containers.length === 0) return;
   
   // Prevent multiple simultaneous requests
@@ -4243,12 +4445,19 @@ let lastY = 0;
 
 // Initialize whiteboard
 function initializeWhiteboard() {
-  // Find whiteboard canvas on current page
-  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
-    ? window.currentPageIndex 
-    : 0;
-  const currentPage = document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
-  const canvas = currentPage ? currentPage.querySelector('#whiteboard-canvas') : document.getElementById('whiteboard-canvas');
+  // Get all whiteboard widget instances on the current page
+  const pageElement = getPageElement(currentPageIndex);
+  if (!pageElement) return;
+  
+  const instances = getWidgetInstances('whiteboard-widget', currentPageIndex);
+  
+  // Initialize first whiteboard instance (whiteboards use global state, so only one active at a time)
+  if (instances.length === 0) return;
+  
+  const firstInstance = instances[0];
+  const widget = firstInstance.element;
+  if (!widget || widget.classList.contains('hidden')) return;
+  const canvas = widget.querySelector('#whiteboard-canvas');
   if (!canvas) return;
   
   whiteboardCanvas = canvas;
@@ -4256,8 +4465,8 @@ function initializeWhiteboard() {
   
   // Set canvas size to match container
   const container = canvas.closest('.whiteboard-container');
-  const widget = canvas.closest('.whiteboard-widget');
-  if (container && widget) {
+  const whiteboardWidget = canvas.closest('.whiteboard-widget');
+  if (container && whiteboardWidget) {
     const resizeCanvas = () => {
       // Get the actual container dimensions
       const containerRect = container.getBoundingClientRect();
@@ -4318,7 +4527,6 @@ function initializeWhiteboard() {
   const savedBrushSize = localStorage.getItem(`whiteboard-brush-size-page-${currentPageIndex}`) || '3';
   
   // Find controls on current page (whiteboard controls are in the widget header)
-  const whiteboardWidget = canvas.closest('.whiteboard-widget');
   const inkColorInput = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-ink-color') : document.getElementById('whiteboard-ink-color');
   const bgColorInput = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-bg-color') : document.getElementById('whiteboard-bg-color');
   const brushSizeInput = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-brush-size') : document.getElementById('whiteboard-brush-size');
@@ -4618,6 +4826,130 @@ const WIDGET_CONFIG = {
   'whiteboard-widget': { name: 'Whiteboard', icon: '🖊️' }
 };
 
+// Widget Instance Management Functions
+// Widget IDs now follow format: {widgetType}-page-{pageIndex}-instance-{instanceIndex}
+// Example: dice-widget-page-0-instance-0, dice-widget-page-0-instance-1
+
+// Parse widget instance ID into components
+function parseWidgetId(fullWidgetId) {
+  // Handle legacy format (just widgetType) for backward compatibility
+  if (!fullWidgetId.includes('-page-') || !fullWidgetId.includes('-instance-')) {
+    return {
+      widgetType: fullWidgetId,
+      pageIndex: currentPageIndex,
+      instanceIndex: 0,
+      isLegacy: true
+    };
+  }
+  
+  const parts = fullWidgetId.split('-page-');
+  if (parts.length !== 2) {
+    return { widgetType: fullWidgetId, pageIndex: currentPageIndex, instanceIndex: 0, isLegacy: true };
+  }
+  
+  const widgetType = parts[0];
+  const rest = parts[1];
+  const instanceParts = rest.split('-instance-');
+  
+  if (instanceParts.length !== 2) {
+    return { widgetType: fullWidgetId, pageIndex: currentPageIndex, instanceIndex: 0, isLegacy: true };
+  }
+  
+  return {
+    widgetType: widgetType,
+    pageIndex: parseInt(instanceParts[0]) || currentPageIndex,
+    instanceIndex: parseInt(instanceParts[1]) || 0,
+    isLegacy: false
+  };
+}
+
+// Generate widget instance ID
+function generateWidgetId(widgetType, pageIndex, instanceIndex) {
+  return `${widgetType}-page-${pageIndex}-instance-${instanceIndex}`;
+}
+
+// Get widget type from full widget ID
+function getWidgetType(fullWidgetId) {
+  const parsed = parseWidgetId(fullWidgetId);
+  return parsed.widgetType;
+}
+
+// Get all widget instances for a specific widget type on a page
+function getWidgetInstances(widgetType, pageIndex) {
+  const pageElement = getPageElement(pageIndex);
+  if (!pageElement) return [];
+  
+  // Find all widgets of this type on the page
+  const widgets = Array.from(pageElement.querySelectorAll(`.${widgetType}`));
+  const instances = [];
+  
+  widgets.forEach(widget => {
+    // Get instance index from widget's class list
+    const classes = Array.from(widget.classList);
+    // Look for class that matches the instance ID pattern
+    const instanceClass = classes.find(c => {
+      // Check if it matches the pattern: widgetType-page-X-instance-Y
+      const pattern = new RegExp(`^${widgetType}-page-${pageIndex}-instance-\\d+$`);
+      return pattern.test(c);
+    });
+    
+    if (instanceClass) {
+      const parsed = parseWidgetId(instanceClass);
+      instances.push({
+        fullId: instanceClass,
+        instanceIndex: parsed.instanceIndex,
+        element: widget
+      });
+    } else {
+      // Legacy widget or widget without instance ID - treat as instance-0
+      // Check if this widget already has an instance-0 ID
+      const existingInstance0 = instances.find(i => i.instanceIndex === 0);
+      if (!existingInstance0) {
+        instances.push({
+          fullId: generateWidgetId(widgetType, pageIndex, 0),
+          instanceIndex: 0,
+          element: widget
+        });
+        // Update widget's class to include the full ID
+        widget.classList.add(generateWidgetId(widgetType, pageIndex, 0));
+      }
+    }
+  });
+  
+  return instances.sort((a, b) => a.instanceIndex - b.instanceIndex);
+}
+
+// Get next available instance index for a widget type on a page
+function getNextInstanceIndex(widgetType, pageIndex) {
+  const instances = getWidgetInstances(widgetType, pageIndex);
+  if (instances.length === 0) return 0;
+  
+  const maxIndex = Math.max(...instances.map(i => i.instanceIndex));
+  return maxIndex + 1;
+}
+
+// Get widget's configured title (from localStorage)
+function getWidgetTitle(fullWidgetId) {
+  const parsed = parseWidgetId(fullWidgetId);
+  const stylesKey = `dakboard-widget-styles-${fullWidgetId}-page-${parsed.pageIndex}`;
+  const savedStyles = localStorage.getItem(stylesKey);
+  
+  if (savedStyles) {
+    try {
+      const styles = JSON.parse(savedStyles);
+      if (styles.titleText && styles.titleText.trim()) {
+        return styles.titleText.trim();
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
+  }
+  
+  // Return default name from WIDGET_CONFIG
+  const config = WIDGET_CONFIG[parsed.widgetType];
+  return config ? config.name : parsed.widgetType;
+}
+
 // Load widget visibility state from localStorage (page-specific)
 function loadWidgetVisibility() {
   try {
@@ -4628,20 +4960,49 @@ function loadWidgetVisibility() {
     const saved = localStorage.getItem(visibilityKey);
     const visibility = saved ? JSON.parse(saved) : {};
     
-    // Process all widgets in WIDGET_CONFIG
-    Object.keys(WIDGET_CONFIG).forEach(widgetId => {
-        // Find widget on current page only
-      let widget = pageElement.querySelector(`.${widgetId}`);
+    // Process all widget types in WIDGET_CONFIG
+    Object.keys(WIDGET_CONFIG).forEach(widgetType => {
+      // Get all instances of this widget type on the current page
+      const instances = getWidgetInstances(widgetType, currentPageIndex);
       
-      // Only create widget if visibility is explicitly true
-      // Don't create if false or undefined (not configured for this page)
-      if (!widget && visibility[widgetId] === true) {
+      // Process each instance
+      instances.forEach(instance => {
+        const fullWidgetId = instance.fullId;
+        const widget = instance.element;
+        
+        // Check visibility for this specific instance
+        const instanceVisibility = visibility[fullWidgetId];
+        
+        if (widget) {
+          if (instanceVisibility === false) {
+            widget.classList.add('hidden');
+          } else if (instanceVisibility === true) {
+            widget.classList.remove('hidden');
+          } else {
+            // If visibility not set for this instance, check legacy format
+            const legacyVisibility = visibility[widgetType];
+            if (legacyVisibility === false) {
+              widget.classList.add('hidden');
+            } else if (legacyVisibility === true) {
+              widget.classList.remove('hidden');
+            } else {
+              // Default: hide if not explicitly shown
+              widget.classList.add('hidden');
+            }
+          }
+        }
+      });
+      
+      // Legacy support: if no instances exist but visibility is set for widget type, create instance-0
+      if (instances.length === 0 && visibility[widgetType] === true) {
         // Find the widget template (usually on page 0)
-        const templateWidget = document.querySelector(`.${widgetId}`);
+        const templateWidget = document.querySelector(`.${widgetType}`);
         if (templateWidget) {
-          // Clone the widget to the current page
-          widget = templateWidget.cloneNode(true);
-          widget.classList.remove('hidden'); // Ensure it's visible
+          // Create instance-0
+          const fullWidgetId = generateWidgetId(widgetType, currentPageIndex, 0);
+          const widget = templateWidget.cloneNode(true);
+          widget.className = `${widgetType} ${fullWidgetId}`;
+          widget.classList.remove('hidden');
           pageElement.appendChild(widget);
           
           // Initialize widget-specific functionality if needed
@@ -4652,19 +5013,7 @@ function loadWidgetVisibility() {
           }
         }
       }
-      
-      // Set visibility for existing widgets
-        if (widget) {
-          if (visibility[widgetId] === false) {
-            widget.classList.add('hidden');
-        } else if (visibility[widgetId] === true) {
-            widget.classList.remove('hidden');
-        } else {
-          // If visibility not set for this page, hide the widget (it shouldn't be here)
-          widget.classList.add('hidden');
-          }
-        }
-      });
+    });
   } catch (error) {
     console.error('Error loading widget visibility:', error);
   }
@@ -4677,15 +5026,20 @@ function saveWidgetVisibility() {
     if (!pageElement) return;
     
     const visibility = {};
-    Object.keys(WIDGET_CONFIG).forEach(widgetId => {
-      // Find widget on current page only
-      const widget = pageElement.querySelector(`.${widgetId}`);
-      if (widget) {
-        visibility[widgetId] = !widget.classList.contains('hidden');
-      } else {
-        // Widget doesn't exist on this page, mark as hidden
-        visibility[widgetId] = false;
-      }
+    
+    // Process all widget types
+    Object.keys(WIDGET_CONFIG).forEach(widgetType => {
+      // Get all instances of this widget type on the current page
+      const instances = getWidgetInstances(widgetType, currentPageIndex);
+      
+      // Save visibility for each instance
+      instances.forEach(instance => {
+        const fullWidgetId = instance.fullId;
+        const widget = instance.element;
+        if (widget) {
+          visibility[fullWidgetId] = !widget.classList.contains('hidden');
+        }
+      });
     });
     
     const visibilityKey = `dakboard-widget-visibility-page-${currentPageIndex}`;
@@ -4696,21 +5050,38 @@ function saveWidgetVisibility() {
 }
 
 // Toggle widget visibility (page-specific)
-function toggleWidgetVisibility(widgetId) {
-  const pageElement = getPageElement(currentPageIndex);
+function toggleWidgetVisibility(fullWidgetId) {
+  const parsed = parseWidgetId(fullWidgetId);
+  const widgetType = parsed.widgetType;
+  const pageIndex = parsed.pageIndex;
+  const instanceIndex = parsed.instanceIndex;
+  
+  const pageElement = getPageElement(pageIndex);
   if (!pageElement) return;
   
-  // Find widget on current page
-  let widget = pageElement.querySelector(`.${widgetId}`);
+  // Find widget on current page using full ID
+  let widget = pageElement.querySelector(`.${fullWidgetId}`);
+  
+  // If not found, try legacy format or find by widget type
+  if (!widget) {
+    // Try legacy format first
+    widget = pageElement.querySelector(`.${widgetType}`);
+    if (widget) {
+      // Update widget to use new ID format
+      widget.className = `${widgetType} ${fullWidgetId}`;
+    }
+  }
   
   let widgetJustCreated = false;
   // If widget doesn't exist on current page, create it
   if (!widget) {
     // Find the widget template (usually on page 0 or in the original HTML)
-    const templateWidget = document.querySelector(`.${widgetId}`);
+    const templateWidget = document.querySelector(`.${widgetType}`);
     if (templateWidget) {
       // Clone the widget to the current page
       widget = templateWidget.cloneNode(true);
+      // Set the full ID as a class
+      widget.className = `${widgetType} ${fullWidgetId}`;
       // Mark as hidden initially so it will be shown below
       widget.classList.add('hidden');
       widgetJustCreated = true;
@@ -4731,12 +5102,17 @@ function toggleWidgetVisibility(widgetId) {
         }, 100);
       }
     } else {
-      console.error(`Widget template ${widgetId} not found`);
+      console.error(`Widget template ${widgetType} not found`);
       return;
     }
   }
   
   if (widget) {
+    // Ensure widget has the correct class
+    if (!widget.classList.contains(fullWidgetId)) {
+      widget.classList.add(fullWidgetId);
+    }
+    
     // Toggle visibility - if it's hidden, show it; if it's visible, hide it
     // If widget was just created, treat it as hidden so it gets shown
     const isCurrentlyHidden = widget.classList.contains('hidden') || widgetJustCreated;
@@ -4750,39 +5126,15 @@ function toggleWidgetVisibility(widgetId) {
       }), 1);
       widget.style.zIndex = (maxZIndex + 1).toString();
       
-      // Initialize widget-specific functionality after showing
-      if (widgetId === 'dice-widget' && typeof loadDice === 'function') {
-        setTimeout(() => loadDice(), 50);
-      } else if (widgetId === 'stopwatch-widget' && typeof loadStopwatch === 'function') {
-        setTimeout(() => loadStopwatch(), 50);
-      } else if (widgetId === 'scoreboard-widget' && typeof loadScoreboard === 'function') {
-        setTimeout(() => loadScoreboard(), 50);
-      } else if (widgetId === 'compressor-widget' && typeof loadCompressor === 'function') {
-        setTimeout(() => loadCompressor(), 50);
-      } else if (widgetId === 'alarm-widget' && typeof loadAlarm === 'function') {
-        setTimeout(() => loadAlarm(), 50);
-      } else if (widgetId === 'garage-widget' && typeof loadGarageDoors === 'function') {
-        setTimeout(() => loadGarageDoors(), 50);
-      } else if (widgetId === 'thermostat-widget' && typeof loadThermostat === 'function') {
-        setTimeout(() => loadThermostat(), 50);
-      } else if (widgetId === 'news-widget' && typeof loadNews === 'function') {
-        setTimeout(() => loadNews(), 50);
-      } else if (widgetId === 'whiteboard-widget' && typeof initializeWhiteboard === 'function') {
-        setTimeout(() => initializeWhiteboard(), 50);
-      } else if (widgetId === 'weather-widget' && typeof loadWeather === 'function') {
-        setTimeout(() => loadWeather(), 50);
-      } else if (widgetId === 'todo-widget' && typeof loadTodos === 'function') {
-        setTimeout(() => loadTodos(), 50);
-      } else if (widgetId === 'calendar-widget' && typeof loadCalendarEvents === 'function') {
-        setTimeout(() => loadCalendarEvents(), 50);
-      }
+      // Initialize widget instance
+      initializeWidgetInstance(fullWidgetId, widget);
     } else {
       widget.classList.add('hidden');
     }
     saveWidgetVisibility();
     // Update panel after a brief delay to ensure DOM is updated
     setTimeout(() => {
-    updateWidgetControlPanel();
+      updateWidgetControlPanel();
     }, 10);
   }
 }
@@ -4996,33 +5348,75 @@ function updateWidgetControlPanel() {
   separator.className = 'widget-control-separator';
   list.appendChild(separator);
 
-  // Sort widgets alphabetically by name
-  const sortedWidgets = Object.keys(WIDGET_CONFIG).sort((a, b) => {
-    const nameA = WIDGET_CONFIG[a].name.toLowerCase();
-    const nameB = WIDGET_CONFIG[b].name.toLowerCase();
-    return nameA.localeCompare(nameB);
+  // Get all widget instances for each widget type on current page
+  const pageElement = getPageElement(currentPageIndex);
+  if (!pageElement) return;
+  
+  // Collect all widget instances
+  const allInstances = [];
+  
+  Object.keys(WIDGET_CONFIG).forEach(widgetType => {
+    const instances = getWidgetInstances(widgetType, currentPageIndex);
+    
+    // If no instances exist, create a placeholder for the original (instance-0)
+    if (instances.length === 0) {
+      allInstances.push({
+        widgetType: widgetType,
+        fullId: generateWidgetId(widgetType, currentPageIndex, 0),
+        instanceIndex: 0,
+        element: null,
+        isPlaceholder: true
+      });
+    } else {
+      instances.forEach(instance => {
+        allInstances.push({
+          widgetType: widgetType,
+          fullId: instance.fullId,
+          instanceIndex: instance.instanceIndex,
+          element: instance.element,
+          isPlaceholder: false
+        });
+      });
+    }
   });
-
-  sortedWidgets.forEach(widgetId => {
-    const config = WIDGET_CONFIG[widgetId];
-    // Find widget on current page only
-    const pageElement = getPageElement(currentPageIndex);
-    const widget = pageElement ? pageElement.querySelector(`.${widgetId}`) : null;
-    // Widget is hidden if it doesn't exist on current page OR if it has the 'hidden' class
+  
+  // Sort instances by widget type name, then by instance index
+  allInstances.sort((a, b) => {
+    const nameA = WIDGET_CONFIG[a.widgetType].name.toLowerCase();
+    const nameB = WIDGET_CONFIG[b.widgetType].name.toLowerCase();
+    if (nameA !== nameB) {
+      return nameA.localeCompare(nameB);
+    }
+    return a.instanceIndex - b.instanceIndex;
+  });
+  
+  // Create control panel items for each instance
+  allInstances.forEach(instance => {
+    const config = WIDGET_CONFIG[instance.widgetType];
+    const widget = instance.element;
     const isHidden = !widget || widget.classList.contains('hidden');
+    const isClone = instance.instanceIndex > 0;
+    
+    // Get widget title (configured title or default name)
+    const widgetTitle = getWidgetTitle(instance.fullId);
     
     const item = document.createElement('div');
     item.className = `widget-control-item ${isHidden ? 'hidden' : ''}`;
+    item.dataset.widgetId = instance.fullId;
+    item.dataset.widgetType = instance.widgetType;
+    item.dataset.instanceIndex = instance.instanceIndex;
     
+    // Toggle button (eye icon)
     const toggleBtn = document.createElement('button');
     toggleBtn.className = `widget-control-toggle-btn ${isHidden ? 'hidden' : ''}`;
     toggleBtn.innerHTML = isHidden ? '👁️' : '👁️‍🗨️';
     toggleBtn.title = isHidden ? 'Show widget' : 'Hide widget';
     toggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      toggleWidgetVisibility(widgetId);
+      toggleWidgetVisibility(instance.fullId);
     });
     
+    // Style button (edit icon)
     const styleBtn = document.createElement('button');
     styleBtn.className = 'widget-control-style-btn';
     styleBtn.innerHTML = '🎨';
@@ -5030,60 +5424,445 @@ function updateWidgetControlPanel() {
     styleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (typeof openStylingModal === 'function') {
-        openStylingModal(widgetId);
+        openStylingModal(instance.fullId);
       }
     });
     
-    // Z-index controls (promotion = green, demotion = red)
-    const bringForwardBtn = document.createElement('button');
-    bringForwardBtn.className = 'widget-control-zindex-btn widget-control-zindex-promote';
-    bringForwardBtn.innerHTML = '↑';
-    bringForwardBtn.title = 'Bring Forward';
-    bringForwardBtn.addEventListener('click', (e) => {
+    // Clone button (always visible)
+    const cloneBtn = document.createElement('button');
+    cloneBtn.className = 'widget-control-clone-btn';
+    cloneBtn.innerHTML = '📋';
+    cloneBtn.title = 'Clone widget';
+    cloneBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      bringWidgetForward(widgetId);
+      cloneWidget(instance.fullId);
     });
-
-    const sendBackwardBtn = document.createElement('button');
-    sendBackwardBtn.className = 'widget-control-zindex-btn widget-control-zindex-demote';
-    sendBackwardBtn.innerHTML = '↓';
-    sendBackwardBtn.title = 'Send Backward';
-    sendBackwardBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      sendWidgetBackward(widgetId);
-    });
-
-    const bringToFrontBtn = document.createElement('button');
-    bringToFrontBtn.className = 'widget-control-zindex-btn widget-control-zindex-promote';
-    bringToFrontBtn.innerHTML = '⬆';
-    bringToFrontBtn.title = 'Bring to Front';
-    bringToFrontBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      bringWidgetToFront(widgetId);
-    });
-
-    const sendToBackBtn = document.createElement('button');
-    sendToBackBtn.className = 'widget-control-zindex-btn widget-control-zindex-demote';
-    sendToBackBtn.innerHTML = '⬇';
-    sendToBackBtn.title = 'Send to Back';
-    sendToBackBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      sendWidgetToBack(widgetId);
-    });
+    
+    // Remove button (only for clones)
+    let removeBtn = null;
+    if (isClone) {
+      removeBtn = document.createElement('button');
+      removeBtn.className = 'widget-control-remove-btn';
+      removeBtn.innerHTML = '🗑️';
+      removeBtn.title = 'Remove widget';
+      removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeWidgetInstance(instance.fullId);
+      });
+    }
+    
+    // Move button (only if more than 1 page exists)
+    let moveBtn = null;
+    if (totalPages > 1) {
+      moveBtn = document.createElement('button');
+      moveBtn.className = 'widget-control-move-btn';
+      moveBtn.innerHTML = '➡️';
+      moveBtn.title = 'Move to page';
+      
+      // Create dropdown for page selection
+      const moveDropdown = document.createElement('div');
+      moveDropdown.className = 'widget-control-move-dropdown';
+      moveDropdown.style.display = 'none';
+      
+      for (let i = 0; i < totalPages; i++) {
+        if (i !== currentPageIndex) {
+          const pageOption = document.createElement('button');
+          pageOption.className = 'widget-control-move-option';
+          pageOption.textContent = `Page ${i + 1}`;
+          pageOption.addEventListener('click', (e) => {
+            e.stopPropagation();
+            moveWidgetToPage(instance.fullId, i);
+            moveDropdown.style.display = 'none';
+          });
+          moveDropdown.appendChild(pageOption);
+        }
+      }
+      
+      moveBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isVisible = moveDropdown.style.display === 'block';
+        // Hide all other dropdowns
+        document.querySelectorAll('.widget-control-move-dropdown').forEach(dd => {
+          dd.style.display = 'none';
+        });
+        moveDropdown.style.display = isVisible ? 'none' : 'block';
+      });
+      
+      // Close dropdown when clicking outside
+      document.addEventListener('click', function closeDropdown(e) {
+        if (!moveBtn.contains(e.target) && !moveDropdown.contains(e.target)) {
+          moveDropdown.style.display = 'none';
+        }
+      });
+      
+      item.appendChild(moveDropdown);
+    }
     
     item.innerHTML = `
       <div class="widget-control-item-info">
         <span class="widget-control-item-icon">${config.icon}</span>
-        <span class="widget-control-item-name">${config.name}</span>
+        <span class="widget-control-item-name">${widgetTitle}</span>
       </div>
     `;
     item.appendChild(toggleBtn);
     item.appendChild(styleBtn);
-    
-    // Z-index controls removed from side panel - now displayed on widgets
+    item.appendChild(cloneBtn);
+    if (removeBtn) item.appendChild(removeBtn);
+    if (moveBtn) item.appendChild(moveBtn);
     
     list.appendChild(item);
   });
+}
+
+// Clone widget instance (creates a new instance with copied configuration)
+function cloneWidget(fullWidgetId) {
+  const parsed = parseWidgetId(fullWidgetId);
+  const widgetType = parsed.widgetType;
+  const pageIndex = parsed.pageIndex;
+  
+  // Get next available instance index
+  const newInstanceIndex = getNextInstanceIndex(widgetType, pageIndex);
+  const newFullId = generateWidgetId(widgetType, pageIndex, newInstanceIndex);
+  
+  // Check instance limit (soft limit of 10)
+  if (newInstanceIndex >= 10) {
+    if (!confirm(`You already have ${newInstanceIndex} instances of this widget. Create another?`)) {
+      return;
+    }
+  }
+  
+  const pageElement = getPageElement(pageIndex);
+  if (!pageElement) return;
+  
+  // Find the original widget
+  const originalWidget = pageElement.querySelector(`.${widgetType}`);
+  if (!originalWidget) {
+    // If original doesn't exist, create it first
+    const templateWidget = document.querySelector(`.${widgetType}`);
+    if (!templateWidget) {
+      console.error(`Widget template ${widgetType} not found`);
+      return;
+    }
+    // Create original first, then clone
+    const original = templateWidget.cloneNode(true);
+    original.classList.add('hidden');
+    const originalId = generateWidgetId(widgetType, pageIndex, 0);
+    original.className = `${widgetType} ${originalId} hidden`;
+    pageElement.appendChild(original);
+    // Now clone the original
+    const cloned = original.cloneNode(true);
+    cloned.className = `${widgetType} ${newFullId}`;
+    cloned.classList.remove('hidden');
+    cloned.style.left = (parseInt(original.style.left) || 50) + 50 + 'px';
+    cloned.style.top = (parseInt(original.style.top) || 50) + 50 + 'px';
+    pageElement.appendChild(cloned);
+    
+    // Copy configuration from original (if it exists)
+    copyWidgetConfiguration(originalId, newFullId, pageIndex);
+    
+    // Initialize the cloned widget
+    initializeWidgetInstance(newFullId, cloned);
+    updateWidgetControlPanel();
+    return;
+  }
+  
+  // Clone the widget element
+  const cloned = originalWidget.cloneNode(true);
+  cloned.className = `${widgetType} ${newFullId}`;
+  cloned.classList.remove('hidden');
+  
+  // Offset position slightly
+  const rect = originalWidget.getBoundingClientRect();
+  const pageRect = pageElement.getBoundingClientRect();
+  cloned.style.left = (rect.left - pageRect.left + 50) + 'px';
+  cloned.style.top = (rect.top - pageRect.top + 50) + 'px';
+  
+  pageElement.appendChild(cloned);
+  
+  // Copy configuration from original
+  copyWidgetConfiguration(fullWidgetId, newFullId, pageIndex);
+  
+  // Initialize the cloned widget
+  initializeWidgetInstance(newFullId, cloned);
+  
+  // Update control panel
+  updateWidgetControlPanel();
+  
+  // Reinitialize drag/resize
+  if (typeof initializeDragAndResize === 'function') {
+    setTimeout(() => {
+      initializeDragAndResize();
+    }, 100);
+  }
+}
+
+// Remove widget instance (only for clones)
+function removeWidgetInstance(fullWidgetId) {
+  const parsed = parseWidgetId(fullWidgetId);
+  if (parsed.instanceIndex === 0) {
+    console.error('Cannot remove original widget instance (instance-0)');
+    return;
+  }
+  
+  const widgetType = parsed.widgetType;
+  const pageIndex = parsed.pageIndex;
+  const instanceIndex = parsed.instanceIndex;
+  
+  const pageElement = getPageElement(pageIndex);
+  if (!pageElement) return;
+  
+  // Find and remove the widget element
+  const widget = pageElement.querySelector(`.${fullWidgetId}`);
+  if (widget) {
+    widget.remove();
+  }
+  
+  // Remove all localStorage entries for this instance
+  const keysToRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.includes(`-${fullWidgetId}-page-${pageIndex}`)) {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach(key => localStorage.removeItem(key));
+  
+  // Reindex remaining instances (shift down instance indices)
+  const instances = getWidgetInstances(widgetType, pageIndex);
+  instances.forEach(inst => {
+    if (inst.instanceIndex > instanceIndex) {
+      const oldId = inst.fullId;
+      const newInstanceIndex = inst.instanceIndex - 1;
+      const newId = generateWidgetId(widgetType, pageIndex, newInstanceIndex);
+      
+      // Update widget element class
+      if (inst.element) {
+        inst.element.className = `${widgetType} ${newId}`;
+      }
+      
+      // Rename localStorage keys
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.includes(`-${oldId}-page-${pageIndex}`)) {
+          const newKey = key.replace(`-${oldId}-page-${pageIndex}`, `-${newId}-page-${pageIndex}`);
+          const value = localStorage.getItem(key);
+          if (value) {
+            localStorage.setItem(newKey, value);
+            localStorage.removeItem(key);
+          }
+        }
+      }
+    }
+  });
+  
+  // Update control panel
+  updateWidgetControlPanel();
+  
+  // Reinitialize drag/resize
+  if (typeof initializeDragAndResize === 'function') {
+    setTimeout(() => {
+      initializeDragAndResize();
+    }, 100);
+  }
+}
+
+// Move widget to different page
+function moveWidgetToPage(fullWidgetId, targetPageIndex) {
+  const parsed = parseWidgetId(fullWidgetId);
+  const widgetType = parsed.widgetType;
+  const sourcePageIndex = parsed.pageIndex;
+  const instanceIndex = parsed.instanceIndex;
+  const isOriginal = instanceIndex === 0;
+  
+  if (sourcePageIndex === targetPageIndex) return;
+  
+  const sourcePageElement = getPageElement(sourcePageIndex);
+  const targetPageElement = getPageElement(targetPageIndex);
+  if (!sourcePageElement || !targetPageElement) return;
+  
+  // Find the widget on source page
+  const widget = sourcePageElement.querySelector(`.${fullWidgetId}`);
+  if (!widget) {
+    // Widget might be hidden/not exist, check if we need to create it
+    const templateWidget = document.querySelector(`.${widgetType}`);
+    if (!templateWidget) {
+      console.error(`Widget template ${widgetType} not found`);
+      return;
+    }
+    // Create widget from template
+    const newWidget = templateWidget.cloneNode(true);
+    newWidget.classList.add('hidden');
+    sourcePageElement.appendChild(newWidget);
+    // Update its ID
+    newWidget.className = `${widgetType} ${fullWidgetId}`;
+  }
+  
+  // Get next available instance index on target page
+  const newInstanceIndex = getNextInstanceIndex(widgetType, targetPageIndex);
+  const newFullId = generateWidgetId(widgetType, targetPageIndex, newInstanceIndex);
+  
+  // Copy configuration to new page
+  copyWidgetConfiguration(fullWidgetId, newFullId, targetPageIndex, sourcePageIndex);
+  
+  // Clone widget to target page
+  const widgetToMove = sourcePageElement.querySelector(`.${fullWidgetId}`);
+  if (widgetToMove) {
+    const cloned = widgetToMove.cloneNode(true);
+    cloned.className = `${widgetType} ${newFullId}`;
+    cloned.classList.remove('hidden');
+    targetPageElement.appendChild(cloned);
+    
+    // Initialize on target page
+    initializeWidgetInstance(newFullId, cloned);
+  } else {
+    // Create from template if widget doesn't exist
+    const templateWidget = document.querySelector(`.${widgetType}`);
+    if (templateWidget) {
+      const cloned = templateWidget.cloneNode(true);
+      cloned.className = `${widgetType} ${newFullId}`;
+      cloned.classList.remove('hidden');
+      targetPageElement.appendChild(cloned);
+      initializeWidgetInstance(newFullId, cloned);
+    }
+  }
+  
+  // Handle source page: remove if clone, hide if original
+  if (isOriginal) {
+    // Hide original widget on source page
+    const originalWidget = sourcePageElement.querySelector(`.${fullWidgetId}`);
+    if (originalWidget) {
+      originalWidget.classList.add('hidden');
+    }
+    // Update visibility state
+    const visibilityKey = `dakboard-widget-visibility-page-${sourcePageIndex}`;
+    const saved = localStorage.getItem(visibilityKey);
+    const visibility = saved ? JSON.parse(saved) : {};
+    visibility[fullWidgetId] = false;
+    localStorage.setItem(visibilityKey, JSON.stringify(visibility));
+  } else {
+    // Remove clone from source page
+    removeWidgetInstance(fullWidgetId);
+  }
+  
+  // Update control panel
+  updateWidgetControlPanel();
+  
+  // Reinitialize drag/resize
+  if (typeof initializeDragAndResize === 'function') {
+    setTimeout(() => {
+      initializeDragAndResize();
+    }, 100);
+  }
+}
+
+// Copy widget configuration from source to target
+function copyWidgetConfiguration(sourceFullId, targetFullId, targetPageIndex, sourcePageIndex = null) {
+  const sourceParsed = parseWidgetId(sourceFullId);
+  const sourcePage = sourcePageIndex !== null ? sourcePageIndex : sourceParsed.pageIndex;
+  
+  // Copy styles
+  const sourceStylesKey = `dakboard-widget-styles-${sourceFullId}-page-${sourcePage}`;
+  const targetStylesKey = `dakboard-widget-styles-${targetFullId}-page-${targetPageIndex}`;
+  const sourceStyles = localStorage.getItem(sourceStylesKey);
+  if (sourceStyles) {
+    localStorage.setItem(targetStylesKey, sourceStyles);
+  }
+  
+  // Copy layout (position, size, rotation)
+  const sourceLayoutKey = `dakboard-widget-layout-page-${sourcePage}`;
+  const targetLayoutKey = `dakboard-widget-layout-page-${targetPageIndex}`;
+  const sourceLayout = localStorage.getItem(sourceLayoutKey);
+  if (sourceLayout) {
+    try {
+      const layout = JSON.parse(sourceLayout);
+      const sourceLayoutData = layout[sourceFullId];
+      if (sourceLayoutData) {
+        const targetLayout = JSON.parse(localStorage.getItem(targetLayoutKey) || '{}');
+        targetLayout[targetFullId] = { ...sourceLayoutData };
+        localStorage.setItem(targetLayoutKey, JSON.stringify(targetLayout));
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
+  }
+  
+  // Copy widget-specific data (stopwatch state, scoreboard config, etc.)
+  const widgetType = sourceParsed.widgetType;
+  
+  // Stopwatch state
+  if (widgetType === 'stopwatch-widget') {
+    const sourceStopwatchKey = `dakboard-stopwatch-${sourceFullId}`;
+    const targetStopwatchKey = `dakboard-stopwatch-${targetFullId}`;
+    const sourceStopwatch = localStorage.getItem(sourceStopwatchKey);
+    if (sourceStopwatch) {
+      localStorage.setItem(targetStopwatchKey, sourceStopwatch);
+    }
+  }
+  
+  // Scoreboard config and scores
+  if (widgetType === 'scoreboard-widget') {
+    const sourceConfigKey = `dakboard-scoreboard-config-${sourceFullId}`;
+    const targetConfigKey = `dakboard-scoreboard-config-${targetFullId}`;
+    const sourceConfig = localStorage.getItem(sourceConfigKey);
+    if (sourceConfig) {
+      localStorage.setItem(targetConfigKey, sourceConfig);
+    }
+    
+    const sourceScoresKey = `dakboard-scoreboard-scores-${sourceFullId}`;
+    const targetScoresKey = `dakboard-scoreboard-scores-${targetFullId}`;
+    const sourceScores = localStorage.getItem(sourceScoresKey);
+    if (sourceScores) {
+      localStorage.setItem(targetScoresKey, sourceScores);
+    }
+  }
+}
+
+// Initialize widget instance (load data, attach event listeners, etc.)
+function initializeWidgetInstance(fullWidgetId, widgetElement) {
+  const parsed = parseWidgetId(fullWidgetId);
+  const widgetType = parsed.widgetType;
+  
+  // Set widget's class to include the full ID
+  widgetElement.className = `${widgetType} ${fullWidgetId}`;
+  
+  // Load widget-specific functionality
+  if (widgetType === 'dice-widget' && typeof loadDice === 'function') {
+    setTimeout(() => loadDice(), 50);
+  } else if (widgetType === 'stopwatch-widget' && typeof loadStopwatch === 'function') {
+    setTimeout(() => loadStopwatch(), 50);
+  } else if (widgetType === 'scoreboard-widget' && typeof loadScoreboard === 'function') {
+    setTimeout(() => loadScoreboard(), 50);
+  } else if (widgetType === 'compressor-widget' && typeof loadCompressor === 'function') {
+    setTimeout(() => loadCompressor(), 50);
+  } else if (widgetType === 'alarm-widget' && typeof loadAlarm === 'function') {
+    setTimeout(() => loadAlarm(), 50);
+  } else if (widgetType === 'garage-widget' && typeof loadGarageDoors === 'function') {
+    setTimeout(() => loadGarageDoors(), 50);
+  } else if (widgetType === 'thermostat-widget' && typeof loadThermostat === 'function') {
+    setTimeout(() => loadThermostat(), 50);
+  } else if (widgetType === 'news-widget' && typeof loadNews === 'function') {
+    setTimeout(() => loadNews(), 50);
+  } else if (widgetType === 'whiteboard-widget' && typeof initializeWhiteboard === 'function') {
+    setTimeout(() => initializeWhiteboard(), 50);
+  } else if (widgetType === 'weather-widget' && typeof loadWeather === 'function') {
+    setTimeout(() => loadWeather(), 50);
+  } else if (widgetType === 'todo-widget' && typeof loadTodos === 'function') {
+    setTimeout(() => loadTodos(), 50);
+  } else if (widgetType === 'calendar-widget' && typeof loadCalendarEvents === 'function') {
+    setTimeout(() => loadCalendarEvents(), 50);
+  } else if (widgetType === 'blank-widget' && typeof loadClipArt === 'function') {
+    setTimeout(() => loadClipArt(), 50);
+  }
+  
+  // Load layout (position, size, rotation)
+  if (typeof loadWidgetLayout === 'function') {
+    loadWidgetLayout();
+  }
+  
+  // Apply styles
+  if (typeof loadWidgetStyles === 'function') {
+    loadWidgetStyles(fullWidgetId);
+  }
 }
 
 // Z-index control functions
@@ -5905,7 +6684,28 @@ function loadCurrentPage() {
     try {
       const layout = JSON.parse(saved);
       Object.keys(layout).forEach(widgetId => {
-        const widget = pageElement.querySelector(`.${widgetId}`);
+        // Try to find widget by full ID first
+        let widget = pageElement.querySelector(`.${widgetId}`);
+        
+        // If not found and it's a legacy widget ID, try to find by widget type
+        if (!widget && typeof parseWidgetId === 'function') {
+          const parsed = parseWidgetId(widgetId);
+          if (parsed.isLegacy) {
+            // Legacy widget - try to find by type and migrate to instance-0
+            const widgetType = parsed.widgetType;
+            widget = pageElement.querySelector(`.${widgetType}`);
+            if (widget) {
+              // Migrate to instance-0 ID
+              const fullWidgetId = generateWidgetId(widgetType, currentPageIndex, 0);
+              widget.classList.add(fullWidgetId);
+              // Update layout key to use new ID
+              layout[fullWidgetId] = layout[widgetId];
+              delete layout[widgetId];
+              widgetId = fullWidgetId;
+            }
+          }
+        }
+        
         if (widget && layout[widgetId] && !widget.classList.contains('hidden')) {
           const { x, y, width, height, zIndex, rotation } = layout[widgetId];
           const viewportWidth = window.innerWidth;
@@ -5930,6 +6730,11 @@ function loadCurrentPage() {
           }
         }
       });
+      
+      // Save migrated layout if changes were made
+      if (Object.keys(layout).some(key => key.includes('page-') && key.includes('instance-'))) {
+        localStorage.setItem(layoutKey, JSON.stringify(layout));
+      }
     } catch (error) {
       console.error('Error loading page layout:', error);
     }
@@ -5944,7 +6749,31 @@ function saveCurrentPageLayout() {
   try {
     const layout = {};
     pageElement.querySelectorAll('.widget').forEach(widget => {
-      const widgetId = widget.classList[1]; // Get second class (e.g., 'calendar-widget')
+      // Get full widget ID from class list (second class should be the full instance ID)
+      // Fallback to first class if second doesn't match pattern
+      let widgetId = widget.classList[1];
+      
+      // Check if it's a full instance ID (contains 'page-' and 'instance-')
+      if (!widgetId || (!widgetId.includes('page-') && !widgetId.includes('instance-'))) {
+        // Try to find a full ID in the class list
+        const fullIdClass = Array.from(widget.classList).find(cls => 
+          cls.includes('page-') && cls.includes('instance-')
+        );
+        if (fullIdClass) {
+          widgetId = fullIdClass;
+        } else {
+          // Legacy widget - generate instance-0 ID
+          const widgetType = widget.classList[0] || widget.classList[1];
+          if (widgetType && typeof generateWidgetId === 'function') {
+            widgetId = generateWidgetId(widgetType, currentPageIndex, 0);
+            // Add the full ID to the widget
+            widget.classList.add(widgetId);
+          } else {
+            widgetId = widgetType || 'unknown-widget';
+          }
+        }
+      }
+      
       const rect = widget.getBoundingClientRect();
       const dashboardRect = pageElement.getBoundingClientRect();
       

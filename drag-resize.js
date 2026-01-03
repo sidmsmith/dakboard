@@ -72,7 +72,24 @@ function saveWidgetLayout() {
   try {
     const layout = {};
     document.querySelectorAll('.widget').forEach(widget => {
-      const widgetId = widget.classList[1]; // Get second class (e.g., 'calendar-widget')
+      // Get full widget ID from class list (second class should be the full instance ID)
+      // Fallback to first class if second doesn't match pattern
+      let widgetId = widget.classList[1];
+      
+      // Check if it's a full instance ID (contains 'page-' and 'instance-')
+      if (!widgetId || (!widgetId.includes('page-') && !widgetId.includes('instance-'))) {
+        // Try to find a full ID in the class list
+        const fullIdClass = Array.from(widget.classList).find(cls => 
+          cls.includes('page-') && cls.includes('instance-')
+        );
+        if (fullIdClass) {
+          widgetId = fullIdClass;
+        } else {
+          // Legacy widget - use widget type
+          widgetId = widget.classList[0] || widget.classList[1] || 'unknown-widget';
+        }
+      }
+      
       const rect = widget.getBoundingClientRect();
       const dashboard = widget.closest('.dashboard');
       if (!dashboard) return;

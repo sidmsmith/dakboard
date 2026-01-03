@@ -60,23 +60,36 @@ function initStyling() {
 }
 
 // Open styling modal for a widget
-function openStylingModal(widgetId) {
-  currentWidgetId = widgetId;
+function openStylingModal(fullWidgetId) {
+  currentWidgetId = fullWidgetId;
+  
+  // Parse instance ID to get widget type
+  const parsed = typeof parseWidgetId !== 'undefined' ? parseWidgetId(fullWidgetId) : { widgetType: fullWidgetId, pageIndex: 0, instanceIndex: 0, isLegacy: true };
+  const widgetType = parsed.widgetType;
+  const pageIndex = parsed.pageIndex;
   
   // Find widget on current page
   const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
     ? window.currentPageIndex 
-    : 0;
+    : pageIndex;
   const currentPage = document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
-  const widget = currentPage ? currentPage.querySelector(`.${widgetId}`) : document.querySelector(`.${widgetId}`);
+  const widget = currentPage ? currentPage.querySelector(`.${fullWidgetId}`) : document.querySelector(`.${fullWidgetId}`);
   if (!widget) return;
 
-  const config = WIDGET_CONFIG[widgetId];
-  document.getElementById('styling-modal-title').textContent = `🎨 Style Widget: ${config.name}`;
-  document.getElementById('styling-preview-title').textContent = config.icon + ' ' + config.name;
+  const config = WIDGET_CONFIG[widgetType];
+  if (!config) {
+    console.error(`Widget config not found for ${widgetType}`);
+    return;
+  }
+  
+  // Get widget title (configured or default)
+  const widgetTitle = typeof getWidgetTitle !== 'undefined' ? getWidgetTitle(fullWidgetId) : config.name;
+  
+  document.getElementById('styling-modal-title').textContent = `🎨 Style Widget: ${widgetTitle}`;
+  document.getElementById('styling-preview-title').textContent = config.icon + ' ' + widgetTitle;
 
   // Load current styles
-  loadWidgetStyles(widgetId);
+  loadWidgetStyles(fullWidgetId);
   
 
   // Show modal
@@ -1459,7 +1472,7 @@ function attachTabEventListeners(tabName) {
       }
       
       // Clip art widget controls
-      if (currentWidgetId === 'blank-widget') {
+      if (widgetType === 'blank-widget') {
         // Get the current widget element
         const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
           ? window.currentPageIndex 
@@ -2203,7 +2216,7 @@ function updatePreview() {
       titleTextValue = currentStyles.titleText;
     } else {
       // Use default from WIDGET_CONFIG
-      titleTextValue = WIDGET_CONFIG[currentWidgetId]?.name || 'Widget';
+      titleTextValue = WIDGET_CONFIG[widgetType]?.name || 'Widget';
     }
     
     // Apply icon visibility
@@ -2376,7 +2389,7 @@ function updatePreview() {
         </div>
       `;
     }
-  } else if (previewContent && currentWidgetId === 'scoreboard-widget') {
+  } else if (previewContent && widgetType === 'scoreboard-widget') {
     // Render scoreboard preview
     const config = currentStyles.scoreboardConfig || {
       teams: [
@@ -3230,9 +3243,14 @@ function saveTheme() {
 }
 
 // Load widget styles (page-specific)
-function loadWidgetStyles(widgetId) {
-  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
-  const saved = localStorage.getItem(`dakboard-widget-styles-${widgetId}-page-${currentPageIndex}`);
+function loadWidgetStyles(fullWidgetId) {
+  // Parse instance ID to get widget type
+  const parsed = typeof parseWidgetId !== 'undefined' ? parseWidgetId(fullWidgetId) : { widgetType: fullWidgetId, pageIndex: 0, instanceIndex: 0, isLegacy: true };
+  const widgetType = parsed.widgetType;
+  const pageIndex = parsed.pageIndex;
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : pageIndex;
+  
+  const saved = localStorage.getItem(`dakboard-widget-styles-${fullWidgetId}-page-${currentPageIndex}`);
   if (saved) {
     currentStyles = JSON.parse(saved);
     // For existing widgets, set textColorDynamic based on whether textColor exists
@@ -3248,7 +3266,7 @@ function loadWidgetStyles(widgetId) {
   } else {
     // Set defaults
     // For clock and photos widgets, default titleVisible to false (was hardcoded hidden)
-    const defaultTitleVisible = (widgetId === 'clock-widget') ? false : true;
+    const defaultTitleVisible = (widgetType === 'clock-widget') ? false : true;
     
     currentStyles = {
       backgroundColor: '#2a2a2a',
@@ -3276,7 +3294,7 @@ function loadWidgetStyles(widgetId) {
   // Ensure titleVisible is set for existing widgets (migration)
   if (currentStyles.titleVisible === undefined) {
     // For clock and photos, default to false (was hardcoded hidden)
-    currentStyles.titleVisible = (widgetId === 'clock-widget') ? false : true;
+    currentStyles.titleVisible = (widgetType === 'clock-widget') ? false : true;
   }
   
   // Ensure titleIconVisible is set (default to true)
@@ -3290,30 +3308,21 @@ function loadWidgetStyles(widgetId) {
   }
   
   // Load scoreboard config if this is a scoreboard widget
-  if (widgetId === 'scoreboard-widget') {
-    // Try to load from widget-specific localStorage
-    const pageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
-      ? window.currentPageIndex 
-      : 0;
-    const widget = document.querySelector(`.scoreboard-widget`);
-    if (widget) {
-      const widgetIndex = Array.from(document.querySelectorAll('.scoreboard-widget')).indexOf(widget);
-      const widgetId = `scoreboard-${pageIndex}-${widgetIndex}`;
-      const configKey = `dakboard-scoreboard-config-${widgetId}`;
-      const savedConfig = localStorage.getItem(configKey);
-      
-      if (savedConfig) {
-        try {
-          currentStyles.scoreboardConfig = JSON.parse(savedConfig);
-        } catch (e) {
-          console.error('Error parsing scoreboard config:', e);
-        }
+  if (widgetType === 'scoreboard-widget') {
+    const configKey = `dakboard-scoreboard-config-${fullWidgetId}`;
+    const savedConfig = localStorage.getItem(configKey);
+    
+    if (savedConfig) {
+      try {
+        currentStyles.scoreboardConfig = JSON.parse(savedConfig);
+      } catch (e) {
+        console.error('Error parsing scoreboard config:', e);
       }
     }
   }
   
   // Set clip art defaults if this is a blank widget
-  if (widgetId === 'blank-widget') {
+  if (widgetType === 'blank-widget') {
     if (!currentStyles.clipArtEmoji) {
       currentStyles.clipArtEmoji = '🎨';
     }
