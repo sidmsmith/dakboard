@@ -808,7 +808,7 @@ function generateAdvancedTab() {
                   ).join('') : ''}
                 </select>
                 <input type="color" class="scoreboard-team-slider-color" value="${team.sliderColor || '#9b59b6'}">
-                ${index >= 2 ? `<button type="button" class="scoreboard-remove-team-btn" data-team-index="${index}">Remove</button>` : ''}
+                ${scoreboardConfig.teams.length > 2 ? `<button type="button" class="scoreboard-remove-team-btn" data-team-index="${index}">Remove</button>` : ''}
               </div>
             </div>
           </div>
