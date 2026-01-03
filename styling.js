@@ -1561,6 +1561,68 @@ function updateScoreboardTeamLabels() {
   });
 }
 
+// Update remove buttons visibility based on team count
+function updateRemoveButtonsVisibility() {
+  const stylingModal = document.getElementById('styling-modal');
+  if (!stylingModal) return;
+  
+  const teams = stylingModal.querySelectorAll('.scoreboard-team-config');
+  const teamCount = teams.length;
+  const shouldShowRemove = teamCount > 2;
+  
+  teams.forEach((team, index) => {
+    let removeBtn = team.querySelector('.scoreboard-remove-team-btn');
+    
+    if (shouldShowRemove) {
+      // Need to show remove button
+      if (!removeBtn) {
+        // Create remove button if it doesn't exist
+        const controls = team.querySelector('.styling-form-control');
+        if (controls) {
+          removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'scoreboard-remove-team-btn';
+          removeBtn.dataset.teamIndex = index;
+          removeBtn.textContent = 'Remove';
+          controls.appendChild(removeBtn);
+          
+          // Attach event listener
+          removeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const teamsList = stylingModal.querySelector('#scoreboard-teams-list');
+            const currentTeams = stylingModal.querySelectorAll('.scoreboard-team-config');
+            if (currentTeams.length > 2) {
+              const teamIndex = parseInt(e.target.dataset.teamIndex);
+              const teamEl = stylingModal.querySelector(`.scoreboard-team-config[data-team-index="${teamIndex}"]`);
+              if (teamEl) {
+                teamEl.remove();
+                updateScoreboardTeamLabels();
+                updateRemoveButtonsVisibility();
+                updateScoreboardConfig();
+              }
+            } else {
+              alert('Minimum 2 teams required');
+            }
+          });
+        }
+      } else {
+        // Update data-team-index
+        removeBtn.dataset.teamIndex = index;
+      }
+      removeBtn.style.display = '';
+    } else {
+      // Need to hide remove button
+      if (removeBtn) {
+        removeBtn.style.display = 'none';
+      }
+    }
+  });
+  
+  // Re-setup listeners after visibility changes
+  setupScoreboardTeamListeners();
+}
+
 // Setup drag and drop for team reordering
 // Use module-level variables so they persist across function calls
 let draggedScoreboardElement = null;
