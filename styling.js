@@ -4125,9 +4125,300 @@ function updateClipArtPreview() {
   const previewDisplay = document.getElementById('clipart-preview-display');
   const clipartColor = document.getElementById('clipart-color');
   if (previewDisplay && clipartColor) {
-    previewDisplay.textContent = currentStyles.clipArtEmoji || '🎨';
-    previewDisplay.style.color = clipartColor.value || '#4a90e2';
+    // Check if it's an image URL or emoji
+    if (currentStyles.clipArtImageUrl) {
+      previewDisplay.innerHTML = `<img src="${currentStyles.clipArtImageUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: ${clipartColor.value ? `drop-shadow(0 0 8px ${clipartColor.value})` : 'none'};" alt="Clip art">`;
+    } else {
+      previewDisplay.textContent = currentStyles.clipArtEmoji || '🎨';
+      previewDisplay.style.color = clipartColor.value || '#4a90e2';
+    }
   }
+}
+
+// Open Pixabay modal
+function openPixabayModal() {
+  const modal = document.getElementById('pixabay-modal');
+  const grid = document.getElementById('pixabay-grid');
+  const searchInput = document.getElementById('pixabay-search');
+  const searchBtn = document.getElementById('pixabay-search-btn');
+  const loading = document.getElementById('pixabay-loading');
+  const error = document.getElementById('pixabay-error');
+  
+  if (!modal || !grid) return;
+  
+  // Clear previous results
+  grid.innerHTML = '';
+  error.style.display = 'none';
+  error.textContent = '';
+  
+  // Show modal
+  modal.classList.add('active');
+  
+  // Close button
+  const closeBtn = document.getElementById('close-pixabay-modal');
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      modal.classList.remove('active');
+    };
+  }
+  
+  // Close on overlay click
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      modal.classList.remove('active');
+    }
+  };
+  
+  // Search function
+  const performSearch = async () => {
+    const query = searchInput ? searchInput.value.trim() : '';
+    if (!query) {
+      error.textContent = 'Please enter a search term';
+      error.style.display = 'block';
+      return;
+    }
+    
+    // Check for API key
+    if (!window.CONFIG || !window.CONFIG.PIXABAY_API_KEY) {
+      error.innerHTML = 'Pixabay API key not configured. Please see CLIPART_API_SETUP.md for setup instructions.';
+      error.style.display = 'block';
+      return;
+    }
+    
+    loading.style.display = 'block';
+    grid.innerHTML = '';
+    error.style.display = 'none';
+    
+    try {
+      const apiKey = window.CONFIG.PIXABAY_API_KEY;
+      const url = `https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(query)}&image_type=illustration&safesearch=true&per_page=50`;
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.hits && data.hits.length > 0) {
+        grid.innerHTML = '';
+        data.hits.forEach(hit => {
+          const item = document.createElement('div');
+          item.className = 'pixabay-item';
+          item.style.cssText = 'cursor: pointer; border: 2px solid transparent; border-radius: 8px; overflow: hidden; transition: all 0.2s; background: rgba(255,255,255,0.05);';
+          item.innerHTML = `
+            <img src="${hit.previewURL}" alt="${hit.tags}" style="width: 100%; height: 150px; object-fit: cover; display: block;">
+            <div style="padding: 8px; font-size: 12px; color: #888; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${hit.tags}</div>
+          `;
+          item.addEventListener('mouseenter', () => {
+            item.style.borderColor = '#4a90e2';
+            item.style.background = 'rgba(255,255,255,0.1)';
+            item.style.transform = 'scale(1.05)';
+          });
+          item.addEventListener('mouseleave', () => {
+            item.style.borderColor = 'transparent';
+            item.style.background = 'rgba(255,255,255,0.05)';
+            item.style.transform = 'scale(1)';
+          });
+          item.addEventListener('click', () => {
+            selectClipArtImage(hit.webformatURL || hit.previewURL, hit.largeImageURL);
+          });
+          grid.appendChild(item);
+        });
+      } else {
+        error.textContent = 'No images found. Try a different search term.';
+        error.style.display = 'block';
+      }
+    } catch (err) {
+      error.textContent = `Error: ${err.message}`;
+      error.style.display = 'block';
+    } finally {
+      loading.style.display = 'none';
+    }
+  };
+  
+  // Search button
+  if (searchBtn) {
+    searchBtn.onclick = performSearch;
+  }
+  
+  // Enter key on search input
+  if (searchInput) {
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        performSearch();
+      }
+    });
+  }
+}
+
+// Open Noun Project modal
+function openNounProjectModal() {
+  const modal = document.getElementById('nounproject-modal');
+  const grid = document.getElementById('nounproject-grid');
+  const searchInput = document.getElementById('nounproject-search');
+  const searchBtn = document.getElementById('nounproject-search-btn');
+  const loading = document.getElementById('nounproject-loading');
+  const error = document.getElementById('nounproject-error');
+  
+  if (!modal || !grid) return;
+  
+  // Clear previous results
+  grid.innerHTML = '';
+  error.style.display = 'none';
+  error.textContent = '';
+  
+  // Show modal
+  modal.classList.add('active');
+  
+  // Close button
+  const closeBtn = document.getElementById('close-nounproject-modal');
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      modal.classList.remove('active');
+    };
+  }
+  
+  // Close on overlay click
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      modal.classList.remove('active');
+    }
+  };
+  
+  // Search function
+  const performSearch = async () => {
+    const query = searchInput ? searchInput.value.trim() : '';
+    if (!query) {
+      error.textContent = 'Please enter a search term';
+      error.style.display = 'block';
+      return;
+    }
+    
+    // Check for API credentials
+    if (!window.CONFIG || !window.CONFIG.NOUNPROJECT_API_KEY || !window.CONFIG.NOUNPROJECT_API_SECRET) {
+      error.innerHTML = 'Noun Project API credentials not configured. Please see CLIPART_API_SETUP.md for setup instructions.';
+      error.style.display = 'block';
+      return;
+    }
+    
+    loading.style.display = 'block';
+    grid.innerHTML = '';
+    error.style.display = 'none';
+    
+    try {
+      const apiKey = window.CONFIG.NOUNPROJECT_API_KEY;
+      const apiSecret = window.CONFIG.NOUNPROJECT_API_SECRET;
+      
+      // Noun Project API endpoint
+      const url = `https://api.thenounproject.com/v2/icon?query=${encodeURIComponent(query)}&limit=50`;
+      
+      // Create basic auth header
+      const credentials = btoa(`${apiKey}:${apiSecret}`);
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Basic ${credentials}`
+        }
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please check your API key and secret. Noun Project may require OAuth 1.0 authentication.');
+        }
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.icons && data.icons.length > 0) {
+        grid.innerHTML = '';
+        data.icons.forEach(icon => {
+          const item = document.createElement('div');
+          item.className = 'nounproject-item';
+          item.style.cssText = 'cursor: pointer; border: 2px solid transparent; border-radius: 8px; overflow: hidden; transition: all 0.2s; background: rgba(255,255,255,0.05); padding: 15px; display: flex; align-items: center; justify-content: center; position: relative;';
+          const iconUrl = icon.preview_url || icon.icon_url || (icon.attribution && icon.attribution.preview_url);
+          item.innerHTML = `
+            <img src="${iconUrl}" alt="${icon.term || 'icon'}" style="max-width: 100%; max-height: 120px; object-fit: contain; filter: ${currentStyles.clipArtColor ? `drop-shadow(0 0 4px ${currentStyles.clipArtColor})` : 'none'};">
+            <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 4px; font-size: 11px; color: #888; text-align: center; background: rgba(0,0,0,0.7); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${icon.term || 'icon'}</div>
+          `;
+          item.addEventListener('mouseenter', () => {
+            item.style.borderColor = '#4a90e2';
+            item.style.background = 'rgba(255,255,255,0.1)';
+            item.style.transform = 'scale(1.05)';
+          });
+          item.addEventListener('mouseleave', () => {
+            item.style.borderColor = 'transparent';
+            item.style.background = 'rgba(255,255,255,0.05)';
+            item.style.transform = 'scale(1)';
+          });
+          item.addEventListener('click', () => {
+            const highResUrl = icon.icon_url || iconUrl;
+            selectClipArtImage(iconUrl, highResUrl);
+          });
+          grid.appendChild(item);
+        });
+      } else {
+        error.textContent = 'No icons found. Try a different search term.';
+        error.style.display = 'block';
+      }
+    } catch (err) {
+      error.textContent = `Error: ${err.message}. Note: Noun Project API may require OAuth 1.0 authentication. See CLIPART_API_SETUP.md for details.`;
+      error.style.display = 'block';
+    } finally {
+      loading.style.display = 'none';
+    }
+  };
+  
+  // Search button
+  if (searchBtn) {
+    searchBtn.onclick = performSearch;
+  }
+  
+  // Enter key on search input
+  if (searchInput) {
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        performSearch();
+      }
+    });
+  }
+}
+
+// Select clip art image (from API)
+function selectClipArtImage(imageUrl, highResUrl) {
+  // Clear emoji if image is selected
+  currentStyles.clipArtEmoji = '';
+  currentStyles.clipArtImageUrl = highResUrl || imageUrl;
+  updateClipArtPreview();
+  updatePreview();
+  
+  // Save the selection immediately
+  updateCurrentStylesFromForm();
+  saveStyles();
+  
+  // Apply to widget
+  if (currentWidgetId) {
+    const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
+    const pageElement = document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
+    if (pageElement) {
+      const widget = pageElement.querySelector(`.${currentWidgetId}`);
+      if (widget) {
+        applyCurrentStylesToWidget(widget);
+      }
+    }
+  }
+  
+  // Reload clip art to show the new selection
+  if (typeof loadClipArt === 'function') {
+    setTimeout(() => loadClipArt(), 0);
+  }
+  
+  // Close modals
+  const pixabayModal = document.getElementById('pixabay-modal');
+  const nounprojectModal = document.getElementById('nounproject-modal');
+  if (pixabayModal) pixabayModal.classList.remove('active');
+  if (nounprojectModal) nounprojectModal.classList.remove('active');
 }
 
 } else {
