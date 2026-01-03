@@ -2240,6 +2240,13 @@ function applyCurrentStylesToWidget(widget) {
       }
     }
   }
+  
+  // Update dynamic styles (for dynamic title color) if enabled
+  // This must be called after all background styles are applied
+  if (currentStyles.textColorDynamic !== false && typeof updateWidgetDynamicStyles === 'function') {
+    // Use setTimeout to ensure background styles are applied first
+    setTimeout(() => updateWidgetDynamicStyles(widget), 0);
+  }
 }
 
 // Update apply-to-all flags from checkboxes
