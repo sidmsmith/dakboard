@@ -1552,6 +1552,111 @@ function updateScoreboardTeamLabels() {
     if (label) {
       label.textContent = `Team ${index + 1}`;
     }
+    // Update data-team-index
+    team.dataset.teamIndex = index;
+  });
+}
+
+// Setup drag and drop for team reordering
+function setupScoreboardDragAndDrop() {
+  const stylingModal = document.getElementById('styling-modal');
+  if (!stylingModal) return;
+  
+  const teamsList = stylingModal.querySelector('#scoreboard-teams-list');
+  if (!teamsList) return;
+  
+  let draggedElement = null;
+  let draggedIndex = null;
+  
+  const teamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
+  
+  teamConfigs.forEach((teamEl, index) => {
+    // Drag start
+    teamEl.addEventListener('dragstart', (e) => {
+      draggedElement = teamEl;
+      draggedIndex = index;
+      teamEl.style.opacity = '0.5';
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/html', teamEl.innerHTML);
+    });
+    
+    // Drag end
+    teamEl.addEventListener('dragend', (e) => {
+      teamEl.style.opacity = '1';
+      // Remove all drag-over classes
+      teamConfigs.forEach(t => {
+        t.classList.remove('drag-over-above', 'drag-over-below');
+      });
+    });
+    
+    // Drag over
+    teamEl.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      
+      if (draggedElement && draggedElement !== teamEl) {
+        const rect = teamEl.getBoundingClientRect();
+        const mouseY = e.clientY;
+        const midpoint = rect.top + rect.height / 2;
+        
+        // Remove previous classes
+        teamEl.classList.remove('drag-over-above', 'drag-over-below');
+        
+        if (mouseY < midpoint) {
+          teamEl.classList.add('drag-over-above');
+        } else {
+          teamEl.classList.add('drag-over-below');
+        }
+      }
+    });
+    
+    // Drag leave
+    teamEl.addEventListener('dragleave', (e) => {
+      teamEl.classList.remove('drag-over-above', 'drag-over-below');
+    });
+    
+    // Drop
+    teamEl.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (draggedElement && draggedElement !== teamEl) {
+        const dropIndex = Array.from(teamConfigs).indexOf(teamEl);
+        const rect = teamEl.getBoundingClientRect();
+        const mouseY = e.clientY;
+        const midpoint = rect.top + rect.height / 2;
+        
+        let insertBefore = mouseY < midpoint;
+        
+        if (draggedIndex < dropIndex) {
+          // Moving down
+          if (insertBefore) {
+            teamsList.insertBefore(draggedElement, teamEl);
+          } else {
+            teamsList.insertBefore(draggedElement, teamEl.nextSibling);
+          }
+        } else {
+          // Moving up
+          if (insertBefore) {
+            teamsList.insertBefore(draggedElement, teamEl);
+          } else {
+            teamsList.insertBefore(draggedElement, teamEl.nextSibling);
+          }
+        }
+        
+        // Re-query team configs after DOM change
+        const newTeamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
+        
+        // Update labels and indices
+        updateScoreboardTeamLabels();
+        updateScoreboardConfig();
+        
+        // Re-setup drag and drop for new order
+        setupScoreboardDragAndDrop();
+      }
+      
+      teamEl.classList.remove('drag-over-above', 'drag-over-below');
+    });
   });
 }
 
