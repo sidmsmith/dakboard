@@ -2722,18 +2722,21 @@ function generateDiceFaces(faceColor = '#4a90e2', dotColor = '#ffffff') {
 
 // Load and initialize dice widget
 function loadDice() {
-  const diceContainers = document.querySelectorAll('#dice-container');
+  const diceWidgets = document.querySelectorAll('.dice-widget');
   
-  if (diceContainers.length === 0) return;
+  if (diceWidgets.length === 0) return;
   
   // Initialize all dice widgets across all pages
-  diceContainers.forEach((container) => {
-    const widget = container.closest('.dice-widget');
-    if (!widget) return;
+  diceWidgets.forEach((widget) => {
+    const container = widget.querySelector('.dice-container');
+    if (!container) return;
+    
+    // Get the page index from the widget's parent page
+    const pageElement = widget.closest('.dashboard.page');
+    const pageIndex = pageElement ? parseInt(pageElement.getAttribute('data-page-id')) || 0 : 0;
     
     // Get widget-specific colors from saved styles or use defaults
     const widgetId = 'dice-widget';
-    const pageIndex = typeof currentPageIndex !== 'undefined' ? currentPageIndex : 0;
     const stylesKey = `dakboard-widget-styles-${widgetId}-page-${pageIndex}`;
     const savedStyles = localStorage.getItem(stylesKey);
     let diceFaceColor = '#4a90e2';
@@ -2789,18 +2792,22 @@ let stopwatchStates = new Map(); // Track state per widget instance: { elapsed: 
 
 // Load and initialize stopwatch widgets
 function loadStopwatch() {
-  const stopwatchContainers = document.querySelectorAll('#stopwatch-content');
+  const stopwatchWidgets = document.querySelectorAll('.stopwatch-widget');
   
-  if (stopwatchContainers.length === 0) return;
+  if (stopwatchWidgets.length === 0) return;
   
   // Initialize all stopwatch widgets across all pages
-  stopwatchContainers.forEach((container) => {
-    const widget = container.closest('.stopwatch-widget');
-    if (!widget) return;
+  stopwatchWidgets.forEach((widget) => {
+    const container = widget.querySelector('.stopwatch-content');
+    if (!container) return;
     
-    // Create unique ID for this widget instance (page + index)
-    const pageIndex = typeof currentPageIndex !== 'undefined' ? currentPageIndex : 0;
-    const widgetIndex = Array.from(document.querySelectorAll('.stopwatch-widget')).indexOf(widget);
+    // Get the page index from the widget's parent page
+    const pageElement = widget.closest('.dashboard.page');
+    const pageIndex = pageElement ? parseInt(pageElement.getAttribute('data-page-id')) || 0 : 0;
+    
+    // Create unique ID for this widget instance (page + index within page)
+    const widgetsOnPage = pageElement ? pageElement.querySelectorAll('.stopwatch-widget') : [];
+    const widgetIndex = Array.from(widgetsOnPage).indexOf(widget);
     const widgetId = `stopwatch-${pageIndex}-${widgetIndex}`;
     
     // Get saved state from localStorage
@@ -2852,9 +2859,9 @@ function loadStopwatch() {
     }
     
     // Apply colors
-    const display = container.querySelector('#stopwatch-display');
-    const playPauseBtn = container.querySelector('#stopwatch-play-pause');
-    const resetBtn = container.querySelector('#stopwatch-reset');
+    const display = container.querySelector('.stopwatch-display');
+    const playPauseBtn = container.querySelector('.stopwatch-play-pause');
+    const resetBtn = container.querySelector('.stopwatch-reset');
     
     if (display) {
       display.style.color = textColor;
@@ -3071,9 +3078,13 @@ function loadScoreboard() {
   
     
     
-    // Create unique ID for this widget instance
-    const pageIndex = typeof currentPageIndex !== 'undefined' ? currentPageIndex : 0;
-    const widgetIndex = Array.from(document.querySelectorAll('.scoreboard-widget')).indexOf(widget);
+    // Get the page index from the widget's parent page
+    const pageElement = widget.closest('.dashboard.page');
+    const pageIndex = pageElement ? parseInt(pageElement.getAttribute('data-page-id')) || 0 : 0;
+    
+    // Create unique ID for this widget instance (page + index within page)
+    const widgetsOnPage = pageElement ? pageElement.querySelectorAll('.scoreboard-widget') : [];
+    const widgetIndex = Array.from(widgetsOnPage).indexOf(widget);
     const widgetId = `scoreboard-${pageIndex}-${widgetIndex}`;
     
     // Get saved configuration from localStorage
