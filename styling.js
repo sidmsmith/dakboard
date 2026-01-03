@@ -1635,24 +1635,14 @@ function setupScoreboardDragAndDrop() {
         
         let insertBefore = mouseY < midpoint;
         
-        if (draggedIndex < dropIndex) {
-          // Moving down
-          if (insertBefore) {
-            teamsList.insertBefore(draggedElement, teamEl);
-          } else {
-            teamsList.insertBefore(draggedElement, teamEl.nextSibling);
-          }
-        } else {
-          // Moving up
-          if (insertBefore) {
-            teamsList.insertBefore(draggedElement, teamEl);
-          } else {
-            teamsList.insertBefore(draggedElement, teamEl.nextSibling);
-          }
+        // Calculate target position
+        let targetNode = teamEl;
+        if (!insertBefore && teamEl.nextSibling) {
+          targetNode = teamEl.nextSibling;
         }
         
-        // Re-query team configs after DOM change
-        const newTeamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
+        // Insert the dragged element
+        teamsList.insertBefore(draggedElement, insertBefore ? teamEl : targetNode);
         
         // Update labels and indices
         updateScoreboardTeamLabels();
@@ -1660,7 +1650,12 @@ function setupScoreboardDragAndDrop() {
         
         // Clear drag setup flags and re-setup
         const allTeams = teamsList.querySelectorAll('.scoreboard-team-config');
-        allTeams.forEach(t => t.dataset.dragSetup = 'false');
+        allTeams.forEach(t => {
+          t.dataset.dragSetup = 'false';
+          // Remove old event listeners by cloning
+          const newEl = t.cloneNode(true);
+          t.parentNode.replaceChild(newEl, t);
+        });
         setupScoreboardDragAndDrop();
       }
       

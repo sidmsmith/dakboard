@@ -3343,6 +3343,7 @@ function triggerConfetti() {
       const confetti = document.createElement('div');
       confetti.className = 'confetti';
       confetti.style.left = Math.random() * 100 + '%';
+      confetti.style.top = '-20px'; // Start above viewport
       confetti.style.animationDuration = (Math.random() * 2 + 2) + 's'; // 2-4 seconds to fall
       confetti.style.animationDelay = '0s'; // Start immediately
       // Add random rotation for more dynamic effect
