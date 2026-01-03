@@ -3146,7 +3146,7 @@ function loadScoreboard() {
     renderScoreboard(widgetId, container);
     
     // Set up reset button
-    const resetBtn = widget.querySelector('#scoreboard-reset');
+    const resetBtn = widget.querySelector('.scoreboard-reset-btn');
     if (resetBtn && !resetBtn.dataset.listenerAttached) {
       resetBtn.dataset.listenerAttached = 'true';
       resetBtn.addEventListener('click', (e) => {
