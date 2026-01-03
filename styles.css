@@ -3586,6 +3586,62 @@ footer a:hover {
   color: #fff;
 }
 
+/* Widget Z-Index Controls (on widget header) */
+.widget-zindex-controls {
+  display: none;
+  gap: 4px;
+  align-items: center;
+}
+
+.dashboard.edit-mode .widget .widget-zindex-controls {
+  display: flex;
+}
+
+.widget-zindex-btn {
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background: rgba(42, 42, 42, 0.8);
+  color: #e0e0e0;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+  line-height: 1;
+}
+
+.widget-zindex-btn:hover {
+  background: rgba(66, 66, 66, 0.9);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.1);
+}
+
+.widget-zindex-btn:active {
+  transform: scale(0.95);
+}
+
+.widget-zindex-promote {
+  color: #2ecc71;
+}
+
+.widget-zindex-promote:hover {
+  background: rgba(46, 204, 113, 0.2);
+  border-color: #2ecc71;
+}
+
+.widget-zindex-demote {
+  color: #e74c3c;
+}
+
+.widget-zindex-demote:hover {
+  background: rgba(231, 76, 60, 0.2);
+  border-color: #e74c3c;
+}
+
 /* Styling Modal */
 .styling-modal-overlay {
   position: fixed;
