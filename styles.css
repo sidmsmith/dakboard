@@ -1583,10 +1583,21 @@ body {
   margin-bottom: 8px !important;
 }
 
-/* Make team label draggable */
-.scoreboard-team-config label.styling-form-label {
+/* Prevent inputs from interfering with drag */
+.scoreboard-team-config input.scoreboard-team-name-input,
+.scoreboard-team-config select.scoreboard-team-icon-select {
+  pointer-events: auto;
+  user-select: text;
+}
+
+/* Make the row draggable but inputs still work */
+.scoreboard-team-config {
   cursor: move;
-  user-select: none;
+}
+
+.scoreboard-team-config input.scoreboard-team-name-input:focus,
+.scoreboard-team-config select.scoreboard-team-icon-select:focus {
+  cursor: text;
 }
 
 .scoreboard-drag-handle:hover {

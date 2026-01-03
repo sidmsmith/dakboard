@@ -1695,50 +1695,32 @@ function setupScoreboardDragAndDrop() {
     teamEl.setAttribute('draggable', 'true');
     teamEl.dataset.dragSetup = 'true';
     
-    // Make team label look draggable
-    const teamLabel = teamEl.querySelector('label.styling-form-label');
-    if (teamLabel) {
-      teamLabel.style.cursor = 'move';
-      teamLabel.style.userSelect = 'none';
-    }
+    // Prevent inputs/selects from blocking drag - stop propagation on mousedown
+    const inputs = teamEl.querySelectorAll('input.scoreboard-team-name-input, select.scoreboard-team-icon-select');
+    inputs.forEach(input => {
+      input.addEventListener('mousedown', (e) => {
+        // Stop propagation so drag doesn't start when clicking on input/select
+        e.stopPropagation();
+      });
+    });
     
-    // Ensure drag handle doesn't block drag
-    const dragHandle = teamEl.querySelector('.scoreboard-drag-handle');
-    if (dragHandle) {
-      dragHandle.style.pointerEvents = 'auto';
-    }
-    
-    // Drag start - only allow if clicking on drag handle or team label
+    // Drag start - allow drag from anywhere except inputs/selects/buttons
     teamEl.addEventListener('dragstart', (e) => {
       const target = e.target;
-      const dragHandle = teamEl.querySelector('.scoreboard-drag-handle');
-      const teamLabel = teamEl.querySelector('label.styling-form-label');
       
-      // Check if clicking on drag handle - check if target is the handle or inside it
-      let isOnDragHandle = false;
-      if (dragHandle) {
-        isOnDragHandle = target === dragHandle || 
-                        dragHandle.contains(target) || 
-                        target.closest && target.closest('.scoreboard-drag-handle') === dragHandle;
-      }
-      
-      // Check if clicking on team label (or its children) - but NOT the input field
-      let isOnTeamLabel = false;
-      if (teamLabel) {
-        const isOnLabel = target === teamLabel || teamLabel.contains(target);
-        const isOnInput = target.closest && target.closest('input.scoreboard-team-name-input');
-        isOnTeamLabel = isOnLabel && !isOnInput;
-      }
-      
-      // Only allow drag if clicking on drag handle or team label
-      if (!isOnDragHandle && !isOnTeamLabel) {
-        console.log('🔵 DRAG START prevented - not clicking on drag handle or team label. Target:', target.tagName, target.className);
+      // Don't allow drag if clicking directly on input, select, or remove button
+      if (target.tagName === 'INPUT' && target.classList.contains('scoreboard-team-name-input')) {
         e.preventDefault();
-        e.stopPropagation();
-        return false;
+        return;
       }
-      
-      console.log('🔵 DRAG START allowed - isOnDragHandle:', isOnDragHandle, 'isOnTeamLabel:', isOnTeamLabel, 'target:', target.tagName);
+      if (target.tagName === 'SELECT' && target.classList.contains('scoreboard-team-icon-select')) {
+        e.preventDefault();
+        return;
+      }
+      if (target.tagName === 'BUTTON' && target.classList.contains('scoreboard-remove-team-btn')) {
+        e.preventDefault();
+        return;
+      }
       
       console.log('🔵 DRAG START:', index, teamEl, 'target:', target.tagName);
       draggedScoreboardElement = teamEl;
