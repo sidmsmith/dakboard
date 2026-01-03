@@ -2916,14 +2916,15 @@ function updateStopwatchDisplay(widgetId, container) {
     elapsed += Date.now() - state.startTime;
   }
   
-  // Format as MM:SS.hh
+  // Format as MM:SS.hh (with smaller milliseconds)
   const totalSeconds = Math.floor(elapsed / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   const hundredths = Math.floor((elapsed % 1000) / 10);
   
-  const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(hundredths).padStart(2, '0')}`;
-  display.textContent = formatted;
+  const mainTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  const milliseconds = `.${String(hundredths).padStart(2, '0')}`;
+  display.innerHTML = `${mainTime}<span class="stopwatch-milliseconds">${milliseconds}</span>`;
 }
 
 // Update stopwatch button state

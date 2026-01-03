@@ -1310,6 +1310,11 @@ body {
   line-height: 1;
 }
 
+.stopwatch-milliseconds {
+  font-size: 28px;
+  vertical-align: baseline;
+}
+
 .stopwatch-controls {
   display: flex;
   gap: 16px;
