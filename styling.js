@@ -1563,11 +1563,18 @@ let draggedScoreboardElement = null;
 let draggedScoreboardIndex = null;
 
 function setupScoreboardDragAndDrop() {
+  console.log('🔧 setupScoreboardDragAndDrop() called');
   const stylingModal = document.getElementById('styling-modal');
-  if (!stylingModal) return;
+  if (!stylingModal) {
+    console.log('❌ No styling modal found');
+    return;
+  }
   
   const teamsList = stylingModal.querySelector('#scoreboard-teams-list');
-  if (!teamsList) return;
+  if (!teamsList) {
+    console.log('❌ No teams list found');
+    return;
+  }
   
   console.log('🔧 Setting up drag and drop, current draggedElement:', draggedScoreboardElement);
   
@@ -1582,8 +1589,10 @@ function setupScoreboardDragAndDrop() {
   
   // Get fresh references after cloning
   const freshTeamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
+  console.log('🔧 Found', freshTeamConfigs.length, 'team configs');
   
   freshTeamConfigs.forEach((teamEl, index) => {
+    console.log('🔧 Setting up drag for team', index, teamEl);
     // Ensure element is draggable
     teamEl.setAttribute('draggable', 'true');
     teamEl.dataset.dragSetup = 'true';
