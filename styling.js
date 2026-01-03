@@ -1481,8 +1481,12 @@ function addScoreboardTeam() {
   `;
   
   teamsList.appendChild(newTeamEl);
+  // Set draggable attribute on new team
+  newTeamEl.setAttribute('draggable', 'true');
   setupScoreboardTeamListeners();
   updateRemoveButtonsVisibility();
+  // Re-setup drag and drop so new team can be dragged
+  setupScoreboardDragAndDrop();
   updateScoreboardConfig();
 }
 
@@ -1612,9 +1616,8 @@ function updateRemoveButtonsVisibility() {
                 updateRemoveButtonsVisibility();
                 updateScoreboardConfig();
               }
-            } else {
-              alert('Minimum 2 teams required');
             }
+            // No else clause - button shouldn't be visible if there are only 2 teams
           });
         }
       } else {
