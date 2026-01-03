@@ -3144,20 +3144,27 @@ function loadScoreboard() {
     // Render the scoreboard
     renderScoreboard(widgetId, container);
     
-    // Set up reset button (always reattach after render in case it was cloned)
-    const resetBtn = container.querySelector('.scoreboard-reset-btn');
-    if (resetBtn) {
-      // Remove old listener if exists and reattach
-      const newResetBtn = resetBtn.cloneNode(true);
-      resetBtn.parentNode.replaceChild(newResetBtn, resetBtn);
-      newResetBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (!isEditMode) {
-          resetScoreboard(widgetId, container);
-        }
-      });
-    }
+    // Set up reset button (always reattach after render)
+    setupResetButton(widgetId, container);
   });
+}
+
+// Set up reset button (helper function to ensure it's always active)
+function setupResetButton(widgetId, container) {
+  const resetBtn = container.querySelector('.scoreboard-reset-btn');
+  if (resetBtn) {
+    // Remove old listener if exists and reattach
+    const newResetBtn = resetBtn.cloneNode(true);
+    resetBtn.parentNode.replaceChild(newResetBtn, resetBtn);
+    newResetBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const widget = container.closest('.widget');
+      const isEditMode = widget && widget.closest('.dashboard.page') && widget.closest('.dashboard.page').classList.contains('edit-mode');
+      if (!isEditMode) {
+        resetScoreboard(widgetId, container);
+      }
+    });
+  }
 }
 
 // Render scoreboard
@@ -3257,6 +3264,8 @@ function updateScore(widgetId, teamId, delta, container) {
     triggerConfetti();
     // Re-render to disable buttons
     renderScoreboard(widgetId, container);
+    // Reattach reset button listener after render
+    setupResetButton(widgetId, container);
   } else {
     // Just update the display
     updateScoreDisplay(widgetId, teamId, container);
@@ -3310,6 +3319,9 @@ function resetScoreboard(widgetId, container) {
   
   // Re-render
   renderScoreboard(widgetId, container);
+  
+  // Reattach reset button listener after render
+  setupResetButton(widgetId, container);
   
   // Save state
   saveScoreboardState(widgetId);
