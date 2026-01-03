@@ -4909,15 +4909,34 @@ function setEditMode(enabled) {
   }
   
   // Update all widgets
-  document.querySelectorAll('.widget').forEach(widget => {
-    if (enabled) {
-      widget.classList.add('edit-mode-active');
-      widget.style.pointerEvents = 'auto'; // Allow dragging
-    } else {
-      widget.classList.remove('edit-mode-active');
-      widget.style.pointerEvents = ''; // Reset to default
-    }
-  });
+  const currentPage = getPageElement(currentPageIndex);
+  if (currentPage) {
+    currentPage.querySelectorAll('.widget').forEach(widget => {
+      if (enabled) {
+        widget.classList.add('edit-mode-active');
+        widget.style.pointerEvents = 'auto'; // Allow dragging
+        // Add z-index controls when entering edit mode
+        if (typeof addZIndexControls === 'function') {
+          addZIndexControls(widget);
+        }
+      } else {
+        widget.classList.remove('edit-mode-active');
+        widget.style.pointerEvents = ''; // Reset to default
+        // Remove z-index controls when exiting edit mode
+        const zIndexControls = widget.querySelector('.widget-zindex-controls');
+        if (zIndexControls) {
+          zIndexControls.remove();
+        }
+      }
+    });
+  }
+  
+  // Re-initialize drag and resize when toggling edit mode
+  if (typeof initializeDragAndResize === 'function') {
+    setTimeout(() => {
+      initializeDragAndResize();
+    }, 100);
+  }
   
   // Reinitialize drag/resize when entering edit mode
   // Remove resize handles when exiting edit mode
@@ -5052,14 +5071,7 @@ function updateWidgetControlPanel() {
     item.appendChild(toggleBtn);
     item.appendChild(styleBtn);
     
-    // Add z-index controls in a group
-    const zIndexGroup = document.createElement('div');
-    zIndexGroup.className = 'widget-control-zindex-group';
-    zIndexGroup.appendChild(sendToBackBtn);
-    zIndexGroup.appendChild(sendBackwardBtn);
-    zIndexGroup.appendChild(bringForwardBtn);
-    zIndexGroup.appendChild(bringToFrontBtn);
-    item.appendChild(zIndexGroup);
+    // Z-index controls removed from side panel - now displayed on widgets
     
     list.appendChild(item);
   });
@@ -5138,6 +5150,73 @@ function sendWidgetToBack(widgetId) {
   
   widget.style.zIndex = minZ - 1;
   saveWidgetLayout(); // Save z-index changes
+}
+
+// Add z-index controls to widget header
+function addZIndexControls(widget) {
+  // Remove existing z-index controls
+  const existing = widget.querySelector('.widget-zindex-controls');
+  if (existing) {
+    existing.remove();
+  }
+  
+  // Get widget ID from class list (second class is the widget ID)
+  const widgetId = widget.classList[1];
+  if (!widgetId) return;
+  
+  // Get widget header
+  const header = widget.querySelector('.widget-header');
+  if (!header) return;
+  
+  // Create z-index controls container
+  const controlsContainer = document.createElement('div');
+  controlsContainer.className = 'widget-zindex-controls';
+  
+  // Create buttons
+  const sendToBackBtn = document.createElement('button');
+  sendToBackBtn.className = 'widget-zindex-btn widget-zindex-demote';
+  sendToBackBtn.innerHTML = '⬇';
+  sendToBackBtn.title = 'Send to Back';
+  sendToBackBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    sendWidgetToBack(widgetId);
+  });
+  
+  const sendBackwardBtn = document.createElement('button');
+  sendBackwardBtn.className = 'widget-zindex-btn widget-zindex-demote';
+  sendBackwardBtn.innerHTML = '↓';
+  sendBackwardBtn.title = 'Send Backward';
+  sendBackwardBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    sendWidgetBackward(widgetId);
+  });
+  
+  const bringForwardBtn = document.createElement('button');
+  bringForwardBtn.className = 'widget-zindex-btn widget-zindex-promote';
+  bringForwardBtn.innerHTML = '↑';
+  bringForwardBtn.title = 'Bring Forward';
+  bringForwardBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    bringWidgetForward(widgetId);
+  });
+  
+  const bringToFrontBtn = document.createElement('button');
+  bringToFrontBtn.className = 'widget-zindex-btn widget-zindex-promote';
+  bringToFrontBtn.innerHTML = '⬆';
+  bringToFrontBtn.title = 'Bring to Front';
+  bringToFrontBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    bringWidgetToFront(widgetId);
+  });
+  
+  // Add buttons to container
+  controlsContainer.appendChild(sendToBackBtn);
+  controlsContainer.appendChild(sendBackwardBtn);
+  controlsContainer.appendChild(bringForwardBtn);
+  controlsContainer.appendChild(bringToFrontBtn);
+  
+  // Add to header
+  header.appendChild(controlsContainer);
 }
 
 // Start auto-refresh

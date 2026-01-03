@@ -184,6 +184,11 @@ function initializeDragAndResize() {
         addRotateHandle(widget);
       }
       
+      // Add z-index controls to widget header (if function exists)
+      if (typeof addZIndexControls === 'function') {
+        addZIndexControls(widget);
+      }
+      
       // Remove any existing drag listener by checking if we need to
       // Since we can't easily remove specific listeners, we'll use a flag
       // But actually, having multiple listeners isn't the issue - the issue is
