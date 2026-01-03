@@ -1570,7 +1570,14 @@ function setupScoreboardDragAndDrop() {
   
   const teamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
   
-  teamConfigs.forEach((teamEl, index) => {
+  // Remove existing listeners by cloning (clean slate)
+  teamConfigs.forEach(teamEl => {
+    if (teamEl.dataset.dragSetup === 'true') {
+      // Already set up, skip
+      return;
+    }
+    teamEl.dataset.dragSetup = 'true';
+    
     // Drag start
     teamEl.addEventListener('dragstart', (e) => {
       draggedElement = teamEl;
@@ -1651,7 +1658,9 @@ function setupScoreboardDragAndDrop() {
         updateScoreboardTeamLabels();
         updateScoreboardConfig();
         
-        // Re-setup drag and drop for new order
+        // Clear drag setup flags and re-setup
+        const allTeams = teamsList.querySelectorAll('.scoreboard-team-config');
+        allTeams.forEach(t => t.dataset.dragSetup = 'false');
         setupScoreboardDragAndDrop();
       }
       
