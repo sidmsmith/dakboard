@@ -1585,33 +1585,26 @@ function setupScoreboardDragAndDrop() {
     teamEl.setAttribute('draggable', 'true');
     teamEl.dataset.dragSetup = 'true';
     
-    // Make drag handle and inputs not interfere with dragging
+    // Make drag handle trigger drag on parent
     const dragHandle = teamEl.querySelector('.scoreboard-drag-handle');
     if (dragHandle) {
-      dragHandle.style.pointerEvents = 'none';
-    }
-    
-    // Prevent inputs from blocking drag
-    const inputs = teamEl.querySelectorAll('input, select, button');
-    inputs.forEach(input => {
-      input.addEventListener('mousedown', (e) => {
-        // Only prevent if clicking on drag handle area
-        if (e.target.closest('.scoreboard-drag-handle')) {
-          e.preventDefault();
-        }
+      dragHandle.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Start drag on the parent element
+        teamEl.draggable = true;
+        const dragEvent = new MouseEvent('mousedown', {
+          bubbles: true,
+          cancelable: true,
+          clientX: e.clientX,
+          clientY: e.clientY
+        });
+        teamEl.dispatchEvent(dragEvent);
       });
-    });
+    }
     
     // Drag start
     teamEl.addEventListener('dragstart', (e) => {
-      // Only allow drag if clicking on the drag handle or empty area
-      const target = e.target;
-      if (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'BUTTON') {
-        if (!target.closest('.scoreboard-drag-handle')) {
-          e.preventDefault();
-          return;
-        }
-      }
       draggedElement = teamEl;
       draggedIndex = index;
       teamEl.classList.add('dragging');
