@@ -4210,14 +4210,18 @@ function openPixabayModal() {
             // Cache it in window.CONFIG for future use
             if (!window.CONFIG) window.CONFIG = {};
             window.CONFIG.PIXABAY_API_KEY = apiKey;
+          } else {
+            console.error('Failed to fetch clip art config:', configResponse.status, configResponse.statusText);
+            const errorText = await configResponse.text();
+            console.error('Error response:', errorText);
           }
         } catch (e) {
-          // Silently fail - will show error below
+          console.error('Error fetching clip art config:', e);
         }
       }
       
       if (!apiKey) {
-        error.innerHTML = 'Pixabay API key not configured. Please see CLIPART_API_SETUP.md for setup instructions.';
+        error.innerHTML = 'Pixabay API key not configured. Please see CLIPART_API_SETUP.md for setup instructions.<br><br>Make sure:<br>1. Environment variable PIXABAY_API_KEY is set in Vercel<br>2. You have redeployed after setting the variable<br>3. Check browser console for detailed error messages';
         error.style.display = 'block';
         loading.style.display = 'none';
         return;
@@ -4347,14 +4351,18 @@ function openNounProjectModal() {
             if (!window.CONFIG) window.CONFIG = {};
             window.CONFIG.NOUNPROJECT_API_KEY = apiKey;
             window.CONFIG.NOUNPROJECT_API_SECRET = apiSecret;
+          } else {
+            console.error('Failed to fetch clip art config:', configResponse.status, configResponse.statusText);
+            const errorText = await configResponse.text();
+            console.error('Error response:', errorText);
           }
         } catch (e) {
-          // Silently fail - will show error below
+          console.error('Error fetching clip art config:', e);
         }
       }
       
       if (!apiKey || !apiSecret) {
-        error.innerHTML = 'Noun Project API credentials not configured. Please see CLIPART_API_SETUP.md for setup instructions.';
+        error.innerHTML = 'Noun Project API credentials not configured. Please see CLIPART_API_SETUP.md for setup instructions.<br><br>Make sure:<br>1. Environment variables NOUN_API_KEY and NOUN_API_SECRET are set in Vercel<br>2. You have redeployed after setting the variables<br>3. Check browser console for detailed error messages';
         error.style.display = 'block';
         loading.style.display = 'none';
         return;
