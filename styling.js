@@ -2121,6 +2121,10 @@ function updatePreview() {
   const preview = document.getElementById('styling-preview-widget');
   if (!preview) return;
 
+  // Parse widget ID to get widget type (handles both instance IDs and legacy IDs)
+  const parsed = typeof parseWidgetId !== 'undefined' && currentWidgetId ? parseWidgetId(currentWidgetId) : { widgetType: currentWidgetId || '', pageIndex: 0, instanceIndex: 0, isLegacy: true };
+  const widgetType = parsed.widgetType;
+
   // Apply background based on type - use currentStyles to ensure consistency
   const bgType = currentStyles.backgroundType || 'solid';
   
