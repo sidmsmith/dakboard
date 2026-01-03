@@ -341,9 +341,11 @@
       </div>
     </div>
 
-    <!-- Blank Widget - Empty frame for customization -->
+    <!-- Blank Widget - Clip Art Display -->
     <div class="widget blank-widget">
-      <!-- No header, no content - completely blank -->
+      <div class="clipart-content">
+        <!-- Clip art will be displayed here -->
+      </div>
     </div>
   </div>
 
@@ -656,6 +658,21 @@
     <a href="/privacy-policy.html">Privacy Policy</a>
   </footer>
   -->
+
+  <!-- Clip Art Selection Modal -->
+  <div id="clipart-modal" class="modal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h2>Choose Clip Art</h2>
+        <button class="modal-close" id="close-clipart-modal">&times;</button>
+      </div>
+      <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <div id="clipart-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 15px; padding: 20px;">
+          <!-- Clip art items will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
   <script src="styling.js"></script>

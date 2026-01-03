@@ -1421,6 +1421,7 @@ async function loadAllData() {
       loadDice(), // Load dice widget
       loadStopwatch(), // Load stopwatch widget
       loadScoreboard(), // Load scoreboard widget
+      loadClipArt(), // Load clip art widget
       loadThermostat(), // Load thermostat
       loadNews(), // Load news feed
       initializeWhiteboard(), // Initialize whiteboard

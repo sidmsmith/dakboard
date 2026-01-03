@@ -659,6 +659,9 @@ function generateAdvancedTab() {
   const isDiceWidget = currentWidgetId === 'dice-widget';
   const isStopwatchWidget = currentWidgetId === 'stopwatch-widget';
   const isScoreboardWidget = currentWidgetId === 'scoreboard-widget';
+  const isBlankWidget = currentWidgetId === 'blank-widget';
+  const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
+  const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
   
   // Load scoreboard config if this is a scoreboard widget
   let scoreboardConfig = {
@@ -816,6 +819,30 @@ function generateAdvancedTab() {
       <div class="styling-form-row">
         <div class="styling-form-control">
           <button type="button" id="scoreboard-add-team-btn" class="styling-btn-secondary">+ Add Team</button>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+    ${isBlankWidget ? `
+    <div class="styling-form-section">
+      <div class="styling-section-title">Clip Art</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Current Clip Art</label>
+          <div class="styling-form-control">
+            <div style="font-size: 48px; text-align: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; color: ${clipArtColor};" id="clipart-preview-display">${clipArtEmoji}</div>
+            <button type="button" id="clipart-select-btn" class="styling-btn-secondary" style="margin-top: 10px; width: 100%;">Choose Clip Art</button>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Color</label>
+          <div class="styling-form-control">
+            <input type="color" id="clipart-color" value="${clipArtColor}">
+            <input type="text" id="clipart-color-text" value="${clipArtColor}" pattern="^#[0-9A-F]{6}$" placeholder="#4a90e2">
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="clipart-color-apply-all" ${applyToAllFlags.clipArtColor ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -1401,6 +1428,42 @@ function attachTabEventListeners(tabName) {
         // (must be after drag setup because drag setup clones elements)
         setupScoreboardTeamListeners();
         updateRemoveButtonsVisibility();
+      }
+      
+      // Clip art widget controls
+      if (currentWidgetId === 'blank-widget') {
+        const clipartSelectBtn = stylingModal.querySelector('#clipart-select-btn');
+        const clipartColor = stylingModal.querySelector('#clipart-color');
+        const clipartColorText = stylingModal.querySelector('#clipart-color-text');
+        
+        if (clipartSelectBtn) {
+          clipartSelectBtn.addEventListener('click', () => {
+            openClipArtModal();
+          });
+        }
+        
+        if (clipartColor && clipartColorText) {
+          clipartColor.addEventListener('input', (e) => {
+            clipartColorText.value = e.target.value;
+            currentStyles.clipArtColor = e.target.value;
+            updatePreview();
+            updateClipArtPreview();
+          });
+          clipartColor.addEventListener('change', (e) => {
+            clipartColorText.value = e.target.value;
+            currentStyles.clipArtColor = e.target.value;
+            updatePreview();
+            updateClipArtPreview();
+          });
+          clipartColorText.addEventListener('input', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+              clipartColor.value = e.target.value;
+              currentStyles.clipArtColor = e.target.value;
+              updatePreview();
+              updateClipArtPreview();
+            }
+          });
+        }
       }
     }
   }
@@ -2831,6 +2894,18 @@ function applyCurrentStylesToWidget(widget) {
     }
   }
   
+  // Update clip art if this is a blank widget
+  if (widget.classList.contains('blank-widget')) {
+    const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
+    const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
+    if (!isApplyingToAll || applyToAllFlags.clipArtEmoji || applyToAllFlags.clipArtColor) {
+      // Reload clip art with new emoji and color
+      if (typeof loadClipArt === 'function') {
+        setTimeout(() => loadClipArt(), 0);
+      }
+    }
+  }
+  
   // Update dynamic styles (for dynamic title color) if enabled
   // This must be called after all background styles are applied
   if (currentStyles.textColorDynamic !== false && typeof updateWidgetDynamicStyles === 'function') {
@@ -3033,6 +3108,16 @@ function loadWidgetStyles(widgetId) {
           console.error('Error parsing scoreboard config:', e);
         }
       }
+    }
+  }
+  
+  // Set clip art defaults if this is a blank widget
+  if (widgetId === 'blank-widget') {
+    if (!currentStyles.clipArtEmoji) {
+      currentStyles.clipArtEmoji = '🎨';
+    }
+    if (!currentStyles.clipArtColor) {
+      currentStyles.clipArtColor = '#4a90e2';
     }
   }
 }
@@ -3934,6 +4019,93 @@ if (document.readyState === 'loading') {
     // Load saved styles after a short delay to ensure widgets are rendered
     setTimeout(loadStyles, 100);
   });
+// Clip art emoji list (100 fun emojis)
+const CLIPART_EMOJIS = [
+  '🎨', '🎭', '🎪', '🎬', '🎤', '🎧', '🎮', '🕹️', '🎯', '🎲',
+  '🎳', '🎴', '🎵', '🎶', '🎸', '🎹', '🎺', '🎻', '🥁', '🎤',
+  '🎧', '🎼', '🎵', '🎶', '🎸', '🎹', '🎺', '🎻', '🥁', '🎷',
+  '🚀', '🛸', '🛰️', '🌌', '⭐', '🌟', '✨', '💫', '🌠', '☄️',
+  '🎃', '🎄', '🎅', '🎁', '🎀', '🎊', '🎉', '🎈', '🎁', '🎀',
+  '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🏵️', '🎗️', '🎫', '🎟️',
+  '🎪', '🎭', '🎨', '🖼️', '🎨', '🖌️', '🖍️', '✏️', '✒️', '🖊️',
+  '🖋️', '📝', '📄', '📃', '📑', '📊', '📈', '📉', '🗒️', '🗓️',
+  '📆', '📅', '📇', '🗃️', '🗳️', '🗄️', '📋', '📁', '📂', '🗂️',
+  '📓', '📔', '📒', '📕', '📗', '📘', '📙', '📚', '📖', '🔖',
+  '🧩', '🎯', '🎲', '🎳', '🎮', '🕹️', '🎰', '🎲', '🎯', '🎪'
+];
+
+// Open clip art selection modal
+function openClipArtModal() {
+  const modal = document.getElementById('clipart-modal');
+  const grid = document.getElementById('clipart-grid');
+  if (!modal || !grid) return;
+  
+  // Clear and populate grid
+  grid.innerHTML = '';
+  CLIPART_EMOJIS.forEach(emoji => {
+    const item = document.createElement('div');
+    item.className = 'clipart-item';
+    item.style.cssText = 'font-size: 48px; text-align: center; padding: 15px; cursor: pointer; border: 2px solid transparent; border-radius: 8px; transition: all 0.2s; background: rgba(255,255,255,0.05);';
+    item.textContent = emoji;
+    item.title = emoji;
+    item.addEventListener('mouseenter', () => {
+      item.style.background = 'rgba(255,255,255,0.1)';
+      item.style.borderColor = '#4a90e2';
+      item.style.transform = 'scale(1.1)';
+    });
+    item.addEventListener('mouseleave', () => {
+      item.style.background = 'rgba(255,255,255,0.05)';
+      item.style.borderColor = 'transparent';
+      item.style.transform = 'scale(1)';
+    });
+    item.addEventListener('click', () => {
+      selectClipArt(emoji);
+    });
+    grid.appendChild(item);
+  });
+  
+  // Show modal
+  modal.classList.add('active');
+  
+  // Close button
+  const closeBtn = document.getElementById('close-clipart-modal');
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      modal.classList.remove('active');
+    };
+  }
+  
+  // Close on overlay click
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      modal.classList.remove('active');
+    }
+  };
+}
+
+// Select clip art emoji
+function selectClipArt(emoji) {
+  currentStyles.clipArtEmoji = emoji;
+  updateClipArtPreview();
+  updatePreview();
+  
+  // Close modal
+  const modal = document.getElementById('clipart-modal');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
+// Update clip art preview in Advanced tab
+function updateClipArtPreview() {
+  const previewDisplay = document.getElementById('clipart-preview-display');
+  const clipartColor = document.getElementById('clipart-color');
+  if (previewDisplay && clipartColor) {
+    previewDisplay.textContent = currentStyles.clipArtEmoji || '🎨';
+    previewDisplay.style.color = clipartColor.value || '#4a90e2';
+  }
+}
+
 } else {
   initStyling();
   setTimeout(loadStyles, 100);
