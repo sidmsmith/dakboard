@@ -4909,9 +4909,9 @@ function setEditMode(enabled) {
   }
   
   // Update all widgets
-  const currentPage = getPageElement(currentPageIndex);
-  if (currentPage) {
-    currentPage.querySelectorAll('.widget').forEach(widget => {
+  const pageElement = getPageElement(currentPageIndex);
+  if (pageElement) {
+    pageElement.querySelectorAll('.widget').forEach(widget => {
       if (enabled) {
         widget.classList.add('edit-mode-active');
         widget.style.pointerEvents = 'auto'; // Allow dragging
