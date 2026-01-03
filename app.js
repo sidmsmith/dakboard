@@ -5070,8 +5070,12 @@ function bringWidgetForward(widgetId) {
   const widget = document.querySelector(`.${widgetId}`);
   if (!widget) return;
   
+  // Get widgets only on the current page
+  const pageElement = widget.closest('.dashboard.page');
+  if (!pageElement) return;
+  
   const currentZ = parseInt(window.getComputedStyle(widget).zIndex) || 1;
-  const allWidgets = Array.from(document.querySelectorAll('.widget'));
+  const allWidgets = Array.from(pageElement.querySelectorAll('.widget:not(.hidden)'));
   const maxZ = Math.max(...allWidgets.map(w => parseInt(window.getComputedStyle(w).zIndex) || 1));
   
   if (currentZ < maxZ) {
@@ -5084,8 +5088,12 @@ function sendWidgetBackward(widgetId) {
   const widget = document.querySelector(`.${widgetId}`);
   if (!widget) return;
   
+  // Get widgets only on the current page
+  const pageElement = widget.closest('.dashboard.page');
+  if (!pageElement) return;
+  
   const currentZ = parseInt(window.getComputedStyle(widget).zIndex) || 1;
-  const allWidgets = Array.from(document.querySelectorAll('.widget'));
+  const allWidgets = Array.from(pageElement.querySelectorAll('.widget:not(.hidden)'));
   const minZ = Math.min(...allWidgets.map(w => parseInt(window.getComputedStyle(w).zIndex) || 1));
   
   if (currentZ > minZ) {
@@ -5098,7 +5106,11 @@ function bringWidgetToFront(widgetId) {
   const widget = document.querySelector(`.${widgetId}`);
   if (!widget) return;
   
-  const allWidgets = Array.from(document.querySelectorAll('.widget'));
+  // Get widgets only on the current page
+  const pageElement = widget.closest('.dashboard.page');
+  if (!pageElement) return;
+  
+  const allWidgets = Array.from(pageElement.querySelectorAll('.widget:not(.hidden)'));
   const maxZ = Math.max(...allWidgets.map(w => parseInt(window.getComputedStyle(w).zIndex) || 1));
   
   widget.style.zIndex = maxZ + 1;
@@ -5109,7 +5121,11 @@ function sendWidgetToBack(widgetId) {
   const widget = document.querySelector(`.${widgetId}`);
   if (!widget) return;
   
-  const allWidgets = Array.from(document.querySelectorAll('.widget'));
+  // Get widgets only on the current page
+  const pageElement = widget.closest('.dashboard.page');
+  if (!pageElement) return;
+  
+  const allWidgets = Array.from(pageElement.querySelectorAll('.widget:not(.hidden)'));
   const minZ = Math.min(...allWidgets.map(w => parseInt(window.getComputedStyle(w).zIndex) || 1));
   
   widget.style.zIndex = minZ - 1;

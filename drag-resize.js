@@ -289,10 +289,13 @@ function addRotateHandle(widget) {
   handleEl.className = 'rotate-handle';
   handleEl.innerHTML = `
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
-      <path d="M8 12c0-2.21 1.79-4 4-4s4 1.79 4 4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
-      <path d="M16 12c0 2.21-1.79 4-4 4s-4-1.79-4-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
-      <path d="M12 8l-2-2m0 12l2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none" opacity="0.5"/>
+      <path d="M8 8l-2-2 2-2M16 8l2-2-2-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <path d="M8 16l-2 2 2 2M16 16l2 2-2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <path d="M3 12h4M17 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <path d="M12 3v4M12 17v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <path d="M8 8c0-2.21 1.79-4 4-4s4 1.79 4 4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M16 16c0 2.21-1.79 4-4 4s-4-1.79-4-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
     </svg>
   `;
   
