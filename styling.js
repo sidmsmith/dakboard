@@ -1406,6 +1406,9 @@ function attachTabEventListeners(tabName) {
         // Remove team buttons and team config updates
         setupScoreboardTeamListeners();
         
+        // Update remove buttons visibility
+        updateRemoveButtonsVisibility();
+        
         // Setup drag and drop for team reordering
         console.log('🔧 Calling setupScoreboardDragAndDrop() from attachTabEventListeners');
         setupScoreboardDragAndDrop();
@@ -1472,13 +1475,14 @@ function addScoreboardTeam() {
           ).join('') : ''}
         </select>
         <input type="color" class="scoreboard-team-slider-color" value="#9b59b6">
-        <button type="button" class="scoreboard-remove-team-btn" data-team-index="${newIndex}">Remove</button>
+        ${currentTeams.length + 1 > 2 ? `<button type="button" class="scoreboard-remove-team-btn" data-team-index="${newIndex}">Remove</button>` : ''}
       </div>
     </div>
   `;
   
   teamsList.appendChild(newTeamEl);
   setupScoreboardTeamListeners();
+  updateRemoveButtonsVisibility();
   updateScoreboardConfig();
 }
 
@@ -1502,6 +1506,8 @@ function setupScoreboardTeamListeners() {
             teamEl.remove();
             // Update labels
             updateScoreboardTeamLabels();
+            // Update remove buttons visibility
+            updateRemoveButtonsVisibility();
             updateScoreboardConfig();
           }
         } else {
