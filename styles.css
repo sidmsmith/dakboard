@@ -1300,7 +1300,7 @@ body {
 }
 
 .stopwatch-display {
-  font-size: 48px;
+  font-size: 56px;
   font-weight: 600;
   font-family: 'Courier New', monospace;
   color: #1a1a1a;
@@ -1340,8 +1340,8 @@ body {
 }
 
 .stopwatch-btn svg {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
 }
 
 .stopwatch-play-pause {
