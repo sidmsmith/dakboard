@@ -1420,6 +1420,7 @@ async function loadAllData() {
       loadCompressor(), // Load air compressor
       loadDice(), // Load dice widget
       loadStopwatch(), // Load stopwatch widget
+      loadScoreboard(), // Load scoreboard widget
       loadThermostat(), // Load thermostat
       loadNews(), // Load news feed
       initializeWhiteboard(), // Initialize whiteboard
@@ -3020,6 +3021,333 @@ function saveStopwatchState(widgetId) {
   localStorage.setItem(stateKey, JSON.stringify(stateToSave));
 }
 
+// Scoreboard icon options (make globally accessible)
+window.SCOREBOARD_ICONS = [
+  { value: '🚀', label: 'Rocket' },
+  { value: '🦄', label: 'Unicorn' },
+  { value: '⚽', label: 'Soccer Ball' },
+  { value: '🏀', label: 'Basketball' },
+  { value: '🏈', label: 'Football' },
+  { value: '⚾', label: 'Baseball' },
+  { value: '🎾', label: 'Tennis' },
+  { value: '🏐', label: 'Volleyball' },
+  { value: '🏓', label: 'Ping Pong' },
+  { value: '🏸', label: 'Badminton' },
+  { value: '🥊', label: 'Boxing' },
+  { value: '🥋', label: 'Martial Arts' },
+  { value: '🏹', label: 'Archery' },
+  { value: '🎯', label: 'Target' },
+  { value: '🏆', label: 'Trophy' },
+  { value: '🥇', label: 'Gold Medal' },
+  { value: '🥈', label: 'Silver Medal' },
+  { value: '🥉', label: 'Bronze Medal' },
+  { value: '👑', label: 'Crown' },
+  { value: '⭐', label: 'Star' },
+  { value: '🌟', label: 'Glowing Star' },
+  { value: '💎', label: 'Diamond' },
+  { value: '🔥', label: 'Fire' },
+  { value: '⚡', label: 'Lightning' },
+  { value: '🌈', label: 'Rainbow' },
+  { value: '🦁', label: 'Lion' },
+  { value: '🐯', label: 'Tiger' },
+  { value: '🐻', label: 'Bear' },
+  { value: '🦅', label: 'Eagle' },
+  { value: '🦉', label: 'Owl' }
+];
+
+// Scoreboard state management
+let scoreboardConfigs = new Map(); // Track config per widget instance: { teams, targetScore, increment, sliderColors }
+let scoreboardScores = new Map(); // Track scores per widget instance: { teamId: score, ... }
+let scoreboardWinners = new Map(); // Track which teams have won per widget instance: Set of teamIds
+
+// Load and initialize scoreboard widgets
+function loadScoreboard() {
+  const scoreboardContainers = document.querySelectorAll('#scoreboard-content');
+  
+  if (scoreboardContainers.length === 0) return;
+  
+  // Initialize all scoreboard widgets across all pages
+  scoreboardContainers.forEach((container) => {
+    const widget = container.closest('.scoreboard-widget');
+    if (!widget) return;
+    
+    // Create unique ID for this widget instance
+    const pageIndex = typeof currentPageIndex !== 'undefined' ? currentPageIndex : 0;
+    const widgetIndex = Array.from(document.querySelectorAll('.scoreboard-widget')).indexOf(widget);
+    const widgetId = `scoreboard-${pageIndex}-${widgetIndex}`;
+    
+    // Get saved configuration from localStorage
+    const configKey = `dakboard-scoreboard-config-${widgetId}`;
+    const savedConfig = localStorage.getItem(configKey);
+    
+    let config = {
+      teams: [
+        { id: 'team1', name: 'Team 1', icon: '🚀', sliderColor: '#9b59b6' },
+        { id: 'team2', name: 'Team 2', icon: '🦄', sliderColor: '#e74c3c' }
+      ],
+      targetScore: 10,
+      increment: 1
+    };
+    
+    if (savedConfig) {
+      try {
+        config = JSON.parse(savedConfig);
+        // Ensure minimum 2 teams
+        if (!config.teams || config.teams.length < 2) {
+          config.teams = [
+            { id: 'team1', name: 'Team 1', icon: '🚀', sliderColor: '#9b59b6' },
+            { id: 'team2', name: 'Team 2', icon: '🦄', sliderColor: '#e74c3c' }
+          ];
+        }
+      } catch (e) {
+        console.error('Error parsing scoreboard config:', e);
+      }
+    }
+    
+    scoreboardConfigs.set(widgetId, config);
+    
+    // Get saved scores
+    const scoresKey = `dakboard-scoreboard-scores-${widgetId}`;
+    const savedScores = localStorage.getItem(scoresKey);
+    let scores = {};
+    if (savedScores) {
+      try {
+        scores = JSON.parse(savedScores);
+      } catch (e) {
+        console.error('Error parsing scoreboard scores:', e);
+      }
+    }
+    
+    // Initialize scores for all teams
+    config.teams.forEach(team => {
+      if (scores[team.id] === undefined) {
+        scores[team.id] = 0;
+      }
+    });
+    
+    scoreboardScores.set(widgetId, scores);
+    
+    // Get saved winners
+    const winnersKey = `dakboard-scoreboard-winners-${widgetId}`;
+    const savedWinners = localStorage.getItem(winnersKey);
+    let winners = new Set();
+    if (savedWinners) {
+      try {
+        winners = new Set(JSON.parse(savedWinners));
+      } catch (e) {
+        console.error('Error parsing scoreboard winners:', e);
+      }
+    }
+    
+    scoreboardWinners.set(widgetId, winners);
+    
+    // Render the scoreboard
+    renderScoreboard(widgetId, container);
+    
+    // Set up reset button
+    const resetBtn = widget.querySelector('#scoreboard-reset');
+    if (resetBtn && !resetBtn.dataset.listenerAttached) {
+      resetBtn.dataset.listenerAttached = 'true';
+      resetBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!isEditMode) {
+          resetScoreboard(widgetId, container);
+        }
+      });
+    }
+  });
+}
+
+// Render scoreboard
+function renderScoreboard(widgetId, container) {
+  const config = scoreboardConfigs.get(widgetId);
+  const scores = scoreboardScores.get(widgetId);
+  const winners = scoreboardWinners.get(widgetId);
+  
+  if (!config || !scores) return;
+  
+  container.innerHTML = '';
+  
+  config.teams.forEach(team => {
+    const score = scores[team.id] || 0;
+    const hasWon = winners.has(team.id);
+    const percentage = config.targetScore > 0 ? Math.min((score / config.targetScore) * 100, 100) : 0;
+    
+    const teamElement = document.createElement('div');
+    teamElement.className = 'scoreboard-team';
+    teamElement.dataset.teamId = team.id;
+    
+    teamElement.innerHTML = `
+      <div class="scoreboard-team-header">
+        <span class="scoreboard-team-icon">${team.icon}</span>
+        <span class="scoreboard-team-name">${team.name}</span>
+      </div>
+      <div class="scoreboard-team-controls">
+        <button class="scoreboard-btn scoreboard-minus" data-team-id="${team.id}" ${hasWon ? 'disabled' : ''}>−</button>
+        <div class="scoreboard-slider-container">
+          <div class="scoreboard-slider-track" style="background: rgba(255, 255, 255, 0.2);">
+            <div class="scoreboard-slider-fill" style="width: ${percentage}%; background: ${team.sliderColor};">
+              <div class="scoreboard-slider-handle" style="border-color: ${team.sliderColor};">
+                ${team.icon}
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="scoreboard-btn scoreboard-plus" data-team-id="${team.id}" ${hasWon ? 'disabled' : ''}>+</button>
+        <div class="scoreboard-score">${score}</div>
+      </div>
+    `;
+    
+    container.appendChild(teamElement);
+    
+    // Attach event listeners
+    const minusBtn = teamElement.querySelector('.scoreboard-minus');
+    const plusBtn = teamElement.querySelector('.scoreboard-plus');
+    
+    if (minusBtn && !minusBtn.dataset.listenerAttached) {
+      minusBtn.dataset.listenerAttached = 'true';
+      minusBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!isEditMode && !hasWon) {
+          updateScore(widgetId, team.id, -config.increment, container);
+        }
+      });
+    }
+    
+    if (plusBtn && !plusBtn.dataset.listenerAttached) {
+      plusBtn.dataset.listenerAttached = 'true';
+      plusBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!isEditMode && !hasWon) {
+          updateScore(widgetId, team.id, config.increment, container);
+        }
+      });
+    }
+  });
+}
+
+// Update score
+function updateScore(widgetId, teamId, delta, container) {
+  const config = scoreboardConfigs.get(widgetId);
+  const scores = scoreboardScores.get(widgetId);
+  const winners = scoreboardWinners.get(widgetId);
+  
+  if (!config || !scores) return;
+  
+  // Update score
+  scores[teamId] = Math.max(0, (scores[teamId] || 0) + delta);
+  
+  // Check if team reached target
+  if (scores[teamId] >= config.targetScore && !winners.has(teamId)) {
+    winners.add(teamId);
+    // Trigger confetti
+    triggerConfetti();
+    // Re-render to disable buttons
+    renderScoreboard(widgetId, container);
+  } else {
+    // Just update the display
+    updateScoreDisplay(widgetId, teamId, container);
+  }
+  
+  // Save scores and winners
+  saveScoreboardState(widgetId);
+}
+
+// Update score display for a single team
+function updateScoreDisplay(widgetId, teamId, container) {
+  const config = scoreboardConfigs.get(widgetId);
+  const scores = scoreboardScores.get(widgetId);
+  
+  if (!config || !scores) return;
+  
+  const teamElement = container.querySelector(`[data-team-id="${teamId}"]`);
+  if (!teamElement) return;
+  
+  const score = scores[teamId] || 0;
+  const percentage = config.targetScore > 0 ? Math.min((score / config.targetScore) * 100, 100) : 0;
+  const team = config.teams.find(t => t.id === teamId);
+  
+  // Update score number
+  const scoreElement = teamElement.querySelector('.scoreboard-score');
+  if (scoreElement) {
+    scoreElement.textContent = score;
+  }
+  
+  // Update slider
+  const fillElement = teamElement.querySelector('.scoreboard-slider-fill');
+  if (fillElement && team) {
+    fillElement.style.width = `${percentage}%`;
+  }
+}
+
+// Reset scoreboard
+function resetScoreboard(widgetId, container) {
+  const scores = scoreboardScores.get(widgetId);
+  const winners = scoreboardWinners.get(widgetId);
+  
+  if (!scores) return;
+  
+  // Reset all scores
+  Object.keys(scores).forEach(teamId => {
+    scores[teamId] = 0;
+  });
+  
+  // Clear winners
+  winners.clear();
+  
+  // Re-render
+  renderScoreboard(widgetId, container);
+  
+  // Save state
+  saveScoreboardState(widgetId);
+}
+
+// Save scoreboard state
+function saveScoreboardState(widgetId) {
+  const scores = scoreboardScores.get(widgetId);
+  const winners = scoreboardWinners.get(widgetId);
+  
+  if (scores) {
+    const scoresKey = `dakboard-scoreboard-scores-${widgetId}`;
+    localStorage.setItem(scoresKey, JSON.stringify(scores));
+  }
+  
+  if (winners) {
+    const winnersKey = `dakboard-scoreboard-winners-${widgetId}`;
+    localStorage.setItem(winnersKey, JSON.stringify(Array.from(winners)));
+  }
+}
+
+// Trigger confetti animation
+function triggerConfetti() {
+  // Remove existing confetti container if any
+  const existing = document.querySelector('.confetti-container');
+  if (existing) {
+    existing.remove();
+  }
+  
+  // Create confetti container
+  const container = document.createElement('div');
+  container.className = 'confetti-container';
+  document.body.appendChild(container);
+  
+  // Create confetti particles
+  const particleCount = 100;
+  for (let i = 0; i < particleCount; i++) {
+    const confetti = document.createElement('div');
+    confetti.className = 'confetti';
+    confetti.style.left = Math.random() * 100 + '%';
+    confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
+    confetti.style.animationDelay = Math.random() * 2 + 's';
+    container.appendChild(confetti);
+  }
+  
+  // Remove container after animation
+  setTimeout(() => {
+    container.remove();
+  }, 5000);
+}
+
 // Roll dice with animation
 function rollDice(diceElement, diceFaces) {
   // Don't allow interaction in edit mode
@@ -4105,6 +4433,7 @@ const WIDGET_CONFIG = {
   'compressor-widget': { name: 'Air Compressor', icon: '🌬️' },
   'dice-widget': { name: 'Dice', icon: '🎲' },
   'stopwatch-widget': { name: 'Stopwatch', icon: '⏱️' },
+  'scoreboard-widget': { name: 'Scoreboard', icon: '🏆' },
   'blank-widget': { name: 'Blank', icon: '⬜' },
   'clock-widget': { name: 'Clock', icon: '🕐' },
   'thermostat-widget': { name: 'Thermostat', icon: '🌡️' },
@@ -4249,6 +4578,8 @@ function toggleWidgetVisibility(widgetId) {
         setTimeout(() => loadDice(), 50);
       } else if (widgetId === 'stopwatch-widget' && typeof loadStopwatch === 'function') {
         setTimeout(() => loadStopwatch(), 50);
+      } else if (widgetId === 'scoreboard-widget' && typeof loadScoreboard === 'function') {
+        setTimeout(() => loadScoreboard(), 50);
       } else if (widgetId === 'compressor-widget' && typeof loadCompressor === 'function') {
         setTimeout(() => loadCompressor(), 50);
       } else if (widgetId === 'alarm-widget' && typeof loadAlarm === 'function') {

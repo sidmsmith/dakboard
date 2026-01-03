@@ -659,6 +659,34 @@ function generateAdvancedTab() {
   const stopwatchResetButtonColor = currentStyles.stopwatchResetButtonColor || '#ffffff';
   const isDiceWidget = currentWidgetId === 'dice-widget';
   const isStopwatchWidget = currentWidgetId === 'stopwatch-widget';
+  const isScoreboardWidget = currentWidgetId === 'scoreboard-widget';
+  
+  // Load scoreboard config if this is a scoreboard widget
+  let scoreboardConfig = {
+    teams: [
+      { id: 'team1', name: 'Team 1', icon: '🚀', sliderColor: '#9b59b6' },
+      { id: 'team2', name: 'Team 2', icon: '🦄', sliderColor: '#e74c3c' }
+    ],
+    targetScore: 10,
+    increment: 1
+  };
+  
+  if (isScoreboardWidget && currentStyles.scoreboardConfig) {
+    try {
+      scoreboardConfig = typeof currentStyles.scoreboardConfig === 'string' 
+        ? JSON.parse(currentStyles.scoreboardConfig)
+        : currentStyles.scoreboardConfig;
+      // Ensure minimum 2 teams
+      if (!scoreboardConfig.teams || scoreboardConfig.teams.length < 2) {
+        scoreboardConfig.teams = [
+          { id: 'team1', name: 'Team 1', icon: '🚀', sliderColor: '#9b59b6' },
+          { id: 'team2', name: 'Team 2', icon: '🦄', sliderColor: '#e74c3c' }
+        ];
+      }
+    } catch (e) {
+      console.error('Error parsing scoreboard config:', e);
+    }
+  }
   
   return `
     <div class="styling-form-section">
@@ -736,6 +764,58 @@ function generateAdvancedTab() {
               <input type="checkbox" id="stopwatch-reset-button-color-apply-all" ${applyToAllFlags.stopwatchResetButtonColor ? 'checked' : ''}> Apply to all
             </label>
           </div>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+    ${isScoreboardWidget ? `
+    <div class="styling-form-section">
+      <div class="styling-section-title">Scoreboard Configuration</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Target Score</label>
+          <div class="styling-form-control">
+            <input type="number" id="scoreboard-target-score" min="1" value="${scoreboardConfig.targetScore || 10}">
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Increment</label>
+          <div class="styling-form-control">
+            <select id="scoreboard-increment">
+              <option value="1" ${scoreboardConfig.increment === 1 ? 'selected' : ''}>1</option>
+              <option value="5" ${scoreboardConfig.increment === 5 ? 'selected' : ''}>5</option>
+              <option value="10" ${scoreboardConfig.increment === 10 ? 'selected' : ''}>10</option>
+              <option value="25" ${scoreboardConfig.increment === 25 ? 'selected' : ''}>25</option>
+              <option value="50" ${scoreboardConfig.increment === 50 ? 'selected' : ''}>50</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="styling-form-section">
+      <div class="styling-section-title">Teams</div>
+      <div class="styling-form-group" id="scoreboard-teams-list">
+        ${scoreboardConfig.teams.map((team, index) => `
+          <div class="scoreboard-team-config" data-team-index="${index}">
+            <div class="styling-form-row">
+              <label class="styling-form-label">Team ${index + 1}</label>
+              <div class="styling-form-control" style="display: flex; gap: 8px; align-items: center;">
+                <input type="text" class="scoreboard-team-name-input" value="${team.name}" placeholder="Team Name">
+                <select class="scoreboard-team-icon-select">
+                  ${typeof window !== 'undefined' && window.SCOREBOARD_ICONS ? window.SCOREBOARD_ICONS.map(icon => 
+                    `<option value="${icon.value}" ${team.icon === icon.value ? 'selected' : ''}>${icon.value} ${icon.label}</option>`
+                  ).join('') : ''}
+                </select>
+                <input type="color" class="scoreboard-team-slider-color" value="${team.sliderColor || '#9b59b6'}">
+                ${index >= 2 ? `<button type="button" class="scoreboard-remove-team-btn" data-team-index="${index}">Remove</button>` : ''}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="styling-form-row">
+        <div class="styling-form-control">
+          <button type="button" id="scoreboard-add-team-btn" class="styling-btn-secondary">+ Add Team</button>
         </div>
       </div>
     </div>
@@ -1295,8 +1375,183 @@ function attachTabEventListeners(tabName) {
           }
         });
       }
+      
+      // Scoreboard configuration
+      if (currentWidgetId === 'scoreboard-widget') {
+        // Target score
+        const targetScoreInput = stylingModal.querySelector('#scoreboard-target-score');
+        if (targetScoreInput) {
+          targetScoreInput.addEventListener('input', () => {
+            updateScoreboardConfig();
+          });
+        }
+        
+        // Increment
+        const incrementSelect = stylingModal.querySelector('#scoreboard-increment');
+        if (incrementSelect) {
+          incrementSelect.addEventListener('change', () => {
+            updateScoreboardConfig();
+          });
+        }
+        
+        // Add team button
+        const addTeamBtn = stylingModal.querySelector('#scoreboard-add-team-btn');
+        if (addTeamBtn) {
+          addTeamBtn.addEventListener('click', () => {
+            addScoreboardTeam();
+          });
+        }
+        
+        // Remove team buttons and team config updates
+        setupScoreboardTeamListeners();
+      }
     }
   }
+}
+
+// Update scoreboard configuration from form
+function updateScoreboardConfig() {
+  const stylingModal = document.getElementById('styling-modal');
+  if (!stylingModal) return;
+  
+  const teamsList = stylingModal.querySelectorAll('.scoreboard-team-config');
+  const teams = Array.from(teamsList).map((teamEl, index) => {
+    const nameInput = teamEl.querySelector('.scoreboard-team-name-input');
+    const iconSelect = teamEl.querySelector('.scoreboard-team-icon-select');
+    const colorInput = teamEl.querySelector('.scoreboard-team-slider-color');
+    
+    return {
+      id: `team${index + 1}`,
+      name: nameInput ? nameInput.value : `Team ${index + 1}`,
+      icon: iconSelect ? iconSelect.value : '🚀',
+      sliderColor: colorInput ? colorInput.value : '#9b59b6'
+    };
+  });
+  
+  const targetScoreInput = stylingModal.querySelector('#scoreboard-target-score');
+  const incrementSelect = stylingModal.querySelector('#scoreboard-increment');
+  
+  const config = {
+    teams: teams,
+    targetScore: targetScoreInput ? parseInt(targetScoreInput.value) || 10 : 10,
+    increment: incrementSelect ? parseInt(incrementSelect.value) || 1 : 1
+  };
+  
+  currentStyles.scoreboardConfig = config;
+  updatePreview();
+}
+
+// Add a new team to scoreboard
+function addScoreboardTeam() {
+  const stylingModal = document.getElementById('styling-modal');
+  if (!stylingModal) return;
+  
+  const teamsList = stylingModal.querySelector('#scoreboard-teams-list');
+  if (!teamsList) return;
+  
+  const currentTeams = stylingModal.querySelectorAll('.scoreboard-team-config');
+  const newIndex = currentTeams.length;
+  
+  const newTeamEl = document.createElement('div');
+  newTeamEl.className = 'scoreboard-team-config';
+  newTeamEl.dataset.teamIndex = newIndex;
+  
+  newTeamEl.innerHTML = `
+    <div class="styling-form-row">
+      <label class="styling-form-label">Team ${newIndex + 1}</label>
+      <div class="styling-form-control" style="display: flex; gap: 8px; align-items: center;">
+        <input type="text" class="scoreboard-team-name-input" value="Team ${newIndex + 1}" placeholder="Team Name">
+        <select class="scoreboard-team-icon-select">
+          ${typeof SCOREBOARD_ICONS !== 'undefined' ? SCOREBOARD_ICONS.map(icon => 
+            `<option value="${icon.value}">${icon.value} ${icon.label}</option>`
+          ).join('') : ''}
+        </select>
+        <input type="color" class="scoreboard-team-slider-color" value="#9b59b6">
+        <button type="button" class="scoreboard-remove-team-btn" data-team-index="${newIndex}">Remove</button>
+      </div>
+    </div>
+  `;
+  
+  teamsList.appendChild(newTeamEl);
+  setupScoreboardTeamListeners();
+  updateScoreboardConfig();
+}
+
+// Setup event listeners for team configuration
+function setupScoreboardTeamListeners() {
+  const stylingModal = document.getElementById('styling-modal');
+  if (!stylingModal) return;
+  
+  // Remove team buttons
+  const removeBtns = stylingModal.querySelectorAll('.scoreboard-remove-team-btn');
+  removeBtns.forEach(btn => {
+    if (!btn.dataset.listenerAttached) {
+      btn.dataset.listenerAttached = 'true';
+      btn.addEventListener('click', (e) => {
+        const teamsList = stylingModal.querySelector('#scoreboard-teams-list');
+        const currentTeams = stylingModal.querySelectorAll('.scoreboard-team-config');
+        if (currentTeams.length > 2) {
+          const teamIndex = parseInt(e.target.dataset.teamIndex);
+          const teamEl = stylingModal.querySelector(`.scoreboard-team-config[data-team-index="${teamIndex}"]`);
+          if (teamEl) {
+            teamEl.remove();
+            // Update labels
+            updateScoreboardTeamLabels();
+            updateScoreboardConfig();
+          }
+        } else {
+          alert('Minimum 2 teams required');
+        }
+      });
+    }
+  });
+  
+  // Team name inputs
+  const nameInputs = stylingModal.querySelectorAll('.scoreboard-team-name-input');
+  nameInputs.forEach(input => {
+    if (!input.dataset.listenerAttached) {
+      input.dataset.listenerAttached = 'true';
+      input.addEventListener('input', () => {
+        updateScoreboardConfig();
+      });
+    }
+  });
+  
+  // Icon selects
+  const iconSelects = stylingModal.querySelectorAll('.scoreboard-team-icon-select');
+  iconSelects.forEach(select => {
+    if (!select.dataset.listenerAttached) {
+      select.dataset.listenerAttached = 'true';
+      select.addEventListener('change', () => {
+        updateScoreboardConfig();
+      });
+    }
+  });
+  
+  // Color inputs
+  const colorInputs = stylingModal.querySelectorAll('.scoreboard-team-slider-color');
+  colorInputs.forEach(input => {
+    if (!input.dataset.listenerAttached) {
+      input.dataset.listenerAttached = 'true';
+      input.addEventListener('input', () => {
+        updateScoreboardConfig();
+      });
+    }
+  });
+}
+
+// Update team labels after removal
+function updateScoreboardTeamLabels() {
+  const stylingModal = document.getElementById('styling-modal');
+  if (!stylingModal) return;
+  
+  const teams = stylingModal.querySelectorAll('.scoreboard-team-config');
+  teams.forEach((team, index) => {
+    const label = team.querySelector('label.styling-form-label');
+    if (label) {
+      label.textContent = `Team ${index + 1}`;
+    }
+  });
 }
 
 // Apply shadow preset
@@ -2241,6 +2496,35 @@ function applyCurrentStylesToWidget(widget) {
     }
   }
   
+  // Update scoreboard configuration if this is a scoreboard widget
+  if (widget.classList.contains('scoreboard-widget')) {
+    if (currentStyles.scoreboardConfig) {
+      // Save config to localStorage and reload scoreboard
+      const pageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
+        ? window.currentPageIndex 
+        : 0;
+      const widgetIndex = Array.from(document.querySelectorAll('.scoreboard-widget')).indexOf(widget);
+      const widgetId = `scoreboard-${pageIndex}-${widgetIndex}`;
+      
+      const config = typeof currentStyles.scoreboardConfig === 'string'
+        ? JSON.parse(currentStyles.scoreboardConfig)
+        : currentStyles.scoreboardConfig;
+      
+      const configKey = `dakboard-scoreboard-config-${widgetId}`;
+      localStorage.setItem(configKey, JSON.stringify(config));
+      
+      // Update the config in memory
+      if (typeof scoreboardConfigs !== 'undefined') {
+        scoreboardConfigs.set(widgetId, config);
+      }
+      
+      // Reload scoreboard
+      if (typeof loadScoreboard === 'function') {
+        setTimeout(() => loadScoreboard(), 0);
+      }
+    }
+  }
+  
   // Update dynamic styles (for dynamic title color) if enabled
   // This must be called after all background styles are applied
   if (currentStyles.textColorDynamic !== false && typeof updateWidgetDynamicStyles === 'function') {
@@ -2421,6 +2705,29 @@ function loadWidgetStyles(widgetId) {
   // Ensure titleAlignment is set (default to left)
   if (currentStyles.titleAlignment === undefined) {
     currentStyles.titleAlignment = 'left';
+  }
+  
+  // Load scoreboard config if this is a scoreboard widget
+  if (widgetId === 'scoreboard-widget') {
+    // Try to load from widget-specific localStorage
+    const pageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
+      ? window.currentPageIndex 
+      : 0;
+    const widget = document.querySelector(`.scoreboard-widget`);
+    if (widget) {
+      const widgetIndex = Array.from(document.querySelectorAll('.scoreboard-widget')).indexOf(widget);
+      const widgetId = `scoreboard-${pageIndex}-${widgetIndex}`;
+      const configKey = `dakboard-scoreboard-config-${widgetId}`;
+      const savedConfig = localStorage.getItem(configKey);
+      
+      if (savedConfig) {
+        try {
+          currentStyles.scoreboardConfig = JSON.parse(savedConfig);
+        } catch (e) {
+          console.error('Error parsing scoreboard config:', e);
+        }
+      }
+    }
   }
 }
 
