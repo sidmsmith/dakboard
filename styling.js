@@ -1480,6 +1480,20 @@ function attachTabEventListeners(tabName) {
           });
         }
         
+        const clipartShadowEnabled = stylingModal.querySelector('#clipart-shadow-enabled');
+        if (clipartShadowEnabled) {
+          clipartShadowEnabled.addEventListener('change', (e) => {
+            currentStyles.clipArtShadowEnabled = e.target.checked;
+            const clipartColor = stylingModal.querySelector('#clipart-color');
+            const clipartColorText = stylingModal.querySelector('#clipart-color-text');
+            if (clipartColor && clipartColorText) {
+              clipartColor.disabled = !e.target.checked;
+              clipartColorText.disabled = !e.target.checked;
+            }
+            updatePreview();
+          });
+        }
+        
         const clipartColor = stylingModal.querySelector('#clipart-color');
         const clipartColorText = stylingModal.querySelector('#clipart-color-text');
         if (clipartColor && clipartColorText) {
@@ -1504,6 +1518,49 @@ function attachTabEventListeners(tabName) {
             if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
               clipartColor.value = e.target.value;
               currentStyles.clipArtColor = e.target.value;
+              updatePreview();
+            }
+          });
+        }
+        
+        const clipartTintEnabled = stylingModal.querySelector('#clipart-tint-enabled');
+        if (clipartTintEnabled) {
+          clipartTintEnabled.addEventListener('change', (e) => {
+            currentStyles.clipArtTintEnabled = e.target.checked;
+            const clipartTintColor = stylingModal.querySelector('#clipart-tint-color');
+            const clipartTintColorText = stylingModal.querySelector('#clipart-tint-color-text');
+            if (clipartTintColor && clipartTintColorText) {
+              clipartTintColor.disabled = !e.target.checked;
+              clipartTintColorText.disabled = !e.target.checked;
+            }
+            updatePreview();
+          });
+        }
+        
+        const clipartTintColor = stylingModal.querySelector('#clipart-tint-color');
+        const clipartTintColorText = stylingModal.querySelector('#clipart-tint-color-text');
+        if (clipartTintColor && clipartTintColorText) {
+          clipartTintColor.addEventListener('input', (e) => {
+            clipartTintColorText.value = e.target.value;
+            currentStyles.clipArtTintColor = e.target.value;
+            updatePreview();
+          });
+          clipartTintColor.addEventListener('change', (e) => {
+            clipartTintColorText.value = e.target.value;
+            currentStyles.clipArtTintColor = e.target.value;
+            updatePreview();
+          });
+          clipartTintColorText.addEventListener('input', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+              clipartTintColor.value = e.target.value;
+              currentStyles.clipArtTintColor = e.target.value;
+              updatePreview();
+            }
+          });
+          clipartTintColorText.addEventListener('change', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+              clipartTintColor.value = e.target.value;
+              currentStyles.clipArtTintColor = e.target.value;
               updatePreview();
             }
           });
