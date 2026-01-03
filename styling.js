@@ -1605,21 +1605,26 @@ function setupScoreboardDragAndDrop() {
     
     // Drag start
     teamEl.addEventListener('dragstart', (e) => {
+      console.log('🔵 DRAG START:', index, teamEl);
       draggedElement = teamEl;
       draggedIndex = index;
       teamEl.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/html', teamEl.innerHTML);
+      console.log('🔵 draggedElement set to:', draggedElement);
+      console.log('🔵 Total teams:', freshTeamConfigs.length);
       // Add cursor to all other elements to show they're drop targets
       freshTeamConfigs.forEach(t => {
         if (t !== teamEl) {
           t.style.cursor = 'move';
+          console.log('🔵 Set cursor on team:', t);
         }
       });
     });
     
     // Drag end
     teamEl.addEventListener('dragend', (e) => {
+      console.log('🔴 DRAG END:', index);
       teamEl.classList.remove('dragging');
       teamEl.style.cursor = '';
       // Remove all drag-over classes and reset cursor
@@ -1627,15 +1632,19 @@ function setupScoreboardDragAndDrop() {
         t.classList.remove('drag-over-above', 'drag-over-below');
         t.style.cursor = '';
       });
+      draggedElement = null;
+      draggedIndex = null;
     });
     
     // Drag over
     teamEl.addEventListener('dragover', (e) => {
+      console.log('🟢 DRAG OVER:', index, 'draggedElement:', draggedElement, 'this:', teamEl);
       e.preventDefault();
       e.stopPropagation();
       e.dataTransfer.dropEffect = 'move';
       
       if (draggedElement && draggedElement !== teamEl) {
+        console.log('🟢 Valid drop target!');
         const rect = teamEl.getBoundingClientRect();
         const mouseY = e.clientY;
         const midpoint = rect.top + rect.height / 2;
@@ -1647,31 +1656,39 @@ function setupScoreboardDragAndDrop() {
         
         // Add appropriate class to current target
         if (mouseY < midpoint) {
+          console.log('🟢 Adding drag-over-above');
           teamEl.classList.add('drag-over-above');
         } else {
+          console.log('🟢 Adding drag-over-below');
           teamEl.classList.add('drag-over-below');
         }
+      } else {
+        console.log('🟢 NOT a valid drop target - draggedElement:', draggedElement, 'is same?', draggedElement === teamEl);
       }
     });
     
     // Drag leave
     teamEl.addEventListener('dragleave', (e) => {
+      console.log('🟡 DRAG LEAVE:', index);
       // Only remove classes if we're actually leaving the element
       const rect = teamEl.getBoundingClientRect();
       const x = e.clientX;
       const y = e.clientY;
       
       if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+        console.log('🟡 Removing drag-over classes');
         teamEl.classList.remove('drag-over-above', 'drag-over-below');
       }
     });
     
     // Drop
     teamEl.addEventListener('drop', (e) => {
+      console.log('🟣 DROP:', index, 'draggedElement:', draggedElement);
       e.preventDefault();
       e.stopPropagation();
       
       if (draggedElement && draggedElement !== teamEl) {
+        console.log('🟣 Valid drop!');
         const currentTeamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
         const dropIndex = Array.from(currentTeamConfigs).indexOf(teamEl);
         const rect = teamEl.getBoundingClientRect();
