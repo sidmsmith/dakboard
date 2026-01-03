@@ -5179,8 +5179,9 @@ function initializeWidgetControlPanel() {
     editModeToggle.addEventListener('change', (e) => {
       setEditMode(e.target.checked);
     });
-    // Load saved edit mode state
-    const savedEditMode = localStorage.getItem('dakboard-edit-mode') === 'true';
+    // Load saved edit mode state for current page
+    const editModeKey = `dakboard-edit-mode-page-${currentPageIndex}`;
+    const savedEditMode = localStorage.getItem(editModeKey) === 'true';
     editModeToggle.checked = savedEditMode;
     setEditMode(savedEditMode);
   }
@@ -5295,10 +5296,12 @@ function setEditMode(enabled) {
   // Reinitialize drag/resize when toggling edit mode
   if (typeof initializeDragAndResize === 'function') {
     if (enabled) {
-      // When entering edit mode, initialize after a short delay to ensure DOM is ready
+      // When entering edit mode, initialize immediately and also after a short delay
+      // This ensures handles appear even if DOM isn't fully ready
+      initializeDragAndResize();
       setTimeout(() => {
         initializeDragAndResize();
-      }, 50);
+      }, 100);
     } else {
       // When exiting edit mode, remove all handles immediately
       const pageElement = getPageElement(currentPageIndex);
@@ -6675,6 +6678,26 @@ function loadCurrentPage() {
     // Fallback to default
     pageElement.style.background = '#1a1a1a';
   }
+  
+  // Ensure all widgets on this page have instance IDs
+  Object.keys(WIDGET_CONFIG).forEach(widgetType => {
+    const widgets = pageElement.querySelectorAll(`.${widgetType}`);
+    widgets.forEach((widget, index) => {
+      // Check if widget already has an instance ID
+      const classes = Array.from(widget.classList);
+      const hasInstanceId = classes.some(c => {
+        const pattern = new RegExp(`^${widgetType}-page-${currentPageIndex}-instance-\\d+$`);
+        return pattern.test(c);
+      });
+      
+      // If no instance ID, assign one
+      if (!hasInstanceId) {
+        const instanceIndex = index; // Use index as instance number
+        const fullWidgetId = generateWidgetId(widgetType, currentPageIndex, instanceIndex);
+        widget.classList.add(fullWidgetId);
+      }
+    });
+  });
   
   // Load page-specific widget layout
   const layoutKey = `dakboard-widget-layout-page-${currentPageIndex}`;

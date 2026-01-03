@@ -160,39 +160,39 @@ function snapToGridValue(value) {
 
 // Initialize drag and resize for all widgets on current page
 function initializeDragAndResize() {
-  // Wait a bit for widgets to be rendered
+  // Get current page index (from app.js)
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
+    ? window.currentPageIndex 
+    : 0;
+  
+  // Get current page element
+  const currentPage = document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
+  if (!currentPage) {
+    console.warn('Current page not found for drag/resize initialization');
+    return;
+  }
+  
+  // Check if edit mode is enabled for this page
+  const inEditMode = currentPage.classList.contains('edit-mode');
+  
+  // Only add handles if in edit mode
+  if (!inEditMode) {
+    // Remove all handles if not in edit mode
+    currentPage.querySelectorAll('.resize-handle, .rotate-handle').forEach(h => h.remove());
+    return;
+  }
+  
+  // Wait a bit for widgets to be rendered, then process them
   setTimeout(() => {
-    // Get current page index (from app.js)
-    const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
-      ? window.currentPageIndex 
-      : 0;
+    // Get all widgets on the current page (including hidden ones, we'll filter below)
+    const allWidgets = currentPage.querySelectorAll('.widget');
     
-    // Get current page element
-    const currentPage = document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
-    if (!currentPage) {
-      console.warn('Current page not found for drag/resize initialization');
+    if (allWidgets.length === 0) {
+      console.log('No widgets found on current page.');
       return;
     }
     
-    // Only get widgets on the current page that are not hidden
-    const widgets = currentPage.querySelectorAll('.widget:not(.hidden)');
-    
-    if (widgets.length === 0) {
-      console.log('No visible widgets found on current page.');
-      return;
-    }
-    
-    // Check if edit mode is enabled for this page
-    const inEditMode = currentPage.classList.contains('edit-mode');
-    
-    // Only add handles if in edit mode
-    if (!inEditMode) {
-      // Remove all handles if not in edit mode
-      currentPage.querySelectorAll('.resize-handle, .rotate-handle').forEach(h => h.remove());
-      return;
-    }
-    
-    widgets.forEach((widget, index) => {
+    allWidgets.forEach((widget, index) => {
       // Skip hidden widgets
       if (widget.classList.contains('hidden')) {
         return;
