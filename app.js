@@ -5067,15 +5067,17 @@ function updateWidgetControlPanel() {
 
 // Z-index control functions
 function bringWidgetForward(widgetId) {
-  const widget = document.querySelector(`.${widgetId}`);
-  if (!widget) return;
-  
-  // Get widgets only on the current page
-  const pageElement = widget.closest('.dashboard.page');
+  // Find widget on current page only
+  const pageElement = getPageElement(currentPageIndex);
   if (!pageElement) return;
+  
+  const widget = pageElement.querySelector(`.${widgetId}`);
+  if (!widget || widget.classList.contains('hidden')) return;
   
   const currentZ = parseInt(window.getComputedStyle(widget).zIndex) || 1;
   const allWidgets = Array.from(pageElement.querySelectorAll('.widget:not(.hidden)'));
+  if (allWidgets.length === 0) return;
+  
   const maxZ = Math.max(...allWidgets.map(w => parseInt(window.getComputedStyle(w).zIndex) || 1));
   
   if (currentZ < maxZ) {
@@ -5085,15 +5087,17 @@ function bringWidgetForward(widgetId) {
 }
 
 function sendWidgetBackward(widgetId) {
-  const widget = document.querySelector(`.${widgetId}`);
-  if (!widget) return;
-  
-  // Get widgets only on the current page
-  const pageElement = widget.closest('.dashboard.page');
+  // Find widget on current page only
+  const pageElement = getPageElement(currentPageIndex);
   if (!pageElement) return;
+  
+  const widget = pageElement.querySelector(`.${widgetId}`);
+  if (!widget || widget.classList.contains('hidden')) return;
   
   const currentZ = parseInt(window.getComputedStyle(widget).zIndex) || 1;
   const allWidgets = Array.from(pageElement.querySelectorAll('.widget:not(.hidden)'));
+  if (allWidgets.length === 0) return;
+  
   const minZ = Math.min(...allWidgets.map(w => parseInt(window.getComputedStyle(w).zIndex) || 1));
   
   if (currentZ > minZ) {
@@ -5103,14 +5107,16 @@ function sendWidgetBackward(widgetId) {
 }
 
 function bringWidgetToFront(widgetId) {
-  const widget = document.querySelector(`.${widgetId}`);
-  if (!widget) return;
-  
-  // Get widgets only on the current page
-  const pageElement = widget.closest('.dashboard.page');
+  // Find widget on current page only
+  const pageElement = getPageElement(currentPageIndex);
   if (!pageElement) return;
   
+  const widget = pageElement.querySelector(`.${widgetId}`);
+  if (!widget || widget.classList.contains('hidden')) return;
+  
   const allWidgets = Array.from(pageElement.querySelectorAll('.widget:not(.hidden)'));
+  if (allWidgets.length === 0) return;
+  
   const maxZ = Math.max(...allWidgets.map(w => parseInt(window.getComputedStyle(w).zIndex) || 1));
   
   widget.style.zIndex = maxZ + 1;
@@ -5118,14 +5124,16 @@ function bringWidgetToFront(widgetId) {
 }
 
 function sendWidgetToBack(widgetId) {
-  const widget = document.querySelector(`.${widgetId}`);
-  if (!widget) return;
-  
-  // Get widgets only on the current page
-  const pageElement = widget.closest('.dashboard.page');
+  // Find widget on current page only
+  const pageElement = getPageElement(currentPageIndex);
   if (!pageElement) return;
   
+  const widget = pageElement.querySelector(`.${widgetId}`);
+  if (!widget || widget.classList.contains('hidden')) return;
+  
   const allWidgets = Array.from(pageElement.querySelectorAll('.widget:not(.hidden)'));
+  if (allWidgets.length === 0) return;
+  
   const minZ = Math.min(...allWidgets.map(w => parseInt(window.getComputedStyle(w).zIndex) || 1));
   
   widget.style.zIndex = minZ - 1;
