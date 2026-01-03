@@ -88,20 +88,19 @@ function openStylingModal(fullWidgetId) {
   document.getElementById('styling-modal-title').textContent = `🎨 Style Widget: ${widgetTitle}`;
   document.getElementById('styling-preview-title').textContent = config.icon + ' ' + widgetTitle;
 
-  // Load current styles
+  // Load current styles FIRST
   loadWidgetStyles(fullWidgetId);
   
-
   // Show modal
   document.getElementById('styling-modal').classList.add('active');
   
-  // Switch to first tab
+  // Switch to first tab (this will generate tab content and attach listeners)
   switchTab('background');
   
-  // Small delay to ensure DOM is ready, then update preview
+  // Update preview after a small delay to ensure DOM is ready
   setTimeout(() => {
     updatePreview();
-  }, 100);
+  }, 50);
 }
 
 // Close styling modal
