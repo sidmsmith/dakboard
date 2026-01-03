@@ -3398,6 +3398,8 @@ function loadClipArt() {
     let clipArtColor = '#4a90e2'; // Default
     let clipArtTintColor = '#ffffff'; // Default
     let clipArtImageUrl = ''; // Default
+    let clipArtShadowEnabled = true; // Default
+    let clipArtTintEnabled = true; // Default
     
     if (savedStyles) {
       try {
@@ -3406,6 +3408,8 @@ function loadClipArt() {
         clipArtColor = styles.clipArtColor || clipArtColor;
         clipArtTintColor = styles.clipArtTintColor || clipArtTintColor;
         clipArtImageUrl = styles.clipArtImageUrl || clipArtImageUrl;
+        clipArtShadowEnabled = styles.clipArtShadowEnabled !== undefined ? styles.clipArtShadowEnabled : true;
+        clipArtTintEnabled = styles.clipArtTintEnabled !== undefined ? styles.clipArtTintEnabled : true;
       } catch (e) {
         console.error('Error parsing clip art styles:', e);
       }
@@ -3450,8 +3454,8 @@ function loadClipArt() {
     
     // Display the clip art (image or emoji)
     if (clipArtImageUrl) {
-      const shadowFilter = clipArtColor ? `drop-shadow(0 0 12px ${clipArtColor})` : '';
-      const tintFilter = generateImageTintFilter(clipArtTintColor);
+      const shadowFilter = (clipArtShadowEnabled && clipArtColor) ? `drop-shadow(0 0 12px ${clipArtColor})` : '';
+      const tintFilter = clipArtTintEnabled ? generateImageTintFilter(clipArtTintColor) : '';
       const combinedFilter = [shadowFilter, tintFilter].filter(f => f).join(' ');
       container.innerHTML = `<div class="clipart-display" style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;"><img src="${clipArtImageUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: ${combinedFilter || 'none'};" alt="Clip art"></div>`;
     } else {

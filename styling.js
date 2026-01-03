@@ -840,8 +840,11 @@ function generateAdvancedTab() {
         <div class="styling-form-row">
           <label class="styling-form-label">Shadow Color</label>
           <div class="styling-form-control">
-            <input type="color" id="clipart-color" value="${clipArtColor}">
-            <input type="text" id="clipart-color-text" value="${clipArtColor}" pattern="^#[0-9A-F]{6}$" placeholder="#4a90e2">
+            <label class="styling-apply-all-checkbox" style="margin-bottom: 8px;">
+              <input type="checkbox" id="clipart-shadow-enabled" ${currentStyles.clipArtShadowEnabled !== false ? 'checked' : ''}> Enable Shadow
+            </label>
+            <input type="color" id="clipart-color" value="${clipArtColor}" ${currentStyles.clipArtShadowEnabled === false ? 'disabled' : ''}>
+            <input type="text" id="clipart-color-text" value="${clipArtColor}" pattern="^#[0-9A-F]{6}$" placeholder="#4a90e2" ${currentStyles.clipArtShadowEnabled === false ? 'disabled' : ''}>
             <label class="styling-apply-all-checkbox">
               <input type="checkbox" id="clipart-color-apply-all" ${applyToAllFlags.clipArtColor ? 'checked' : ''}> Apply to all
             </label>
@@ -850,8 +853,11 @@ function generateAdvancedTab() {
         <div class="styling-form-row">
           <label class="styling-form-label">Image Color (Tint)</label>
           <div class="styling-form-control">
-            <input type="color" id="clipart-tint-color" value="${currentStyles.clipArtTintColor || '#ffffff'}">
-            <input type="text" id="clipart-tint-color-text" value="${currentStyles.clipArtTintColor || '#ffffff'}" pattern="^#[0-9A-F]{6}$" placeholder="#ffffff">
+            <label class="styling-apply-all-checkbox" style="margin-bottom: 8px;">
+              <input type="checkbox" id="clipart-tint-enabled" ${currentStyles.clipArtTintEnabled !== false ? 'checked' : ''}> Enable Tint
+            </label>
+            <input type="color" id="clipart-tint-color" value="${currentStyles.clipArtTintColor || '#ffffff'}" ${currentStyles.clipArtTintEnabled === false ? 'disabled' : ''}>
+            <input type="text" id="clipart-tint-color-text" value="${currentStyles.clipArtTintColor || '#ffffff'}" pattern="^#[0-9A-F]{6}$" placeholder="#ffffff" ${currentStyles.clipArtTintEnabled === false ? 'disabled' : ''}>
             <label class="styling-apply-all-checkbox">
               <input type="checkbox" id="clipart-tint-color-apply-all" ${applyToAllFlags.clipArtTintColor ? 'checked' : ''}> Apply to all
             </label>
@@ -2302,6 +2308,36 @@ function updatePreview() {
         }).join('')}
       </div>
     `;
+  } else if (currentWidgetId === 'blank-widget') {
+    // Render clip art preview
+    const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
+    const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
+    const clipArtTintColor = currentStyles.clipArtTintColor || '#ffffff';
+    const clipArtImageUrl = currentStyles.clipArtImageUrl || '';
+    const clipArtShadowEnabled = currentStyles.clipArtShadowEnabled !== false; // Default to true
+    const clipArtTintEnabled = currentStyles.clipArtTintEnabled !== false; // Default to true
+    let previewHtml = '';
+    if (clipArtImageUrl) {
+      // Build filter string with shadow and tint (only if enabled)
+      const shadowFilter = (clipArtShadowEnabled && clipArtColor) ? `drop-shadow(0 0 12px ${clipArtColor})` : '';
+      const tintFilter = clipArtTintEnabled ? generateImageTintFilter(clipArtTintColor) : '';
+      const combinedFilter = [shadowFilter, tintFilter].filter(f => f).join(' ');
+      
+      previewHtml = `
+        <div style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;">
+          <img src="${clipArtImageUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: ${combinedFilter || 'none'};" alt="Clip art">
+        </div>
+      `;
+    } else {
+      previewHtml = `
+        <div style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;">
+          <div style="font-size: 120px; color: ${clipArtColor}; text-align: center; line-height: 1;">${clipArtEmoji}</div>
+        </div>
+      `;
+    }
+    if (previewContent) {
+      previewContent.innerHTML = previewHtml;
+    }
   } else if (previewContent && currentWidgetId !== 'dice-widget') {
     // Reset to default text for other widgets
     previewContent.innerHTML = 'Preview updates in real-time as you adjust settings';
