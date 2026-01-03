@@ -1564,7 +1564,6 @@ async function loadWeatherForecast(attrs) {
       forecastList.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Forecast data not available. Check browser console for entity list.</div>';
       // Log available entities for debugging
       const pirateEntities = await getPirateWeatherEntities();
-      console.log('Pirate Weather entities found:', pirateEntities);
       return;
     }
     
@@ -3145,11 +3144,13 @@ function loadScoreboard() {
     // Render the scoreboard
     renderScoreboard(widgetId, container);
     
-    // Set up reset button
-    const resetBtn = widget.querySelector('.scoreboard-reset-btn');
-    if (resetBtn && !resetBtn.dataset.listenerAttached) {
-      resetBtn.dataset.listenerAttached = 'true';
-      resetBtn.addEventListener('click', (e) => {
+    // Set up reset button (always reattach after render in case it was cloned)
+    const resetBtn = container.querySelector('.scoreboard-reset-btn');
+    if (resetBtn) {
+      // Remove old listener if exists and reattach
+      const newResetBtn = resetBtn.cloneNode(true);
+      resetBtn.parentNode.replaceChild(newResetBtn, resetBtn);
+      newResetBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (!isEditMode) {
           resetScoreboard(widgetId, container);
@@ -3173,8 +3174,10 @@ function renderScoreboard(widgetId, container) {
   
   container.innerHTML = '';
   
-  // Re-add the reset button if it existed
+  // Re-add the reset button if it existed (without listener, will be reattached after)
   if (resetBtnClone) {
+    // Clear the listener flag so it gets reattached
+    resetBtnClone.dataset.listenerAttached = '';
     container.appendChild(resetBtnClone);
   }
   

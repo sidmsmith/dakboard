@@ -78,7 +78,6 @@ function openStylingModal(widgetId) {
   // Load current styles
   loadWidgetStyles(widgetId);
   
-  console.log('openStylingModal - Loaded styles:', currentStyles);
 
   // Show modal
   document.getElementById('styling-modal').classList.add('active');
@@ -886,22 +885,18 @@ function attachTabEventListeners(tabName) {
     const gradDirection = stylingModal.querySelector('#bg-gradient-direction');
     
     if (gradColor1 && gradColor1Text) {
-      console.log('Attaching gradient color1 listeners');
       gradColor1.addEventListener('input', (e) => {
-        console.log('Gradient Color1 changed:', e.target.value);
         gradColor1Text.value = e.target.value;
         currentStyles.gradientColor1 = e.target.value;
         updatePreview();
       });
       gradColor1.addEventListener('change', (e) => {
-        console.log('Gradient Color1 changed (change event):', e.target.value);
         gradColor1Text.value = e.target.value;
         currentStyles.gradientColor1 = e.target.value;
         updatePreview();
       });
       gradColor1Text.addEventListener('input', (e) => {
         if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
-          console.log('Gradient Color1 text changed:', e.target.value);
           gradColor1.value = e.target.value;
           currentStyles.gradientColor1 = e.target.value;
           updatePreview();
@@ -912,22 +907,18 @@ function attachTabEventListeners(tabName) {
     }
     
     if (gradColor2 && gradColor2Text) {
-      console.log('Attaching gradient color2 listeners');
       gradColor2.addEventListener('input', (e) => {
-        console.log('Gradient Color2 changed:', e.target.value);
         gradColor2Text.value = e.target.value;
         currentStyles.gradientColor2 = e.target.value;
         updatePreview();
       });
       gradColor2.addEventListener('change', (e) => {
-        console.log('Gradient Color2 changed (change event):', e.target.value);
         gradColor2Text.value = e.target.value;
         currentStyles.gradientColor2 = e.target.value;
         updatePreview();
       });
       gradColor2Text.addEventListener('input', (e) => {
         if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
-          console.log('Gradient Color2 text changed:', e.target.value);
           gradColor2.value = e.target.value;
           currentStyles.gradientColor2 = e.target.value;
           updatePreview();
@@ -1404,7 +1395,6 @@ function attachTabEventListeners(tabName) {
         }
         
         // Setup drag and drop for team reordering first (clones elements)
-        console.log('🔧 Calling setupScoreboardDragAndDrop() from attachTabEventListeners');
         setupScoreboardDragAndDrop();
         
         // Then setup team listeners and update remove button visibility
@@ -1500,27 +1490,22 @@ function setupScoreboardTeamListeners() {
   
   // Remove team buttons - clone to remove old listeners and attach fresh ones
   const removeBtns = stylingModal.querySelectorAll('.scoreboard-remove-team-btn');
-  console.log('🔧 setupScoreboardTeamListeners: Found', removeBtns.length, 'remove buttons');
   removeBtns.forEach((btn, index) => {
     // Clone button to remove any old listeners
     const newBtn = btn.cloneNode(true);
     btn.parentNode.replaceChild(newBtn, btn);
     
     newBtn.dataset.listenerAttached = 'true';
-    console.log('🔧 Attaching listener to remove button', index, 'for team', newBtn.dataset.teamIndex);
     newBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('🗑️ Remove button clicked (setupScoreboardTeamListeners) for team:', e.target.dataset.teamIndex);
       const teamsList = stylingModal.querySelector('#scoreboard-teams-list');
       const currentTeams = stylingModal.querySelectorAll('.scoreboard-team-config');
-      console.log('🗑️ Current team count:', currentTeams.length);
       // Button should only be visible if there are 3+ teams, so we can safely remove
       if (currentTeams.length > 2) {
         const teamIndex = parseInt(e.target.dataset.teamIndex);
         const teamEl = stylingModal.querySelector(`.scoreboard-team-config[data-team-index="${teamIndex}"]`);
         if (teamEl) {
-          console.log('🗑️ Removing team:', teamIndex);
           teamEl.remove();
           // Update labels
           updateScoreboardTeamLabels();
@@ -1653,20 +1638,16 @@ let draggedScoreboardElement = null;
 let draggedScoreboardIndex = null;
 
 function setupScoreboardDragAndDrop() {
-  console.log('🔧 setupScoreboardDragAndDrop() called');
   const stylingModal = document.getElementById('styling-modal');
   if (!stylingModal) {
-    console.log('❌ No styling modal found');
     return;
   }
   
   const teamsList = stylingModal.querySelector('#scoreboard-teams-list');
   if (!teamsList) {
-    console.log('❌ No teams list found');
     return;
   }
   
-  console.log('🔧 Setting up drag and drop, current draggedElement:', draggedScoreboardElement);
   
   // Remove existing listeners by cloning (clean slate)
   const teamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
@@ -1687,10 +1668,8 @@ function setupScoreboardDragAndDrop() {
   
   // Get fresh references after cloning
   const freshTeamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
-  console.log('🔧 Found', freshTeamConfigs.length, 'team configs');
   
   freshTeamConfigs.forEach((teamEl, index) => {
-    console.log('🔧 Setting up drag for team', index, teamEl);
     // Ensure element is draggable
     teamEl.setAttribute('draggable', 'true');
     teamEl.dataset.dragSetup = 'true';
@@ -1722,26 +1701,21 @@ function setupScoreboardDragAndDrop() {
         return;
       }
       
-      console.log('🔵 DRAG START:', index, teamEl, 'target:', target.tagName);
       draggedScoreboardElement = teamEl;
       draggedScoreboardIndex = index;
       teamEl.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', index.toString());
-      console.log('🔵 draggedScoreboardElement set to:', draggedScoreboardElement);
-      console.log('🔵 Total teams:', freshTeamConfigs.length);
       // Add cursor to all other elements to show they're drop targets
       freshTeamConfigs.forEach(t => {
         if (t !== teamEl) {
           t.style.cursor = 'move';
-          console.log('🔵 Set cursor on team:', t);
         }
       });
     });
     
     // Drag end
     teamEl.addEventListener('dragend', (e) => {
-      console.log('🔴 DRAG END:', index);
       // Remove all visual states from all teams
       const allTeams = teamsList.querySelectorAll('.scoreboard-team-config');
       allTeams.forEach(t => {
@@ -1757,13 +1731,11 @@ function setupScoreboardDragAndDrop() {
     
     // Drag over
     teamEl.addEventListener('dragover', (e) => {
-      console.log('🟢 DRAG OVER:', index, 'draggedScoreboardElement:', draggedScoreboardElement, 'this:', teamEl);
       e.preventDefault();
       e.stopPropagation();
       e.dataTransfer.dropEffect = 'move';
       
       if (draggedScoreboardElement && draggedScoreboardElement !== teamEl) {
-        console.log('🟢 Valid drop target!');
         const rect = teamEl.getBoundingClientRect();
         const mouseY = e.clientY;
         const midpoint = rect.top + rect.height / 2;
@@ -1775,39 +1747,32 @@ function setupScoreboardDragAndDrop() {
         
         // Add appropriate class to current target
         if (mouseY < midpoint) {
-          console.log('🟢 Adding drag-over-above');
           teamEl.classList.add('drag-over-above');
         } else {
-          console.log('🟢 Adding drag-over-below');
           teamEl.classList.add('drag-over-below');
         }
       } else {
-        console.log('🟢 NOT a valid drop target - draggedScoreboardElement:', draggedScoreboardElement, 'is same?', draggedScoreboardElement === teamEl);
       }
     });
     
     // Drag leave
     teamEl.addEventListener('dragleave', (e) => {
-      console.log('🟡 DRAG LEAVE:', index);
       // Only remove classes if we're actually leaving the element
       const rect = teamEl.getBoundingClientRect();
       const x = e.clientX;
       const y = e.clientY;
       
       if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-        console.log('🟡 Removing drag-over classes');
         teamEl.classList.remove('drag-over-above', 'drag-over-below');
       }
     });
     
     // Drop
     teamEl.addEventListener('drop', (e) => {
-      console.log('🟣 DROP:', index, 'draggedScoreboardElement:', draggedScoreboardElement);
       e.preventDefault();
       e.stopPropagation();
       
       if (draggedScoreboardElement && draggedScoreboardElement !== teamEl) {
-        console.log('🟣 Valid drop!');
         const currentTeamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
         const dropIndex = Array.from(currentTeamConfigs).indexOf(teamEl);
         const rect = teamEl.getBoundingClientRect();
@@ -2479,7 +2444,6 @@ function updateCurrentStylesFromForm() {
     currentStyles.stopwatchResetButtonColor = stopwatchResetButtonColor.value;
   }
   
-  console.log('updateCurrentStylesFromForm - Updated currentStyles:', currentStyles);
 }
 
 // Apply current styles to a single widget
