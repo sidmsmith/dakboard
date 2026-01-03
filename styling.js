@@ -4162,28 +4162,10 @@ function openClipArtModal() {
 // Select clip art emoji
 function selectClipArt(emoji) {
   currentStyles.clipArtEmoji = emoji;
-  updateClipArtPreview();
+  currentStyles.clipArtImageUrl = ''; // Clear image if emoji is selected
+  
+  // Only update preview - don't apply to widget until Apply button is clicked
   updatePreview();
-  
-  // Save the selection immediately
-  updateCurrentStylesFromForm();
-  saveStyles();
-  
-  // Apply to widget
-  if (currentWidgetId) {
-    const pageElement = getPageElement(currentPageIndex);
-    if (pageElement) {
-      const widget = pageElement.querySelector(`.${currentWidgetId}`);
-      if (widget) {
-        applyCurrentStylesToWidget(widget);
-      }
-    }
-  }
-  
-  // Reload clip art to show the new selection
-  if (typeof loadClipArt === 'function') {
-    setTimeout(() => loadClipArt(), 0);
-  }
   
   // Close modal
   const modal = document.getElementById('clipart-modal');
