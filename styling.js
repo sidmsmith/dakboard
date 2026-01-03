@@ -1568,14 +1568,17 @@ function setupScoreboardDragAndDrop() {
   let draggedElement = null;
   let draggedIndex = null;
   
-  const teamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
-  
   // Remove existing listeners by cloning (clean slate)
+  const teamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
   teamConfigs.forEach(teamEl => {
-    if (teamEl.dataset.dragSetup === 'true') {
-      // Already set up, skip
-      return;
-    }
+    const newEl = teamEl.cloneNode(true);
+    teamEl.parentNode.replaceChild(newEl, teamEl);
+  });
+  
+  // Get fresh references after cloning
+  const freshTeamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
+  
+  freshTeamConfigs.forEach((teamEl, index) => {
     teamEl.dataset.dragSetup = 'true';
     
     // Drag start
@@ -1585,7 +1588,7 @@ function setupScoreboardDragAndDrop() {
       teamEl.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/html', teamEl.innerHTML);
-      // Add dragging class to all other elements to show they're drop targets
+      // Add cursor to all other elements to show they're drop targets
       freshTeamConfigs.forEach(t => {
         if (t !== teamEl) {
           t.style.cursor = 'move';
@@ -1647,7 +1650,8 @@ function setupScoreboardDragAndDrop() {
       e.stopPropagation();
       
       if (draggedElement && draggedElement !== teamEl) {
-        const dropIndex = Array.from(freshTeamConfigs).indexOf(teamEl);
+        const currentTeamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
+        const dropIndex = Array.from(currentTeamConfigs).indexOf(teamEl);
         const rect = teamEl.getBoundingClientRect();
         const mouseY = e.clientY;
         const midpoint = rect.top + rect.height / 2;
