@@ -4196,6 +4196,7 @@ function toggleWidgetVisibility(widgetId) {
   // Find widget on current page
   let widget = pageElement.querySelector(`.${widgetId}`);
   
+  let widgetJustCreated = false;
   // If widget doesn't exist on current page, create it
   if (!widget) {
     // Find the widget template (usually on page 0 or in the original HTML)
@@ -4203,7 +4204,9 @@ function toggleWidgetVisibility(widgetId) {
     if (templateWidget) {
       // Clone the widget to the current page
       widget = templateWidget.cloneNode(true);
-      // Don't set visibility here - let the toggle handle it
+      // Mark as hidden initially so it will be shown below
+      widget.classList.add('hidden');
+      widgetJustCreated = true;
       pageElement.appendChild(widget);
       
       // Set initial z-index to bring new widget to front
@@ -4228,7 +4231,8 @@ function toggleWidgetVisibility(widgetId) {
   
   if (widget) {
     // Toggle visibility - if it's hidden, show it; if it's visible, hide it
-    const isCurrentlyHidden = widget.classList.contains('hidden');
+    // If widget was just created, treat it as hidden so it gets shown
+    const isCurrentlyHidden = widget.classList.contains('hidden') || widgetJustCreated;
     if (isCurrentlyHidden) {
       widget.classList.remove('hidden');
       
