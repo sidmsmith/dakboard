@@ -4927,11 +4927,11 @@ function setEditMode(enabled) {
         if (zIndexControls) {
           zIndexControls.remove();
         }
-        // Remove minimal edit header if it exists
-        const minimalHeader = widget.querySelector('.widget-edit-header');
-        if (minimalHeader) {
+        // Remove minimal edit headers if they exist (but preserve original headers)
+        const minimalHeaders = widget.querySelectorAll('.widget-edit-header');
+        minimalHeaders.forEach(minimalHeader => {
           minimalHeader.remove();
-        }
+        });
       }
     });
   }
