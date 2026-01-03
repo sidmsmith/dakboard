@@ -1806,15 +1806,20 @@ function setupScoreboardDragAndDrop() {
         updateScoreboardTeamLabels();
         updateScoreboardConfig();
         
-        // Clear drag setup flags and re-setup
+        // Clear all visual states and drag setup flags
         const allTeams = teamsList.querySelectorAll('.scoreboard-team-config');
         allTeams.forEach(t => {
+          t.classList.remove('dragging', 'drag-over-above', 'drag-over-below');
+          t.style.cursor = '';
+          t.style.opacity = '';
+          t.style.background = '';
           t.dataset.dragSetup = 'false';
         });
         // Re-setup drag and drop with fresh event listeners
         setupScoreboardDragAndDrop();
       }
       
+      // Always clear drag-over classes even if drop wasn't valid
       teamEl.classList.remove('drag-over-above', 'drag-over-below');
     });
   });
