@@ -1904,6 +1904,51 @@ function updatePreview() {
         </div>
       `;
     }
+  } else if (previewContent && currentWidgetId === 'scoreboard-widget') {
+    // Render scoreboard preview
+    const config = currentStyles.scoreboardConfig || {
+      teams: [
+        { id: 'team1', name: 'Team 1', icon: '🚀', sliderColor: '#9b59b6' },
+        { id: 'team2', name: 'Team 2', icon: '🦄', sliderColor: '#e74c3c' }
+      ],
+      targetScore: 10,
+      increment: 1
+    };
+    
+    // Show first 2 teams in preview with sample scores
+    const previewTeams = config.teams.slice(0, 2);
+    const sampleScores = [6, 3]; // Sample scores for preview
+    
+    previewContent.innerHTML = `
+      <div style="width: 100%; padding: 12px; display: flex; flex-direction: column; gap: 12px;">
+        ${previewTeams.map((team, index) => {
+          const score = sampleScores[index] || 0;
+          const percentage = config.targetScore > 0 ? Math.min((score / config.targetScore) * 100, 100) : 0;
+          return `
+            <div style="display: flex; flex-direction: column; gap: 6px; padding: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 6px;">
+              <div style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 14px; color: var(--widget-text-primary, #fff);">
+                <span style="font-size: 16px;">${team.icon}</span>
+                <span>${team.name}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button style="width: 28px; height: 28px; border-radius: 50%; border: none; background: #2a2a2a; color: #fff; font-size: 18px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer;">−</button>
+                <div style="flex: 1; position: relative; height: 32px; display: flex; align-items: center;">
+                  <div style="width: 100%; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.2); position: relative; overflow: visible;">
+                    <div style="width: ${percentage}%; height: 100%; border-radius: 3px; background: ${team.sliderColor}; transition: width 0.3s ease; position: relative;">
+                      <div style="position: absolute; right: -16px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; background: #ffffff; border: 3px solid ${team.sliderColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);">
+                        ${team.icon}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button style="width: 28px; height: 28px; border-radius: 50%; border: none; background: #2a2a2a; color: #fff; font-size: 18px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer;">+</button>
+                <div style="min-width: 30px; text-align: center; font-size: 18px; font-weight: 600; color: var(--widget-text-primary, #fff);">${score}</div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
   } else if (previewContent && currentWidgetId !== 'dice-widget') {
     // Reset to default text for other widgets
     previewContent.innerHTML = 'Preview updates in real-time as you adjust settings';

@@ -1563,17 +1563,20 @@ body {
 
 .confetti {
   position: absolute;
-  width: 10px;
-  height: 10px;
-  background: #ff6b6b;
+  width: 16px;
+  height: 16px;
+  background: #ff0000;
   animation: confetti-fall linear;
+  border-radius: 2px;
 }
 
-.confetti:nth-child(2n) { background: #4ecdc4; }
-.confetti:nth-child(3n) { background: #ffe66d; }
-.confetti:nth-child(4n) { background: #95e1d3; }
-.confetti:nth-child(5n) { background: #f38181; }
-.confetti:nth-child(6n) { background: #aa96da; }
+.confetti:nth-child(2n) { background: #00ff00; }
+.confetti:nth-child(3n) { background: #ffff00; }
+.confetti:nth-child(4n) { background: #00ffff; }
+.confetti:nth-child(5n) { background: #ff00ff; }
+.confetti:nth-child(6n) { background: #ff8800; }
+.confetti:nth-child(7n) { background: #0088ff; }
+.confetti:nth-child(8n) { background: #ff0088; }
 
 @keyframes confetti-fall {
   0% {

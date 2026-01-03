@@ -3332,14 +3332,16 @@ function triggerConfetti() {
   container.className = 'confetti-container';
   document.body.appendChild(container);
   
-  // Create confetti particles
-  const particleCount = 100;
+  // Create confetti particles (more particles for better effect)
+  const particleCount = 150;
   for (let i = 0; i < particleCount; i++) {
     const confetti = document.createElement('div');
     confetti.className = 'confetti';
     confetti.style.left = Math.random() * 100 + '%';
     confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
     confetti.style.animationDelay = Math.random() * 2 + 's';
+    // Add some rotation for more dynamic effect
+    confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
     container.appendChild(confetti);
   }
   
