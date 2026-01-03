@@ -1365,8 +1365,8 @@ body {
 .stopwatch-play-pause.running::after {
   content: '';
   position: absolute;
-  width: 6px;
-  height: 20px;
+  width: 4px;
+  height: 16px;
   background: #ffffff;
   border-radius: 2px;
   top: 50%;
@@ -1374,11 +1374,11 @@ body {
 }
 
 .stopwatch-play-pause.running::before {
-  left: 18px;
+  left: 14px;
 }
 
 .stopwatch-play-pause.running::after {
-  left: 32px;
+  left: 26px;
 }
 
 .stopwatch-reset {
