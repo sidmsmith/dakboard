@@ -134,6 +134,14 @@ body {
   position: relative;
 }
 
+/* Minimal header for widgets without headers (edit mode only) */
+.widget-edit-header {
+  margin-bottom: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  min-height: 32px;
+}
+
 .widget-title {
   font-size: 18px;
   font-weight: 600;

@@ -5160,13 +5160,25 @@ function addZIndexControls(widget) {
     existing.remove();
   }
   
+  // Remove existing minimal edit header if it exists
+  const existingMinimalHeader = widget.querySelector('.widget-edit-header');
+  if (existingMinimalHeader) {
+    existingMinimalHeader.remove();
+  }
+  
   // Get widget ID from class list (second class is the widget ID)
   const widgetId = widget.classList[1];
   if (!widgetId) return;
   
-  // Get widget header
-  const header = widget.querySelector('.widget-header');
-  if (!header) return;
+  // Get or create widget header
+  let header = widget.querySelector('.widget-header');
+  if (!header) {
+    // Create minimal header for widgets without headers (only in edit mode)
+    header = document.createElement('div');
+    header.className = 'widget-header widget-edit-header';
+    // Insert at the beginning of the widget
+    widget.insertBefore(header, widget.firstChild);
+  }
   
   // Create z-index controls container
   const controlsContainer = document.createElement('div');
