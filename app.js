@@ -5177,8 +5177,26 @@ function addZIndexControls(widget) {
   
   // Get or create widget header
   let header = widget.querySelector('.widget-header');
-  if (!header) {
-    // Create minimal header for widgets without headers (only in edit mode)
+  
+  // Check if header exists and is visible (has visible content)
+  const headerVisible = header && (
+    header.offsetHeight > 0 || 
+    header.offsetWidth > 0 ||
+    window.getComputedStyle(header).display !== 'none'
+  );
+  
+  // Check if header has visible title
+  const hasVisibleTitle = header && header.querySelector('.widget-title') && (
+    header.querySelector('.widget-title').offsetHeight > 0 ||
+    window.getComputedStyle(header.querySelector('.widget-title')).display !== 'none'
+  );
+  
+  if (!header || !headerVisible || !hasVisibleTitle) {
+    // Create minimal header for widgets without headers or with hidden headers (only in edit mode)
+    // Remove existing header if it's hidden
+    if (header && (!headerVisible || !hasVisibleTitle)) {
+      header.remove();
+    }
     header = document.createElement('div');
     header.className = 'widget-header widget-edit-header';
     // Insert at the beginning of the widget
