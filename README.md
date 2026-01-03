@@ -43,6 +43,32 @@ Four different layout options are available for you to choose from:
    - Weather and todos stacked on right
    - Garage doors and alarm at bottom
 
+## 📝 Changelog
+
+### Version 2.3
+- **New Widgets**:
+  - **Dice Widget**: Interactive 3D dice with customizable face and dot colors, click to roll animation
+  - **Stopwatch Widget**: Full-featured stopwatch with start/pause/reset functionality, customizable text and button colors, state persistence
+  - **Scoreboard Widget**: Team-based scoring system with customizable team names, icons, colors, target scores, increments, confetti animations, and drag-and-drop team reordering
+  - **Blank/Clip Art Widget**: Display emojis or images with customizable shadow and tint colors
+- **Clip Art Features**:
+  - Emoji selector with 100+ fun emojis
+  - Pixabay API integration with search filters (image type, category, colors)
+  - Noun Project API integration for icon search
+  - Shadow color and image tint color customization
+  - Enable/disable options for shadow and tint effects
+- **Improvements**:
+  - All new widgets support multiple pages with independent configurations
+  - Widgets appear on top of z-layer when enabled
+  - Preview window shows real-time updates for all widget configurations
+
+### Version 2.2
+- Added Air Compressor widget
+- Enhanced title styling (visibility, alignment, editable text, icon toggle)
+- Removed Google Photos integration
+- Fixed thermostat dropdown visibility
+- Restored missing widget functions
+
 ## 🚀 Quick Start
 
 ### Local Development
