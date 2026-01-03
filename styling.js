@@ -1572,6 +1572,8 @@ function setupScoreboardDragAndDrop() {
   const teamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
   teamConfigs.forEach(teamEl => {
     const newEl = teamEl.cloneNode(true);
+    // Ensure draggable attribute is set
+    newEl.setAttribute('draggable', 'true');
     teamEl.parentNode.replaceChild(newEl, teamEl);
   });
   
@@ -1579,6 +1581,8 @@ function setupScoreboardDragAndDrop() {
   const freshTeamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
   
   freshTeamConfigs.forEach((teamEl, index) => {
+    // Ensure element is draggable
+    teamEl.setAttribute('draggable', 'true');
     teamEl.dataset.dragSetup = 'true';
     
     // Drag start
