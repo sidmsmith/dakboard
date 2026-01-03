@@ -1663,6 +1663,11 @@ function setupScoreboardDragAndDrop() {
     const newEl = teamEl.cloneNode(true);
     // Ensure draggable attribute is set
     newEl.setAttribute('draggable', 'true');
+    // Clear listener flags so listeners get reattached
+    const removeBtns = newEl.querySelectorAll('.scoreboard-remove-team-btn');
+    removeBtns.forEach(btn => {
+      btn.dataset.listenerAttached = '';
+    });
     teamEl.parentNode.replaceChild(newEl, teamEl);
   });
   
