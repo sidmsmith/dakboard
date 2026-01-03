@@ -174,15 +174,30 @@ function initializeDragAndResize() {
       return;
     }
     
-    // Only get widgets on the current page
-    const widgets = currentPage.querySelectorAll('.widget');
+    // Only get widgets on the current page that are not hidden
+    const widgets = currentPage.querySelectorAll('.widget:not(.hidden)');
     
     if (widgets.length === 0) {
-      console.log('No widgets found on current page.');
+      console.log('No visible widgets found on current page.');
+      return;
+    }
+    
+    // Check if edit mode is enabled for this page
+    const inEditMode = currentPage.classList.contains('edit-mode');
+    
+    // Only add handles if in edit mode
+    if (!inEditMode) {
+      // Remove all handles if not in edit mode
+      currentPage.querySelectorAll('.resize-handle, .rotate-handle').forEach(h => h.remove());
       return;
     }
     
     widgets.forEach((widget, index) => {
+      // Skip hidden widgets
+      if (widget.classList.contains('hidden')) {
+        return;
+      }
+      
       // Remove existing resize handles first (in case we're re-initializing)
       widget.querySelectorAll('.resize-handle').forEach(h => h.remove());
       
@@ -214,6 +229,15 @@ function initializeDragAndResize() {
       // Make widget draggable (only in edit mode)
       // In edit mode, entire widget is draggable; in normal mode, no dragging
       // Support both mouse and touch events for desktop and tablet
+      
+      // Remove existing drag listeners to prevent duplicates
+      const existingDragHandler = widget.dataset.dragHandler;
+      if (existingDragHandler) {
+        // We can't easily remove the handler, so we'll use a flag to prevent duplicates
+        // Instead, we'll check if the widget already has the edit-mode-active class
+        // and only add listeners if they don't exist
+      }
+      
       const handleDragStart = (e) => {
         // Check if edit mode is active on the current page
         const dashboard = widget.closest('.dashboard.page');
@@ -245,8 +269,12 @@ function initializeDragAndResize() {
         startDrag(widget, e);
       };
       
-      widget.addEventListener('mousedown', handleDragStart);
-      widget.addEventListener('touchstart', handleDragStart, { passive: false });
+      // Only add listeners if widget is in edit mode and doesn't already have them
+      if (!widget.dataset.dragListenerAdded) {
+        widget.addEventListener('mousedown', handleDragStart);
+        widget.addEventListener('touchstart', handleDragStart, { passive: false });
+        widget.dataset.dragListenerAdded = 'true';
+      }
       
       // Update scale on initial load
       updateWidgetScale(widget);

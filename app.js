@@ -5292,20 +5292,20 @@ function setEditMode(enabled) {
     });
   }
   
-  // Re-initialize drag and resize when toggling edit mode
+  // Reinitialize drag/resize when toggling edit mode
   if (typeof initializeDragAndResize === 'function') {
-    setTimeout(() => {
-      initializeDragAndResize();
-    }, 100);
-  }
-  
-  // Reinitialize drag/resize when entering edit mode
-  // Remove resize handles when exiting edit mode
-  if (enabled) {
-    initializeDragAndResize();
-  } else {
-    // Remove all resize handles when exiting edit mode
-    document.querySelectorAll('.resize-handle').forEach(handle => handle.remove());
+    if (enabled) {
+      // When entering edit mode, initialize after a short delay to ensure DOM is ready
+      setTimeout(() => {
+        initializeDragAndResize();
+      }, 50);
+    } else {
+      // When exiting edit mode, remove all handles immediately
+      const pageElement = getPageElement(currentPageIndex);
+      if (pageElement) {
+        pageElement.querySelectorAll('.resize-handle, .rotate-handle').forEach(handle => handle.remove());
+      }
+    }
   }
 }
 
