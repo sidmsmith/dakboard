@@ -1,10 +1,9 @@
 # Clip Art API Setup Instructions
 
-This dashboard supports fetching clip art images from two external APIs: **Pixabay** and **OpenClipart**. Follow the instructions below to configure each API.
+This dashboard supports fetching clip art images from the **Pixabay** API. Follow the instructions below to configure the API.
 
 ## Table of Contents
 - [Pixabay API Setup](#pixabay-api-setup)
-- [OpenClipart API Setup](#openclipart-api-setup)
 - [Configuration](#configuration)
 - [Troubleshooting](#troubleshooting)
 
@@ -122,8 +121,6 @@ window.CONFIG = {
   // Pixabay API Configuration
   PIXABAY_API_KEY: '12345678-1234-1234-1234-123456789abc',
   
-  // OpenClipart API: No configuration needed - it's free and open!
-  
   // Other configuration options...
 };
 ```
@@ -165,25 +162,6 @@ window.CONFIG = {
 - Pixabay URLs are valid for 24 hours - images may expire
 - Try refreshing the search
 
-### OpenClipart API Issues
-
-**Error: "API error" or "No clipart found"**
-- The OpenClipart API is in beta and endpoints may change
-- Try different search terms
-- Check that the API endpoint is still valid
-- Verify your internet connection
-
-**Error: "CORS error"**
-- OpenClipart API may have CORS restrictions
-- Check browser console for specific CORS error messages
-- The API may require server-side proxying if CORS is an issue
-
-**Images not displaying**
-- OpenClipart provides SVG and PNG formats
-- Ensure your browser supports the image format
-- Check browser console for loading errors
-- Verify the image URLs are accessible
-
 ### General Issues
 
 **Modal appears behind Style Widget**
@@ -222,16 +200,13 @@ window.CONFIG = {
 
 4. **CORS and Hotlinking**
    - Pixabay: URLs are valid for 24 hours. For permanent use, download images to your server
-   - OpenClipart: Public domain images - free to use and hotlink
 
 ---
 
 ## Additional Resources
 
 - **Pixabay API Documentation**: [https://pixabay.com/api/docs/](https://pixabay.com/api/docs/)
-- **OpenClipart API Documentation**: [https://openclipart.org/developers](https://openclipart.org/developers)
 - **Pixabay Terms of Service**: [https://pixabay.com/service/terms/](https://pixabay.com/service/terms/)
-- **OpenClipart**: Public domain - no terms of service restrictions
 
 ---
 

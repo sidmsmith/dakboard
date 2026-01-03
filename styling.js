@@ -838,7 +838,6 @@ function generateAdvancedTab() {
             <div style="display: flex; gap: 8px;">
               <button type="button" id="clipart-select-btn" class="styling-btn-secondary" style="flex: 1;" ${currentStyles.clipArtVisible === false ? 'disabled' : ''}>Choose Emoji</button>
               <button type="button" id="clipart-pixabay-btn" class="styling-btn-secondary" style="flex: 1;" ${currentStyles.clipArtVisible === false ? 'disabled' : ''}>Pixabay</button>
-              <button type="button" id="clipart-openclipart-btn" class="styling-btn-secondary" style="flex: 1;" ${currentStyles.clipArtVisible === false ? 'disabled' : ''}>OpenClipart</button>
             </div>
           </div>
         </div>
@@ -1475,12 +1474,10 @@ function attachTabEventListeners(tabName) {
             currentStyles.clipArtVisible = e.target.checked;
             const clipartSelectBtn = stylingModal.querySelector('#clipart-select-btn');
             const pixabayBtn = stylingModal.querySelector('#clipart-pixabay-btn');
-            const openclipartBtn = stylingModal.querySelector('#clipart-openclipart-btn');
             
             // Enable/disable buttons based on visibility
             if (clipartSelectBtn) clipartSelectBtn.disabled = !e.target.checked;
             if (pixabayBtn) pixabayBtn.disabled = !e.target.checked;
-            if (openclipartBtn) openclipartBtn.disabled = !e.target.checked;
             
             // Update preview immediately
             updatePreview();
@@ -1496,7 +1493,6 @@ function attachTabEventListeners(tabName) {
         
         const clipartSelectBtn = stylingModal.querySelector('#clipart-select-btn');
         const pixabayBtn = stylingModal.querySelector('#clipart-pixabay-btn');
-        const openclipartBtn = stylingModal.querySelector('#clipart-openclipart-btn');
         
         if (clipartSelectBtn) {
           clipartSelectBtn.addEventListener('click', () => {
@@ -1507,12 +1503,6 @@ function attachTabEventListeners(tabName) {
         if (pixabayBtn) {
           pixabayBtn.addEventListener('click', () => {
             openPixabayModal();
-          });
-        }
-        
-        if (openclipartBtn) {
-          openclipartBtn.addEventListener('click', () => {
-            openOpenClipartModal();
           });
         }
         
@@ -4552,160 +4542,6 @@ function openPixabayModal() {
   }
 }
 
-// Open OpenClipart modal
-function openOpenClipartModal() {
-  const modal = document.getElementById('openclipart-modal');
-  const grid = document.getElementById('openclipart-grid');
-  const searchInput = document.getElementById('openclipart-search');
-  const searchBtn = document.getElementById('openclipart-search-btn');
-  const loading = document.getElementById('openclipart-loading');
-  const error = document.getElementById('openclipart-error');
-  
-  if (!modal || !grid) return;
-  
-  // Clear previous results
-  grid.innerHTML = '';
-  error.style.display = 'none';
-  error.textContent = '';
-  
-  // Show modal
-  modal.classList.add('active');
-  
-  // Close button
-  const closeBtn = document.getElementById('close-openclipart-modal');
-  if (closeBtn) {
-    closeBtn.onclick = () => {
-      modal.classList.remove('active');
-    };
-  }
-  
-  // Close on overlay click
-  modal.onclick = (e) => {
-    if (e.target === modal) {
-      modal.classList.remove('active');
-    }
-  };
-  
-  // Search function
-  const performSearch = async () => {
-    const query = searchInput ? searchInput.value.trim() : '';
-    if (!query) {
-      error.textContent = 'Please enter a search term';
-      error.style.display = 'block';
-      return;
-    }
-    
-    loading.style.display = 'block';
-    grid.innerHTML = '';
-    error.style.display = 'none';
-    
-    try {
-      // OpenClipart API endpoint (no authentication required)
-      // The API v2 is in beta and may have changed. Try alternative endpoint formats.
-      // Note: OpenClipart's API may have CORS restrictions, so we try multiple formats
-      let url = `https://openclipart.org/search/json/?query=${encodeURIComponent(query)}&amount=100`;
-      let response = await fetch(url, { mode: 'cors' });
-      
-      // If that fails with 401, try the v2 endpoint
-      if (!response.ok && response.status === 401) {
-        url = `https://openclipart.org/api/v2/search/json?query=${encodeURIComponent(query)}&amount=100`;
-        response = await fetch(url, { mode: 'cors' });
-      }
-      
-      // If still fails, try without /api/v2
-      if (!response.ok && response.status === 401) {
-        url = `https://openclipart.org/search/json?query=${encodeURIComponent(query)}&amount=100`;
-        response = await fetch(url, { mode: 'cors' });
-      }
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error(`OpenClipart API returned 401 Unauthorized. The API may require authentication or the endpoint format has changed. Please check https://openclipart.org/developers for the latest API documentation. Alternatively, you can use Pixabay or emoji clipart instead.`);
-        }
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      // OpenClipart API response structure may vary - handle different possible formats
-      let items = [];
-      if (Array.isArray(data)) {
-        items = data;
-      } else if (data.payload && Array.isArray(data.payload)) {
-        items = data.payload;
-      } else if (data.results && Array.isArray(data.results)) {
-        items = data.results;
-      } else if (data.items && Array.isArray(data.items)) {
-        items = data.items;
-      }
-      
-      if (items && items.length > 0) {
-        grid.innerHTML = '';
-        items.forEach(item => {
-          const clipartItem = document.createElement('div');
-          clipartItem.className = 'openclipart-item';
-          clipartItem.style.cssText = 'cursor: pointer; border: 2px solid transparent; border-radius: 8px; overflow: hidden; transition: all 0.2s; background: rgba(255,255,255,0.05); padding: 15px; display: flex; align-items: center; justify-content: center; position: relative;';
-          
-          // Try different possible image URL fields
-          const imageUrl = item.detail || item.svg?.url || item.png?.url || item.thumb || item.url || item.image_url || item.preview_url;
-          const title = item.title || item.name || item.term || 'clipart';
-          
-          if (imageUrl) {
-            clipartItem.innerHTML = `
-              <img src="${imageUrl}" alt="${title}" style="max-width: 100%; max-height: 120px; object-fit: contain; filter: ${currentStyles.clipArtColor ? `drop-shadow(0 0 4px ${currentStyles.clipArtColor})` : 'none'};">
-              <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 4px; font-size: 11px; color: #888; text-align: center; background: rgba(0,0,0,0.7); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${title}</div>
-            `;
-            clipartItem.addEventListener('mouseenter', () => {
-              clipartItem.style.borderColor = '#4a90e2';
-              clipartItem.style.background = 'rgba(255,255,255,0.1)';
-              clipartItem.style.transform = 'scale(1.05)';
-            });
-            clipartItem.addEventListener('mouseleave', () => {
-              clipartItem.style.borderColor = 'transparent';
-              clipartItem.style.background = 'rgba(255,255,255,0.05)';
-              clipartItem.style.transform = 'scale(1)';
-            });
-            clipartItem.addEventListener('click', () => {
-              // Use the best available image URL
-              const highResUrl = item.svg?.url || item.png?.url || item.detail || imageUrl;
-              selectClipArtImage(imageUrl, highResUrl || imageUrl);
-            });
-            grid.appendChild(clipartItem);
-          }
-        });
-        
-        if (grid.innerHTML === '') {
-          error.textContent = 'No valid clipart images found. Try a different search term.';
-          error.style.display = 'block';
-        }
-      } else {
-        error.textContent = 'No clipart found. Try a different search term.';
-        error.style.display = 'block';
-      }
-    } catch (err) {
-      error.textContent = `Error: ${err.message}. OpenClipart API may be temporarily unavailable or the endpoint may have changed.`;
-      error.style.display = 'block';
-      console.error('OpenClipart API error:', err);
-    } finally {
-      loading.style.display = 'none';
-    }
-  };
-  
-  // Search button
-  if (searchBtn) {
-    searchBtn.onclick = performSearch;
-  }
-  
-  // Enter key on search input
-  if (searchInput) {
-    searchInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        performSearch();
-      }
-    });
-  }
-}
-
 // Select clip art image (from API)
 function selectClipArtImage(imageUrl, highResUrl) {
   // Clear emoji if image is selected
@@ -4717,9 +4553,7 @@ function selectClipArtImage(imageUrl, highResUrl) {
   
   // Close modals
   const pixabayModal = document.getElementById('pixabay-modal');
-  const openclipartModal = document.getElementById('openclipart-modal');
   if (pixabayModal) pixabayModal.classList.remove('active');
-  if (openclipartModal) openclipartModal.classList.remove('active');
 }
 
 } else {
