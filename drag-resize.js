@@ -182,8 +182,8 @@ function initializeDragAndResize() {
     return;
   }
   
-  // Wait a bit for widgets to be rendered, then process them
-  setTimeout(() => {
+  // Process widgets immediately, but also retry after a short delay to catch any widgets that are added later
+  const processWidgets = () => {
     // Get all widgets on the current page (including hidden ones, we'll filter below)
     const allWidgets = currentPage.querySelectorAll('.widget');
     
@@ -191,6 +191,8 @@ function initializeDragAndResize() {
       console.log('No widgets found on current page.');
       return;
     }
+    
+    console.log(`Found ${allWidgets.length} widgets on page ${currentPageIndex}, edit mode: ${inEditMode}`);
     
     allWidgets.forEach((widget, index) => {
       // Skip hidden widgets
@@ -279,7 +281,15 @@ function initializeDragAndResize() {
       // Update scale on initial load
       updateWidgetScale(widget);
     });
-  }, 100);
+    
+    console.log(`Added resize handles to ${allWidgets.length} widgets`);
+  };
+  
+  // Process immediately
+  processWidgets();
+  
+  // Also process after a short delay to catch any widgets added later
+  setTimeout(processWidgets, 100);
   
   // Global mouse and touch events
   document.addEventListener('mousemove', handleMouseMove);

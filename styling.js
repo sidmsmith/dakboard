@@ -524,14 +524,18 @@ function generateTitleTab() {
   // These widgets are excluded from standard title styling (visibility, alignment, editable text)
   // to preserve their functional elements. They still support title color, font size, and font weight styling.
   
+  // Parse widget ID to get widget type (handles both instance IDs and legacy IDs)
+  const parsed = typeof parseWidgetId !== 'undefined' && currentWidgetId ? parseWidgetId(currentWidgetId) : { widgetType: currentWidgetId || '', pageIndex: 0, instanceIndex: 0, isLegacy: true };
+  const widgetType = parsed.widgetType;
+  
   // Get current widget's default title from WIDGET_CONFIG
-  const defaultTitle = WIDGET_CONFIG[currentWidgetId]?.name || 'Widget';
-  const defaultIcon = WIDGET_CONFIG[currentWidgetId]?.icon || '';
+  const defaultTitle = WIDGET_CONFIG[widgetType]?.name || 'Widget';
+  const defaultIcon = WIDGET_CONFIG[widgetType]?.icon || '';
   const titleText = currentStyles.titleText !== undefined ? currentStyles.titleText : defaultTitle;
   const titleVisible = currentStyles.titleVisible !== undefined ? currentStyles.titleVisible : true;
   const titleIconVisible = currentStyles.titleIconVisible !== undefined ? currentStyles.titleIconVisible : true;
   const titleAlignment = currentStyles.titleAlignment || 'left';
-  const isSpecialWidget = currentWidgetId === 'calendar-widget' || currentWidgetId === 'whiteboard-widget';
+  const isSpecialWidget = widgetType === 'calendar-widget' || widgetType === 'whiteboard-widget';
   const textColor = currentStyles.textColor || '#fff';
   const fontSize = currentStyles.fontSize !== undefined ? currentStyles.fontSize : 18;
   const fontWeight = currentStyles.fontWeight || '600';
@@ -547,7 +551,7 @@ function generateTitleTab() {
         ${isSpecialWidget ? `
         <div class="styling-form-row" style="background: rgba(74, 144, 226, 0.1); padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 3px solid #4a90e2;">
           <div style="font-size: 12px; color: #aaa; line-height: 1.4;">
-            <strong style="color: #4a90e2;">Note:</strong> ${currentWidgetId === 'calendar-widget' 
+            <strong style="color: #4a90e2;">Note:</strong> ${widgetType === 'calendar-widget' 
               ? 'Calendar widget has a custom header with month-view button and calendar icon. Title visibility, text editing, and alignment are not available for this widget to preserve its functional elements.'
               : 'Whiteboard widget has a custom header with toolbar controls (clear, color pickers, brush size). Title visibility, text editing, and alignment are not available for this widget to preserve its functional elements.'}
           </div>
@@ -669,10 +673,15 @@ function generateAdvancedTab() {
   const stopwatchTextColor = currentStyles.stopwatchTextColor || '#1a1a1a';
   const stopwatchPlayButtonColor = currentStyles.stopwatchPlayButtonColor || '#4a90e2';
   const stopwatchResetButtonColor = currentStyles.stopwatchResetButtonColor || '#ffffff';
-  const isDiceWidget = currentWidgetId === 'dice-widget';
-  const isStopwatchWidget = currentWidgetId === 'stopwatch-widget';
-  const isScoreboardWidget = currentWidgetId === 'scoreboard-widget';
-  const isBlankWidget = currentWidgetId === 'blank-widget';
+  
+  // Parse widget ID to get widget type (handles both instance IDs and legacy IDs)
+  const parsed = typeof parseWidgetId !== 'undefined' && currentWidgetId ? parseWidgetId(currentWidgetId) : { widgetType: currentWidgetId || '', pageIndex: 0, instanceIndex: 0, isLegacy: true };
+  const widgetType = parsed.widgetType;
+  
+  const isDiceWidget = widgetType === 'dice-widget';
+  const isStopwatchWidget = widgetType === 'stopwatch-widget';
+  const isScoreboardWidget = widgetType === 'scoreboard-widget';
+  const isBlankWidget = widgetType === 'blank-widget';
   const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
   const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
   
