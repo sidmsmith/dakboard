@@ -1687,6 +1687,11 @@ function setupScoreboardDragAndDrop() {
     teamEl.addEventListener('dragstart', (e) => {
       // Don't allow drag if clicking directly on an input/select/button (unless it's the drag handle)
       const target = e.target;
+      if (target.tagName === 'BUTTON' && target.classList.contains('scoreboard-remove-team-btn')) {
+        console.log('🔵 DRAG START prevented - clicked on Remove button');
+        e.preventDefault();
+        return;
+      }
       if ((target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'BUTTON') && 
           !target.closest('.scoreboard-drag-handle')) {
         console.log('🔵 DRAG START prevented - clicked on input/select/button:', target.tagName);
