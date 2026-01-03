@@ -1601,23 +1601,19 @@ function setupScoreboardDragAndDrop() {
     teamEl.setAttribute('draggable', 'true');
     teamEl.dataset.dragSetup = 'true';
     
-    // Make drag handle trigger drag on parent
-    const dragHandle = teamEl.querySelector('.scoreboard-drag-handle');
-    if (dragHandle) {
-      dragHandle.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        // Start drag on the parent element
-        teamEl.draggable = true;
-        const dragEvent = new MouseEvent('mousedown', {
-          bubbles: true,
-          cancelable: true,
-          clientX: e.clientX,
-          clientY: e.clientY
-        });
-        teamEl.dispatchEvent(dragEvent);
+    // Prevent inputs from blocking drag - allow drag from anywhere on the row
+    const inputs = teamEl.querySelectorAll('input, select, button');
+    inputs.forEach(input => {
+      // Don't prevent default on inputs - let them work normally
+      // But allow drag to start from the row itself
+      input.addEventListener('mousedown', (e) => {
+        // Only allow drag if clicking on drag handle
+        if (!e.target.closest('.scoreboard-drag-handle')) {
+          // Don't prevent - let input work normally
+          return;
+        }
       });
-    }
+    });
     
     // Drag start
     teamEl.addEventListener('dragstart', (e) => {
