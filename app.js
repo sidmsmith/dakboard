@@ -5242,11 +5242,37 @@ function toggleWidgetVisibility(fullWidgetId) {
       widget.classList.add('hidden');
       console.log(`Hidden class added. Widget classes now: ${Array.from(widget.classList).join(', ')}`);
     }
+    
+    // Save visibility state BEFORE updating panel
+    console.log(`Saving widget visibility state...`);
     saveWidgetVisibility();
-    // Update panel after a brief delay to ensure DOM is updated
+    
+    // Force a re-check of the widget's visibility state after saving
     setTimeout(() => {
+      const savedVisibility = localStorage.getItem(`dakboard-widget-visibility-page-${currentPageIndex}`);
+      console.log(`Saved visibility state: ${savedVisibility}`);
+      const visibility = savedVisibility ? JSON.parse(savedVisibility) : {};
+      console.log(`Visibility for ${fullWidgetId}: ${visibility[fullWidgetId]}`);
+      
+      // Double-check that the widget's visibility matches what we just saved
+      const widgetCheck = pageElement.querySelector(`.${fullWidgetId}`);
+      if (widgetCheck) {
+        const shouldBeVisible = visibility[fullWidgetId] === true;
+        const isActuallyVisible = !widgetCheck.classList.contains('hidden');
+        console.log(`Widget visibility check: shouldBeVisible=${shouldBeVisible}, isActuallyVisible=${isActuallyVisible}`);
+        
+        if (shouldBeVisible && !isActuallyVisible) {
+          console.log(`Fixing widget visibility - removing hidden class`);
+          widgetCheck.classList.remove('hidden');
+        } else if (!shouldBeVisible && isActuallyVisible) {
+          console.log(`Fixing widget visibility - adding hidden class`);
+          widgetCheck.classList.add('hidden');
+        }
+      }
+      
+      // Update panel after a brief delay to ensure DOM is updated
       updateWidgetControlPanel();
-    }, 10);
+    }, 50);
   } else {
     console.error(`Widget ${fullWidgetId} not found and could not be created`);
   }
