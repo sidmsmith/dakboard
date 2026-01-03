@@ -1719,18 +1719,17 @@ function setupScoreboardDragAndDrop() {
     // Drag end
     teamEl.addEventListener('dragend', (e) => {
       console.log('🔴 DRAG END:', index);
-      teamEl.classList.remove('dragging');
-      teamEl.style.cursor = '';
-      // Remove all drag-over classes and reset cursor
-      freshTeamConfigs.forEach(t => {
-        t.classList.remove('drag-over-above', 'drag-over-below');
+      // Remove all visual states from all teams
+      const allTeams = teamsList.querySelectorAll('.scoreboard-team-config');
+      allTeams.forEach(t => {
+        t.classList.remove('dragging', 'drag-over-above', 'drag-over-below');
         t.style.cursor = '';
+        t.style.opacity = '';
+        t.style.background = '';
       });
-      // Only clear if this was the dragged element
-      if (draggedScoreboardElement === teamEl) {
-        draggedScoreboardElement = null;
-        draggedScoreboardIndex = null;
-      }
+      // Clear dragged element
+      draggedScoreboardElement = null;
+      draggedScoreboardIndex = null;
     });
     
     // Drag over

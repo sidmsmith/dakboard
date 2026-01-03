@@ -1561,7 +1561,12 @@ body {
 
 .scoreboard-team-config.dragging {
   opacity: 0.5;
-  background: rgba(74, 144, 226, 0.1);
+  background: rgba(74, 144, 226, 0.1) !important;
+}
+
+.scoreboard-team-config:not(.dragging):not(.drag-over-above):not(.drag-over-below) {
+  background: rgba(255, 255, 255, 0.02) !important;
+  opacity: 1 !important;
 }
 
 .scoreboard-team-config.drag-over-above {
