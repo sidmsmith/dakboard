@@ -1838,8 +1838,12 @@ function setupScoreboardDragAndDrop() {
           t.style.background = '';
           t.dataset.dragSetup = 'false';
         });
-        // Re-setup drag and drop with fresh event listeners
+        // Re-setup drag and drop with fresh event listeners (clones elements)
         setupScoreboardDragAndDrop();
+        // Re-setup team listeners after drag setup (to reattach remove button listeners)
+        setupScoreboardTeamListeners();
+        // Update remove buttons visibility
+        updateRemoveButtonsVisibility();
       }
       
       // Always clear drag-over classes even if drop wasn't valid
