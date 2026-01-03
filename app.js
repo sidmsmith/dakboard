@@ -4954,16 +4954,23 @@ function getWidgetTitle(fullWidgetId) {
 function loadWidgetVisibility() {
   try {
     const pageElement = getPageElement(currentPageIndex);
-    if (!pageElement) return;
+    if (!pageElement) {
+      console.error(`loadWidgetVisibility: Page element not found for page ${currentPageIndex}`);
+      return;
+    }
     
     const visibilityKey = `dakboard-widget-visibility-page-${currentPageIndex}`;
     const saved = localStorage.getItem(visibilityKey);
     const visibility = saved ? JSON.parse(saved) : {};
     
+    console.log(`loadWidgetVisibility: Loading visibility for page ${currentPageIndex}:`, visibility);
+    
     // Process all widget types in WIDGET_CONFIG
     Object.keys(WIDGET_CONFIG).forEach(widgetType => {
       // Get all instances of this widget type on the current page
       const instances = getWidgetInstances(widgetType, currentPageIndex);
+      
+      console.log(`loadWidgetVisibility: Found ${instances.length} instances of ${widgetType} on page ${currentPageIndex}`);
       
       // Process each instance
       instances.forEach(instance => {
@@ -4973,21 +4980,28 @@ function loadWidgetVisibility() {
         // Check visibility for this specific instance
         const instanceVisibility = visibility[fullWidgetId];
         
+        console.log(`loadWidgetVisibility: ${fullWidgetId} visibility = ${instanceVisibility}`);
+        
         if (widget) {
           if (instanceVisibility === false) {
             widget.classList.add('hidden');
+            console.log(`loadWidgetVisibility: Hiding ${fullWidgetId}`);
           } else if (instanceVisibility === true) {
             widget.classList.remove('hidden');
+            console.log(`loadWidgetVisibility: Showing ${fullWidgetId}`);
           } else {
             // If visibility not set for this instance, check legacy format
             const legacyVisibility = visibility[widgetType];
             if (legacyVisibility === false) {
               widget.classList.add('hidden');
+              console.log(`loadWidgetVisibility: Hiding ${fullWidgetId} (legacy false)`);
             } else if (legacyVisibility === true) {
               widget.classList.remove('hidden');
+              console.log(`loadWidgetVisibility: Showing ${fullWidgetId} (legacy true)`);
             } else {
               // Default: hide if not explicitly shown
               widget.classList.add('hidden');
+              console.log(`loadWidgetVisibility: Hiding ${fullWidgetId} (default)`);
             }
           }
         }
