@@ -3396,6 +3396,7 @@ function loadClipArt() {
     
     let clipArtEmoji = '🎨'; // Default
     let clipArtColor = '#4a90e2'; // Default
+    let clipArtTintColor = '#ffffff'; // Default
     let clipArtImageUrl = ''; // Default
     
     if (savedStyles) {
@@ -3403,15 +3404,56 @@ function loadClipArt() {
         const styles = JSON.parse(savedStyles);
         clipArtEmoji = styles.clipArtEmoji || clipArtEmoji;
         clipArtColor = styles.clipArtColor || clipArtColor;
+        clipArtTintColor = styles.clipArtTintColor || clipArtTintColor;
         clipArtImageUrl = styles.clipArtImageUrl || clipArtImageUrl;
       } catch (e) {
         console.error('Error parsing clip art styles:', e);
       }
     }
     
+    // Helper function to generate CSS filter for image tinting (same as in styling.js)
+    function generateImageTintFilter(tintColor) {
+      if (!tintColor || tintColor === '#ffffff' || tintColor === '#FFFFFF') {
+        return 'brightness(0) invert(1)';
+      }
+      const r = parseInt(tintColor.slice(1, 3), 16);
+      const g = parseInt(tintColor.slice(3, 5), 16);
+      const b = parseInt(tintColor.slice(5, 7), 16);
+      const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+      if (brightness > 128) {
+        return `brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(${getHueFromRGB(r, g, b)}deg) brightness(${brightness / 255})`;
+      } else {
+        return `brightness(0) saturate(100%) invert(${r / 255}) sepia(1) saturate(5) hue-rotate(${getHueFromRGB(r, g, b)}deg)`;
+      }
+    }
+    
+    function getHueFromRGB(r, g, b) {
+      r /= 255;
+      g /= 255;
+      b /= 255;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      let h = 0;
+      if (max === min) {
+        h = 0;
+      } else if (max === r) {
+        h = ((g - b) / (max - min)) % 6;
+      } else if (max === g) {
+        h = (b - r) / (max - min) + 2;
+      } else {
+        h = (r - g) / (max - min) + 4;
+      }
+      h = Math.round(h * 60);
+      if (h < 0) h += 360;
+      return h;
+    }
+    
     // Display the clip art (image or emoji)
     if (clipArtImageUrl) {
-      container.innerHTML = `<div class="clipart-display" style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;"><img src="${clipArtImageUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: ${clipArtColor ? `drop-shadow(0 0 12px ${clipArtColor})` : 'none'};" alt="Clip art"></div>`;
+      const shadowFilter = clipArtColor ? `drop-shadow(0 0 12px ${clipArtColor})` : '';
+      const tintFilter = generateImageTintFilter(clipArtTintColor);
+      const combinedFilter = [shadowFilter, tintFilter].filter(f => f).join(' ');
+      container.innerHTML = `<div class="clipart-display" style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;"><img src="${clipArtImageUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: ${combinedFilter || 'none'};" alt="Clip art"></div>`;
     } else {
       container.innerHTML = `<div class="clipart-display" style="color: ${clipArtColor}; font-size: 120px; text-align: center; line-height: 1; display: flex; align-items: center; justify-content: center; height: 100%;">${clipArtEmoji}</div>`;
     }

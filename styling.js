@@ -828,10 +828,9 @@ function generateAdvancedTab() {
       <div class="styling-section-title">Clip Art</div>
       <div class="styling-form-group">
         <div class="styling-form-row">
-          <label class="styling-form-label">Current Clip Art</label>
+          <label class="styling-form-label">Select Clip Art</label>
           <div class="styling-form-control">
-            <div style="font-size: 48px; text-align: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; color: ${clipArtColor};" id="clipart-preview-display">${clipArtEmoji}</div>
-            <div style="display: flex; gap: 8px; margin-top: 10px;">
+            <div style="display: flex; gap: 8px;">
               <button type="button" id="clipart-select-btn" class="styling-btn-secondary" style="flex: 1;">Choose Emoji</button>
               <button type="button" id="clipart-pixabay-btn" class="styling-btn-secondary" style="flex: 1;">Pixabay</button>
               <button type="button" id="clipart-nounproject-btn" class="styling-btn-secondary" style="flex: 1;">Noun Project</button>
@@ -839,13 +838,24 @@ function generateAdvancedTab() {
           </div>
         </div>
         <div class="styling-form-row">
-          <label class="styling-form-label">Color</label>
+          <label class="styling-form-label">Shadow Color</label>
           <div class="styling-form-control">
             <input type="color" id="clipart-color" value="${clipArtColor}">
             <input type="text" id="clipart-color-text" value="${clipArtColor}" pattern="^#[0-9A-F]{6}$" placeholder="#4a90e2">
             <label class="styling-apply-all-checkbox">
               <input type="checkbox" id="clipart-color-apply-all" ${applyToAllFlags.clipArtColor ? 'checked' : ''}> Apply to all
             </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Image Color (Tint)</label>
+          <div class="styling-form-control">
+            <input type="color" id="clipart-tint-color" value="${currentStyles.clipArtTintColor || '#ffffff'}">
+            <input type="text" id="clipart-tint-color-text" value="${currentStyles.clipArtTintColor || '#ffffff'}" pattern="^#[0-9A-F]{6}$" placeholder="#ffffff">
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="clipart-tint-color-apply-all" ${applyToAllFlags.clipArtTintColor ? 'checked' : ''}> Apply to all
+            </label>
+            <div style="font-size: 11px; color: #888; margin-top: 5px;">Makes images look like stickers. Use white for classic sticker look.</div>
           </div>
         </div>
       </div>
@@ -4134,19 +4144,53 @@ function selectClipArt(emoji) {
   }
 }
 
-// Update clip art preview in Advanced tab
-function updateClipArtPreview() {
-  const previewDisplay = document.getElementById('clipart-preview-display');
-  const clipartColor = document.getElementById('clipart-color');
-  if (previewDisplay && clipartColor) {
-    // Check if it's an image URL or emoji
-    if (currentStyles.clipArtImageUrl) {
-      previewDisplay.innerHTML = `<img src="${currentStyles.clipArtImageUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: ${clipartColor.value ? `drop-shadow(0 0 8px ${clipartColor.value})` : 'none'};" alt="Clip art">`;
-    } else {
-      previewDisplay.textContent = currentStyles.clipArtEmoji || '🎨';
-      previewDisplay.style.color = clipartColor.value || '#4a90e2';
-    }
+// Helper function to generate CSS filter for image tinting
+function generateImageTintFilter(tintColor) {
+  if (!tintColor || tintColor === '#ffffff' || tintColor === '#FFFFFF') {
+    // White tint: brightness(0) invert(1) makes it white with black lines
+    return 'brightness(0) invert(1)';
   }
+  
+  // For other colors, we'll use a combination of filters
+  // Convert hex to RGB
+  const r = parseInt(tintColor.slice(1, 3), 16);
+  const g = parseInt(tintColor.slice(3, 5), 16);
+  const b = parseInt(tintColor.slice(5, 7), 16);
+  
+  // Calculate brightness to determine if it's a light or dark color
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  
+  if (brightness > 128) {
+    // Light color: use brightness and saturation
+    return `brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(${getHueFromRGB(r, g, b)}deg) brightness(${brightness / 255})`;
+  } else {
+    // Dark color: different approach
+    return `brightness(0) saturate(100%) invert(${r / 255}) sepia(1) saturate(5) hue-rotate(${getHueFromRGB(r, g, b)}deg)`;
+  }
+}
+
+// Helper to get hue from RGB
+function getHueFromRGB(r, g, b) {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  
+  if (max === min) {
+    h = 0;
+  } else if (max === r) {
+    h = ((g - b) / (max - min)) % 6;
+  } else if (max === g) {
+    h = (b - r) / (max - min) + 2;
+  } else {
+    h = (r - g) / (max - min) + 4;
+  }
+  
+  h = Math.round(h * 60);
+  if (h < 0) h += 360;
+  return h;
 }
 
 // Open Pixabay modal
@@ -4488,29 +4532,9 @@ function selectClipArtImage(imageUrl, highResUrl) {
   // Clear emoji if image is selected
   currentStyles.clipArtEmoji = '';
   currentStyles.clipArtImageUrl = highResUrl || imageUrl;
-  updateClipArtPreview();
+  
+  // Only update preview - don't apply to widget until Apply button is clicked
   updatePreview();
-  
-  // Save the selection immediately
-  updateCurrentStylesFromForm();
-  saveStyles();
-  
-  // Apply to widget
-  if (currentWidgetId) {
-    const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
-    const pageElement = document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
-    if (pageElement) {
-      const widget = pageElement.querySelector(`.${currentWidgetId}`);
-      if (widget) {
-        applyCurrentStylesToWidget(widget);
-      }
-    }
-  }
-  
-  // Reload clip art to show the new selection
-  if (typeof loadClipArt === 'function') {
-    setTimeout(() => loadClipArt(), 0);
-  }
   
   // Close modals
   const pixabayModal = document.getElementById('pixabay-modal');
