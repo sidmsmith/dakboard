@@ -5067,8 +5067,8 @@ function toggleWidgetVisibility(fullWidgetId) {
     // Try legacy format first
     widget = pageElement.querySelector(`.${widgetType}`);
     if (widget) {
-      // Update widget to use new ID format
-      widget.className = `${widgetType} ${fullWidgetId}`;
+      // Update widget to use new ID format, but preserve 'widget' class
+      widget.className = `widget ${widgetType} ${fullWidgetId}`;
     }
   }
   
@@ -5834,8 +5834,8 @@ function initializeWidgetInstance(fullWidgetId, widgetElement) {
   const parsed = parseWidgetId(fullWidgetId);
   const widgetType = parsed.widgetType;
   
-  // Set widget's class to include the full ID
-  widgetElement.className = `${widgetType} ${fullWidgetId}`;
+  // Set widget's class to include the full ID, but preserve the 'widget' class
+  widgetElement.className = `widget ${widgetType} ${fullWidgetId}`;
   
   // Load widget-specific functionality
   if (widgetType === 'dice-widget' && typeof loadDice === 'function') {
