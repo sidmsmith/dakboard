@@ -76,36 +76,6 @@ window.CONFIG = {
 
 ---
 
-## OpenClipart API Setup
-
-OpenClipart provides a vast collection of public domain vector graphics. **No authentication is required** - the API is completely free and open to use.
-
-### Step 1: No Account Required!
-
-OpenClipart's API is publicly accessible - you don't need to create an account or obtain API credentials. Simply use the API endpoints directly.
-
-### OpenClipart API Details
-
-- **Rate Limit**: No official rate limit specified (be respectful with requests)
-- **Free Tier**: Yes, completely free
-- **Authentication**: None required
-- **Image Types**: SVG and PNG clipart
-- **License**: Public domain - free for commercial use
-- **API Version**: v2 (currently in beta)
-- **Documentation**: [https://openclipart.org/developers](https://openclipart.org/developers)
-
-### How It Works
-
-The dashboard automatically uses the OpenClipart API without any configuration needed. The API endpoint is:
-
-```
-https://openclipart.org/api/v2/search/json?query=SEARCH_TERM&amount=100
-```
-
-Simply search for clipart using the "OpenClipart" button in the Clip Art widget's Advanced tab.
-
----
-
 ## Configuration
 
 ### Complete config.js Example (Local Development Only)
