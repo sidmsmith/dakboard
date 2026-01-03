@@ -2877,21 +2877,31 @@ function loadStopwatch() {
     // Update display
     updateStopwatchDisplay(widgetId, container);
     
-    // Set up button handlers
-    if (playPauseBtn && !playPauseBtn.dataset.listenerAttached) {
-      playPauseBtn.dataset.listenerAttached = 'true';
-      playPauseBtn.addEventListener('click', (e) => {
+    // Set up button handlers (always reattach to ensure they work)
+    if (playPauseBtn) {
+      // Remove old listener if exists and reattach
+      const newPlayPauseBtn = playPauseBtn.cloneNode(true);
+      playPauseBtn.parentNode.replaceChild(newPlayPauseBtn, playPauseBtn);
+      newPlayPauseBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        const widget = container.closest('.widget');
+        const isEditMode = widget && widget.closest('.dashboard.page') && widget.closest('.dashboard.page').classList.contains('edit-mode');
         if (!isEditMode) {
           toggleStopwatch(widgetId, container);
         }
       });
+      // Update button state after cloning
+      updateStopwatchButton(widgetId, container);
     }
     
-    if (resetBtn && !resetBtn.dataset.listenerAttached) {
-      resetBtn.dataset.listenerAttached = 'true';
-      resetBtn.addEventListener('click', (e) => {
+    if (resetBtn) {
+      // Remove old listener if exists and reattach
+      const newResetBtn = resetBtn.cloneNode(true);
+      resetBtn.parentNode.replaceChild(newResetBtn, resetBtn);
+      newResetBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        const widget = container.closest('.widget');
+        const isEditMode = widget && widget.closest('.dashboard.page') && widget.closest('.dashboard.page').classList.contains('edit-mode');
         if (!isEditMode) {
           resetStopwatch(widgetId, container);
         }
@@ -2913,7 +2923,7 @@ function updateStopwatchDisplay(widgetId, container) {
   const state = stopwatchStates.get(widgetId);
   if (!state) return;
   
-  const display = container.querySelector('#stopwatch-display');
+  const display = container.querySelector('.stopwatch-display');
   if (!display) return;
   
   let elapsed = state.elapsed;
@@ -2939,7 +2949,7 @@ function updateStopwatchButton(widgetId, container) {
   const state = stopwatchStates.get(widgetId);
   if (!state) return;
   
-  const playPauseBtn = container.querySelector('#stopwatch-play-pause');
+  const playPauseBtn = container.querySelector('.stopwatch-play-pause');
   if (!playPauseBtn) return;
   
   if (state.isRunning) {
