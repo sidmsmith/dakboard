@@ -1682,6 +1682,9 @@ function setupScoreboardDragAndDrop() {
     teamEl.parentNode.replaceChild(newEl, teamEl);
   });
   
+  // Always reattach team listeners after cloning (especially remove button listeners)
+  setupScoreboardTeamListeners();
+  
   // Get fresh references after cloning
   const freshTeamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
   console.log('🔧 Found', freshTeamConfigs.length, 'team configs');
