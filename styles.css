@@ -203,7 +203,11 @@ body {
   user-select: none;
 }
 
-/* Clip Art Modal */
+/* Clip Art Modal - Higher z-index than styling modal */
+#clipart-modal {
+  z-index: 10003 !important;
+}
+
 #clipart-modal .clipart-item {
   transition: all 0.2s;
 }

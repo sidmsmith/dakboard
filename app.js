@@ -3374,6 +3374,44 @@ function saveScoreboardState(widgetId) {
   }
 }
 
+// Clip art widget - simple image display
+function loadClipArt() {
+  const clipArtWidgets = document.querySelectorAll('.blank-widget');
+  
+  if (clipArtWidgets.length === 0) return;
+  
+  // Initialize all clip art widgets across all pages
+  clipArtWidgets.forEach((widget) => {
+    const container = widget.querySelector('.clipart-content');
+    if (!container) return;
+    
+    // Get the page index from the widget's parent page
+    const pageElement = widget.closest('.dashboard.page');
+    const pageIndex = pageElement ? parseInt(pageElement.getAttribute('data-page-id')) || 0 : 0;
+    
+    // Get saved clip art and color from localStorage
+    const widgetId = 'blank-widget';
+    const stylesKey = `dakboard-widget-styles-${widgetId}-page-${pageIndex}`;
+    const savedStyles = localStorage.getItem(stylesKey);
+    
+    let clipArtEmoji = '🎨'; // Default
+    let clipArtColor = '#4a90e2'; // Default
+    
+    if (savedStyles) {
+      try {
+        const styles = JSON.parse(savedStyles);
+        clipArtEmoji = styles.clipArtEmoji || clipArtEmoji;
+        clipArtColor = styles.clipArtColor || clipArtColor;
+      } catch (e) {
+        console.error('Error parsing clip art styles:', e);
+      }
+    }
+    
+    // Display the clip art
+    container.innerHTML = `<div class="clipart-display" style="color: ${clipArtColor}; font-size: 120px; text-align: center; line-height: 1; display: flex; align-items: center; justify-content: center; height: 100%;">${clipArtEmoji}</div>`;
+  });
+}
+
 // Trigger confetti animation
 function triggerConfetti() {
   // Remove existing confetti container if any
