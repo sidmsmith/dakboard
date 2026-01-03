@@ -3332,23 +3332,38 @@ function triggerConfetti() {
   container.className = 'confetti-container';
   document.body.appendChild(container);
   
-  // Create confetti particles (more particles for better effect)
-  const particleCount = 150;
-  for (let i = 0; i < particleCount; i++) {
-    const confetti = document.createElement('div');
-    confetti.className = 'confetti';
-    confetti.style.left = Math.random() * 100 + '%';
-    confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
-    confetti.style.animationDelay = Math.random() * 2 + 's';
-    // Add some rotation for more dynamic effect
-    confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
-    container.appendChild(confetti);
-  }
+  // Create confetti particles continuously for 5 seconds
+  const duration = 5000; // 5 seconds
+  const particleInterval = 50; // Create new particles every 50ms
+  const particlesPerBatch = 10;
   
-  // Remove container after animation
+  let elapsed = 0;
+  const createBatch = () => {
+    for (let i = 0; i < particlesPerBatch; i++) {
+      const confetti = document.createElement('div');
+      confetti.className = 'confetti';
+      confetti.style.left = Math.random() * 100 + '%';
+      confetti.style.animationDuration = (Math.random() * 2 + 2) + 's'; // 2-4 seconds to fall
+      confetti.style.animationDelay = '0s'; // Start immediately
+      // Add random rotation for more dynamic effect
+      const rotation = Math.random() * 360;
+      confetti.style.transform = `rotate(${rotation}deg)`;
+      container.appendChild(confetti);
+    }
+    
+    elapsed += particleInterval;
+    if (elapsed < duration) {
+      setTimeout(createBatch, particleInterval);
+    }
+  };
+  
+  // Start creating particles immediately
+  createBatch();
+  
+  // Remove container after animation completes
   setTimeout(() => {
     container.remove();
-  }, 5000);
+  }, duration + 4000); // Add 4 seconds for particles to finish falling
 }
 
 // Roll dice with animation
