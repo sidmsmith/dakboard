@@ -1842,9 +1842,8 @@ function setupScoreboardDragAndDrop() {
           t.dataset.dragSetup = 'false';
         });
         // Re-setup drag and drop with fresh event listeners (clones elements)
+        // Note: setupScoreboardDragAndDrop() now calls setupScoreboardTeamListeners() internally
         setupScoreboardDragAndDrop();
-        // Re-setup team listeners after drag setup (to reattach remove button listeners)
-        setupScoreboardTeamListeners();
         // Update remove buttons visibility
         updateRemoveButtonsVisibility();
       }
