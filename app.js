@@ -5178,29 +5178,34 @@ function addZIndexControls(widget) {
   // Get or create widget header
   let header = widget.querySelector('.widget-header');
   
-  // Check if header exists and is visible (has visible content)
-  const headerVisible = header && (
-    header.offsetHeight > 0 || 
-    header.offsetWidth > 0 ||
-    window.getComputedStyle(header).display !== 'none'
-  );
-  
-  // Check if header has visible title
-  const hasVisibleTitle = header && header.querySelector('.widget-title') && (
-    header.querySelector('.widget-title').offsetHeight > 0 ||
-    window.getComputedStyle(header.querySelector('.widget-title')).display !== 'none'
-  );
-  
-  if (!header || !headerVisible || !hasVisibleTitle) {
-    // Create minimal header for widgets without headers or with hidden headers (only in edit mode)
-    // Remove existing header if it's hidden
-    if (header && (!headerVisible || !hasVisibleTitle)) {
-      header.remove();
-    }
+  // Check if header exists
+  if (!header) {
+    // Create minimal header for widgets without headers (only in edit mode)
     header = document.createElement('div');
     header.className = 'widget-header widget-edit-header';
     // Insert at the beginning of the widget
     widget.insertBefore(header, widget.firstChild);
+  } else {
+    // Header exists - check if it's hidden
+    const headerStyle = window.getComputedStyle(header);
+    const isHeaderHidden = headerStyle.display === 'none';
+    
+    // If header is hidden, temporarily show it in edit mode for z-index controls
+    // But don't remove it - we need to preserve it for when title visibility is turned back on
+    if (isHeaderHidden) {
+      // Create a minimal header for z-index controls, but keep the original header
+      const minimalHeader = document.createElement('div');
+      minimalHeader.className = 'widget-header widget-edit-header';
+      // Insert at the beginning of the widget
+      widget.insertBefore(minimalHeader, widget.firstChild);
+      header = minimalHeader;
+    } else {
+      // Header is visible, use it for z-index controls
+      // Make sure it's not the minimal header (in case it was created before)
+      if (!header.classList.contains('widget-edit-header')) {
+        // Header is the real one, use it
+      }
+    }
   }
   
   // Create z-index controls container
