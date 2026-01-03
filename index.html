@@ -684,8 +684,68 @@
       <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
         <div style="padding: 20px;">
           <div style="margin-bottom: 15px;">
-            <input type="text" id="pixabay-search" placeholder="Search for images..." style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #4a4a4a; background: #1a1a1a; color: #e0e0e0; font-size: 14px;">
-            <button type="button" id="pixabay-search-btn" class="styling-btn-secondary" style="width: 100%; margin-top: 10px;">Search</button>
+            <input type="text" id="pixabay-search" placeholder="Search for images..." style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #4a4a4a; background: #1a1a1a; color: #e0e0e0; font-size: 14px; margin-bottom: 10px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 10px;">
+              <div>
+                <label style="display: block; margin-bottom: 5px; color: #888; font-size: 12px;">Image Type</label>
+                <select id="pixabay-image-type" multiple style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #4a4a4a; background: #1a1a1a; color: #e0e0e0; font-size: 14px; min-height: 80px;">
+                  <option value="all" selected>All</option>
+                  <option value="photo">Photo</option>
+                  <option value="illustration">Illustration</option>
+                  <option value="vector">Vector</option>
+                </select>
+                <div style="font-size: 11px; color: #666; margin-top: 3px;">Hold Ctrl/Cmd to select multiple</div>
+              </div>
+              <div>
+                <label style="display: block; margin-bottom: 5px; color: #888; font-size: 12px;">Category</label>
+                <select id="pixabay-category" multiple style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #4a4a4a; background: #1a1a1a; color: #e0e0e0; font-size: 14px; min-height: 80px;">
+                  <option value="">All Categories</option>
+                  <option value="backgrounds">Backgrounds</option>
+                  <option value="fashion">Fashion</option>
+                  <option value="nature">Nature</option>
+                  <option value="science">Science</option>
+                  <option value="education">Education</option>
+                  <option value="feelings">Feelings</option>
+                  <option value="health">Health</option>
+                  <option value="people">People</option>
+                  <option value="religion">Religion</option>
+                  <option value="places">Places</option>
+                  <option value="animals">Animals</option>
+                  <option value="industry">Industry</option>
+                  <option value="computer">Computer</option>
+                  <option value="food">Food</option>
+                  <option value="sports">Sports</option>
+                  <option value="transportation">Transportation</option>
+                  <option value="travel">Travel</option>
+                  <option value="buildings">Buildings</option>
+                  <option value="business">Business</option>
+                  <option value="music">Music</option>
+                </select>
+                <div style="font-size: 11px; color: #666; margin-top: 3px;">Hold Ctrl/Cmd to select multiple</div>
+              </div>
+              <div>
+                <label style="display: block; margin-bottom: 5px; color: #888; font-size: 12px;">Colors</label>
+                <select id="pixabay-colors" multiple style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #4a4a4a; background: #1a1a1a; color: #e0e0e0; font-size: 14px; min-height: 80px;">
+                  <option value="">All Colors</option>
+                  <option value="grayscale">Grayscale</option>
+                  <option value="transparent">Transparent</option>
+                  <option value="red">Red</option>
+                  <option value="orange">Orange</option>
+                  <option value="yellow">Yellow</option>
+                  <option value="green">Green</option>
+                  <option value="turquoise">Turquoise</option>
+                  <option value="blue">Blue</option>
+                  <option value="lilac">Lilac</option>
+                  <option value="pink">Pink</option>
+                  <option value="white">White</option>
+                  <option value="gray">Gray</option>
+                  <option value="black">Black</option>
+                  <option value="brown">Brown</option>
+                </select>
+                <div style="font-size: 11px; color: #666; margin-top: 3px;">Hold Ctrl/Cmd to select multiple</div>
+              </div>
+            </div>
+            <button type="button" id="pixabay-search-btn" class="styling-btn-secondary" style="width: 100%;">Search</button>
           </div>
           <div id="pixabay-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;">
             <!-- Images will be populated by JavaScript -->

@@ -4186,11 +4186,6 @@ function openPixabayModal() {
   // Search function
   const performSearch = async () => {
     const query = searchInput ? searchInput.value.trim() : '';
-    if (!query) {
-      error.textContent = 'Please enter a search term';
-      error.style.display = 'block';
-      return;
-    }
     
     loading.style.display = 'block';
     grid.innerHTML = '';
@@ -4226,7 +4221,56 @@ function openPixabayModal() {
         loading.style.display = 'none';
         return;
       }
-      const url = `https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(query)}&image_type=illustration&safesearch=true&per_page=50`;
+      
+      // Get filter values
+      const imageTypeSelect = document.getElementById('pixabay-image-type');
+      const categorySelect = document.getElementById('pixabay-category');
+      const colorsSelect = document.getElementById('pixabay-colors');
+      
+      // Build URL parameters
+      const params = new URLSearchParams();
+      params.append('key', apiKey);
+      if (query) {
+        params.append('q', query);
+      }
+      params.append('safesearch', 'true');
+      params.append('per_page', '50');
+      
+      // Image type - if "all" is selected or nothing selected, use "all", otherwise use selected types
+      if (imageTypeSelect) {
+        const selectedTypes = Array.from(imageTypeSelect.selectedOptions).map(opt => opt.value);
+        if (selectedTypes.length === 0 || selectedTypes.includes('all')) {
+          params.append('image_type', 'all');
+        } else {
+          // Pixabay API only accepts one image_type, so use the first selected
+          params.append('image_type', selectedTypes[0]);
+        }
+      } else {
+        params.append('image_type', 'all');
+      }
+      
+      // Category - only add if a category is selected
+      if (categorySelect) {
+        const selectedCategories = Array.from(categorySelect.selectedOptions)
+          .map(opt => opt.value)
+          .filter(val => val !== ''); // Remove empty "All Categories" option
+        if (selectedCategories.length > 0) {
+          // Pixabay API only accepts one category, so use the first selected
+          params.append('category', selectedCategories[0]);
+        }
+      }
+      
+      // Colors - comma-separated list for multiple colors
+      if (colorsSelect) {
+        const selectedColors = Array.from(colorsSelect.selectedOptions)
+          .map(opt => opt.value)
+          .filter(val => val !== ''); // Remove empty "All Colors" option
+        if (selectedColors.length > 0) {
+          params.append('colors', selectedColors.join(','));
+        }
+      }
+      
+      const url = `https://pixabay.com/api/?${params.toString()}`;
       
       const response = await fetch(url);
       if (!response.ok) {
