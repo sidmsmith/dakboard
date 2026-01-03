@@ -1563,20 +1563,66 @@ body {
 
 .confetti {
   position: absolute;
-  width: 16px;
-  height: 16px;
   background: #ff0000;
   animation: confetti-fall linear;
-  border-radius: 2px;
 }
 
-.confetti:nth-child(2n) { background: #00ff00; }
-.confetti:nth-child(3n) { background: #ffff00; }
-.confetti:nth-child(4n) { background: #00ffff; }
-.confetti:nth-child(5n) { background: #ff00ff; }
-.confetti:nth-child(6n) { background: #ff8800; }
-.confetti:nth-child(7n) { background: #0088ff; }
-.confetti:nth-child(8n) { background: #ff0088; }
+/* Different shapes and sizes for confetti */
+.confetti:nth-child(3n) {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #00ff00;
+}
+
+.confetti:nth-child(3n+1) {
+  width: 20px;
+  height: 8px;
+  border-radius: 4px;
+  background: #ffff00;
+}
+
+.confetti:nth-child(3n+2) {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  background: #00ffff;
+}
+
+.confetti:nth-child(4n) {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ff00ff;
+}
+
+.confetti:nth-child(5n) {
+  width: 24px;
+  height: 6px;
+  border-radius: 3px;
+  background: #ff8800;
+}
+
+.confetti:nth-child(6n) {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #0088ff;
+}
+
+.confetti:nth-child(7n) {
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+  background: #ff0088;
+}
+
+.confetti:nth-child(8n) {
+  width: 22px;
+  height: 10px;
+  border-radius: 5px;
+  background: #00ff88;
+}
 
 @keyframes confetti-fall {
   0% {

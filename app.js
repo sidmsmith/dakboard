@@ -3021,39 +3021,39 @@ function saveStopwatchState(widgetId) {
   localStorage.setItem(stateKey, JSON.stringify(stateToSave));
 }
 
-// Scoreboard icon options (make globally accessible)
+// Scoreboard icon options (make globally accessible, sorted alphabetically by label)
 window.SCOREBOARD_ICONS = [
-  { value: '🚀', label: 'Rocket' },
-  { value: '🦄', label: 'Unicorn' },
-  { value: '⚽', label: 'Soccer Ball' },
-  { value: '🏀', label: 'Basketball' },
-  { value: '🏈', label: 'Football' },
-  { value: '⚾', label: 'Baseball' },
-  { value: '🎾', label: 'Tennis' },
-  { value: '🏐', label: 'Volleyball' },
-  { value: '🏓', label: 'Ping Pong' },
-  { value: '🏸', label: 'Badminton' },
-  { value: '🥊', label: 'Boxing' },
-  { value: '🥋', label: 'Martial Arts' },
   { value: '🏹', label: 'Archery' },
-  { value: '🎯', label: 'Target' },
-  { value: '🏆', label: 'Trophy' },
-  { value: '🥇', label: 'Gold Medal' },
-  { value: '🥈', label: 'Silver Medal' },
-  { value: '🥉', label: 'Bronze Medal' },
-  { value: '👑', label: 'Crown' },
-  { value: '⭐', label: 'Star' },
-  { value: '🌟', label: 'Glowing Star' },
-  { value: '💎', label: 'Diamond' },
-  { value: '🔥', label: 'Fire' },
-  { value: '⚡', label: 'Lightning' },
-  { value: '🌈', label: 'Rainbow' },
-  { value: '🦁', label: 'Lion' },
-  { value: '🐯', label: 'Tiger' },
+  { value: '🏀', label: 'Basketball' },
+  { value: '⚾', label: 'Baseball' },
+  { value: '🏸', label: 'Badminton' },
   { value: '🐻', label: 'Bear' },
+  { value: '🥊', label: 'Boxing' },
+  { value: '👑', label: 'Crown' },
+  { value: '💎', label: 'Diamond' },
   { value: '🦅', label: 'Eagle' },
-  { value: '🦉', label: 'Owl' }
-];
+  { value: '🔥', label: 'Fire' },
+  { value: '🥇', label: 'Gold Medal' },
+  { value: '🌟', label: 'Glowing Star' },
+  { value: '🦁', label: 'Lion' },
+  { value: '⚡', label: 'Lightning' },
+  { value: '🥋', label: 'Martial Arts' },
+  { value: '🦉', label: 'Owl' },
+  { value: '🏓', label: 'Ping Pong' },
+  { value: '🌈', label: 'Rainbow' },
+  { value: '🚀', label: 'Rocket' },
+  { value: '🥈', label: 'Silver Medal' },
+  { value: '⚽', label: 'Soccer Ball' },
+  { value: '⭐', label: 'Star' },
+  { value: '🎯', label: 'Target' },
+  { value: '🎾', label: 'Tennis' },
+  { value: '🐯', label: 'Tiger' },
+  { value: '🏆', label: 'Trophy' },
+  { value: '🦄', label: 'Unicorn' },
+  { value: '🏐', label: 'Volleyball' },
+  { value: '🏈', label: 'Football' },
+  { value: '🥉', label: 'Bronze Medal' }
+].sort((a, b) => a.label.localeCompare(b.label));
 
 // Scoreboard state management
 let scoreboardConfigs = new Map(); // Track config per widget instance: { teams, targetScore, increment, sliderColors }
