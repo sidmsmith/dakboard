@@ -1403,15 +1403,14 @@ function attachTabEventListeners(tabName) {
           });
         }
         
-        // Remove team buttons and team config updates
-        setupScoreboardTeamListeners();
-        
-        // Update remove buttons visibility
-        updateRemoveButtonsVisibility();
-        
-        // Setup drag and drop for team reordering
+        // Setup drag and drop for team reordering first (clones elements)
         console.log('🔧 Calling setupScoreboardDragAndDrop() from attachTabEventListeners');
         setupScoreboardDragAndDrop();
+        
+        // Then setup team listeners and update remove button visibility
+        // (must be after drag setup because drag setup clones elements)
+        setupScoreboardTeamListeners();
+        updateRemoveButtonsVisibility();
       }
     }
   }
@@ -1497,12 +1496,17 @@ function setupScoreboardTeamListeners() {
     if (!btn.dataset.listenerAttached) {
       btn.dataset.listenerAttached = 'true';
       btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🗑️ Remove button clicked (setupScoreboardTeamListeners) for team:', e.target.dataset.teamIndex);
         const teamsList = stylingModal.querySelector('#scoreboard-teams-list');
         const currentTeams = stylingModal.querySelectorAll('.scoreboard-team-config');
+        console.log('🗑️ Current team count:', currentTeams.length);
         if (currentTeams.length > 2) {
           const teamIndex = parseInt(e.target.dataset.teamIndex);
           const teamEl = stylingModal.querySelector(`.scoreboard-team-config[data-team-index="${teamIndex}"]`);
           if (teamEl) {
+            console.log('🗑️ Removing team:', teamIndex);
             teamEl.remove();
             // Update labels
             updateScoreboardTeamLabels();
