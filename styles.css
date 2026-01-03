@@ -1587,6 +1587,7 @@ body {
 .confetti {
   position: absolute;
   background: #ff0000;
+  top: -20px;
   animation: confetti-fall linear;
 }
 
