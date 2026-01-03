@@ -2246,7 +2246,7 @@ function updatePreview() {
   const titleText = preview.querySelector('.styling-preview-title-text');
   if (titleText) {
     // Get widget icon
-    const widgetIcon = WIDGET_CONFIG[currentWidgetId]?.icon || '';
+    const widgetIcon = WIDGET_CONFIG[widgetType]?.icon || '';
     const showIcon = currentStyles.titleIconVisible !== undefined ? currentStyles.titleIconVisible : true;
     
     // Title text
