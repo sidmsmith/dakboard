@@ -1405,6 +1405,10 @@ function attachTabEventListeners(tabName) {
         
         // Remove team buttons and team config updates
         setupScoreboardTeamListeners();
+        
+        // Setup drag and drop for team reordering
+        console.log('🔧 Calling setupScoreboardDragAndDrop() from attachTabEventListeners');
+        setupScoreboardDragAndDrop();
       }
     }
   }
