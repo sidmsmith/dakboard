@@ -1461,9 +1461,16 @@ function attachTabEventListeners(tabName) {
       
       // Clip art widget controls
       if (currentWidgetId === 'blank-widget') {
+        // Get the current widget element
+        const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
+          ? window.currentPageIndex 
+          : 0;
+        const currentPage = document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
+        const currentWidget = currentPage ? currentPage.querySelector(`.${currentWidgetId}`) : document.querySelector(`.${currentWidgetId}`);
+        
         // Image visibility checkbox
         const clipartVisible = stylingModal.querySelector('#clipart-visible');
-        if (clipartVisible) {
+        if (clipartVisible && currentWidget) {
           const handleVisibilityChange = (e) => {
             currentStyles.clipArtVisible = e.target.checked;
             const clipartSelectBtn = stylingModal.querySelector('#clipart-select-btn');
@@ -1569,27 +1576,47 @@ function attachTabEventListeners(tabName) {
         const clipartTintColor = stylingModal.querySelector('#clipart-tint-color');
         const clipartTintColorText = stylingModal.querySelector('#clipart-tint-color-text');
         if (clipartTintColor && clipartTintColorText) {
+          // Helper function to normalize color to 6-digit hex
+          const normalizeColor = (color) => {
+            if (!color) return '#ffffff';
+            // If it's a 3-digit hex, expand it
+            if (/^#[0-9A-F]{3}$/i.test(color)) {
+              return '#' + color[1] + color[1] + color[2] + color[2] + color[3] + color[3];
+            }
+            // If it's already 6-digit, return as is
+            if (/^#[0-9A-F]{6}$/i.test(color)) {
+              return color;
+            }
+            return '#ffffff'; // Default fallback
+          };
+          
           clipartTintColor.addEventListener('input', (e) => {
-            clipartTintColorText.value = e.target.value;
-            currentStyles.clipArtTintColor = e.target.value;
+            const normalized = normalizeColor(e.target.value);
+            clipartTintColorText.value = normalized;
+            clipartTintColor.value = normalized;
+            currentStyles.clipArtTintColor = normalized;
             updatePreview();
           });
           clipartTintColor.addEventListener('change', (e) => {
-            clipartTintColorText.value = e.target.value;
-            currentStyles.clipArtTintColor = e.target.value;
+            const normalized = normalizeColor(e.target.value);
+            clipartTintColorText.value = normalized;
+            clipartTintColor.value = normalized;
+            currentStyles.clipArtTintColor = normalized;
             updatePreview();
           });
           clipartTintColorText.addEventListener('input', (e) => {
-            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
-              clipartTintColor.value = e.target.value;
-              currentStyles.clipArtTintColor = e.target.value;
+            const normalized = normalizeColor(e.target.value);
+            if (/^#[0-9A-F]{6}$/i.test(normalized)) {
+              clipartTintColor.value = normalized;
+              currentStyles.clipArtTintColor = normalized;
               updatePreview();
             }
           });
           clipartTintColorText.addEventListener('change', (e) => {
-            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
-              clipartTintColor.value = e.target.value;
-              currentStyles.clipArtTintColor = e.target.value;
+            const normalized = normalizeColor(e.target.value);
+            if (/^#[0-9A-F]{6}$/i.test(normalized)) {
+              clipartTintColor.value = normalized;
+              currentStyles.clipArtTintColor = normalized;
               updatePreview();
             }
           });
@@ -4574,12 +4601,27 @@ function openOpenClipartModal() {
     
     try {
       // OpenClipart API endpoint (no authentication required)
-      // Using the API v2 beta endpoint - adjust if needed based on actual API documentation
-      const url = `https://openclipart.org/api/v2/search/json?query=${encodeURIComponent(query)}&amount=100`;
+      // The API v2 is in beta and may have changed. Try alternative endpoint formats.
+      // Note: OpenClipart's API may have CORS restrictions, so we try multiple formats
+      let url = `https://openclipart.org/search/json/?query=${encodeURIComponent(query)}&amount=100`;
+      let response = await fetch(url, { mode: 'cors' });
       
-      const response = await fetch(url);
+      // If that fails with 401, try the v2 endpoint
+      if (!response.ok && response.status === 401) {
+        url = `https://openclipart.org/api/v2/search/json?query=${encodeURIComponent(query)}&amount=100`;
+        response = await fetch(url, { mode: 'cors' });
+      }
+      
+      // If still fails, try without /api/v2
+      if (!response.ok && response.status === 401) {
+        url = `https://openclipart.org/search/json?query=${encodeURIComponent(query)}&amount=100`;
+        response = await fetch(url, { mode: 'cors' });
+      }
       
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error(`OpenClipart API returned 401 Unauthorized. The API may require authentication or the endpoint format has changed. Please check https://openclipart.org/developers for the latest API documentation. Alternatively, you can use Pixabay or emoji clipart instead.`);
+        }
         throw new Error(`API error: ${response.status} ${response.statusText}`);
       }
       
