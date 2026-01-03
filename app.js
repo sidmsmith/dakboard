@@ -5296,19 +5296,28 @@ function setEditMode(enabled) {
   // Reinitialize drag/resize when toggling edit mode
   if (typeof initializeDragAndResize === 'function') {
     if (enabled) {
+      console.log(`setEditMode: Enabling edit mode for page ${currentPageIndex}`);
       // When entering edit mode, initialize immediately and also after a short delay
       // This ensures handles appear even if DOM isn't fully ready
       initializeDragAndResize();
       setTimeout(() => {
+        console.log(`setEditMode: Retrying initializeDragAndResize after delay`);
         initializeDragAndResize();
       }, 100);
+      setTimeout(() => {
+        console.log(`setEditMode: Final retry initializeDragAndResize`);
+        initializeDragAndResize();
+      }, 300);
     } else {
+      console.log(`setEditMode: Disabling edit mode for page ${currentPageIndex}`);
       // When exiting edit mode, remove all handles immediately
       const pageElement = getPageElement(currentPageIndex);
       if (pageElement) {
         pageElement.querySelectorAll('.resize-handle, .rotate-handle').forEach(handle => handle.remove());
       }
     }
+  } else {
+    console.error('initializeDragAndResize function not found!');
   }
 }
 

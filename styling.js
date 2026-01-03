@@ -858,8 +858,8 @@ function generateAdvancedTab() {
           <label class="styling-form-label">Select Clip Art</label>
           <div class="styling-form-control">
             <div style="display: flex; gap: 8px;">
-              <button type="button" id="clipart-select-btn" class="styling-btn-secondary" style="flex: 1;" ${currentStyles.clipArtVisible === false ? 'disabled' : ''}>Choose Emoji</button>
-              <button type="button" id="clipart-pixabay-btn" class="styling-btn-secondary" style="flex: 1;" ${currentStyles.clipArtVisible === false ? 'disabled' : ''}>Pixabay</button>
+              <button type="button" id="clipart-select-btn" class="styling-btn-secondary" style="flex: 1;" ${(currentStyles.clipArtVisible === false) ? 'disabled' : ''}>Choose Emoji</button>
+              <button type="button" id="clipart-pixabay-btn" class="styling-btn-secondary" style="flex: 1;" ${(currentStyles.clipArtVisible === false) ? 'disabled' : ''}>Pixabay</button>
             </div>
           </div>
         </div>
@@ -1492,14 +1492,37 @@ function attachTabEventListeners(tabName) {
         // Image visibility checkbox
         const clipartVisible = stylingModal.querySelector('#clipart-visible');
         if (clipartVisible && currentWidget) {
+          // Get all related controls
+          const clipartSelectBtn = stylingModal.querySelector('#clipart-select-btn');
+          const pixabayBtn = stylingModal.querySelector('#clipart-pixabay-btn');
+          const clipartShadowEnabled = stylingModal.querySelector('#clipart-shadow-enabled');
+          const clipartColor = stylingModal.querySelector('#clipart-color');
+          const clipartColorText = stylingModal.querySelector('#clipart-color-text');
+          const clipartTintEnabled = stylingModal.querySelector('#clipart-tint-enabled');
+          const clipartTintColor = stylingModal.querySelector('#clipart-tint-color');
+          const clipartTintColorText = stylingModal.querySelector('#clipart-tint-color-text');
+          
+          // Helper function to update all button states based on visibility
+          const updateButtonStates = (isVisible) => {
+            if (clipartSelectBtn) clipartSelectBtn.disabled = !isVisible;
+            if (pixabayBtn) pixabayBtn.disabled = !isVisible;
+            
+            const shadowEnabled = clipartShadowEnabled ? clipartShadowEnabled.checked : (currentStyles.clipArtShadowEnabled !== false);
+            if (clipartColor) clipartColor.disabled = !isVisible || !shadowEnabled;
+            if (clipartColorText) clipartColorText.disabled = !isVisible || !shadowEnabled;
+            
+            const tintEnabled = clipartTintEnabled ? clipartTintEnabled.checked : (currentStyles.clipArtTintEnabled !== false);
+            if (clipartTintColor) clipartTintColor.disabled = !isVisible || !tintEnabled;
+            if (clipartTintColorText) clipartTintColorText.disabled = !isVisible || !tintEnabled;
+          };
+          
+          // Initialize button states based on current checkbox state
+          const initialVisibility = clipartVisible.checked;
+          updateButtonStates(initialVisibility);
+          
           const handleVisibilityChange = (e) => {
             currentStyles.clipArtVisible = e.target.checked;
-            const clipartSelectBtn = stylingModal.querySelector('#clipart-select-btn');
-            const pixabayBtn = stylingModal.querySelector('#clipart-pixabay-btn');
-            
-            // Enable/disable buttons based on visibility
-            if (clipartSelectBtn) clipartSelectBtn.disabled = !e.target.checked;
-            if (pixabayBtn) pixabayBtn.disabled = !e.target.checked;
+            updateButtonStates(e.target.checked);
             
             // Update preview immediately
             updatePreview();
@@ -1534,9 +1557,11 @@ function attachTabEventListeners(tabName) {
             currentStyles.clipArtShadowEnabled = e.target.checked;
             const clipartColor = stylingModal.querySelector('#clipart-color');
             const clipartColorText = stylingModal.querySelector('#clipart-color-text');
+            const clipartVisible = stylingModal.querySelector('#clipart-visible');
+            const isVisible = clipartVisible ? clipartVisible.checked : (currentStyles.clipArtVisible !== false);
             if (clipartColor && clipartColorText) {
-              clipartColor.disabled = !e.target.checked;
-              clipartColorText.disabled = !e.target.checked;
+              clipartColor.disabled = !e.target.checked || !isVisible;
+              clipartColorText.disabled = !e.target.checked || !isVisible;
             }
             updatePreview();
           });
@@ -1577,9 +1602,11 @@ function attachTabEventListeners(tabName) {
             currentStyles.clipArtTintEnabled = e.target.checked;
             const clipartTintColor = stylingModal.querySelector('#clipart-tint-color');
             const clipartTintColorText = stylingModal.querySelector('#clipart-tint-color-text');
+            const clipartVisible = stylingModal.querySelector('#clipart-visible');
+            const isVisible = clipartVisible ? clipartVisible.checked : (currentStyles.clipArtVisible !== false);
             if (clipartTintColor && clipartTintColorText) {
-              clipartTintColor.disabled = !e.target.checked;
-              clipartTintColorText.disabled = !e.target.checked;
+              clipartTintColor.disabled = !e.target.checked || !isVisible;
+              clipartTintColorText.disabled = !e.target.checked || !isVisible;
             }
             updatePreview();
           });

@@ -175,10 +175,13 @@ function initializeDragAndResize() {
   // Check if edit mode is enabled for this page
   const inEditMode = currentPage.classList.contains('edit-mode');
   
+  console.log(`initializeDragAndResize: page ${currentPageIndex}, edit mode: ${inEditMode}, page classes:`, currentPage.className);
+  
   // Only add handles if in edit mode
   if (!inEditMode) {
     // Remove all handles if not in edit mode
     currentPage.querySelectorAll('.resize-handle, .rotate-handle').forEach(h => h.remove());
+    console.log('Edit mode not enabled, removing all handles');
     return;
   }
   
