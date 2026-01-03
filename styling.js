@@ -4089,6 +4089,26 @@ function selectClipArt(emoji) {
   updateClipArtPreview();
   updatePreview();
   
+  // Save the selection immediately
+  updateCurrentStylesFromForm();
+  saveStyles();
+  
+  // Apply to widget
+  if (currentWidgetId) {
+    const pageElement = getPageElement(currentPageIndex);
+    if (pageElement) {
+      const widget = pageElement.querySelector(`.${currentWidgetId}`);
+      if (widget) {
+        applyCurrentStylesToWidget(widget);
+      }
+    }
+  }
+  
+  // Reload clip art to show the new selection
+  if (typeof loadClipArt === 'function') {
+    setTimeout(() => loadClipArt(), 0);
+  }
+  
   // Close modal
   const modal = document.getElementById('clipart-modal');
   if (modal) {
