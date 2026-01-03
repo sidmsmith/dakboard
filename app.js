@@ -3167,7 +3167,16 @@ function renderScoreboard(widgetId, container) {
   
   if (!config || !scores) return;
   
+  // Preserve the reset button before clearing
+  const resetBtn = container.querySelector('.scoreboard-reset-btn');
+  const resetBtnClone = resetBtn ? resetBtn.cloneNode(true) : null;
+  
   container.innerHTML = '';
+  
+  // Re-add the reset button if it existed
+  if (resetBtnClone) {
+    container.appendChild(resetBtnClone);
+  }
   
   config.teams.forEach(team => {
     const score = scores[team.id] || 0;
