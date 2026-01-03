@@ -1437,12 +1437,26 @@ function attachTabEventListeners(tabName) {
       // Clip art widget controls
       if (currentWidgetId === 'blank-widget') {
         const clipartSelectBtn = stylingModal.querySelector('#clipart-select-btn');
+        const pixabayBtn = stylingModal.querySelector('#clipart-pixabay-btn');
+        const nounprojectBtn = stylingModal.querySelector('#clipart-nounproject-btn');
         const clipartColor = stylingModal.querySelector('#clipart-color');
         const clipartColorText = stylingModal.querySelector('#clipart-color-text');
         
         if (clipartSelectBtn) {
           clipartSelectBtn.addEventListener('click', () => {
             openClipArtModal();
+          });
+        }
+        
+        if (pixabayBtn) {
+          pixabayBtn.addEventListener('click', () => {
+            openPixabayModal();
+          });
+        }
+        
+        if (nounprojectBtn) {
+          nounprojectBtn.addEventListener('click', () => {
+            openNounProjectModal();
           });
         }
         
