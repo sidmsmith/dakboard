@@ -10,6 +10,11 @@ A customizable smart home dashboard designed for fixed displays (tablets/TVs) th
 - **Todo List** - Home Assistant todo list integration
 - **Garage Door Controls** - 3 garage doors with open/closed status and click-to-toggle
 - **Alarm Panel** - Current status display with click-to-toggle functionality
+- **Air Compressor** - Monitor and control air compressor status
+- **Dice Widget** - Interactive 3D dice with customizable colors and animations
+- **Stopwatch Widget** - Full-featured stopwatch with start/pause/reset and customizable colors
+- **Scoreboard Widget** - Team-based scoring with customizable icons, colors, confetti animations, and drag-and-drop team reordering
+- **Blank/Clip Art Widget** - Display emojis or images from Pixabay/Noun Project APIs with shadow and tint color effects
 - **Auto-refresh** - Updates every 30-60 seconds
 - **Responsive Design** - Optimized for landscape tablets and TVs
 
