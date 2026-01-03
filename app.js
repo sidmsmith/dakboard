@@ -5001,7 +5001,7 @@ function loadWidgetVisibility() {
           // Create instance-0
           const fullWidgetId = generateWidgetId(widgetType, currentPageIndex, 0);
           const widget = templateWidget.cloneNode(true);
-          widget.className = `${widgetType} ${fullWidgetId}`;
+          widget.className = `widget ${widgetType} ${fullWidgetId}`;
           widget.classList.remove('hidden');
           pageElement.appendChild(widget);
           
@@ -5080,8 +5080,8 @@ function toggleWidgetVisibility(fullWidgetId) {
     if (templateWidget) {
       // Clone the widget to the current page
       widget = templateWidget.cloneNode(true);
-      // Set the full ID as a class
-      widget.className = `${widgetType} ${fullWidgetId}`;
+      // Set the full ID as a class, but preserve the 'widget' class
+      widget.className = `widget ${widgetType} ${fullWidgetId}`;
       // Mark as hidden initially so it will be shown below
       widget.classList.add('hidden');
       widgetJustCreated = true;
@@ -5580,7 +5580,7 @@ function cloneWidget(fullWidgetId) {
   
   // Clone the widget element
   const cloned = originalWidget.cloneNode(true);
-  cloned.className = `${widgetType} ${newFullId}`;
+  cloned.className = `widget ${widgetType} ${newFullId}`;
   cloned.classList.remove('hidden');
   
   // Offset position slightly
@@ -5719,9 +5719,9 @@ function moveWidgetToPage(fullWidgetId, targetPageIndex) {
   // Clone widget to target page
   const widgetToMove = sourcePageElement.querySelector(`.${fullWidgetId}`);
   if (widgetToMove) {
-    const cloned = widgetToMove.cloneNode(true);
-    cloned.className = `${widgetType} ${newFullId}`;
-    cloned.classList.remove('hidden');
+      const cloned = widgetToMove.cloneNode(true);
+      cloned.className = `widget ${widgetType} ${newFullId}`;
+      cloned.classList.remove('hidden');
     targetPageElement.appendChild(cloned);
     
     // Initialize on target page
@@ -5731,7 +5731,7 @@ function moveWidgetToPage(fullWidgetId, targetPageIndex) {
     const templateWidget = document.querySelector(`.${widgetType}`);
     if (templateWidget) {
       const cloned = templateWidget.cloneNode(true);
-      cloned.className = `${widgetType} ${newFullId}`;
+      cloned.className = `widget ${widgetType} ${newFullId}`;
       cloned.classList.remove('hidden');
       targetPageElement.appendChild(cloned);
       initializeWidgetInstance(newFullId, cloned);

@@ -190,8 +190,19 @@ function initializeDragAndResize() {
     // Get all widgets on the current page (including hidden ones, we'll filter below)
     const allWidgets = currentPage.querySelectorAll('.widget');
     
+    // Debug: log what we're looking for and what we found
+    console.log(`Looking for widgets on page ${currentPageIndex}:`, {
+      pageElement: currentPage,
+      pageClasses: currentPage ? currentPage.className : 'no page',
+      widgetCount: allWidgets.length,
+      allElements: currentPage ? currentPage.querySelectorAll('*').length : 0
+    });
+    
     if (allWidgets.length === 0) {
-      console.log('No widgets found on current page.');
+      console.log('No widgets found on current page. Checking page structure...');
+      // Debug: check if there are any elements with widget-related classes
+      const anyWidgetLike = currentPage.querySelectorAll('[class*="widget"]');
+      console.log(`Found ${anyWidgetLike.length} elements with "widget" in class name:`, Array.from(anyWidgetLike).map(el => el.className));
       return;
     }
     
