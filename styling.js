@@ -1558,6 +1558,10 @@ function updateScoreboardTeamLabels() {
 }
 
 // Setup drag and drop for team reordering
+// Use module-level variables so they persist across function calls
+let draggedScoreboardElement = null;
+let draggedScoreboardIndex = null;
+
 function setupScoreboardDragAndDrop() {
   const stylingModal = document.getElementById('styling-modal');
   if (!stylingModal) return;
@@ -1565,8 +1569,7 @@ function setupScoreboardDragAndDrop() {
   const teamsList = stylingModal.querySelector('#scoreboard-teams-list');
   if (!teamsList) return;
   
-  let draggedElement = null;
-  let draggedIndex = null;
+  console.log('🔧 Setting up drag and drop, current draggedElement:', draggedScoreboardElement);
   
   // Remove existing listeners by cloning (clean slate)
   const teamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
@@ -1606,12 +1609,12 @@ function setupScoreboardDragAndDrop() {
     // Drag start
     teamEl.addEventListener('dragstart', (e) => {
       console.log('🔵 DRAG START:', index, teamEl);
-      draggedElement = teamEl;
-      draggedIndex = index;
+      draggedScoreboardElement = teamEl;
+      draggedScoreboardIndex = index;
       teamEl.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/html', teamEl.innerHTML);
-      console.log('🔵 draggedElement set to:', draggedElement);
+      e.dataTransfer.setData('text/plain', index.toString());
+      console.log('🔵 draggedScoreboardElement set to:', draggedScoreboardElement);
       console.log('🔵 Total teams:', freshTeamConfigs.length);
       // Add cursor to all other elements to show they're drop targets
       freshTeamConfigs.forEach(t => {
@@ -1632,18 +1635,21 @@ function setupScoreboardDragAndDrop() {
         t.classList.remove('drag-over-above', 'drag-over-below');
         t.style.cursor = '';
       });
-      draggedElement = null;
-      draggedIndex = null;
+      // Only clear if this was the dragged element
+      if (draggedScoreboardElement === teamEl) {
+        draggedScoreboardElement = null;
+        draggedScoreboardIndex = null;
+      }
     });
     
     // Drag over
     teamEl.addEventListener('dragover', (e) => {
-      console.log('🟢 DRAG OVER:', index, 'draggedElement:', draggedElement, 'this:', teamEl);
+      console.log('🟢 DRAG OVER:', index, 'draggedScoreboardElement:', draggedScoreboardElement, 'this:', teamEl);
       e.preventDefault();
       e.stopPropagation();
       e.dataTransfer.dropEffect = 'move';
       
-      if (draggedElement && draggedElement !== teamEl) {
+      if (draggedScoreboardElement && draggedScoreboardElement !== teamEl) {
         console.log('🟢 Valid drop target!');
         const rect = teamEl.getBoundingClientRect();
         const mouseY = e.clientY;
@@ -1663,7 +1669,7 @@ function setupScoreboardDragAndDrop() {
           teamEl.classList.add('drag-over-below');
         }
       } else {
-        console.log('🟢 NOT a valid drop target - draggedElement:', draggedElement, 'is same?', draggedElement === teamEl);
+        console.log('🟢 NOT a valid drop target - draggedScoreboardElement:', draggedScoreboardElement, 'is same?', draggedScoreboardElement === teamEl);
       }
     });
     
@@ -1683,11 +1689,11 @@ function setupScoreboardDragAndDrop() {
     
     // Drop
     teamEl.addEventListener('drop', (e) => {
-      console.log('🟣 DROP:', index, 'draggedElement:', draggedElement);
+      console.log('🟣 DROP:', index, 'draggedScoreboardElement:', draggedScoreboardElement);
       e.preventDefault();
       e.stopPropagation();
       
-      if (draggedElement && draggedElement !== teamEl) {
+      if (draggedScoreboardElement && draggedScoreboardElement !== teamEl) {
         console.log('🟣 Valid drop!');
         const currentTeamConfigs = teamsList.querySelectorAll('.scoreboard-team-config');
         const dropIndex = Array.from(currentTeamConfigs).indexOf(teamEl);
@@ -1704,7 +1710,7 @@ function setupScoreboardDragAndDrop() {
         }
         
         // Insert the dragged element
-        teamsList.insertBefore(draggedElement, insertBefore ? teamEl : targetNode);
+        teamsList.insertBefore(draggedScoreboardElement, insertBefore ? teamEl : targetNode);
         
         // Update labels and indices
         updateScoreboardTeamLabels();
