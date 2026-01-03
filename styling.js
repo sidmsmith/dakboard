@@ -838,7 +838,7 @@ function generateAdvancedTab() {
             <div style="display: flex; gap: 8px;">
               <button type="button" id="clipart-select-btn" class="styling-btn-secondary" style="flex: 1;" ${currentStyles.clipArtVisible === false ? 'disabled' : ''}>Choose Emoji</button>
               <button type="button" id="clipart-pixabay-btn" class="styling-btn-secondary" style="flex: 1;" ${currentStyles.clipArtVisible === false ? 'disabled' : ''}>Pixabay</button>
-              <button type="button" id="clipart-nounproject-btn" class="styling-btn-secondary" style="flex: 1;" ${currentStyles.clipArtVisible === false ? 'disabled' : ''}>Noun Project</button>
+              <button type="button" id="clipart-openclipart-btn" class="styling-btn-secondary" style="flex: 1;" ${currentStyles.clipArtVisible === false ? 'disabled' : ''}>OpenClipart</button>
             </div>
           </div>
         </div>
@@ -1468,12 +1468,12 @@ function attachTabEventListeners(tabName) {
             currentStyles.clipArtVisible = e.target.checked;
             const clipartSelectBtn = stylingModal.querySelector('#clipart-select-btn');
             const pixabayBtn = stylingModal.querySelector('#clipart-pixabay-btn');
-            const nounprojectBtn = stylingModal.querySelector('#clipart-nounproject-btn');
+            const openclipartBtn = stylingModal.querySelector('#clipart-openclipart-btn');
             
             // Enable/disable buttons based on visibility
             if (clipartSelectBtn) clipartSelectBtn.disabled = !e.target.checked;
             if (pixabayBtn) pixabayBtn.disabled = !e.target.checked;
-            if (nounprojectBtn) nounprojectBtn.disabled = !e.target.checked;
+            if (openclipartBtn) openclipartBtn.disabled = !e.target.checked;
             
             // Update preview immediately
             updatePreview();
@@ -1489,7 +1489,7 @@ function attachTabEventListeners(tabName) {
         
         const clipartSelectBtn = stylingModal.querySelector('#clipart-select-btn');
         const pixabayBtn = stylingModal.querySelector('#clipart-pixabay-btn');
-        const nounprojectBtn = stylingModal.querySelector('#clipart-nounproject-btn');
+        const openclipartBtn = stylingModal.querySelector('#clipart-openclipart-btn');
         
         if (clipartSelectBtn) {
           clipartSelectBtn.addEventListener('click', () => {
@@ -1503,9 +1503,9 @@ function attachTabEventListeners(tabName) {
           });
         }
         
-        if (nounprojectBtn) {
-          nounprojectBtn.addEventListener('click', () => {
-            openNounProjectModal();
+        if (openclipartBtn) {
+          openclipartBtn.addEventListener('click', () => {
+            openOpenClipartModal();
           });
         }
         
@@ -4525,14 +4525,14 @@ function openPixabayModal() {
   }
 }
 
-// Open Noun Project modal
-function openNounProjectModal() {
-  const modal = document.getElementById('nounproject-modal');
-  const grid = document.getElementById('nounproject-grid');
-  const searchInput = document.getElementById('nounproject-search');
-  const searchBtn = document.getElementById('nounproject-search-btn');
-  const loading = document.getElementById('nounproject-loading');
-  const error = document.getElementById('nounproject-error');
+// Open OpenClipart modal
+function openOpenClipartModal() {
+  const modal = document.getElementById('openclipart-modal');
+  const grid = document.getElementById('openclipart-grid');
+  const searchInput = document.getElementById('openclipart-search');
+  const searchBtn = document.getElementById('openclipart-search-btn');
+  const loading = document.getElementById('openclipart-loading');
+  const error = document.getElementById('openclipart-error');
   
   if (!modal || !grid) return;
   
@@ -4545,7 +4545,7 @@ function openNounProjectModal() {
   modal.classList.add('active');
   
   // Close button
-  const closeBtn = document.getElementById('close-nounproject-modal');
+  const closeBtn = document.getElementById('close-openclipart-modal');
   if (closeBtn) {
     closeBtn.onclick = () => {
       modal.classList.remove('active');
@@ -4573,94 +4573,77 @@ function openNounProjectModal() {
     error.style.display = 'none';
     
     try {
-      // Get API credentials from window.CONFIG or fetch from API endpoint
-      let apiKey = window.CONFIG?.NOUNPROJECT_API_KEY;
-      let apiSecret = window.CONFIG?.NOUNPROJECT_API_SECRET;
+      // OpenClipart API endpoint (no authentication required)
+      // Using the API v2 beta endpoint - adjust if needed based on actual API documentation
+      const url = `https://openclipart.org/api/v2/search/json?query=${encodeURIComponent(query)}&amount=100`;
       
-      // If not in window.CONFIG, try to fetch from API endpoint (for Vercel environment variables)
-      if (!apiKey || !apiSecret) {
-        try {
-          const configResponse = await fetch('/api/clip-art-config.js');
-          if (configResponse.ok) {
-            const config = await configResponse.json();
-            apiKey = apiKey || config.NOUNPROJECT_API_KEY;
-            apiSecret = apiSecret || config.NOUNPROJECT_API_SECRET;
-            // Cache it in window.CONFIG for future use
-            if (!window.CONFIG) window.CONFIG = {};
-            window.CONFIG.NOUNPROJECT_API_KEY = apiKey;
-            window.CONFIG.NOUNPROJECT_API_SECRET = apiSecret;
-          } else {
-            console.error('Failed to fetch clip art config:', configResponse.status, configResponse.statusText);
-            const errorText = await configResponse.text();
-            console.error('Error response:', errorText);
-          }
-        } catch (e) {
-          console.error('Error fetching clip art config:', e);
-        }
-      }
-      
-      if (!apiKey || !apiSecret) {
-        error.innerHTML = 'Noun Project API credentials not configured. Please see CLIPART_API_SETUP.md for setup instructions.<br><br>Make sure:<br>1. Environment variables NOUN_API_KEY and NOUN_API_SECRET are set in Vercel<br>2. You have redeployed after setting the variables<br>3. Check browser console for detailed error messages';
-        error.style.display = 'block';
-        loading.style.display = 'none';
-        return;
-      }
-      
-      // Noun Project API endpoint
-      const url = `https://api.thenounproject.com/v2/icon?query=${encodeURIComponent(query)}&limit=50`;
-      
-      // Create basic auth header
-      const credentials = btoa(`${apiKey}:${apiSecret}`);
-      
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Basic ${credentials}`
-        }
-      });
+      const response = await fetch(url);
       
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication failed. Please check your API key and secret. Noun Project may require OAuth 1.0 authentication.');
-        }
         throw new Error(`API error: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
       
-      if (data.icons && data.icons.length > 0) {
+      // OpenClipart API response structure may vary - handle different possible formats
+      let items = [];
+      if (Array.isArray(data)) {
+        items = data;
+      } else if (data.payload && Array.isArray(data.payload)) {
+        items = data.payload;
+      } else if (data.results && Array.isArray(data.results)) {
+        items = data.results;
+      } else if (data.items && Array.isArray(data.items)) {
+        items = data.items;
+      }
+      
+      if (items && items.length > 0) {
         grid.innerHTML = '';
-        data.icons.forEach(icon => {
-          const item = document.createElement('div');
-          item.className = 'nounproject-item';
-          item.style.cssText = 'cursor: pointer; border: 2px solid transparent; border-radius: 8px; overflow: hidden; transition: all 0.2s; background: rgba(255,255,255,0.05); padding: 15px; display: flex; align-items: center; justify-content: center; position: relative;';
-          const iconUrl = icon.preview_url || icon.icon_url || (icon.attribution && icon.attribution.preview_url);
-          item.innerHTML = `
-            <img src="${iconUrl}" alt="${icon.term || 'icon'}" style="max-width: 100%; max-height: 120px; object-fit: contain; filter: ${currentStyles.clipArtColor ? `drop-shadow(0 0 4px ${currentStyles.clipArtColor})` : 'none'};">
-            <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 4px; font-size: 11px; color: #888; text-align: center; background: rgba(0,0,0,0.7); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${icon.term || 'icon'}</div>
-          `;
-          item.addEventListener('mouseenter', () => {
-            item.style.borderColor = '#4a90e2';
-            item.style.background = 'rgba(255,255,255,0.1)';
-            item.style.transform = 'scale(1.05)';
-          });
-          item.addEventListener('mouseleave', () => {
-            item.style.borderColor = 'transparent';
-            item.style.background = 'rgba(255,255,255,0.05)';
-            item.style.transform = 'scale(1)';
-          });
-          item.addEventListener('click', () => {
-            const highResUrl = icon.icon_url || iconUrl;
-            selectClipArtImage(iconUrl, highResUrl);
-          });
-          grid.appendChild(item);
+        items.forEach(item => {
+          const clipartItem = document.createElement('div');
+          clipartItem.className = 'openclipart-item';
+          clipartItem.style.cssText = 'cursor: pointer; border: 2px solid transparent; border-radius: 8px; overflow: hidden; transition: all 0.2s; background: rgba(255,255,255,0.05); padding: 15px; display: flex; align-items: center; justify-content: center; position: relative;';
+          
+          // Try different possible image URL fields
+          const imageUrl = item.detail || item.svg?.url || item.png?.url || item.thumb || item.url || item.image_url || item.preview_url;
+          const title = item.title || item.name || item.term || 'clipart';
+          
+          if (imageUrl) {
+            clipartItem.innerHTML = `
+              <img src="${imageUrl}" alt="${title}" style="max-width: 100%; max-height: 120px; object-fit: contain; filter: ${currentStyles.clipArtColor ? `drop-shadow(0 0 4px ${currentStyles.clipArtColor})` : 'none'};">
+              <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 4px; font-size: 11px; color: #888; text-align: center; background: rgba(0,0,0,0.7); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${title}</div>
+            `;
+            clipartItem.addEventListener('mouseenter', () => {
+              clipartItem.style.borderColor = '#4a90e2';
+              clipartItem.style.background = 'rgba(255,255,255,0.1)';
+              clipartItem.style.transform = 'scale(1.05)';
+            });
+            clipartItem.addEventListener('mouseleave', () => {
+              clipartItem.style.borderColor = 'transparent';
+              clipartItem.style.background = 'rgba(255,255,255,0.05)';
+              clipartItem.style.transform = 'scale(1)';
+            });
+            clipartItem.addEventListener('click', () => {
+              // Use the best available image URL
+              const highResUrl = item.svg?.url || item.png?.url || item.detail || imageUrl;
+              selectClipArtImage(imageUrl, highResUrl || imageUrl);
+            });
+            grid.appendChild(clipartItem);
+          }
         });
+        
+        if (grid.innerHTML === '') {
+          error.textContent = 'No valid clipart images found. Try a different search term.';
+          error.style.display = 'block';
+        }
       } else {
-        error.textContent = 'No icons found. Try a different search term.';
+        error.textContent = 'No clipart found. Try a different search term.';
         error.style.display = 'block';
       }
     } catch (err) {
-      error.textContent = `Error: ${err.message}. Note: Noun Project API may require OAuth 1.0 authentication. See CLIPART_API_SETUP.md for details.`;
+      error.textContent = `Error: ${err.message}. OpenClipart API may be temporarily unavailable or the endpoint may have changed.`;
       error.style.display = 'block';
+      console.error('OpenClipart API error:', err);
     } finally {
       loading.style.display = 'none';
     }
@@ -4692,9 +4675,9 @@ function selectClipArtImage(imageUrl, highResUrl) {
   
   // Close modals
   const pixabayModal = document.getElementById('pixabay-modal');
-  const nounprojectModal = document.getElementById('nounproject-modal');
+  const openclipartModal = document.getElementById('openclipart-modal');
   if (pixabayModal) pixabayModal.classList.remove('active');
-  if (nounprojectModal) nounprojectModal.classList.remove('active');
+  if (openclipartModal) openclipartModal.classList.remove('active');
 }
 
 } else {

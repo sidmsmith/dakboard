@@ -6314,7 +6314,7 @@ function exportConfiguration() {
     const currentPage = parseInt(localStorage.getItem('dakboard-current-page')) || 0;
     
     const config = {
-      version: '2.3', // Updated: Added Dice, Stopwatch, Scoreboard, and Blank/Clip Art widgets with full customization. Clip Art widget includes emoji selector, Pixabay API integration, and Noun Project API integration with search filters. All new widgets support multiple pages and independent configurations.
+      version: '2.3', // Updated: Added Dice, Stopwatch, Scoreboard, and Blank/Clip Art widgets with full customization. Clip Art widget includes emoji selector, Pixabay API integration, and OpenClipart API integration. All new widgets support multiple pages and independent configurations.
       exportDate: new Date().toISOString(),
       metadata: {
         totalPages: totalPages,

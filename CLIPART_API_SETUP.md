@@ -1,10 +1,10 @@
 # Clip Art API Setup Instructions
 
-This dashboard supports fetching clip art images from two external APIs: **Pixabay** and **Noun Project**. Follow the instructions below to configure each API.
+This dashboard supports fetching clip art images from two external APIs: **Pixabay** and **OpenClipart**. Follow the instructions below to configure each API.
 
 ## Table of Contents
 - [Pixabay API Setup](#pixabay-api-setup)
-- [Noun Project API Setup](#noun-project-api-setup)
+- [OpenClipart API Setup](#openclipart-api-setup)
 - [Configuration](#configuration)
 - [Troubleshooting](#troubleshooting)
 
@@ -77,82 +77,33 @@ window.CONFIG = {
 
 ---
 
-## Noun Project API Setup
+## OpenClipart API Setup
 
-The Noun Project provides a large collection of icons. They offer a free tier with limited requests.
+OpenClipart provides a vast collection of public domain vector graphics. **No authentication is required** - the API is completely free and open to use.
 
-### Step 1: Create a Noun Project Account
+### Step 1: No Account Required!
 
-1. Go to [https://thenounproject.com/](https://thenounproject.com/)
-2. Click **"Sign Up"** in the top right corner
-3. Fill out the registration form:
-   - Email address
-   - Password
-   - Confirm you're not a robot
-4. Click **"Create Account"**
-5. Verify your email address if required
+OpenClipart's API is publicly accessible - you don't need to create an account or obtain API credentials. Simply use the API endpoints directly.
 
-### Step 2: Create an App to Get API Credentials
+### OpenClipart API Details
 
-1. After logging in, go to [https://thenounproject.com/developers/](https://thenounproject.com/developers/)
-2. Click **"Register a new app"** or **"My Apps"**
-3. Fill out the app registration form:
-   - **App Name**: e.g., "Dashboard Clip Art"
-   - **App URL**: Your dashboard URL (e.g., `https://dakboard-smith.vercel.app`)
-   - **Redirect URL**: Can be the same as App URL
-   - **Description**: Brief description of your app
-4. Accept the terms and conditions
-5. Click **"Register App"**
-6. After registration, you'll see your **API Key** and **API Secret**
-7. **Copy both values** - keep them secure!
+- **Rate Limit**: No official rate limit specified (be respectful with requests)
+- **Free Tier**: Yes, completely free
+- **Authentication**: None required
+- **Image Types**: SVG and PNG clipart
+- **License**: Public domain - free for commercial use
+- **API Version**: v2 (currently in beta)
+- **Documentation**: [https://openclipart.org/developers](https://openclipart.org/developers)
 
-### Step 3: Configure in Dashboard
+### How It Works
 
-You have two options for configuration:
+The dashboard automatically uses the OpenClipart API without any configuration needed. The API endpoint is:
 
-#### Option A: Vercel Environment Variables (Recommended for Production)
-
-1. Go to your Vercel project dashboard
-2. Navigate to **Settings** → **Environment Variables**
-3. Add two new environment variables:
-   - **Name**: `NOUN_API_KEY` (Note: use `NOUN_API_KEY`, not `NOUNPROJECT_API_KEY`)
-     - **Value**: Your Noun Project API Key from Step 2
-     - **Environment**: Production, Preview, Development (select all)
-   - **Name**: `NOUN_API_SECRET`
-     - **Value**: Your Noun Project API Secret from Step 2
-     - **Environment**: Production, Preview, Development (select all)
-4. Click **Save** for each variable
-5. Redeploy your application for the changes to take effect
-
-The dashboard will automatically fetch the credentials from the environment variables via the `/api/clip-art-config.js` endpoint.
-
-#### Option B: Local config.js (For Local Development)
-
-1. Open or create the `config.js` file in your dashboard directory
-2. Add your Noun Project credentials:
-
-```javascript
-window.CONFIG = {
-  // ... other config options ...
-  NOUNPROJECT_API_KEY: 'YOUR_NOUNPROJECT_API_KEY_HERE',
-  NOUNPROJECT_API_SECRET: 'YOUR_NOUNPROJECT_API_SECRET_HERE'
-};
+```
+https://openclipart.org/api/v2/search/json?query=SEARCH_TERM&amount=100
 ```
 
-3. Replace the placeholders with your actual API Key and API Secret from Step 2
-4. Save the file
-
-### Noun Project API Details
-
-- **Rate Limit**: 
-  - Free tier: 500 requests per hour
-  - Paid tiers available for higher limits
-- **Authentication**: OAuth 1.0 (requires both API Key and Secret)
-- **Icon Types**: SVG icons only
-- **License**: 
-  - Free tier: Attribution required
-  - Paid tiers: No attribution required
-- **Note**: The Noun Project API uses OAuth 1.0, which requires proper authentication. The dashboard implementation uses Basic Auth as a simplified approach, but you may need to implement full OAuth 1.0 for production use.
+Simply search for clipart using the "OpenClipart" button in the Clip Art widget's Advanced tab.
 
 ---
 
@@ -171,9 +122,7 @@ window.CONFIG = {
   // Pixabay API Configuration
   PIXABAY_API_KEY: '12345678-1234-1234-1234-123456789abc',
   
-  // Noun Project API Configuration
-  NOUNPROJECT_API_KEY: 'your-nounproject-api-key',
-  NOUNPROJECT_API_SECRET: 'your-nounproject-api-secret',
+  // OpenClipart API: No configuration needed - it's free and open!
   
   // Other configuration options...
 };
@@ -216,33 +165,24 @@ window.CONFIG = {
 - Pixabay URLs are valid for 24 hours - images may expire
 - Try refreshing the search
 
-### Noun Project API Issues
+### OpenClipart API Issues
 
-**Error: "API credentials not configured"**
-- Make sure both `NOUNPROJECT_API_KEY` and `NOUNPROJECT_API_SECRET` are set
-- Verify both values are correct
-- Ensure `config.js` is loaded before the dashboard scripts
+**Error: "API error" or "No clipart found"**
+- The OpenClipart API is in beta and endpoints may change
+- Try different search terms
+- Check that the API endpoint is still valid
+- Verify your internet connection
 
-**Error: "401 Unauthorized"**
-- Your API key or secret is incorrect
-- Verify your credentials in the Noun Project developer dashboard
-- Make sure you haven't regenerated your keys without updating config.js
+**Error: "CORS error"**
+- OpenClipart API may have CORS restrictions
+- Check browser console for specific CORS error messages
+- The API may require server-side proxying if CORS is an issue
 
-**Error: "OAuth 1.0 authentication required"**
-- The Noun Project API uses OAuth 1.0, which is more complex than Basic Auth
-- The current implementation uses Basic Auth as a simplified approach
-- For production use, you may need to implement full OAuth 1.0 signing
-- Consider using a backend proxy to handle OAuth authentication
-
-**Error: "Rate limit exceeded"**
-- Free tier allows 500 requests per hour
-- Wait before making more requests
-- Consider upgrading to a paid plan for higher limits
-
-**Icons not displaying**
-- Noun Project returns SVG icons - ensure your browser supports SVG
-- Check browser console for errors
-- Verify the icon URLs are accessible
+**Images not displaying**
+- OpenClipart provides SVG and PNG formats
+- Ensure your browser supports the image format
+- Check browser console for loading errors
+- Verify the image URLs are accessible
 
 ### General Issues
 
@@ -282,16 +222,16 @@ window.CONFIG = {
 
 4. **CORS and Hotlinking**
    - Pixabay: URLs are valid for 24 hours. For permanent use, download images to your server
-   - Noun Project: Check their terms of service for usage rights
+   - OpenClipart: Public domain images - free to use and hotlink
 
 ---
 
 ## Additional Resources
 
 - **Pixabay API Documentation**: [https://pixabay.com/api/docs/](https://pixabay.com/api/docs/)
-- **Noun Project API Documentation**: [https://api.thenounproject.com/](https://api.thenounproject.com/)
+- **OpenClipart API Documentation**: [https://openclipart.org/developers](https://openclipart.org/developers)
 - **Pixabay Terms of Service**: [https://pixabay.com/service/terms/](https://pixabay.com/service/terms/)
-- **Noun Project Terms of Service**: [https://thenounproject.com/terms/](https://thenounproject.com/terms/)
+- **OpenClipart**: Public domain - no terms of service restrictions
 
 ---
 

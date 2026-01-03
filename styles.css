@@ -217,7 +217,7 @@ body {
 /* Clip Art Modals - Higher z-index than styling modal */
 #clipart-modal,
 #pixabay-modal,
-#nounproject-modal {
+#openclipart-modal {
   z-index: 10003 !important;
 }
 

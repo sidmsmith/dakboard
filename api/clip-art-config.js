@@ -12,16 +12,12 @@ export default async function handler(req, res) {
   // Note: In Vercel, environment variables are accessed via process.env
   const config = {
     PIXABAY_API_KEY: process.env.PIXABAY_API_KEY || null,
-    NOUNPROJECT_API_KEY: process.env.NOUN_API_KEY || null,
-    NOUNPROJECT_API_SECRET: process.env.NOUN_API_SECRET || null,
   };
 
   // Debug logging (only in development - remove in production if needed)
   if (process.env.VERCEL_ENV !== 'production') {
     console.log('Clip art config requested. Environment variables present:', {
       PIXABAY_API_KEY: !!process.env.PIXABAY_API_KEY,
-      NOUN_API_KEY: !!process.env.NOUN_API_KEY,
-      NOUN_API_SECRET: !!process.env.NOUN_API_SECRET,
     });
   }
 

@@ -14,7 +14,7 @@ A customizable smart home dashboard designed for fixed displays (tablets/TVs) th
 - **Dice Widget** - Interactive 3D dice with customizable colors and animations
 - **Stopwatch Widget** - Full-featured stopwatch with start/pause/reset and customizable colors
 - **Scoreboard Widget** - Team-based scoring with customizable icons, colors, confetti animations, and drag-and-drop team reordering
-- **Blank/Clip Art Widget** - Display emojis or images from Pixabay/Noun Project APIs with shadow and tint color effects
+- **Blank/Clip Art Widget** - Display emojis or images from Pixabay/OpenClipart APIs with shadow and tint color effects
 - **Auto-refresh** - Updates every 30-60 seconds
 - **Responsive Design** - Optimized for landscape tablets and TVs
 
@@ -54,7 +54,7 @@ Four different layout options are available for you to choose from:
 - **Clip Art Features**:
   - Emoji selector with 100+ fun emojis
   - Pixabay API integration with search filters (image type, category, colors)
-  - Noun Project API integration for icon search
+  - OpenClipart API integration for clipart search (no authentication required)
   - Shadow color and image tint color customization
   - Enable/disable options for shadow and tint effects
 - **Improvements**:
