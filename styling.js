@@ -796,10 +796,11 @@ function generateAdvancedTab() {
       <div class="styling-section-title">Teams</div>
       <div class="styling-form-group" id="scoreboard-teams-list">
         ${scoreboardConfig.teams.map((team, index) => `
-          <div class="scoreboard-team-config" data-team-index="${index}">
+          <div class="scoreboard-team-config" data-team-index="${index}" draggable="true">
             <div class="styling-form-row">
               <label class="styling-form-label">Team ${index + 1}</label>
               <div class="styling-form-control" style="display: flex; gap: 8px; align-items: center;">
+                <span class="scoreboard-drag-handle" style="cursor: move; font-size: 18px; opacity: 0.6; user-select: none;" title="Drag to reorder">☰</span>
                 <input type="text" class="scoreboard-team-name-input" value="${team.name}" placeholder="Team Name">
                 <select class="scoreboard-team-icon-select">
                   ${typeof window !== 'undefined' && window.SCOREBOARD_ICONS ? window.SCOREBOARD_ICONS.map(icon => 

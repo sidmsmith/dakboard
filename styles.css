@@ -1549,6 +1549,25 @@ body {
   flex-shrink: 0;
 }
 
+/* Scoreboard team config drag and drop */
+.scoreboard-team-config {
+  transition: background 0.2s;
+}
+
+.scoreboard-team-config.drag-over-above {
+  border-top: 2px solid #4a90e2;
+  padding-top: 10px;
+}
+
+.scoreboard-team-config.drag-over-below {
+  border-bottom: 2px solid #4a90e2;
+  padding-bottom: 10px;
+}
+
+.scoreboard-drag-handle:hover {
+  opacity: 1 !important;
+}
+
 /* Confetti Animation */
 .confetti-container {
   position: fixed;
