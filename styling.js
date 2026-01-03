@@ -4178,19 +4178,36 @@ function openPixabayModal() {
       return;
     }
     
-    // Check for API key
-    if (!window.CONFIG || !window.CONFIG.PIXABAY_API_KEY) {
-      error.innerHTML = 'Pixabay API key not configured. Please see CLIPART_API_SETUP.md for setup instructions.';
-      error.style.display = 'block';
-      return;
-    }
-    
     loading.style.display = 'block';
     grid.innerHTML = '';
     error.style.display = 'none';
     
     try {
-      const apiKey = window.CONFIG.PIXABAY_API_KEY;
+      // Get API key from window.CONFIG or fetch from API endpoint
+      let apiKey = window.CONFIG?.PIXABAY_API_KEY;
+      
+      // If not in window.CONFIG, try to fetch from API endpoint (for Vercel environment variables)
+      if (!apiKey) {
+        try {
+          const configResponse = await fetch('/api/clip-art-config.js');
+          if (configResponse.ok) {
+            const config = await configResponse.json();
+            apiKey = config.PIXABAY_API_KEY;
+            // Cache it in window.CONFIG for future use
+            if (!window.CONFIG) window.CONFIG = {};
+            window.CONFIG.PIXABAY_API_KEY = apiKey;
+          }
+        } catch (e) {
+          // Silently fail - will show error below
+        }
+      }
+      
+      if (!apiKey) {
+        error.innerHTML = 'Pixabay API key not configured. Please see CLIPART_API_SETUP.md for setup instructions.';
+        error.style.display = 'block';
+        loading.style.display = 'none';
+        return;
+      }
       const url = `https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(query)}&image_type=illustration&safesearch=true&per_page=50`;
       
       const response = await fetch(url);
@@ -4295,20 +4312,39 @@ function openNounProjectModal() {
       return;
     }
     
-    // Check for API credentials
-    if (!window.CONFIG || !window.CONFIG.NOUNPROJECT_API_KEY || !window.CONFIG.NOUNPROJECT_API_SECRET) {
-      error.innerHTML = 'Noun Project API credentials not configured. Please see CLIPART_API_SETUP.md for setup instructions.';
-      error.style.display = 'block';
-      return;
-    }
-    
     loading.style.display = 'block';
     grid.innerHTML = '';
     error.style.display = 'none';
     
     try {
-      const apiKey = window.CONFIG.NOUNPROJECT_API_KEY;
-      const apiSecret = window.CONFIG.NOUNPROJECT_API_SECRET;
+      // Get API credentials from window.CONFIG or fetch from API endpoint
+      let apiKey = window.CONFIG?.NOUNPROJECT_API_KEY;
+      let apiSecret = window.CONFIG?.NOUNPROJECT_API_SECRET;
+      
+      // If not in window.CONFIG, try to fetch from API endpoint (for Vercel environment variables)
+      if (!apiKey || !apiSecret) {
+        try {
+          const configResponse = await fetch('/api/clip-art-config.js');
+          if (configResponse.ok) {
+            const config = await configResponse.json();
+            apiKey = apiKey || config.NOUNPROJECT_API_KEY;
+            apiSecret = apiSecret || config.NOUNPROJECT_API_SECRET;
+            // Cache it in window.CONFIG for future use
+            if (!window.CONFIG) window.CONFIG = {};
+            window.CONFIG.NOUNPROJECT_API_KEY = apiKey;
+            window.CONFIG.NOUNPROJECT_API_SECRET = apiSecret;
+          }
+        } catch (e) {
+          // Silently fail - will show error below
+        }
+      }
+      
+      if (!apiKey || !apiSecret) {
+        error.innerHTML = 'Noun Project API credentials not configured. Please see CLIPART_API_SETUP.md for setup instructions.';
+        error.style.display = 'block';
+        loading.style.display = 'none';
+        return;
+      }
       
       // Noun Project API endpoint
       const url = `https://api.thenounproject.com/v2/icon?query=${encodeURIComponent(query)}&limit=50`;

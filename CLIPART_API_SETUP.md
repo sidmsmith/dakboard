@@ -37,6 +37,23 @@ Pixabay provides free images, illustrations, and vectors. The API is free to use
 
 ### Step 3: Configure in Dashboard
 
+You have two options for configuration:
+
+#### Option A: Vercel Environment Variables (Recommended for Production)
+
+1. Go to your Vercel project dashboard
+2. Navigate to **Settings** → **Environment Variables**
+3. Add a new environment variable:
+   - **Name**: `PIXABAY_API_KEY`
+   - **Value**: Your Pixabay API key from Step 2
+   - **Environment**: Production, Preview, Development (select all)
+4. Click **Save**
+5. Redeploy your application for the changes to take effect
+
+The dashboard will automatically fetch the API key from the environment variable via the `/api/clip-art-config.js` endpoint.
+
+#### Option B: Local config.js (For Local Development)
+
 1. Open or create the `config.js` file in your dashboard directory
 2. Add your Pixabay API key:
 
@@ -91,6 +108,26 @@ The Noun Project provides a large collection of icons. They offer a free tier wi
 
 ### Step 3: Configure in Dashboard
 
+You have two options for configuration:
+
+#### Option A: Vercel Environment Variables (Recommended for Production)
+
+1. Go to your Vercel project dashboard
+2. Navigate to **Settings** → **Environment Variables**
+3. Add two new environment variables:
+   - **Name**: `NOUN_API_KEY` (Note: use `NOUN_API_KEY`, not `NOUNPROJECT_API_KEY`)
+     - **Value**: Your Noun Project API Key from Step 2
+     - **Environment**: Production, Preview, Development (select all)
+   - **Name**: `NOUN_API_SECRET`
+     - **Value**: Your Noun Project API Secret from Step 2
+     - **Environment**: Production, Preview, Development (select all)
+4. Click **Save** for each variable
+5. Redeploy your application for the changes to take effect
+
+The dashboard will automatically fetch the credentials from the environment variables via the `/api/clip-art-config.js` endpoint.
+
+#### Option B: Local config.js (For Local Development)
+
 1. Open or create the `config.js` file in your dashboard directory
 2. Add your Noun Project credentials:
 
@@ -121,9 +158,9 @@ window.CONFIG = {
 
 ## Configuration
 
-### Complete config.js Example
+### Complete config.js Example (Local Development Only)
 
-Here's a complete example of how your `config.js` should look:
+Here's a complete example of how your `config.js` should look for local development:
 
 ```javascript
 window.CONFIG = {
@@ -142,12 +179,16 @@ window.CONFIG = {
 };
 ```
 
+**Note**: For production on Vercel, use environment variables instead (see Option A in Step 3 for each API above).
+
 ### File Location
 
 - **Development**: Place `config.js` in the `dakboard` directory
-- **Production**: The file should be in the same directory as `index.html`
+- **Production (Vercel)**: Use environment variables (see Option A in Step 3 above)
+- **Production (Other)**: The file should be in the same directory as `index.html`
 - **Security**: **DO NOT** commit `config.js` to version control if it contains sensitive keys
   - Add `config.js` to your `.gitignore` file
+  - For Vercel, use environment variables instead of `config.js` for production
 
 ---
 
