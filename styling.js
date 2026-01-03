@@ -1459,8 +1459,6 @@ function attachTabEventListeners(tabName) {
         const clipartSelectBtn = stylingModal.querySelector('#clipart-select-btn');
         const pixabayBtn = stylingModal.querySelector('#clipart-pixabay-btn');
         const nounprojectBtn = stylingModal.querySelector('#clipart-nounproject-btn');
-        const clipartColor = stylingModal.querySelector('#clipart-color');
-        const clipartColorText = stylingModal.querySelector('#clipart-color-text');
         
         if (clipartSelectBtn) {
           clipartSelectBtn.addEventListener('click', () => {
