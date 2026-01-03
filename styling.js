@@ -831,7 +831,11 @@ function generateAdvancedTab() {
           <label class="styling-form-label">Current Clip Art</label>
           <div class="styling-form-control">
             <div style="font-size: 48px; text-align: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; color: ${clipArtColor};" id="clipart-preview-display">${clipArtEmoji}</div>
-            <button type="button" id="clipart-select-btn" class="styling-btn-secondary" style="margin-top: 10px; width: 100%;">Choose Clip Art</button>
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+              <button type="button" id="clipart-select-btn" class="styling-btn-secondary" style="flex: 1;">Choose Emoji</button>
+              <button type="button" id="clipart-pixabay-btn" class="styling-btn-secondary" style="flex: 1;">Pixabay</button>
+              <button type="button" id="clipart-nounproject-btn" class="styling-btn-secondary" style="flex: 1;">Noun Project</button>
+            </div>
           </div>
         </div>
         <div class="styling-form-row">

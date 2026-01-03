@@ -1,0 +1,266 @@
+# Clip Art API Setup Instructions
+
+This dashboard supports fetching clip art images from two external APIs: **Pixabay** and **Noun Project**. Follow the instructions below to configure each API.
+
+## Table of Contents
+- [Pixabay API Setup](#pixabay-api-setup)
+- [Noun Project API Setup](#noun-project-api-setup)
+- [Configuration](#configuration)
+- [Troubleshooting](#troubleshooting)
+
+---
+
+## Pixabay API Setup
+
+Pixabay provides free images, illustrations, and vectors. The API is free to use with reasonable rate limits.
+
+### Step 1: Create a Pixabay Account
+
+1. Go to [https://pixabay.com/](https://pixabay.com/)
+2. Click **"Join"** in the top right corner
+3. Fill out the registration form:
+   - Email address
+   - Username
+   - Password
+   - Confirm you're not a robot (reCAPTCHA)
+4. Click **"Sign up"**
+5. Verify your email address if required
+
+### Step 2: Get Your API Key
+
+1. After logging in, go to [https://pixabay.com/api/docs/](https://pixabay.com/api/docs/)
+2. Scroll down to the **"Search Images"** section
+3. Look for the **"key"** parameter description
+4. Click the **"Login"** or **"Sign up"** link next to "Please login to see your API key here"
+5. Once logged in, you'll see your API key displayed on the page
+6. **Copy your API key** - it will look something like: `12345678-1234-1234-1234-123456789abc`
+
+### Step 3: Configure in Dashboard
+
+1. Open or create the `config.js` file in your dashboard directory
+2. Add your Pixabay API key:
+
+```javascript
+window.CONFIG = {
+  // ... other config options ...
+  PIXABAY_API_KEY: 'YOUR_PIXABAY_API_KEY_HERE'
+};
+```
+
+3. Replace `YOUR_PIXABAY_API_KEY_HERE` with your actual API key from Step 2
+4. Save the file
+
+### Pixabay API Details
+
+- **Rate Limit**: 100 requests per 60 seconds (per API key)
+- **Free Tier**: Yes, completely free
+- **Image Types**: Photos, illustrations, vectors
+- **License**: Free for commercial use (Pixabay License)
+- **Attribution**: Required - must show "Images from Pixabay" when displaying results
+
+---
+
+## Noun Project API Setup
+
+The Noun Project provides a large collection of icons. They offer a free tier with limited requests.
+
+### Step 1: Create a Noun Project Account
+
+1. Go to [https://thenounproject.com/](https://thenounproject.com/)
+2. Click **"Sign Up"** in the top right corner
+3. Fill out the registration form:
+   - Email address
+   - Password
+   - Confirm you're not a robot
+4. Click **"Create Account"**
+5. Verify your email address if required
+
+### Step 2: Create an App to Get API Credentials
+
+1. After logging in, go to [https://thenounproject.com/developers/](https://thenounproject.com/developers/)
+2. Click **"Register a new app"** or **"My Apps"**
+3. Fill out the app registration form:
+   - **App Name**: e.g., "Dashboard Clip Art"
+   - **App URL**: Your dashboard URL (e.g., `https://dakboard-smith.vercel.app`)
+   - **Redirect URL**: Can be the same as App URL
+   - **Description**: Brief description of your app
+4. Accept the terms and conditions
+5. Click **"Register App"**
+6. After registration, you'll see your **API Key** and **API Secret**
+7. **Copy both values** - keep them secure!
+
+### Step 3: Configure in Dashboard
+
+1. Open or create the `config.js` file in your dashboard directory
+2. Add your Noun Project credentials:
+
+```javascript
+window.CONFIG = {
+  // ... other config options ...
+  NOUNPROJECT_API_KEY: 'YOUR_NOUNPROJECT_API_KEY_HERE',
+  NOUNPROJECT_API_SECRET: 'YOUR_NOUNPROJECT_API_SECRET_HERE'
+};
+```
+
+3. Replace the placeholders with your actual API Key and API Secret from Step 2
+4. Save the file
+
+### Noun Project API Details
+
+- **Rate Limit**: 
+  - Free tier: 500 requests per hour
+  - Paid tiers available for higher limits
+- **Authentication**: OAuth 1.0 (requires both API Key and Secret)
+- **Icon Types**: SVG icons only
+- **License**: 
+  - Free tier: Attribution required
+  - Paid tiers: No attribution required
+- **Note**: The Noun Project API uses OAuth 1.0, which requires proper authentication. The dashboard implementation uses Basic Auth as a simplified approach, but you may need to implement full OAuth 1.0 for production use.
+
+---
+
+## Configuration
+
+### Complete config.js Example
+
+Here's a complete example of how your `config.js` should look:
+
+```javascript
+window.CONFIG = {
+  // Home Assistant Configuration
+  HA_URL: 'https://your-home-assistant-url.com',
+  HA_TOKEN: 'your-home-assistant-token',
+  
+  // Pixabay API Configuration
+  PIXABAY_API_KEY: '12345678-1234-1234-1234-123456789abc',
+  
+  // Noun Project API Configuration
+  NOUNPROJECT_API_KEY: 'your-nounproject-api-key',
+  NOUNPROJECT_API_SECRET: 'your-nounproject-api-secret',
+  
+  // Other configuration options...
+};
+```
+
+### File Location
+
+- **Development**: Place `config.js` in the `dakboard` directory
+- **Production**: The file should be in the same directory as `index.html`
+- **Security**: **DO NOT** commit `config.js` to version control if it contains sensitive keys
+  - Add `config.js` to your `.gitignore` file
+
+---
+
+## Troubleshooting
+
+### Pixabay API Issues
+
+**Error: "API key not configured"**
+- Make sure `PIXABAY_API_KEY` is set in `config.js`
+- Verify the key is spelled correctly (case-sensitive)
+- Ensure `config.js` is loaded before the dashboard scripts
+
+**Error: "API rate limit exceeded" (429 error)**
+- You've exceeded 100 requests per 60 seconds
+- Wait a minute and try again
+- Consider caching search results
+
+**Error: "No images found"**
+- Try different search terms
+- Check that your search query is not too specific
+- Verify your API key is valid and active
+
+**Images not displaying**
+- Check browser console for CORS errors
+- Pixabay URLs are valid for 24 hours - images may expire
+- Try refreshing the search
+
+### Noun Project API Issues
+
+**Error: "API credentials not configured"**
+- Make sure both `NOUNPROJECT_API_KEY` and `NOUNPROJECT_API_SECRET` are set
+- Verify both values are correct
+- Ensure `config.js` is loaded before the dashboard scripts
+
+**Error: "401 Unauthorized"**
+- Your API key or secret is incorrect
+- Verify your credentials in the Noun Project developer dashboard
+- Make sure you haven't regenerated your keys without updating config.js
+
+**Error: "OAuth 1.0 authentication required"**
+- The Noun Project API uses OAuth 1.0, which is more complex than Basic Auth
+- The current implementation uses Basic Auth as a simplified approach
+- For production use, you may need to implement full OAuth 1.0 signing
+- Consider using a backend proxy to handle OAuth authentication
+
+**Error: "Rate limit exceeded"**
+- Free tier allows 500 requests per hour
+- Wait before making more requests
+- Consider upgrading to a paid plan for higher limits
+
+**Icons not displaying**
+- Noun Project returns SVG icons - ensure your browser supports SVG
+- Check browser console for errors
+- Verify the icon URLs are accessible
+
+### General Issues
+
+**Modal appears behind Style Widget**
+- This should be fixed with z-index: 10003
+- If still happening, check browser console for CSS conflicts
+
+**Selected image doesn't display**
+- Check that `loadClipArt()` function is being called
+- Verify the image URL is valid and accessible
+- Check browser console for errors
+- Ensure the image URL is saved in localStorage
+
+**config.js not loading**
+- Verify the file exists in the correct location
+- Check browser console for 404 errors
+- Ensure the script tag in `index.html` is correct
+- In production, make sure the file is deployed
+
+---
+
+## Security Notes
+
+1. **Never commit API keys to version control**
+   - Add `config.js` to `.gitignore`
+   - Use environment variables in production if possible
+
+2. **API Key Security**
+   - Treat API keys like passwords
+   - Don't share them publicly
+   - Regenerate keys if compromised
+
+3. **Rate Limiting**
+   - Be respectful of API rate limits
+   - Don't make excessive automated requests
+   - Cache results when possible
+
+4. **CORS and Hotlinking**
+   - Pixabay: URLs are valid for 24 hours. For permanent use, download images to your server
+   - Noun Project: Check their terms of service for usage rights
+
+---
+
+## Additional Resources
+
+- **Pixabay API Documentation**: [https://pixabay.com/api/docs/](https://pixabay.com/api/docs/)
+- **Noun Project API Documentation**: [https://api.thenounproject.com/](https://api.thenounproject.com/)
+- **Pixabay Terms of Service**: [https://pixabay.com/service/terms/](https://pixabay.com/service/terms/)
+- **Noun Project Terms of Service**: [https://thenounproject.com/terms/](https://thenounproject.com/terms/)
+
+---
+
+## Support
+
+If you encounter issues not covered in this guide:
+
+1. Check the browser console for error messages
+2. Verify your API credentials are correct
+3. Test the API directly using their documentation examples
+4. Check the API status pages for service outages
+5. Review the API documentation for recent changes
+

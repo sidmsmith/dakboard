@@ -203,8 +203,10 @@ body {
   user-select: none;
 }
 
-/* Clip Art Modal - Higher z-index than styling modal */
-#clipart-modal {
+/* Clip Art Modals - Higher z-index than styling modal */
+#clipart-modal,
+#pixabay-modal,
+#nounproject-modal {
   z-index: 10003 !important;
 }
 

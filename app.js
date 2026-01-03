@@ -3396,19 +3396,25 @@ function loadClipArt() {
     
     let clipArtEmoji = '🎨'; // Default
     let clipArtColor = '#4a90e2'; // Default
+    let clipArtImageUrl = ''; // Default
     
     if (savedStyles) {
       try {
         const styles = JSON.parse(savedStyles);
         clipArtEmoji = styles.clipArtEmoji || clipArtEmoji;
         clipArtColor = styles.clipArtColor || clipArtColor;
+        clipArtImageUrl = styles.clipArtImageUrl || clipArtImageUrl;
       } catch (e) {
         console.error('Error parsing clip art styles:', e);
       }
     }
     
-    // Display the clip art
-    container.innerHTML = `<div class="clipart-display" style="color: ${clipArtColor}; font-size: 120px; text-align: center; line-height: 1; display: flex; align-items: center; justify-content: center; height: 100%;">${clipArtEmoji}</div>`;
+    // Display the clip art (image or emoji)
+    if (clipArtImageUrl) {
+      container.innerHTML = `<div class="clipart-display" style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;"><img src="${clipArtImageUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: ${clipArtColor ? `drop-shadow(0 0 12px ${clipArtColor})` : 'none'};" alt="Clip art"></div>`;
+    } else {
+      container.innerHTML = `<div class="clipart-display" style="color: ${clipArtColor}; font-size: 120px; text-align: center; line-height: 1; display: flex; align-items: center; justify-content: center; height: 100%;">${clipArtEmoji}</div>`;
+    }
   });
 }
 
