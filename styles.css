@@ -1413,6 +1413,9 @@ body {
 }
 
 .scoreboard-reset-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
   background: transparent;
   border: none;
   color: var(--widget-text-primary, #fff);
@@ -1422,6 +1425,7 @@ body {
   border-radius: 4px;
   transition: background 0.2s;
   opacity: 0.7;
+  z-index: 10;
 }
 
 .scoreboard-reset-btn:hover {
@@ -1435,6 +1439,7 @@ body {
   flex-direction: column;
   gap: 16px;
   padding: 8px 0;
+  position: relative;
 }
 
 .scoreboard-team {
