@@ -179,6 +179,38 @@ body {
   padding: 0 !important;
   min-width: 200px;
   min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clipart-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clipart-display {
+  font-size: 120px;
+  text-align: center;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  user-select: none;
+}
+
+/* Clip Art Modal */
+#clipart-modal .clipart-item {
+  transition: all 0.2s;
+}
+
+#clipart-modal .clipart-item:hover {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.15) !important;
 }
 
 /* Calendar - Default position and size */
