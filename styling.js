@@ -654,7 +654,11 @@ function generateAdvancedTab() {
   const widgetOpacity = currentStyles.widgetOpacity !== undefined ? currentStyles.widgetOpacity : 100;
   const diceFaceColor = currentStyles.diceFaceColor || '#4a90e2';
   const diceDotColor = currentStyles.diceDotColor || '#ffffff';
+  const stopwatchTextColor = currentStyles.stopwatchTextColor || '#1a1a1a';
+  const stopwatchPlayButtonColor = currentStyles.stopwatchPlayButtonColor || '#4a90e2';
+  const stopwatchResetButtonColor = currentStyles.stopwatchResetButtonColor || '#ffffff';
   const isDiceWidget = currentWidgetId === 'dice-widget';
+  const isStopwatchWidget = currentWidgetId === 'stopwatch-widget';
   
   return `
     <div class="styling-form-section">
@@ -693,6 +697,43 @@ function generateAdvancedTab() {
             <input type="text" id="dice-dot-color-text" value="${diceDotColor}" pattern="^#[0-9A-F]{6}$" placeholder="#ffffff">
             <label class="styling-apply-all-checkbox">
               <input type="checkbox" id="dice-dot-color-apply-all" ${applyToAllFlags.diceDotColor ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+    ${isStopwatchWidget ? `
+    <div class="styling-form-section">
+      <div class="styling-section-title">Stopwatch Colors</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Text Color</label>
+          <div class="styling-form-control">
+            <input type="color" id="stopwatch-text-color" value="${stopwatchTextColor}">
+            <input type="text" id="stopwatch-text-color-text" value="${stopwatchTextColor}" pattern="^#[0-9A-F]{6}$" placeholder="#1a1a1a">
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="stopwatch-text-color-apply-all" ${applyToAllFlags.stopwatchTextColor ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Play/Pause Button Color</label>
+          <div class="styling-form-control">
+            <input type="color" id="stopwatch-play-button-color" value="${stopwatchPlayButtonColor}">
+            <input type="text" id="stopwatch-play-button-color-text" value="${stopwatchPlayButtonColor}" pattern="^#[0-9A-F]{6}$" placeholder="#4a90e2">
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="stopwatch-play-button-color-apply-all" ${applyToAllFlags.stopwatchPlayButtonColor ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Reset Button Color</label>
+          <div class="styling-form-control">
+            <input type="color" id="stopwatch-reset-button-color" value="${stopwatchResetButtonColor}">
+            <input type="text" id="stopwatch-reset-button-color-text" value="${stopwatchResetButtonColor}" pattern="^#[0-9A-F]{6}$" placeholder="#ffffff">
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="stopwatch-reset-button-color-apply-all" ${applyToAllFlags.stopwatchResetButtonColor ? 'checked' : ''}> Apply to all
             </label>
           </div>
         </div>
@@ -1183,6 +1224,73 @@ function attachTabEventListeners(tabName) {
           if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
             diceDotColor.value = e.target.value;
             currentStyles.diceDotColor = e.target.value;
+            updatePreview();
+          }
+        });
+      }
+      
+      // Stopwatch color pickers
+      const stopwatchTextColor = stylingModal.querySelector('#stopwatch-text-color');
+      const stopwatchTextColorText = stylingModal.querySelector('#stopwatch-text-color-text');
+      if (stopwatchTextColor && stopwatchTextColorText) {
+        stopwatchTextColor.addEventListener('input', (e) => {
+          stopwatchTextColorText.value = e.target.value;
+          currentStyles.stopwatchTextColor = e.target.value;
+          updatePreview();
+        });
+        stopwatchTextColor.addEventListener('change', (e) => {
+          stopwatchTextColorText.value = e.target.value;
+          currentStyles.stopwatchTextColor = e.target.value;
+          updatePreview();
+        });
+        stopwatchTextColorText.addEventListener('input', (e) => {
+          if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+            stopwatchTextColor.value = e.target.value;
+            currentStyles.stopwatchTextColor = e.target.value;
+            updatePreview();
+          }
+        });
+      }
+      
+      const stopwatchPlayButtonColor = stylingModal.querySelector('#stopwatch-play-button-color');
+      const stopwatchPlayButtonColorText = stylingModal.querySelector('#stopwatch-play-button-color-text');
+      if (stopwatchPlayButtonColor && stopwatchPlayButtonColorText) {
+        stopwatchPlayButtonColor.addEventListener('input', (e) => {
+          stopwatchPlayButtonColorText.value = e.target.value;
+          currentStyles.stopwatchPlayButtonColor = e.target.value;
+          updatePreview();
+        });
+        stopwatchPlayButtonColor.addEventListener('change', (e) => {
+          stopwatchPlayButtonColorText.value = e.target.value;
+          currentStyles.stopwatchPlayButtonColor = e.target.value;
+          updatePreview();
+        });
+        stopwatchPlayButtonColorText.addEventListener('input', (e) => {
+          if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+            stopwatchPlayButtonColor.value = e.target.value;
+            currentStyles.stopwatchPlayButtonColor = e.target.value;
+            updatePreview();
+          }
+        });
+      }
+      
+      const stopwatchResetButtonColor = stylingModal.querySelector('#stopwatch-reset-button-color');
+      const stopwatchResetButtonColorText = stylingModal.querySelector('#stopwatch-reset-button-color-text');
+      if (stopwatchResetButtonColor && stopwatchResetButtonColorText) {
+        stopwatchResetButtonColor.addEventListener('input', (e) => {
+          stopwatchResetButtonColorText.value = e.target.value;
+          currentStyles.stopwatchResetButtonColor = e.target.value;
+          updatePreview();
+        });
+        stopwatchResetButtonColor.addEventListener('change', (e) => {
+          stopwatchResetButtonColorText.value = e.target.value;
+          currentStyles.stopwatchResetButtonColor = e.target.value;
+          updatePreview();
+        });
+        stopwatchResetButtonColorText.addEventListener('input', (e) => {
+          if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+            stopwatchResetButtonColor.value = e.target.value;
+            currentStyles.stopwatchResetButtonColor = e.target.value;
             updatePreview();
           }
         });
@@ -1755,6 +1863,25 @@ function updateCurrentStylesFromForm() {
     currentStyles.diceDotColor = diceDotColor.value;
   }
   
+  // Stopwatch widget colors
+  const stopwatchTextColor = stylingModal.querySelector('#stopwatch-text-color');
+  const stopwatchTextColorText = stylingModal.querySelector('#stopwatch-text-color-text');
+  if (stopwatchTextColor && stopwatchTextColorText) {
+    currentStyles.stopwatchTextColor = stopwatchTextColor.value;
+  }
+  
+  const stopwatchPlayButtonColor = stylingModal.querySelector('#stopwatch-play-button-color');
+  const stopwatchPlayButtonColorText = stylingModal.querySelector('#stopwatch-play-button-color-text');
+  if (stopwatchPlayButtonColor && stopwatchPlayButtonColorText) {
+    currentStyles.stopwatchPlayButtonColor = stopwatchPlayButtonColor.value;
+  }
+  
+  const stopwatchResetButtonColor = stylingModal.querySelector('#stopwatch-reset-button-color');
+  const stopwatchResetButtonColorText = stylingModal.querySelector('#stopwatch-reset-button-color-text');
+  if (stopwatchResetButtonColor && stopwatchResetButtonColorText) {
+    currentStyles.stopwatchResetButtonColor = stopwatchResetButtonColor.value;
+  }
+  
   console.log('updateCurrentStylesFromForm - Updated currentStyles:', currentStyles);
 }
 
@@ -2093,6 +2220,26 @@ function applyCurrentStylesToWidget(widget) {
       }
     }
   }
+  
+  // Update stopwatch colors if this is a stopwatch widget
+  if (widget.classList.contains('stopwatch-widget')) {
+    const textColor = currentStyles.stopwatchTextColor || '#1a1a1a';
+    const playButtonColor = currentStyles.stopwatchPlayButtonColor || '#4a90e2';
+    const resetButtonColor = currentStyles.stopwatchResetButtonColor || '#ffffff';
+    if (!isApplyingToAll || applyToAllFlags.stopwatchTextColor || applyToAllFlags.stopwatchPlayButtonColor || applyToAllFlags.stopwatchResetButtonColor) {
+      // Apply colors to stopwatch elements
+      const display = widget.querySelector('#stopwatch-display');
+      const playPauseBtn = widget.querySelector('#stopwatch-play-pause');
+      const resetBtn = widget.querySelector('#stopwatch-reset');
+      
+      if (display) display.style.color = textColor;
+      if (playPauseBtn) playPauseBtn.style.backgroundColor = playButtonColor;
+      if (resetBtn) {
+        resetBtn.style.backgroundColor = resetButtonColor;
+        resetBtn.style.color = '#1a1a1a';
+      }
+    }
+  }
 }
 
 // Update apply-to-all flags from checkboxes
@@ -2117,6 +2264,9 @@ function updateApplyToAllFlags() {
   applyToAllFlags.widgetOpacity = document.getElementById('widget-opacity-apply-all')?.checked || false;
   applyToAllFlags.diceFaceColor = document.getElementById('dice-face-color-apply-all')?.checked || false;
   applyToAllFlags.diceDotColor = document.getElementById('dice-dot-color-apply-all')?.checked || false;
+  applyToAllFlags.stopwatchTextColor = document.getElementById('stopwatch-text-color-apply-all')?.checked || false;
+  applyToAllFlags.stopwatchPlayButtonColor = document.getElementById('stopwatch-play-button-color-apply-all')?.checked || false;
+  applyToAllFlags.stopwatchResetButtonColor = document.getElementById('stopwatch-reset-button-color-apply-all')?.checked || false;
   
   // Check if any apply-to-all is checked
   applyToAllFlags.global = Object.values(applyToAllFlags).some(v => v === true);

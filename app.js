@@ -1419,6 +1419,7 @@ async function loadAllData() {
       loadAlarm(),
       loadCompressor(), // Load air compressor
       loadDice(), // Load dice widget
+      loadStopwatch(), // Load stopwatch widget
       loadThermostat(), // Load thermostat
       loadNews(), // Load news feed
       initializeWhiteboard(), // Initialize whiteboard
@@ -2542,7 +2543,7 @@ async function loadCompressor() {
         }
       };
     });
-  } catch (error) {
+    } catch (error) {
     console.error('Error loading compressor:', error);
     const icons = document.querySelectorAll('#compressor-icon');
     icons.forEach(icon => {
@@ -2780,6 +2781,242 @@ function loadDice() {
       }
     };
   });
+}
+
+// Stopwatch state management
+let stopwatchIntervals = new Map(); // Track intervals per widget instance
+let stopwatchStates = new Map(); // Track state per widget instance: { elapsed: number, startTime: number, isRunning: boolean }
+
+// Load and initialize stopwatch widgets
+function loadStopwatch() {
+  const stopwatchContainers = document.querySelectorAll('#stopwatch-content');
+  
+  if (stopwatchContainers.length === 0) return;
+  
+  // Initialize all stopwatch widgets across all pages
+  stopwatchContainers.forEach((container) => {
+    const widget = container.closest('.stopwatch-widget');
+    if (!widget) return;
+    
+    // Create unique ID for this widget instance (page + index)
+    const pageIndex = typeof currentPageIndex !== 'undefined' ? currentPageIndex : 0;
+    const widgetIndex = Array.from(document.querySelectorAll('.stopwatch-widget')).indexOf(widget);
+    const widgetId = `stopwatch-${pageIndex}-${widgetIndex}`;
+    
+    // Get saved state from localStorage
+    const stateKey = `dakboard-stopwatch-state-${widgetId}`;
+    const savedState = localStorage.getItem(stateKey);
+    let state = {
+      elapsed: 0, // milliseconds
+      startTime: null,
+      isRunning: false
+    };
+    
+    if (savedState) {
+      try {
+        const parsed = JSON.parse(savedState);
+        state.elapsed = parsed.elapsed || 0;
+        state.isRunning = parsed.isRunning || false;
+        // If it was running, calculate elapsed time since last save
+        if (state.isRunning && parsed.lastUpdate) {
+          const now = Date.now();
+          const timeSinceUpdate = now - parsed.lastUpdate;
+          state.elapsed += timeSinceUpdate;
+          state.startTime = now - state.elapsed;
+        } else {
+          state.startTime = null;
+        }
+      } catch (e) {
+        console.error('Error parsing stopwatch state:', e);
+      }
+    }
+    
+    stopwatchStates.set(widgetId, state);
+    
+    // Get widget-specific colors from saved styles or use defaults
+    const stylesKey = `dakboard-widget-styles-stopwatch-widget-page-${pageIndex}`;
+    const savedStyles = localStorage.getItem(stylesKey);
+    let textColor = '#1a1a1a';
+    let playButtonColor = '#4a90e2';
+    let resetButtonColor = '#ffffff';
+    
+    if (savedStyles) {
+      try {
+        const styles = JSON.parse(savedStyles);
+        textColor = styles.stopwatchTextColor || textColor;
+        playButtonColor = styles.stopwatchPlayButtonColor || playButtonColor;
+        resetButtonColor = styles.stopwatchResetButtonColor || resetButtonColor;
+      } catch (e) {
+        console.error('Error parsing stopwatch styles:', e);
+      }
+    }
+    
+    // Apply colors
+    const display = container.querySelector('#stopwatch-display');
+    const playPauseBtn = container.querySelector('#stopwatch-play-pause');
+    const resetBtn = container.querySelector('#stopwatch-reset');
+    
+    if (display) {
+      display.style.color = textColor;
+    }
+    if (playPauseBtn) {
+      playPauseBtn.style.backgroundColor = playButtonColor;
+    }
+    if (resetBtn) {
+      resetBtn.style.backgroundColor = resetButtonColor;
+      resetBtn.style.color = '#1a1a1a';
+    }
+    
+    // Update display
+    updateStopwatchDisplay(widgetId, container);
+    
+    // Set up button handlers
+    if (playPauseBtn && !playPauseBtn.dataset.listenerAttached) {
+      playPauseBtn.dataset.listenerAttached = 'true';
+      playPauseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!isEditMode) {
+          toggleStopwatch(widgetId, container);
+        }
+      });
+    }
+    
+    if (resetBtn && !resetBtn.dataset.listenerAttached) {
+      resetBtn.dataset.listenerAttached = 'true';
+      resetBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!isEditMode) {
+          resetStopwatch(widgetId, container);
+        }
+      });
+    }
+    
+    // Update button state
+    updateStopwatchButton(widgetId, container);
+    
+    // Start interval if running
+    if (state.isRunning) {
+      startStopwatchInterval(widgetId, container);
+    }
+  });
+}
+
+// Update stopwatch display
+function updateStopwatchDisplay(widgetId, container) {
+  const state = stopwatchStates.get(widgetId);
+  if (!state) return;
+  
+  const display = container.querySelector('#stopwatch-display');
+  if (!display) return;
+  
+  let elapsed = state.elapsed;
+  
+  // If running, add time since start
+  if (state.isRunning && state.startTime) {
+    elapsed += Date.now() - state.startTime;
+  }
+  
+  // Format as MM:SS.hh
+  const totalSeconds = Math.floor(elapsed / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const hundredths = Math.floor((elapsed % 1000) / 10);
+  
+  const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(hundredths).padStart(2, '0')}`;
+  display.textContent = formatted;
+}
+
+// Update stopwatch button state
+function updateStopwatchButton(widgetId, container) {
+  const state = stopwatchStates.get(widgetId);
+  if (!state) return;
+  
+  const playPauseBtn = container.querySelector('#stopwatch-play-pause');
+  if (!playPauseBtn) return;
+  
+  if (state.isRunning) {
+    playPauseBtn.classList.add('running');
+    playPauseBtn.classList.remove('paused');
+  } else {
+    playPauseBtn.classList.add('paused');
+    playPauseBtn.classList.remove('running');
+  }
+}
+
+// Toggle stopwatch (start/pause)
+function toggleStopwatch(widgetId, container) {
+  const state = stopwatchStates.get(widgetId);
+  if (!state) return;
+  
+  if (state.isRunning) {
+    // Pause
+    if (state.startTime) {
+      state.elapsed += Date.now() - state.startTime;
+    }
+    state.isRunning = false;
+    state.startTime = null;
+    stopStopwatchInterval(widgetId);
+  } else {
+    // Start
+    state.isRunning = true;
+    state.startTime = Date.now();
+    startStopwatchInterval(widgetId, container);
+  }
+  
+  updateStopwatchButton(widgetId, container);
+  saveStopwatchState(widgetId);
+}
+
+// Reset stopwatch
+function resetStopwatch(widgetId, container) {
+  const state = stopwatchStates.get(widgetId);
+  if (!state) return;
+  
+  state.elapsed = 0;
+  state.isRunning = false;
+  state.startTime = null;
+  
+  stopStopwatchInterval(widgetId);
+  updateStopwatchDisplay(widgetId, container);
+  updateStopwatchButton(widgetId, container);
+  saveStopwatchState(widgetId);
+}
+
+// Start stopwatch interval
+function startStopwatchInterval(widgetId, container) {
+  // Clear any existing interval
+  stopStopwatchInterval(widgetId);
+  
+  // Update every 10ms for smooth hundredths display
+  const interval = setInterval(() => {
+    updateStopwatchDisplay(widgetId, container);
+  }, 10);
+  
+  stopwatchIntervals.set(widgetId, interval);
+}
+
+// Stop stopwatch interval
+function stopStopwatchInterval(widgetId) {
+  const interval = stopwatchIntervals.get(widgetId);
+  if (interval) {
+    clearInterval(interval);
+    stopwatchIntervals.delete(widgetId);
+  }
+}
+
+// Save stopwatch state to localStorage
+function saveStopwatchState(widgetId) {
+  const state = stopwatchStates.get(widgetId);
+  if (!state) return;
+  
+  const stateKey = `dakboard-stopwatch-state-${widgetId}`;
+  const stateToSave = {
+    elapsed: state.elapsed,
+    isRunning: state.isRunning,
+    lastUpdate: Date.now()
+  };
+  
+  localStorage.setItem(stateKey, JSON.stringify(stateToSave));
 }
 
 // Roll dice with animation
@@ -3866,6 +4103,7 @@ const WIDGET_CONFIG = {
   'alarm-widget': { name: 'Alarm Panel', icon: '🔒' },
   'compressor-widget': { name: 'Air Compressor', icon: '🌬️' },
   'dice-widget': { name: 'Dice', icon: '🎲' },
+  'stopwatch-widget': { name: 'Stopwatch', icon: '⏱️' },
   'blank-widget': { name: 'Blank', icon: '⬜' },
   'clock-widget': { name: 'Clock', icon: '🕐' },
   'thermostat-widget': { name: 'Thermostat', icon: '🌡️' },
@@ -4004,6 +4242,8 @@ function toggleWidgetVisibility(widgetId) {
       // Initialize widget-specific functionality after showing
       if (widgetId === 'dice-widget' && typeof loadDice === 'function') {
         setTimeout(() => loadDice(), 50);
+      } else if (widgetId === 'stopwatch-widget' && typeof loadStopwatch === 'function') {
+        setTimeout(() => loadStopwatch(), 50);
       } else if (widgetId === 'compressor-widget' && typeof loadCompressor === 'function') {
         setTimeout(() => loadCompressor(), 50);
       } else if (widgetId === 'alarm-widget' && typeof loadAlarm === 'function') {

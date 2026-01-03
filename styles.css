@@ -1274,6 +1274,122 @@ body {
   }
 }
 
+/* Stopwatch Widget */
+.stopwatch-widget {
+  top: 760px;
+  left: 2050px;
+  width: 300px;
+  height: 200px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px !important;
+}
+
+.stopwatch-content {
+  width: 100%;
+  flex: 1;
+  margin: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+}
+
+.stopwatch-display {
+  font-size: 48px;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  color: #1a1a1a;
+  letter-spacing: 2px;
+  user-select: none;
+  text-align: center;
+  line-height: 1;
+}
+
+.stopwatch-controls {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+}
+
+.stopwatch-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, opacity 0.2s;
+  padding: 0;
+  position: relative;
+}
+
+.stopwatch-btn:hover {
+  transform: scale(1.1);
+}
+
+.stopwatch-btn:active {
+  transform: scale(0.95);
+}
+
+.stopwatch-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.stopwatch-play-pause {
+  background: #4a90e2;
+  color: #ffffff;
+}
+
+.stopwatch-play-pause:hover {
+  background: #5aa0f2;
+}
+
+.stopwatch-play-pause.paused svg polygon {
+  d: path("M8 5v14l11-7z");
+}
+
+.stopwatch-play-pause.running svg {
+  display: none;
+}
+
+.stopwatch-play-pause.running::before,
+.stopwatch-play-pause.running::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 20px;
+  background: #ffffff;
+  border-radius: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.stopwatch-play-pause.running::before {
+  left: 18px;
+}
+
+.stopwatch-play-pause.running::after {
+  left: 32px;
+}
+
+.stopwatch-reset {
+  background: #ffffff;
+  color: #1a1a1a;
+}
+
+.stopwatch-reset:hover {
+  background: #f0f0f0;
+}
+
 /* 3D Dice Cube */
 .dice-3d-cube {
   width: 100%;
