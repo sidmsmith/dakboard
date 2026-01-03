@@ -3424,10 +3424,19 @@ function loadClipArt() {
       const g = parseInt(tintColor.slice(3, 5), 16);
       const b = parseInt(tintColor.slice(5, 7), 16);
       const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-      if (brightness > 128) {
-        return `brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(${getHueFromRGB(r, g, b)}deg) brightness(${brightness / 255})`;
+      const hue = getHueFromRGB(r, g, b);
+      const max = Math.max(r, g, b) / 255;
+      const min = Math.min(r, g, b) / 255;
+      const saturation = max === 0 ? 0 : (max - min) / max;
+      
+      if (brightness > 200) {
+        return `brightness(0) invert(1) sepia(1) saturate(${Math.max(1, saturation * 3)}) hue-rotate(${hue}deg) brightness(${brightness / 255})`;
+      } else if (brightness > 128) {
+        return `brightness(0) invert(1) sepia(1) saturate(${Math.max(2, saturation * 4)}) hue-rotate(${hue}deg) brightness(${brightness / 255})`;
+      } else if (brightness > 64) {
+        return `brightness(0) invert(1) sepia(1) saturate(${Math.max(3, saturation * 5)}) hue-rotate(${hue}deg) brightness(${brightness / 200})`;
       } else {
-        return `brightness(0) saturate(100%) invert(${r / 255}) sepia(1) saturate(5) hue-rotate(${getHueFromRGB(r, g, b)}deg)`;
+        return `brightness(0) saturate(100%) invert(${brightness / 255}) sepia(1) saturate(${Math.max(4, saturation * 6)}) hue-rotate(${hue}deg)`;
       }
     }
     
