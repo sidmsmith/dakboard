@@ -1586,7 +1586,7 @@ function setupScoreboardDragAndDrop() {
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/html', teamEl.innerHTML);
       // Add dragging class to all other elements to show they're drop targets
-      teamConfigs.forEach(t => {
+      freshTeamConfigs.forEach(t => {
         if (t !== teamEl) {
           t.style.cursor = 'move';
         }
@@ -1598,7 +1598,7 @@ function setupScoreboardDragAndDrop() {
       teamEl.classList.remove('dragging');
       teamEl.style.cursor = '';
       // Remove all drag-over classes and reset cursor
-      teamConfigs.forEach(t => {
+      freshTeamConfigs.forEach(t => {
         t.classList.remove('drag-over-above', 'drag-over-below');
         t.style.cursor = '';
       });
@@ -1616,7 +1616,7 @@ function setupScoreboardDragAndDrop() {
         const midpoint = rect.top + rect.height / 2;
         
         // Remove previous classes from all elements
-        teamConfigs.forEach(t => {
+        freshTeamConfigs.forEach(t => {
           t.classList.remove('drag-over-above', 'drag-over-below');
         });
         
@@ -1647,7 +1647,7 @@ function setupScoreboardDragAndDrop() {
       e.stopPropagation();
       
       if (draggedElement && draggedElement !== teamEl) {
-        const dropIndex = Array.from(teamConfigs).indexOf(teamEl);
+        const dropIndex = Array.from(freshTeamConfigs).indexOf(teamEl);
         const rect = teamEl.getBoundingClientRect();
         const mouseY = e.clientY;
         const midpoint = rect.top + rect.height / 2;
@@ -1671,10 +1671,8 @@ function setupScoreboardDragAndDrop() {
         const allTeams = teamsList.querySelectorAll('.scoreboard-team-config');
         allTeams.forEach(t => {
           t.dataset.dragSetup = 'false';
-          // Remove old event listeners by cloning
-          const newEl = t.cloneNode(true);
-          t.parentNode.replaceChild(newEl, t);
         });
+        // Re-setup drag and drop with fresh event listeners
         setupScoreboardDragAndDrop();
       }
       
