@@ -1483,10 +1483,13 @@ function addScoreboardTeam() {
   teamsList.appendChild(newTeamEl);
   // Set draggable attribute on new team
   newTeamEl.setAttribute('draggable', 'true');
+  
+  // Re-setup drag and drop first (clones elements, removes listeners)
+  setupScoreboardDragAndDrop();
+  
+  // Then setup team listeners and update visibility (after drag setup clones elements)
   setupScoreboardTeamListeners();
   updateRemoveButtonsVisibility();
-  // Re-setup drag and drop so new team can be dragged
-  setupScoreboardDragAndDrop();
   updateScoreboardConfig();
 }
 
