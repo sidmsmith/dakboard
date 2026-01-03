@@ -1583,6 +1583,12 @@ body {
   margin-bottom: 8px !important;
 }
 
+/* Make team label draggable */
+.scoreboard-team-config label.styling-form-label {
+  cursor: move;
+  user-select: none;
+}
+
 .scoreboard-drag-handle:hover {
   opacity: 1 !important;
 }
