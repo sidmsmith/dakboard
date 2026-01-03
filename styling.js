@@ -3041,6 +3041,14 @@ function applyCurrentStylesToWidget(widget) {
     // Use setTimeout to ensure background styles are applied first
     setTimeout(() => updateWidgetDynamicStyles(widget), 0);
   }
+  
+  // Re-initialize z-index controls if in edit mode (header visibility may have changed)
+  const pageElement = widget.closest('.dashboard.page');
+  if (pageElement && pageElement.classList.contains('edit-mode')) {
+    if (typeof addZIndexControls === 'function') {
+      setTimeout(() => addZIndexControls(widget), 0);
+    }
+  }
 }
 
 // Update apply-to-all flags from checkboxes

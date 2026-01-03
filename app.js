@@ -5175,36 +5175,52 @@ function addZIndexControls(widget) {
   const widgetId = widget.classList[1];
   if (!widgetId) return;
   
-  // Get or create widget header
-  let header = widget.querySelector('.widget-header');
+  // Get all headers - find the real header (not minimal edit header)
+  const allHeaders = widget.querySelectorAll('.widget-header');
+  let header = null;
+  let minimalHeader = null;
+  
+  // Separate real headers from minimal edit headers
+  allHeaders.forEach(h => {
+    if (h.classList.contains('widget-edit-header')) {
+      minimalHeader = h;
+    } else {
+      header = h;
+    }
+  });
   
   // Check if header exists
   if (!header) {
-    // Create minimal header for widgets without headers (only in edit mode)
+    // No real header exists - create minimal header for z-index controls
     header = document.createElement('div');
     header.className = 'widget-header widget-edit-header';
     // Insert at the beginning of the widget
     widget.insertBefore(header, widget.firstChild);
   } else {
-    // Header exists - check if it's hidden
+    // Real header exists - check if it's hidden
     const headerStyle = window.getComputedStyle(header);
     const isHeaderHidden = headerStyle.display === 'none';
     
-    // If header is hidden, temporarily show it in edit mode for z-index controls
-    // But don't remove it - we need to preserve it for when title visibility is turned back on
+    // If header is hidden, create/use minimal header for z-index controls
+    // But keep the original header for when title visibility is turned back on
     if (isHeaderHidden) {
-      // Create a minimal header for z-index controls, but keep the original header
-      const minimalHeader = document.createElement('div');
+      // Remove any existing minimal header first
+      if (minimalHeader) {
+        minimalHeader.remove();
+      }
+      // Create a minimal header for z-index controls
+      minimalHeader = document.createElement('div');
       minimalHeader.className = 'widget-header widget-edit-header';
-      // Insert at the beginning of the widget
+      // Insert at the beginning of the widget (before the hidden real header)
       widget.insertBefore(minimalHeader, widget.firstChild);
       header = minimalHeader;
     } else {
-      // Header is visible, use it for z-index controls
-      // Make sure it's not the minimal header (in case it was created before)
-      if (!header.classList.contains('widget-edit-header')) {
-        // Header is the real one, use it
+      // Header is visible - use it for z-index controls
+      // Remove any existing minimal header since we don't need it
+      if (minimalHeader) {
+        minimalHeader.remove();
       }
+      // Use the real header
     }
   }
   
