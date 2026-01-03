@@ -1709,18 +1709,14 @@ function setupScoreboardDragAndDrop() {
       });
     });
     
-    // Drag start
+    // Drag start - only allow if clicking on drag handle
     teamEl.addEventListener('dragstart', (e) => {
-      // Don't allow drag if clicking directly on an input/select/button (unless it's the drag handle)
       const target = e.target;
-      if (target.tagName === 'BUTTON' && target.classList.contains('scoreboard-remove-team-btn')) {
-        console.log('🔵 DRAG START prevented - clicked on Remove button');
-        e.preventDefault();
-        return;
-      }
-      if ((target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'BUTTON') && 
-          !target.closest('.scoreboard-drag-handle')) {
-        console.log('🔵 DRAG START prevented - clicked on input/select/button:', target.tagName);
+      const dragHandle = teamEl.querySelector('.scoreboard-drag-handle');
+      
+      // Only allow drag if clicking on the drag handle or its children
+      if (!dragHandle || (!dragHandle.contains(target) && target !== dragHandle)) {
+        console.log('🔵 DRAG START prevented - not clicking on drag handle');
         e.preventDefault();
         return;
       }
