@@ -5744,7 +5744,7 @@ function loadCurrentPage() {
       Object.keys(layout).forEach(widgetId => {
         const widget = pageElement.querySelector(`.${widgetId}`);
         if (widget && layout[widgetId] && !widget.classList.contains('hidden')) {
-          const { x, y, width, height, zIndex } = layout[widgetId];
+          const { x, y, width, height, zIndex, rotation } = layout[widgetId];
           const viewportWidth = window.innerWidth;
           const viewportHeight = window.innerHeight;
           
@@ -5757,6 +5757,10 @@ function loadCurrentPage() {
           widget.style.height = `${height}px`;
           if (zIndex !== undefined) {
             widget.style.zIndex = zIndex;
+          }
+          if (rotation !== undefined) {
+            widget.style.transform = `rotate(${rotation}deg)`;
+            widget.setAttribute('data-rotation', rotation);
           }
           if (typeof updateWidgetScale === 'function') {
             updateWidgetScale(widget);
@@ -5782,12 +5786,14 @@ function saveCurrentPageLayout() {
       const dashboardRect = pageElement.getBoundingClientRect();
       
       const zIndex = parseInt(window.getComputedStyle(widget).zIndex) || 1;
+      const rotation = widget.getAttribute('data-rotation') ? parseFloat(widget.getAttribute('data-rotation')) : 0;
       layout[widgetId] = {
         x: rect.left - dashboardRect.left,
         y: rect.top - dashboardRect.top,
         width: rect.width,
         height: rect.height,
-        zIndex: zIndex
+        zIndex: zIndex,
+        rotation: rotation
       };
     });
     

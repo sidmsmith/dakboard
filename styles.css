@@ -2332,6 +2332,64 @@ footer a:hover {
   margin-top: -4px;
 }
 
+/* Rotate Handle */
+.rotate-handle {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 32px;
+  background: rgba(74, 144, 226, 0.5);
+  border: 2px solid #4a90e2;
+  border-radius: 50%;
+  z-index: 10;
+  transition: background 0.2s, opacity 0.2s;
+  pointer-events: none;
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+}
+
+.rotate-handle svg {
+  width: 20px;
+  height: 20px;
+  color: #ffffff;
+}
+
+/* Always show rotate handle in edit mode for blank widget */
+.dashboard.edit-mode .blank-widget .rotate-handle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Enhanced visibility on hover/rotate */
+.dashboard.edit-mode .blank-widget:hover .rotate-handle,
+.dashboard.edit-mode .blank-widget.rotating .rotate-handle {
+  background: rgba(74, 144, 226, 0.8);
+  border-color: #5ba0f2;
+}
+
+.rotate-handle:hover {
+  background: rgba(74, 144, 226, 0.8);
+  border-color: #5ba0f2;
+}
+
+.rotate-handle:active {
+  cursor: grabbing;
+}
+
+/* Hide rotate handle completely in normal mode */
+.dashboard:not(.edit-mode) .rotate-handle {
+  display: none;
+}
+
+.blank-widget.rotating {
+  cursor: grabbing;
+}
+
 /* Smart content scaling - responsive font sizes */
 .widget[data-scale] {
   font-size: calc(1rem * var(--scale-factor, 1));

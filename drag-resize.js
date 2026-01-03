@@ -5,9 +5,11 @@ const GRID_SIZE = 20; // Grid snap size in pixels
 let snapToGrid = true; // Toggle for snap-to-grid
 let draggedWidget = null;
 let resizeWidget = null;
+let rotateWidget = null;
 let dragOffset = { x: 0, y: 0 };
 let resizeStart = { x: 0, y: 0, width: 0, height: 0 };
 let resizeDirection = '';
+let rotateStart = { x: 0, y: 0, angle: 0 };
 
 // Load saved widget layout from localStorage (page-specific)
 function loadWidgetLayout() {
@@ -26,7 +28,7 @@ function loadWidgetLayout() {
       Object.keys(layout).forEach(widgetId => {
         const widget = document.querySelector(`.${widgetId}`);
         if (widget && layout[widgetId]) {
-          const { x, y, width, height, zIndex } = layout[widgetId];
+          const { x, y, width, height, zIndex, rotation } = layout[widgetId];
           // Ensure widgets are within viewport
           const viewportWidth = window.innerWidth;
           const viewportHeight = window.innerHeight;
@@ -41,6 +43,10 @@ function loadWidgetLayout() {
           widget.style.height = `${height}px`;
           if (zIndex !== undefined) {
             widget.style.zIndex = zIndex;
+          }
+          if (rotation !== undefined) {
+            widget.style.transform = `rotate(${rotation}deg)`;
+            widget.setAttribute('data-rotation', rotation);
           }
           updateWidgetScale(widget);
           // Log removed to reduce console noise
@@ -73,12 +79,14 @@ function saveWidgetLayout() {
       const dashboardRect = dashboard.getBoundingClientRect();
       
       const zIndex = parseInt(window.getComputedStyle(widget).zIndex) || 1;
+      const rotation = widget.getAttribute('data-rotation') ? parseFloat(widget.getAttribute('data-rotation')) : 0;
       layout[widgetId] = {
         x: rect.left - dashboardRect.left,
         y: rect.top - dashboardRect.top,
         width: rect.width,
         height: rect.height,
-        zIndex: zIndex
+        zIndex: zIndex,
+        rotation: rotation
       };
     });
     localStorage.setItem('dakboard-widget-layout', JSON.stringify(layout));
@@ -161,12 +169,20 @@ function initializeDragAndResize() {
       // Remove existing resize handles first (in case we're re-initializing)
       widget.querySelectorAll('.resize-handle').forEach(h => h.remove());
       
+      // Remove existing rotate handles
+      widget.querySelectorAll('.rotate-handle').forEach(h => h.remove());
+      
       // Check if widget already has drag listener (using a more specific check)
       // We'll use event delegation or check if the widget has the listener
       // For now, just re-add everything - the handles will be removed above
       
       // Add resize handles
       addResizeHandles(widget);
+      
+      // Add rotate handle for blank widget only
+      if (widget.classList.contains('blank-widget')) {
+        addRotateHandle(widget);
+      }
       
       // Remove any existing drag listener by checking if we need to
       // Since we can't easily remove specific listeners, we'll use a flag
@@ -185,9 +201,12 @@ function initializeDragAndResize() {
           return; // Don't allow dragging in normal mode
         }
         
-        // Don't drag if clicking on resize handles
+        // Don't drag if clicking on resize handles or rotate handle
         const target = e.target || (e.touches && e.touches[0] ? document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY) : null);
         if (target && (target.classList.contains('resize-handle') || target.closest('.resize-handle'))) {
+          return;
+        }
+        if (target && (target.classList.contains('rotate-handle') || target.closest('.rotate-handle'))) {
           return;
         }
         
@@ -259,6 +278,69 @@ function addResizeHandles(widget) {
   });
   
   // Resize handles added (logging removed to reduce console noise)
+}
+
+// Add rotate handle to widget (only for blank widget)
+function addRotateHandle(widget) {
+  // Remove existing rotate handle
+  widget.querySelectorAll('.rotate-handle').forEach(h => h.remove());
+  
+  const handleEl = document.createElement('div');
+  handleEl.className = 'rotate-handle';
+  handleEl.innerHTML = `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
+      <path d="M8 12c0-2.21 1.79-4 4-4s4 1.79 4 4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M16 12c0 2.21-1.79 4-4 4s-4-1.79-4-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M12 8l-2-2m0 12l2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  `;
+  
+  const handleRotateStart = (e) => {
+    // Only allow rotate in edit mode
+    const dashboard = widget.closest('.dashboard.page');
+    const inEditMode = dashboard && dashboard.classList.contains('edit-mode');
+    if (!inEditMode) {
+      return;
+    }
+    
+    e.stopPropagation();
+    startRotate(widget, e);
+  };
+  
+  handleEl.addEventListener('mousedown', handleRotateStart);
+  handleEl.addEventListener('touchstart', handleRotateStart, { passive: false });
+  widget.appendChild(handleEl);
+}
+
+// Start rotating widget
+function startRotate(widget, e) {
+  rotateWidget = widget;
+  widget.classList.add('rotating');
+  
+  const rect = widget.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  
+  // Support both mouse and touch events
+  const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+  const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+  
+  // Get current rotation angle
+  const currentRotation = widget.getAttribute('data-rotation') ? parseFloat(widget.getAttribute('data-rotation')) : 0;
+  
+  // Calculate initial angle from center to mouse/touch point
+  const initialAngle = Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI);
+  
+  rotateStart.x = clientX;
+  rotateStart.y = clientY;
+  rotateStart.angle = currentRotation;
+  rotateStart.initialAngle = initialAngle;
+  rotateStart.centerX = centerX;
+  rotateStart.centerY = centerY;
+  
+  e.preventDefault();
+  e.stopPropagation();
 }
 
 // Start dragging widget
@@ -467,11 +549,42 @@ function handleMouseMove(e) {
     
     resizeWidget.classList.add('snapping');
   }
+  
+  if (rotateWidget) {
+    const rect = rotateWidget.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    // Calculate angle from center to current mouse/touch position
+    const currentAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+    
+    // Calculate the difference from initial angle
+    let angleDelta = currentAngle - rotateStart.initialAngle;
+    
+    // Normalize angle delta to -180 to 180 range
+    while (angleDelta > 180) angleDelta -= 360;
+    while (angleDelta < -180) angleDelta += 360;
+    
+    // Calculate new rotation angle
+    let newAngle = rotateStart.angle + angleDelta;
+    
+    // Snap to 15-degree increments
+    newAngle = Math.round(newAngle / 15) * 15;
+    
+    // Normalize to 0-360 range
+    while (newAngle < 0) newAngle += 360;
+    while (newAngle >= 360) newAngle -= 360;
+    
+    // Apply rotation
+    rotateWidget.style.transform = `rotate(${newAngle}deg)`;
+    rotateWidget.setAttribute('data-rotation', newAngle);
+    rotateWidget.classList.add('snapping');
+  }
 }
 
 // Handle touch move for drag and resize
 function handleTouchMove(e) {
-  if (!draggedWidget && !resizeWidget) return;
+  if (!draggedWidget && !resizeWidget && !rotateWidget) return;
   
   // Only process if we have a touch
   if (!e.touches || e.touches.length === 0) return;
@@ -491,14 +604,14 @@ function handleTouchMove(e) {
   handleMouseMove(syntheticEvent);
 }
 
-// Handle touch end - end drag/resize
+// Handle touch end - end drag/resize/rotate
 function handleTouchEnd(e) {
-  if (draggedWidget || resizeWidget) {
+  if (draggedWidget || resizeWidget || rotateWidget) {
     handleMouseUp();
   }
 }
 
-// Handle mouse up - end drag/resize
+// Handle mouse up - end drag/resize/rotate
 function handleMouseUp() {
   if (draggedWidget) {
     draggedWidget.classList.remove('dragging', 'snapping');
@@ -513,6 +626,13 @@ function handleMouseUp() {
     saveWidgetLayout();
     resizeWidget = null;
     resizeDirection = '';
+  }
+  
+  if (rotateWidget) {
+    rotateWidget.classList.remove('rotating', 'snapping');
+    saveWidgetLayout();
+    rotateWidget = null;
+    rotateStart = { x: 0, y: 0, angle: 0 };
   }
 }
 
