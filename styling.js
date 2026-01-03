@@ -1582,23 +1582,32 @@ function setupScoreboardDragAndDrop() {
     teamEl.addEventListener('dragstart', (e) => {
       draggedElement = teamEl;
       draggedIndex = index;
-      teamEl.style.opacity = '0.5';
+      teamEl.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/html', teamEl.innerHTML);
+      // Add dragging class to all other elements to show they're drop targets
+      teamConfigs.forEach(t => {
+        if (t !== teamEl) {
+          t.style.cursor = 'move';
+        }
+      });
     });
     
     // Drag end
     teamEl.addEventListener('dragend', (e) => {
-      teamEl.style.opacity = '1';
-      // Remove all drag-over classes
+      teamEl.classList.remove('dragging');
+      teamEl.style.cursor = '';
+      // Remove all drag-over classes and reset cursor
       teamConfigs.forEach(t => {
         t.classList.remove('drag-over-above', 'drag-over-below');
+        t.style.cursor = '';
       });
     });
     
     // Drag over
     teamEl.addEventListener('dragover', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       e.dataTransfer.dropEffect = 'move';
       
       if (draggedElement && draggedElement !== teamEl) {
@@ -1606,9 +1615,12 @@ function setupScoreboardDragAndDrop() {
         const mouseY = e.clientY;
         const midpoint = rect.top + rect.height / 2;
         
-        // Remove previous classes
-        teamEl.classList.remove('drag-over-above', 'drag-over-below');
+        // Remove previous classes from all elements
+        teamConfigs.forEach(t => {
+          t.classList.remove('drag-over-above', 'drag-over-below');
+        });
         
+        // Add appropriate class to current target
         if (mouseY < midpoint) {
           teamEl.classList.add('drag-over-above');
         } else {
@@ -1619,7 +1631,14 @@ function setupScoreboardDragAndDrop() {
     
     // Drag leave
     teamEl.addEventListener('dragleave', (e) => {
-      teamEl.classList.remove('drag-over-above', 'drag-over-below');
+      // Only remove classes if we're actually leaving the element
+      const rect = teamEl.getBoundingClientRect();
+      const x = e.clientX;
+      const y = e.clientY;
+      
+      if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+        teamEl.classList.remove('drag-over-above', 'drag-over-below');
+      }
     });
     
     // Drop
