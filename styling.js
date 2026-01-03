@@ -1480,25 +1480,31 @@ function attachTabEventListeners(tabName) {
           });
         }
         
+        const clipartColor = stylingModal.querySelector('#clipart-color');
+        const clipartColorText = stylingModal.querySelector('#clipart-color-text');
         if (clipartColor && clipartColorText) {
           clipartColor.addEventListener('input', (e) => {
             clipartColorText.value = e.target.value;
             currentStyles.clipArtColor = e.target.value;
             updatePreview();
-            updateClipArtPreview();
           });
           clipartColor.addEventListener('change', (e) => {
             clipartColorText.value = e.target.value;
             currentStyles.clipArtColor = e.target.value;
             updatePreview();
-            updateClipArtPreview();
           });
           clipartColorText.addEventListener('input', (e) => {
             if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
               clipartColor.value = e.target.value;
               currentStyles.clipArtColor = e.target.value;
               updatePreview();
-              updateClipArtPreview();
+            }
+          });
+          clipartColorText.addEventListener('change', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+              clipartColor.value = e.target.value;
+              currentStyles.clipArtColor = e.target.value;
+              updatePreview();
             }
           });
         }
