@@ -1617,7 +1617,16 @@ function setupScoreboardDragAndDrop() {
     
     // Drag start
     teamEl.addEventListener('dragstart', (e) => {
-      console.log('🔵 DRAG START:', index, teamEl);
+      // Don't allow drag if clicking directly on an input/select/button (unless it's the drag handle)
+      const target = e.target;
+      if ((target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'BUTTON') && 
+          !target.closest('.scoreboard-drag-handle')) {
+        console.log('🔵 DRAG START prevented - clicked on input/select/button:', target.tagName);
+        e.preventDefault();
+        return;
+      }
+      
+      console.log('🔵 DRAG START:', index, teamEl, 'target:', target.tagName);
       draggedScoreboardElement = teamEl;
       draggedScoreboardIndex = index;
       teamEl.classList.add('dragging');
