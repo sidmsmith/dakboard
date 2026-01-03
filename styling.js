@@ -4234,29 +4234,25 @@ function openPixabayModal() {
         params.append('q', query);
       }
       params.append('safesearch', 'true');
-      params.append('per_page', '50');
+      params.append('per_page', '100');
       
-      // Image type - if "all" is selected or nothing selected, use "all", otherwise use selected types
+      // Image type - single select dropdown
       if (imageTypeSelect) {
-        const selectedTypes = Array.from(imageTypeSelect.selectedOptions).map(opt => opt.value);
-        if (selectedTypes.length === 0 || selectedTypes.includes('all')) {
-          params.append('image_type', 'all');
+        const imageType = imageTypeSelect.value;
+        if (imageType && imageType !== 'all') {
+          params.append('image_type', imageType);
         } else {
-          // Pixabay API only accepts one image_type, so use the first selected
-          params.append('image_type', selectedTypes[0]);
+          params.append('image_type', 'all');
         }
       } else {
         params.append('image_type', 'all');
       }
       
-      // Category - only add if a category is selected
+      // Category - single select dropdown, only add if a category is selected
       if (categorySelect) {
-        const selectedCategories = Array.from(categorySelect.selectedOptions)
-          .map(opt => opt.value)
-          .filter(val => val !== ''); // Remove empty "All Categories" option
-        if (selectedCategories.length > 0) {
-          // Pixabay API only accepts one category, so use the first selected
-          params.append('category', selectedCategories[0]);
+        const category = categorySelect.value;
+        if (category && category !== '') {
+          params.append('category', category);
         }
       }
       
