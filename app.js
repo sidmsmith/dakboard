@@ -2950,14 +2950,23 @@ function updateStopwatchButton(widgetId, container) {
   if (!state) return;
   
   const playPauseBtn = container.querySelector('.stopwatch-play-pause');
-  if (!playPauseBtn) return;
+  const resetBtn = container.querySelector('.stopwatch-reset');
   
-  if (state.isRunning) {
-    playPauseBtn.classList.add('running');
-    playPauseBtn.classList.remove('paused');
-  } else {
-    playPauseBtn.classList.add('paused');
-    playPauseBtn.classList.remove('running');
+  if (playPauseBtn) {
+    // Ensure button is always enabled
+    playPauseBtn.disabled = false;
+    if (state.isRunning) {
+      playPauseBtn.classList.add('running');
+      playPauseBtn.classList.remove('paused');
+    } else {
+      playPauseBtn.classList.add('paused');
+      playPauseBtn.classList.remove('running');
+    }
+  }
+  
+  if (resetBtn) {
+    // Ensure button is always enabled
+    resetBtn.disabled = false;
   }
 }
 
