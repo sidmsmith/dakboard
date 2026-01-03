@@ -4230,27 +4230,43 @@ function selectClipArt(emoji) {
 }
 
 // Helper function to generate CSS filter for image tinting
+// Uses a simpler approach that better matches the selected color
 function generateImageTintFilter(tintColor) {
   if (!tintColor || tintColor === '#ffffff' || tintColor === '#FFFFFF') {
     // White tint: brightness(0) invert(1) makes it white with black lines
     return 'brightness(0) invert(1)';
   }
   
-  // For other colors, we'll use a combination of filters
   // Convert hex to RGB
   const r = parseInt(tintColor.slice(1, 3), 16);
   const g = parseInt(tintColor.slice(3, 5), 16);
   const b = parseInt(tintColor.slice(5, 7), 16);
   
-  // Calculate brightness to determine if it's a light or dark color
+  // Calculate brightness
   const brightness = (r * 299 + g * 587 + b * 114) / 1000;
   
-  if (brightness > 128) {
-    // Light color: use brightness and saturation
-    return `brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(${getHueFromRGB(r, g, b)}deg) brightness(${brightness / 255})`;
+  // Calculate hue from RGB
+  const hue = getHueFromRGB(r, g, b);
+  
+  // Calculate saturation (simplified)
+  const max = Math.max(r, g, b) / 255;
+  const min = Math.min(r, g, b) / 255;
+  const saturation = max === 0 ? 0 : (max - min) / max;
+  
+  // For better color matching, use a combination that preserves the color better
+  // First convert to white, then apply the color
+  if (brightness > 200) {
+    // Very light colors - use invert and hue-rotate
+    return `brightness(0) invert(1) sepia(1) saturate(${Math.max(1, saturation * 3)}) hue-rotate(${hue}deg) brightness(${brightness / 255})`;
+  } else if (brightness > 128) {
+    // Medium-light colors
+    return `brightness(0) invert(1) sepia(1) saturate(${Math.max(2, saturation * 4)}) hue-rotate(${hue}deg) brightness(${brightness / 255})`;
+  } else if (brightness > 64) {
+    // Medium-dark colors
+    return `brightness(0) invert(1) sepia(1) saturate(${Math.max(3, saturation * 5)}) hue-rotate(${hue}deg) brightness(${brightness / 200})`;
   } else {
-    // Dark color: different approach
-    return `brightness(0) saturate(100%) invert(${r / 255}) sepia(1) saturate(5) hue-rotate(${getHueFromRGB(r, g, b)}deg)`;
+    // Dark colors
+    return `brightness(0) saturate(100%) invert(${brightness / 255}) sepia(1) saturate(${Math.max(4, saturation * 6)}) hue-rotate(${hue}deg)`;
   }
 }
 
