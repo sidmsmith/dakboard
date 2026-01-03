@@ -3062,14 +3062,15 @@ let scoreboardWinners = new Map(); // Track which teams have won per widget inst
 
 // Load and initialize scoreboard widgets
 function loadScoreboard() {
-  const scoreboardContainers = document.querySelectorAll('#scoreboard-content');
+  const scoreboardWidgets = document.querySelectorAll('.scoreboard-widget');
   
-  if (scoreboardContainers.length === 0) return;
+  if (scoreboardWidgets.length === 0) return;
   
-  // Initialize all scoreboard widgets across all pages
-  scoreboardContainers.forEach((container) => {
-    const widget = container.closest('.scoreboard-widget');
-    if (!widget) return;
+  scoreboardWidgets.forEach((widget) => {
+    const container = widget.querySelector('.scoreboard-content');
+    if (!container) return;
+  
+    
     
     // Create unique ID for this widget instance
     const pageIndex = typeof currentPageIndex !== 'undefined' ? currentPageIndex : 0;
