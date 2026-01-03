@@ -2769,7 +2769,16 @@ function applyCurrentStylesToWidget(widget) {
   const isSpecialWidget = widgetId === 'calendar-widget' || widgetId === 'whiteboard-widget';
   
   if (!isSpecialWidget) {
-    const widgetHeader = widget.querySelector('.widget-header');
+    // Find the real header (not the minimal edit header)
+    const allHeaders = widget.querySelectorAll('.widget-header');
+    let widgetHeader = null;
+    // Find the header that is NOT a minimal edit header
+    allHeaders.forEach(h => {
+      if (!h.classList.contains('widget-edit-header')) {
+        widgetHeader = h;
+      }
+    });
+    
     if (widgetHeader) {
       // Title visibility
       if (currentStyles.titleVisible !== undefined) {
