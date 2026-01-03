@@ -825,15 +825,20 @@ function generateAdvancedTab() {
     ` : ''}
     ${isBlankWidget ? `
     <div class="styling-form-section">
-      <div class="styling-section-title">Clip Art</div>
+      <div class="styling-section-title">Image</div>
       <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">
+            <input type="checkbox" id="clipart-visible" ${currentStyles.clipArtVisible !== false ? 'checked' : ''} style="margin-right: 8px;"> Show Image
+          </label>
+        </div>
         <div class="styling-form-row">
           <label class="styling-form-label">Select Clip Art</label>
           <div class="styling-form-control">
             <div style="display: flex; gap: 8px;">
-              <button type="button" id="clipart-select-btn" class="styling-btn-secondary" style="flex: 1;">Choose Emoji</button>
-              <button type="button" id="clipart-pixabay-btn" class="styling-btn-secondary" style="flex: 1;">Pixabay</button>
-              <button type="button" id="clipart-nounproject-btn" class="styling-btn-secondary" style="flex: 1;">Noun Project</button>
+              <button type="button" id="clipart-select-btn" class="styling-btn-secondary" style="flex: 1;" ${currentStyles.clipArtVisible === false ? 'disabled' : ''}>Choose Emoji</button>
+              <button type="button" id="clipart-pixabay-btn" class="styling-btn-secondary" style="flex: 1;" ${currentStyles.clipArtVisible === false ? 'disabled' : ''}>Pixabay</button>
+              <button type="button" id="clipart-nounproject-btn" class="styling-btn-secondary" style="flex: 1;" ${currentStyles.clipArtVisible === false ? 'disabled' : ''}>Noun Project</button>
             </div>
           </div>
         </div>
@@ -1456,6 +1461,26 @@ function attachTabEventListeners(tabName) {
       
       // Clip art widget controls
       if (currentWidgetId === 'blank-widget') {
+        // Image visibility checkbox
+        const clipartVisible = stylingModal.querySelector('#clipart-visible');
+        if (clipartVisible) {
+          clipartVisible.addEventListener('change', (e) => {
+            currentStyles.clipArtVisible = e.target.checked;
+            const clipartSelectBtn = stylingModal.querySelector('#clipart-select-btn');
+            const pixabayBtn = stylingModal.querySelector('#clipart-pixabay-btn');
+            const nounprojectBtn = stylingModal.querySelector('#clipart-nounproject-btn');
+            
+            // Enable/disable buttons based on visibility
+            if (clipartSelectBtn) clipartSelectBtn.disabled = !e.target.checked;
+            if (pixabayBtn) pixabayBtn.disabled = !e.target.checked;
+            if (nounprojectBtn) nounprojectBtn.disabled = !e.target.checked;
+            
+            // Apply immediately to widget
+            applyCurrentStylesToWidget(currentWidget);
+            updatePreview();
+          });
+        }
+        
         const clipartSelectBtn = stylingModal.querySelector('#clipart-select-btn');
         const pixabayBtn = stylingModal.querySelector('#clipart-pixabay-btn');
         const nounprojectBtn = stylingModal.querySelector('#clipart-nounproject-btn');
@@ -2375,6 +2400,7 @@ function updatePreview() {
     `;
   } else if (currentWidgetId === 'blank-widget') {
     // Render clip art preview
+    const clipArtVisible = currentStyles.clipArtVisible !== false; // Default to true
     const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
     const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
     const clipArtTintColor = currentStyles.clipArtTintColor || '#ffffff';
@@ -2382,7 +2408,11 @@ function updatePreview() {
     const clipArtShadowEnabled = currentStyles.clipArtShadowEnabled !== false; // Default to true
     const clipArtTintEnabled = currentStyles.clipArtTintEnabled !== false; // Default to true
     let previewHtml = '';
-    if (clipArtImageUrl) {
+    
+    if (!clipArtVisible) {
+      // Image is hidden
+      previewHtml = '';
+    } else if (clipArtImageUrl) {
       // Build filter string with shadow and tint (only if enabled)
       const shadowFilter = (clipArtShadowEnabled && clipArtColor) ? `drop-shadow(0 0 12px ${clipArtColor})` : '';
       const tintFilter = clipArtTintEnabled ? generateImageTintFilter(clipArtTintColor) : '';
