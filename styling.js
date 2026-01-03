@@ -1464,7 +1464,7 @@ function attachTabEventListeners(tabName) {
         // Image visibility checkbox
         const clipartVisible = stylingModal.querySelector('#clipart-visible');
         if (clipartVisible) {
-          clipartVisible.addEventListener('change', (e) => {
+          const handleVisibilityChange = (e) => {
             currentStyles.clipArtVisible = e.target.checked;
             const clipartSelectBtn = stylingModal.querySelector('#clipart-select-btn');
             const pixabayBtn = stylingModal.querySelector('#clipart-pixabay-btn');
@@ -1475,10 +1475,16 @@ function attachTabEventListeners(tabName) {
             if (pixabayBtn) pixabayBtn.disabled = !e.target.checked;
             if (nounprojectBtn) nounprojectBtn.disabled = !e.target.checked;
             
+            // Update preview immediately
+            updatePreview();
+            
             // Apply immediately to widget
             applyCurrentStylesToWidget(currentWidget);
-            updatePreview();
-          });
+          };
+          
+          // Attach both 'change' and 'input' events for immediate feedback
+          clipartVisible.addEventListener('change', handleVisibilityChange);
+          clipartVisible.addEventListener('input', handleVisibilityChange);
         }
         
         const clipartSelectBtn = stylingModal.querySelector('#clipart-select-btn');
