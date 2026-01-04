@@ -91,8 +91,16 @@ function openStylingModal(fullWidgetId) {
   // Load current styles from localStorage FIRST
   loadWidgetStyles(fullWidgetId);
   
-  // Then read actual computed styles from widget element to sync with reality
-  readStylesFromWidget(widget);
+  // Only read from widget if no saved styles exist (to sync with reality for new widgets)
+  // Otherwise, trust localStorage - it's the source of truth
+  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
+    ? window.currentPageIndex 
+    : pageIndex;
+  const saved = localStorage.getItem(`dakboard-widget-styles-${fullWidgetId}-page-${currentPageIndex}`);
+  if (!saved) {
+    // No saved styles, read from widget element
+    readStylesFromWidget(widget);
+  }
   
   // Show modal
   document.getElementById('styling-modal').classList.add('active');
