@@ -93,10 +93,10 @@ function openStylingModal(fullWidgetId) {
   
   // Only read from widget if no saved styles exist (to sync with reality for new widgets)
   // Otherwise, trust localStorage - it's the source of truth
-  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
+  const savedPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
     ? window.currentPageIndex 
     : pageIndex;
-  const saved = localStorage.getItem(`dakboard-widget-styles-${fullWidgetId}-page-${currentPageIndex}`);
+  const saved = localStorage.getItem(`dakboard-widget-styles-${fullWidgetId}-page-${savedPageIndex}`);
   if (!saved) {
     // No saved styles, read from widget element
     readStylesFromWidget(widget);
