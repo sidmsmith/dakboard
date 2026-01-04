@@ -1554,7 +1554,7 @@ function attachTabEventListeners(tabName) {
         const clipartVisibleCheckbox = stylingModal.querySelector('#clipart-visible');
         
         if (clipartSelectBtn) {
-          // Remove any existing listeners to prevent duplicates
+          // Remove any existing listeners by cloning
           const newBtn = clipartSelectBtn.cloneNode(true);
           clipartSelectBtn.parentNode.replaceChild(newBtn, clipartSelectBtn);
           
@@ -1562,22 +1562,26 @@ function attachTabEventListeners(tabName) {
           const isVisible = clipartVisibleCheckbox ? clipartVisibleCheckbox.checked : (currentStyles.clipArtVisible !== false);
           newBtn.disabled = !isVisible;
           
-          newBtn.addEventListener('click', (e) => {
+          // Attach click handler - use direct function call
+          newBtn.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
             if (newBtn.disabled) {
               return;
             }
-            if (typeof openClipArtModal === 'function') {
+            // Call the function directly - it's defined in global scope
+            if (window.openClipArtModal) {
+              window.openClipArtModal();
+            } else if (typeof openClipArtModal === 'function') {
               openClipArtModal();
             } else {
               console.error('openClipArtModal function not found');
             }
-          });
+          };
         }
         
         if (pixabayBtn) {
-          // Remove any existing listeners to prevent duplicates
+          // Remove any existing listeners by cloning
           const newBtn = pixabayBtn.cloneNode(true);
           pixabayBtn.parentNode.replaceChild(newBtn, pixabayBtn);
           
@@ -1585,18 +1589,22 @@ function attachTabEventListeners(tabName) {
           const isVisible = clipartVisibleCheckbox ? clipartVisibleCheckbox.checked : (currentStyles.clipArtVisible !== false);
           newBtn.disabled = !isVisible;
           
-          newBtn.addEventListener('click', (e) => {
+          // Attach click handler - use direct function call
+          newBtn.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
             if (newBtn.disabled) {
               return;
             }
-            if (typeof openPixabayModal === 'function') {
+            // Call the function directly - it's defined in global scope
+            if (window.openPixabayModal) {
+              window.openPixabayModal();
+            } else if (typeof openPixabayModal === 'function') {
               openPixabayModal();
             } else {
               console.error('openPixabayModal function not found');
             }
-          });
+          };
         }
         
         const clipartShadowEnabled = stylingModal.querySelector('#clipart-shadow-enabled');
@@ -4658,8 +4666,8 @@ function getHueFromRGB(r, g, b) {
   return h;
 }
 
-// Open Pixabay modal
-function openPixabayModal() {
+// Open Pixabay modal (make globally accessible)
+window.openPixabayModal = function openPixabayModal() {
   const modal = document.getElementById('pixabay-modal');
   const grid = document.getElementById('pixabay-grid');
   const searchInput = document.getElementById('pixabay-search');

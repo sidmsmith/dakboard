@@ -5668,6 +5668,10 @@ function cloneWidget(fullWidgetId) {
     
     // Initialize the cloned widget
     initializeWidgetInstance(newFullId, cloned);
+    
+    // Save visibility state immediately so widget persists after refresh
+    saveWidgetVisibility();
+    
     updateWidgetControlPanel();
     return;
   }
@@ -5690,6 +5694,9 @@ function cloneWidget(fullWidgetId) {
   
   // Initialize the cloned widget
   initializeWidgetInstance(newFullId, cloned);
+  
+  // Save visibility state immediately so widget persists after refresh
+  saveWidgetVisibility();
   
   // Update control panel
   updateWidgetControlPanel();
@@ -5820,6 +5827,14 @@ function moveWidgetToPage(fullWidgetId, targetPageIndex) {
     
     // Initialize on target page
     initializeWidgetInstance(newFullId, cloned);
+    
+    // Save visibility state for target page immediately
+    const tempPageIndex = currentPageIndex;
+    currentPageIndex = targetPageIndex;
+    window.currentPageIndex = targetPageIndex;
+    saveWidgetVisibility();
+    currentPageIndex = tempPageIndex;
+    window.currentPageIndex = tempPageIndex;
   } else {
     // Create from template if widget doesn't exist
     const templateWidget = document.querySelector(`.${widgetType}`);
@@ -5829,6 +5844,14 @@ function moveWidgetToPage(fullWidgetId, targetPageIndex) {
       cloned.classList.remove('hidden');
       targetPageElement.appendChild(cloned);
       initializeWidgetInstance(newFullId, cloned);
+      
+      // Save visibility state for target page immediately
+      const tempPageIndex = currentPageIndex;
+      currentPageIndex = targetPageIndex;
+      window.currentPageIndex = targetPageIndex;
+      saveWidgetVisibility();
+      currentPageIndex = tempPageIndex;
+      window.currentPageIndex = tempPageIndex;
     }
   }
   
