@@ -3300,9 +3300,36 @@ function loadWidgetStyles(fullWidgetId) {
   const pageIndex = parsed.pageIndex;
   const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : pageIndex;
   
+  // DEBUG: Log for clock widget only
+  if (widgetType === 'clock-widget') {
+    console.log('=== loadWidgetStyles DEBUG (clock-widget) ===');
+    console.log('fullWidgetId:', fullWidgetId);
+    console.log('widgetType:', widgetType);
+    console.log('pageIndex:', pageIndex);
+    console.log('currentPageIndex:', currentPageIndex);
+    const storageKey = `dakboard-widget-styles-${fullWidgetId}-page-${currentPageIndex}`;
+    console.log('Storage key:', storageKey);
+  }
+  
   const saved = localStorage.getItem(`dakboard-widget-styles-${fullWidgetId}-page-${currentPageIndex}`);
+  
+  // DEBUG: Log for clock widget only
+  if (widgetType === 'clock-widget') {
+    console.log('Saved data from localStorage:', saved);
+  }
+  
   if (saved) {
     currentStyles = JSON.parse(saved);
+    
+    // DEBUG: Log for clock widget only
+    if (widgetType === 'clock-widget') {
+      console.log('Parsed currentStyles:', JSON.stringify(currentStyles, null, 2));
+      console.log('Background type:', currentStyles.backgroundType);
+      console.log('Background color:', currentStyles.backgroundColor);
+      console.log('Gradient color1:', currentStyles.gradientColor1);
+      console.log('Gradient color2:', currentStyles.gradientColor2);
+      console.log('Gradient direction:', currentStyles.gradientDirection);
+    }
     // For existing widgets, set textColorDynamic based on whether textColor exists
     // If textColor is set and not the default, assume it was manually set (dynamic = false)
     // If textColor is not set or is default, assume dynamic (dynamic = true)
@@ -3339,6 +3366,11 @@ function loadWidgetStyles(fullWidgetId) {
       padding: 24,
       widgetOpacity: 100
     };
+    
+    // DEBUG: Log for clock widget only
+    if (widgetType === 'clock-widget') {
+      console.log('No saved styles found, using defaults:', JSON.stringify(currentStyles, null, 2));
+    }
   }
   
   // Ensure titleVisible is set for existing widgets (migration)
