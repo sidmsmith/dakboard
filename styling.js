@@ -93,10 +93,8 @@ function openStylingModal(fullWidgetId) {
   
   // Only read from widget if no saved styles exist (to sync with reality for new widgets)
   // Otherwise, trust localStorage - it's the source of truth
-  const savedPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') 
-    ? window.currentPageIndex 
-    : pageIndex;
-  const saved = localStorage.getItem(`dakboard-widget-styles-${fullWidgetId}-page-${savedPageIndex}`);
+  // Storage key: fullWidgetId already includes page index, so don't add it again
+  const saved = localStorage.getItem(`dakboard-widget-styles-${fullWidgetId}`);
   if (!saved) {
     // No saved styles, read from widget element
     readStylesFromWidget(widget);
@@ -3324,6 +3322,10 @@ function loadWidgetStyles(fullWidgetId) {
   const pageIndex = parsed.pageIndex;
   const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : pageIndex;
   
+  // Storage key: fullWidgetId already includes page index, so don't add it again
+  // Format: dakboard-widget-styles-{widgetType}-page-{pageIndex}-instance-{instanceIndex}
+  const storageKey = `dakboard-widget-styles-${fullWidgetId}`;
+  
   // DEBUG: Log for clock widget only
   if (widgetType === 'clock-widget') {
     console.log('=== loadWidgetStyles DEBUG (clock-widget) ===');
@@ -3331,11 +3333,10 @@ function loadWidgetStyles(fullWidgetId) {
     console.log('widgetType:', widgetType);
     console.log('pageIndex:', pageIndex);
     console.log('currentPageIndex:', currentPageIndex);
-    const storageKey = `dakboard-widget-styles-${fullWidgetId}-page-${currentPageIndex}`;
     console.log('Storage key:', storageKey);
   }
   
-  const saved = localStorage.getItem(`dakboard-widget-styles-${fullWidgetId}-page-${currentPageIndex}`);
+  const saved = localStorage.getItem(storageKey);
   
   // DEBUG: Log for clock widget only
   if (widgetType === 'clock-widget') {
@@ -3455,8 +3456,9 @@ function readStylesFromWidget(widget) {
     // Try to extract gradient colors and direction from the gradient string
     // Format: linear-gradient(direction, color1, color2) or linear-gradient(color1, color2)
     // Handle both with and without direction, and rgba colors
-    // First try with direction: linear-gradient(direction, color1, color2)
-    let gradientMatch = bgImage.match(/linear-gradient\(([^,]+),\s*([^,()]+(?:\([^)]+\))?[^,()]*),\s*([^,()]+(?:\([^)]+\))?[^,()]*)\)/);
+    // Better regex that properly captures rgba/rgb colors with commas
+    // Match: linear-gradient(direction, rgba(...), rgba(...)) or linear-gradient(rgba(...), rgba(...))
+    let gradientMatch = bgImage.match(/linear-gradient\s*\(\s*([^,]+?)\s*,\s*(rgba?\([^)]+\)|[^,)]+)\s*,\s*(rgba?\([^)]+\)|[^,)]+)\s*\)/);
     
     if (gradientMatch) {
       const part1 = gradientMatch[1].trim();
@@ -3478,8 +3480,7 @@ function readStylesFromWidget(widget) {
       }
     } else {
       // Try format without direction: linear-gradient(color1, color2)
-      // This regex handles rgba colors with parentheses
-      gradientMatch = bgImage.match(/linear-gradient\(([^,()]+(?:\([^)]+\))?[^,()]*),\s*([^,()]+(?:\([^)]+\))?[^,()]*)\)/);
+      gradientMatch = bgImage.match(/linear-gradient\s*\(\s*(rgba?\([^)]+\)|[^,)]+)\s*,\s*(rgba?\([^)]+\)|[^,)]+)\s*\)/);
       if (gradientMatch) {
         currentStyles.gradientDirection = 'to bottom'; // Default
         currentStyles.gradientColor1 = rgbaToHex(gradientMatch[1].trim()) || gradientMatch[1].trim();
@@ -3487,16 +3488,16 @@ function readStylesFromWidget(widget) {
       }
     }
     
-    // If we still don't have colors, try to extract from the raw string
+    // If we still don't have colors, try to extract rgba/rgb colors from the raw string
     if (!currentStyles.gradientColor1 || !currentStyles.gradientColor2) {
-      // Last resort: try a simpler extraction
-      const simpleMatch = bgImage.match(/rgba?\([^)]+\)/g);
-      if (simpleMatch && simpleMatch.length >= 2) {
+      // Last resort: extract all rgba/rgb colors
+      const colorMatches = bgImage.match(/rgba?\([^)]+\)/g);
+      if (colorMatches && colorMatches.length >= 2) {
         if (!currentStyles.gradientColor1) {
-          currentStyles.gradientColor1 = rgbaToHex(simpleMatch[0]) || simpleMatch[0];
+          currentStyles.gradientColor1 = rgbaToHex(colorMatches[0]) || colorMatches[0];
         }
         if (!currentStyles.gradientColor2) {
-          currentStyles.gradientColor2 = rgbaToHex(simpleMatch[1]) || simpleMatch[1];
+          currentStyles.gradientColor2 = rgbaToHex(colorMatches[1]) || colorMatches[1];
         }
       }
     }
@@ -3612,8 +3613,8 @@ function rgbaToHex(rgba) {
 // Save styles (page-specific)
 function saveStyles() {
   if (currentWidgetId) {
-    const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
-    localStorage.setItem(`dakboard-widget-styles-${currentWidgetId}-page-${currentPageIndex}`, JSON.stringify(currentStyles));
+    // Storage key: fullWidgetId already includes page index, so don't add it again
+    localStorage.setItem(`dakboard-widget-styles-${currentWidgetId}`, JSON.stringify(currentStyles));
   }
 }
 
