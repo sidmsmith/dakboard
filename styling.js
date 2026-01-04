@@ -88,8 +88,11 @@ function openStylingModal(fullWidgetId) {
   document.getElementById('styling-modal-title').textContent = `🎨 Style Widget: ${widgetTitle}`;
   document.getElementById('styling-preview-title').textContent = config.icon + ' ' + widgetTitle;
 
-  // Load current styles FIRST
+  // Load current styles from localStorage FIRST
   loadWidgetStyles(fullWidgetId);
+  
+  // Then read actual computed styles from widget element to sync with reality
+  readStylesFromWidget(widget);
   
   // Show modal
   document.getElementById('styling-modal').classList.add('active');
