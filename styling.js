@@ -162,12 +162,36 @@ function generateTabContent(tabName) {
 
 // Generate Background Tab (for widget background styling)
 function generateBackgroundTab() {
+  // DEBUG: Log for clock widget only
+  const parsed = typeof parseWidgetId !== 'undefined' && currentWidgetId ? parseWidgetId(currentWidgetId) : { widgetType: currentWidgetId || '', pageIndex: 0, instanceIndex: 0, isLegacy: true };
+  const widgetType = parsed.widgetType;
+  if (widgetType === 'clock-widget') {
+    console.log('=== generateBackgroundTab DEBUG (clock-widget) ===');
+    console.log('currentStyles:', JSON.stringify(currentStyles, null, 2));
+    console.log('currentStyles.backgroundType:', currentStyles.backgroundType);
+    console.log('currentStyles.backgroundColor:', currentStyles.backgroundColor);
+    console.log('currentStyles.gradientColor1:', currentStyles.gradientColor1);
+    console.log('currentStyles.gradientColor2:', currentStyles.gradientColor2);
+    console.log('currentStyles.gradientDirection:', currentStyles.gradientDirection);
+  }
+  
   const bgColor = currentStyles.backgroundColor || '#2a2a2a';
   const bgType = currentStyles.backgroundType || 'solid';
   const opacity = currentStyles.opacity !== undefined ? currentStyles.opacity : 100;
   const gradientColor1 = currentStyles.gradientColor1 || '#2a2a2a';
   const gradientColor2 = currentStyles.gradientColor2 || '#3a3a3a';
   const gradientDirection = currentStyles.gradientDirection || 'to bottom';
+  
+  // DEBUG: Log for clock widget only
+  if (widgetType === 'clock-widget') {
+    console.log('Values used in form:');
+    console.log('bgColor:', bgColor);
+    console.log('bgType:', bgType);
+    console.log('gradientColor1:', gradientColor1);
+    console.log('gradientColor2:', gradientColor2);
+    console.log('gradientDirection:', gradientDirection);
+    console.log('=== END generateBackgroundTab DEBUG ===');
+  }
   const backgroundImageUrl = currentStyles.backgroundImageUrl || '';
   const backgroundRepeat = currentStyles.backgroundRepeat || 'no-repeat';
   const backgroundPosition = currentStyles.backgroundPosition || 'center';
