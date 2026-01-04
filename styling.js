@@ -163,33 +163,12 @@ function generateBackgroundTab() {
   // DEBUG: Log for clock widget only
   const parsed = typeof parseWidgetId !== 'undefined' && currentWidgetId ? parseWidgetId(currentWidgetId) : { widgetType: currentWidgetId || '', pageIndex: 0, instanceIndex: 0, isLegacy: true };
   const widgetType = parsed.widgetType;
-  if (widgetType === 'clock-widget') {
-    console.log('=== generateBackgroundTab DEBUG (clock-widget) ===');
-    console.log('currentStyles:', JSON.stringify(currentStyles, null, 2));
-    console.log('currentStyles.backgroundType:', currentStyles.backgroundType);
-    console.log('currentStyles.backgroundColor:', currentStyles.backgroundColor);
-    console.log('currentStyles.gradientColor1:', currentStyles.gradientColor1);
-    console.log('currentStyles.gradientColor2:', currentStyles.gradientColor2);
-    console.log('currentStyles.gradientDirection:', currentStyles.gradientDirection);
-  }
-  
   const bgColor = currentStyles.backgroundColor || '#2a2a2a';
   const bgType = currentStyles.backgroundType || 'solid';
   const opacity = currentStyles.opacity !== undefined ? currentStyles.opacity : 100;
   const gradientColor1 = currentStyles.gradientColor1 || '#2a2a2a';
   const gradientColor2 = currentStyles.gradientColor2 || '#3a3a3a';
   const gradientDirection = currentStyles.gradientDirection || 'to bottom';
-  
-  // DEBUG: Log for clock widget only
-  if (widgetType === 'clock-widget') {
-    console.log('Values used in form:');
-    console.log('bgColor:', bgColor);
-    console.log('bgType:', bgType);
-    console.log('gradientColor1:', gradientColor1);
-    console.log('gradientColor2:', gradientColor2);
-    console.log('gradientDirection:', gradientDirection);
-    console.log('=== END generateBackgroundTab DEBUG ===');
-  }
   const backgroundImageUrl = currentStyles.backgroundImageUrl || '';
   const backgroundRepeat = currentStyles.backgroundRepeat || 'no-repeat';
   const backgroundPosition = currentStyles.backgroundPosition || 'center';
@@ -1587,18 +1566,14 @@ function attachTabEventListeners(tabName) {
             e.preventDefault();
             e.stopPropagation();
             if (newBtn.disabled) {
-              console.log('clipart-select-btn is disabled, not opening modal');
               return;
             }
-            console.log('clipart-select-btn clicked, opening modal');
             if (typeof openClipArtModal === 'function') {
               openClipArtModal();
             } else {
               console.error('openClipArtModal function not found');
             }
           });
-        } else {
-          console.warn('clipart-select-btn not found in styling modal');
         }
         
         if (pixabayBtn) {
@@ -1614,18 +1589,14 @@ function attachTabEventListeners(tabName) {
             e.preventDefault();
             e.stopPropagation();
             if (newBtn.disabled) {
-              console.log('pixabay-btn is disabled, not opening modal');
               return;
             }
-            console.log('pixabay-btn clicked, opening modal');
             if (typeof openPixabayModal === 'function') {
               openPixabayModal();
             } else {
               console.error('openPixabayModal function not found');
             }
           });
-        } else {
-          console.warn('pixabay-btn not found in styling modal');
         }
         
         const clipartShadowEnabled = stylingModal.querySelector('#clipart-shadow-enabled');
@@ -2410,7 +2381,7 @@ function updatePreview() {
 
   // Update preview content for dice widget
   const previewContent = preview.querySelector('.styling-preview-content');
-  if (previewContent && currentWidgetId === 'dice-widget') {
+  if (previewContent && widgetType === 'dice-widget') {
     const diceFaceColor = currentStyles.diceFaceColor || '#4a90e2';
     const diceDotColor = currentStyles.diceDotColor || '#ffffff';
     
@@ -2586,7 +2557,7 @@ function updatePreview() {
     if (previewContent) {
       previewContent.innerHTML = previewHtml;
     }
-  } else if (previewContent && currentWidgetId !== 'dice-widget') {
+  } else if (previewContent && widgetType !== 'dice-widget' && widgetType !== 'blank-widget' && widgetType !== 'scoreboard-widget') {
     // Reset to default text for other widgets
     previewContent.innerHTML = 'Preview updates in real-time as you adjust settings';
   }
@@ -3378,26 +3349,10 @@ function loadWidgetStyles(fullWidgetId) {
   const storageKey = `dakboard-widget-styles-${fullWidgetId}`;
   
   // DEBUG: Log for clock widget only
-  if (widgetType === 'clock-widget') {
-    console.log('=== loadWidgetStyles DEBUG (clock-widget) ===');
-    console.log('fullWidgetId:', fullWidgetId);
-    console.log('widgetType:', widgetType);
-    console.log('pageIndex:', pageIndex);
-    console.log('currentPageIndex:', currentPageIndex);
-    console.log('Storage key:', storageKey);
-  }
-  
   const saved = localStorage.getItem(storageKey);
-  
-  // DEBUG: Log for clock widget only
-  if (widgetType === 'clock-widget') {
-    console.log('Saved data from localStorage:', saved);
-  }
   
   if (saved) {
     currentStyles = JSON.parse(saved);
-    
-    // DEBUG: Log for clock widget only
     if (widgetType === 'clock-widget') {
       console.log('Parsed currentStyles:', JSON.stringify(currentStyles, null, 2));
       console.log('Background type:', currentStyles.backgroundType);
