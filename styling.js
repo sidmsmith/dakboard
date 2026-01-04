@@ -3390,8 +3390,9 @@ function readStylesFromWidget(widget) {
     
     // Try to extract gradient colors and direction from the gradient string
     // Format: linear-gradient(direction, color1, color2) or linear-gradient(color1, color2)
-    // Handle both with and without direction
-    let gradientMatch = bgImage.match(/linear-gradient\(([^,]+),\s*([^,]+),\s*([^)]+)\)/);
+    // Handle both with and without direction, and rgba colors
+    // First try with direction: linear-gradient(direction, color1, color2)
+    let gradientMatch = bgImage.match(/linear-gradient\(([^,]+),\s*([^,()]+(?:\([^)]+\))?[^,()]*),\s*([^,()]+(?:\([^)]+\))?[^,()]*)\)/);
     
     if (gradientMatch) {
       const part1 = gradientMatch[1].trim();
@@ -3402,6 +3403,7 @@ function readStylesFromWidget(widget) {
       if (part1.includes('to ') || part1.includes('deg') || /^\d+$/.test(part1)) {
         // Has direction
         currentStyles.gradientDirection = part1;
+        // Convert rgba to hex for both colors
         currentStyles.gradientColor1 = rgbaToHex(part2) || part2;
         currentStyles.gradientColor2 = rgbaToHex(part3) || part3;
       } else {
@@ -3412,11 +3414,26 @@ function readStylesFromWidget(widget) {
       }
     } else {
       // Try format without direction: linear-gradient(color1, color2)
-      gradientMatch = bgImage.match(/linear-gradient\(([^,]+),\s*([^)]+)\)/);
+      // This regex handles rgba colors with parentheses
+      gradientMatch = bgImage.match(/linear-gradient\(([^,()]+(?:\([^)]+\))?[^,()]*),\s*([^,()]+(?:\([^)]+\))?[^,()]*)\)/);
       if (gradientMatch) {
         currentStyles.gradientDirection = 'to bottom'; // Default
         currentStyles.gradientColor1 = rgbaToHex(gradientMatch[1].trim()) || gradientMatch[1].trim();
         currentStyles.gradientColor2 = rgbaToHex(gradientMatch[2].trim()) || gradientMatch[2].trim();
+      }
+    }
+    
+    // If we still don't have colors, try to extract from the raw string
+    if (!currentStyles.gradientColor1 || !currentStyles.gradientColor2) {
+      // Last resort: try a simpler extraction
+      const simpleMatch = bgImage.match(/rgba?\([^)]+\)/g);
+      if (simpleMatch && simpleMatch.length >= 2) {
+        if (!currentStyles.gradientColor1) {
+          currentStyles.gradientColor1 = rgbaToHex(simpleMatch[0]) || simpleMatch[0];
+        }
+        if (!currentStyles.gradientColor2) {
+          currentStyles.gradientColor2 = rgbaToHex(simpleMatch[1]) || simpleMatch[1];
+        }
       }
     }
     
