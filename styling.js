@@ -4537,8 +4537,8 @@ const CLIPART_EMOJIS = [
   '🧩', '🎯', '🎲', '🎳', '🎮', '🕹️', '🎰', '🎲', '🎯', '🎪'
 ];
 
-// Open clip art selection modal
-function openClipArtModal() {
+// Open clip art selection modal (make globally accessible)
+window.openClipArtModal = function openClipArtModal() {
   const modal = document.getElementById('clipart-modal');
   const grid = document.getElementById('clipart-grid');
   if (!modal || !grid) return;
