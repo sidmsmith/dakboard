@@ -3374,6 +3374,132 @@ function loadWidgetStyles(fullWidgetId) {
   }
 }
 
+// Read styles from actual widget element (to sync with computed styles)
+function readStylesFromWidget(widget) {
+  if (!widget) return;
+  
+  const computed = window.getComputedStyle(widget);
+  
+  // Detect background type
+  const bgImage = computed.backgroundImage;
+  const bgColor = computed.backgroundColor;
+  
+  // Check if it's a gradient
+  if (bgImage && bgImage.includes('gradient')) {
+    currentStyles.backgroundType = 'gradient';
+    
+    // Try to extract gradient colors and direction from the gradient string
+    // Format: linear-gradient(direction, color1, color2)
+    const gradientMatch = bgImage.match(/linear-gradient\(([^,]+),\s*([^,]+),\s*([^)]+)\)/);
+    if (gradientMatch) {
+      currentStyles.gradientDirection = gradientMatch[1].trim();
+      
+      // Extract colors (might be rgba or hex)
+      const color1 = gradientMatch[2].trim();
+      const color2 = gradientMatch[3].trim();
+      
+      // Convert rgba to hex if needed
+      currentStyles.gradientColor1 = rgbaToHex(color1) || color1;
+      currentStyles.gradientColor2 = rgbaToHex(color2) || color2;
+    }
+  }
+  // Check if it's an image
+  else if (bgImage && bgImage.includes('url(')) {
+    currentStyles.backgroundType = 'image';
+    
+    // Extract URL from background-image
+    const urlMatch = bgImage.match(/url\(['"]?([^'"]+)['"]?\)/);
+    if (urlMatch) {
+      currentStyles.backgroundImageUrl = urlMatch[1];
+    }
+    
+    currentStyles.backgroundRepeat = computed.backgroundRepeat || 'no-repeat';
+    currentStyles.backgroundPosition = computed.backgroundPosition || 'center';
+    currentStyles.backgroundSize = computed.backgroundSize || 'cover';
+  }
+  // Check if it's transparent
+  else if (bgColor === 'transparent' || bgColor === 'rgba(0, 0, 0, 0)') {
+    currentStyles.backgroundType = 'transparent';
+  }
+  // Otherwise it's solid
+  else {
+    currentStyles.backgroundType = 'solid';
+    // Convert rgba to hex if needed
+    currentStyles.backgroundColor = rgbaToHex(bgColor) || bgColor;
+  }
+  
+  // Extract opacity from rgba if present
+  if (bgColor && bgColor.includes('rgba')) {
+    const rgbaMatch = bgColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+    if (rgbaMatch && rgbaMatch[4]) {
+      currentStyles.opacity = Math.round(parseFloat(rgbaMatch[4]) * 100);
+    }
+  } else if (widget.style.opacity) {
+    currentStyles.opacity = Math.round(parseFloat(widget.style.opacity) * 100);
+  }
+  
+  // Read border styles
+  if (computed.borderColor && computed.borderColor !== 'rgba(0, 0, 0, 0)') {
+    currentStyles.borderColor = rgbaToHex(computed.borderColor) || computed.borderColor;
+  }
+  if (computed.borderWidth && computed.borderWidth !== '0px') {
+    currentStyles.borderWidth = parseInt(computed.borderWidth);
+  }
+  if (computed.borderStyle && computed.borderStyle !== 'none') {
+    currentStyles.borderStyle = computed.borderStyle;
+  }
+  if (computed.borderRadius && computed.borderRadius !== '0px') {
+    currentStyles.borderRadius = parseInt(computed.borderRadius);
+  }
+  
+  // Read shadow
+  if (computed.boxShadow && computed.boxShadow !== 'none') {
+    // Parse box-shadow: x y blur spread color
+    const shadowMatch = computed.boxShadow.match(/([-\d.]+)px\s+([-\d.]+)px\s+([-\d.]+)px\s+([-\d.]+)px\s+(.+)/);
+    if (shadowMatch) {
+      currentStyles.shadowX = parseInt(shadowMatch[1]);
+      currentStyles.shadowY = parseInt(shadowMatch[2]);
+      currentStyles.shadowBlur = parseInt(shadowMatch[3]);
+      currentStyles.shadowSpread = parseInt(shadowMatch[4]);
+      currentStyles.shadowColor = shadowMatch[5].trim();
+    }
+  }
+}
+
+// Helper function to convert rgba to hex
+function rgbaToHex(rgba) {
+  if (!rgba) return null;
+  
+  // If it's already hex, return it
+  if (rgba.startsWith('#')) return rgba;
+  
+  // Parse rgba
+  const rgbaMatch = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
+  if (rgbaMatch) {
+    const r = parseInt(rgbaMatch[1]);
+    const g = parseInt(rgbaMatch[2]);
+    const b = parseInt(rgbaMatch[3]);
+    return '#' + [r, g, b].map(x => {
+      const hex = x.toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    }).join('');
+  }
+  
+  // Try to parse rgb
+  const rgbMatch = rgba.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (rgbMatch) {
+    const r = parseInt(rgbMatch[1]);
+    const g = parseInt(rgbMatch[2]);
+    const b = parseInt(rgbMatch[3]);
+    return '#' + [r, g, b].map(x => {
+      const hex = x.toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    }).join('');
+  }
+  
+  return null;
+}
+
 // Save styles (page-specific)
 function saveStyles() {
   if (currentWidgetId) {
