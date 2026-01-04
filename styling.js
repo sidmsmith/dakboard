@@ -1568,19 +1568,44 @@ function attachTabEventListeners(tabName) {
           clipartVisible.addEventListener('input', handleVisibilityChange);
         }
         
+        // Get buttons again (they might have been created in the visibility handler above)
         const clipartSelectBtn = stylingModal.querySelector('#clipart-select-btn');
         const pixabayBtn = stylingModal.querySelector('#clipart-pixabay-btn');
         
         if (clipartSelectBtn) {
-          clipartSelectBtn.addEventListener('click', () => {
-            openClipArtModal();
+          // Remove any existing listeners to prevent duplicates
+          const newBtn = clipartSelectBtn.cloneNode(true);
+          clipartSelectBtn.parentNode.replaceChild(newBtn, clipartSelectBtn);
+          newBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('clipart-select-btn clicked, opening modal');
+            if (typeof openClipArtModal === 'function') {
+              openClipArtModal();
+            } else {
+              console.error('openClipArtModal function not found');
+            }
           });
+        } else {
+          console.warn('clipart-select-btn not found in styling modal');
         }
         
         if (pixabayBtn) {
-          pixabayBtn.addEventListener('click', () => {
-            openPixabayModal();
+          // Remove any existing listeners to prevent duplicates
+          const newBtn = pixabayBtn.cloneNode(true);
+          pixabayBtn.parentNode.replaceChild(newBtn, pixabayBtn);
+          newBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('pixabay-btn clicked, opening modal');
+            if (typeof openPixabayModal === 'function') {
+              openPixabayModal();
+            } else {
+              console.error('openPixabayModal function not found');
+            }
           });
+        } else {
+          console.warn('pixabay-btn not found in styling modal');
         }
         
         const clipartShadowEnabled = stylingModal.querySelector('#clipart-shadow-enabled');
