@@ -5017,6 +5017,37 @@ function loadWidgetVisibility() {
           }
         }
       }
+      
+      // Also check for instance-specific visibility entries that don't have corresponding DOM elements
+      // This handles widgets that were created on pages 2+ but don't exist in DOM yet
+      Object.keys(visibility).forEach(fullWidgetId => {
+        // Check if this is an instance ID for this widget type and page
+        const parsed = parseWidgetId(fullWidgetId);
+        if (parsed.widgetType === widgetType && parsed.pageIndex === currentPageIndex && visibility[fullWidgetId] === true) {
+          // Check if widget already exists
+          const existingWidget = pageElement.querySelector(`.${fullWidgetId}`);
+          if (!existingWidget) {
+            // Widget should exist but doesn't - create it from template
+            const templateWidget = document.querySelector(`.${widgetType}`);
+            if (templateWidget) {
+              const widget = templateWidget.cloneNode(true);
+              widget.className = `widget ${widgetType} ${fullWidgetId}`;
+              widget.classList.remove('hidden');
+              pageElement.appendChild(widget);
+              
+              // Initialize widget
+              initializeWidgetInstance(fullWidgetId, widget);
+              
+              // Initialize widget-specific functionality if needed
+              if (typeof initializeDragAndResize === 'function') {
+                setTimeout(() => {
+                  initializeDragAndResize();
+                }, 100);
+              }
+            }
+          }
+        }
+      });
     });
   } catch (error) {
     console.error('Error loading widget visibility:', error);
