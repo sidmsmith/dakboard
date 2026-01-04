@@ -1569,16 +1569,27 @@ function attachTabEventListeners(tabName) {
         }
         
         // Get buttons again (they might have been created in the visibility handler above)
+        // Always attach listeners, even if currentWidget wasn't found
         const clipartSelectBtn = stylingModal.querySelector('#clipart-select-btn');
         const pixabayBtn = stylingModal.querySelector('#clipart-pixabay-btn');
+        const clipartVisibleCheckbox = stylingModal.querySelector('#clipart-visible');
         
         if (clipartSelectBtn) {
           // Remove any existing listeners to prevent duplicates
           const newBtn = clipartSelectBtn.cloneNode(true);
           clipartSelectBtn.parentNode.replaceChild(newBtn, clipartSelectBtn);
+          
+          // Set disabled state based on checkbox
+          const isVisible = clipartVisibleCheckbox ? clipartVisibleCheckbox.checked : (currentStyles.clipArtVisible !== false);
+          newBtn.disabled = !isVisible;
+          
           newBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
+            if (newBtn.disabled) {
+              console.log('clipart-select-btn is disabled, not opening modal');
+              return;
+            }
             console.log('clipart-select-btn clicked, opening modal');
             if (typeof openClipArtModal === 'function') {
               openClipArtModal();
@@ -1594,9 +1605,18 @@ function attachTabEventListeners(tabName) {
           // Remove any existing listeners to prevent duplicates
           const newBtn = pixabayBtn.cloneNode(true);
           pixabayBtn.parentNode.replaceChild(newBtn, pixabayBtn);
+          
+          // Set disabled state based on checkbox
+          const isVisible = clipartVisibleCheckbox ? clipartVisibleCheckbox.checked : (currentStyles.clipArtVisible !== false);
+          newBtn.disabled = !isVisible;
+          
           newBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
+            if (newBtn.disabled) {
+              console.log('pixabay-btn is disabled, not opening modal');
+              return;
+            }
             console.log('pixabay-btn clicked, opening modal');
             if (typeof openPixabayModal === 'function') {
               openPixabayModal();
