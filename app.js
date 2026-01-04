@@ -2898,7 +2898,8 @@ function loadDice() {
     }
     
     // Get widget-specific colors from saved styles or use defaults
-    const stylesKey = `dakboard-widget-styles-${fullWidgetId}-page-${pageIndex}`;
+    // Storage key: fullWidgetId already includes page index, so don't add it again
+    const stylesKey = `dakboard-widget-styles-${fullWidgetId}`;
     const savedStyles = localStorage.getItem(stylesKey);
     let diceFaceColor = '#4a90e2';
     let diceDotColor = '#ffffff';
