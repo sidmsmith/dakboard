@@ -2604,8 +2604,13 @@ function applyStyles() {
       if (applyToAllFlags.global) {
         const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
         if (widgetId) {
-          const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
-          localStorage.setItem(`dakboard-widget-styles-${widgetId}-page-${currentPageIndex}`, JSON.stringify(currentStyles));
+          // Storage key: widgetId might be full instance ID or just widget type
+          // If it's a full instance ID (contains page- and instance-), use it as-is
+          // Otherwise, it's a legacy widget and we need to construct the key differently
+          const storageKey = widgetId.includes('page-') && widgetId.includes('instance-')
+            ? `dakboard-widget-styles-${widgetId}`
+            : `dakboard-widget-styles-${widgetId}-page-${currentPageIndex}`;
+          localStorage.setItem(storageKey, JSON.stringify(currentStyles));
         }
       }
   });
@@ -3283,7 +3288,8 @@ function resetStyles() {
   }
   
   // Clear saved styles (page-specific)
-  localStorage.removeItem(`dakboard-widget-styles-${currentWidgetId}-page-${currentPageIndex}`);
+  // Storage key: fullWidgetId already includes page index, so don't add it again
+  localStorage.removeItem(`dakboard-widget-styles-${currentWidgetId}`);
   
   // Reload tab to show defaults
   const activeTab = document.querySelector('.styling-tab.active');
@@ -3627,7 +3633,13 @@ function loadStyles() {
   currentPage.querySelectorAll('.widget').forEach(widget => {
     const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
     if (widgetId) {
-      const saved = localStorage.getItem(`dakboard-widget-styles-${widgetId}-page-${currentPageIndex}`);
+      // Storage key: widgetId might be full instance ID or just widget type
+      // If it's a full instance ID (contains page- and instance-), use it as-is
+      // Otherwise, it's a legacy widget and we need to construct the key differently
+      const storageKey = widgetId.includes('page-') && widgetId.includes('instance-')
+        ? `dakboard-widget-styles-${widgetId}`
+        : `dakboard-widget-styles-${widgetId}-page-${currentPageIndex}`;
+      const saved = localStorage.getItem(storageKey);
       if (saved) {
         const styles = JSON.parse(saved);
         loadStylesToWidget(widget, styles);
