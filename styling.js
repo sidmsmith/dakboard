@@ -3389,18 +3389,46 @@ function readStylesFromWidget(widget) {
     currentStyles.backgroundType = 'gradient';
     
     // Try to extract gradient colors and direction from the gradient string
-    // Format: linear-gradient(direction, color1, color2)
-    const gradientMatch = bgImage.match(/linear-gradient\(([^,]+),\s*([^,]+),\s*([^)]+)\)/);
+    // Format: linear-gradient(direction, color1, color2) or linear-gradient(color1, color2)
+    // Handle both with and without direction
+    let gradientMatch = bgImage.match(/linear-gradient\(([^,]+),\s*([^,]+),\s*([^)]+)\)/);
+    
     if (gradientMatch) {
-      currentStyles.gradientDirection = gradientMatch[1].trim();
+      const part1 = gradientMatch[1].trim();
+      const part2 = gradientMatch[2].trim();
+      const part3 = gradientMatch[3].trim();
       
-      // Extract colors (might be rgba or hex)
-      const color1 = gradientMatch[2].trim();
-      const color2 = gradientMatch[3].trim();
-      
-      // Convert rgba to hex if needed
-      currentStyles.gradientColor1 = rgbaToHex(color1) || color1;
-      currentStyles.gradientColor2 = rgbaToHex(color2) || color2;
+      // Check if part1 is a direction (contains 'to', 'deg', or is a number)
+      if (part1.includes('to ') || part1.includes('deg') || /^\d+$/.test(part1)) {
+        // Has direction
+        currentStyles.gradientDirection = part1;
+        currentStyles.gradientColor1 = rgbaToHex(part2) || part2;
+        currentStyles.gradientColor2 = rgbaToHex(part3) || part3;
+      } else {
+        // No direction, part1 is first color
+        currentStyles.gradientDirection = 'to bottom'; // Default
+        currentStyles.gradientColor1 = rgbaToHex(part1) || part1;
+        currentStyles.gradientColor2 = rgbaToHex(part2) || part2;
+      }
+    } else {
+      // Try format without direction: linear-gradient(color1, color2)
+      gradientMatch = bgImage.match(/linear-gradient\(([^,]+),\s*([^)]+)\)/);
+      if (gradientMatch) {
+        currentStyles.gradientDirection = 'to bottom'; // Default
+        currentStyles.gradientColor1 = rgbaToHex(gradientMatch[1].trim()) || gradientMatch[1].trim();
+        currentStyles.gradientColor2 = rgbaToHex(gradientMatch[2].trim()) || gradientMatch[2].trim();
+      }
+    }
+    
+    // If we still don't have colors, set defaults
+    if (!currentStyles.gradientColor1) {
+      currentStyles.gradientColor1 = '#2a2a2a';
+    }
+    if (!currentStyles.gradientColor2) {
+      currentStyles.gradientColor2 = '#3a3a3a';
+    }
+    if (!currentStyles.gradientDirection) {
+      currentStyles.gradientDirection = 'to bottom';
     }
   }
   // Check if it's an image
