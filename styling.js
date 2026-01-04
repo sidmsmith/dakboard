@@ -100,10 +100,10 @@ function openStylingModal(fullWidgetId) {
   // Switch to first tab (this will generate tab content and attach listeners)
   switchTab('background');
   
-  // Update preview after a small delay to ensure DOM is ready
+  // Update preview after a delay to ensure DOM is ready and styles are loaded
   setTimeout(() => {
     updatePreview();
-  }, 50);
+  }, 150);
 }
 
 // Close styling modal
