@@ -3397,11 +3397,6 @@ function loadWidgetStyles(fullWidgetId) {
       padding: 24,
       widgetOpacity: 100
     };
-    
-    // DEBUG: Log for clock widget only
-    if (widgetType === 'clock-widget') {
-      console.log('No saved styles found, using defaults:', JSON.stringify(currentStyles, null, 2));
-    }
   }
   
   // Ensure titleVisible is set for existing widgets (migration)
