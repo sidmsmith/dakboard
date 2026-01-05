@@ -3712,14 +3712,23 @@ function loadStyles() {
   if (!currentPage) return;
   
   currentPage.querySelectorAll('.widget').forEach(widget => {
-    const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
-    if (widgetId) {
-      // Storage key: widgetId might be full instance ID or just widget type
-      // If it's a full instance ID (contains page- and instance-), use it as-is
-      // Otherwise, it's a legacy widget and we need to construct the key differently
-      const storageKey = widgetId.includes('page-') && widgetId.includes('instance-')
-        ? `dakboard-widget-styles-${widgetId}`
-        : `dakboard-widget-styles-${widgetId}-page-${currentPageIndex}`;
+    // Find the full instance ID (widgetType-page-X-instance-Y) from class list
+    const classes = Array.from(widget.classList);
+    // First try to find a full instance ID (contains page- and instance-)
+    let fullWidgetId = classes.find(c => c.includes('-page-') && c.includes('-instance-'));
+    
+    if (!fullWidgetId) {
+      // Fallback: find widget type (ends with -widget)
+      const widgetType = classes.find(c => c.endsWith('-widget'));
+      if (widgetType) {
+        // For legacy widgets without instance ID, construct the full ID
+        fullWidgetId = `${widgetType}-page-${currentPageIndex}-instance-0`;
+      }
+    }
+    
+    if (fullWidgetId) {
+      // Storage key: fullWidgetId already includes page index, so don't add it again
+      const storageKey = `dakboard-widget-styles-${fullWidgetId}`;
       const saved = localStorage.getItem(storageKey);
       if (saved) {
         const styles = JSON.parse(saved);
@@ -3901,10 +3910,9 @@ function loadStylesToWidget(widget, styles) {
   if (!isSpecialWidget) {
     const widgetHeader = widget.querySelector('.widget-header');
     if (widgetHeader) {
-      // Title visibility
-      if (styles.titleVisible !== undefined) {
-        widgetHeader.style.display = styles.titleVisible ? '' : 'none';
-      }
+      // Title visibility - default to true (show) if undefined
+      const titleVisible = styles.titleVisible !== undefined ? styles.titleVisible : true;
+      widgetHeader.style.display = titleVisible ? '' : 'none';
       
       // Title alignment - always apply to override CSS default (space-between)
       // Default to 'left' if not set
