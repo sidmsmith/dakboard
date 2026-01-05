@@ -3736,7 +3736,14 @@ function loadStyles() {
       } else {
         // Apply default alignment even if no saved styles exist
         // This ensures title alignment works for widgets that haven't been styled yet
-        const isSpecialWidget = widgetId === 'calendar-widget' || widgetId === 'whiteboard-widget';
+        // Extract widget type from fullWidgetId
+        let widgetType = '';
+        if (fullWidgetId.includes('-page-')) {
+          widgetType = fullWidgetId.split('-page-')[0];
+        } else {
+          widgetType = fullWidgetId;
+        }
+        const isSpecialWidget = widgetType === 'calendar-widget' || widgetType === 'whiteboard-widget';
         if (!isSpecialWidget) {
           const widgetHeader = widget.querySelector('.widget-header');
           if (widgetHeader) {
