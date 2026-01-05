@@ -3008,7 +3008,8 @@ function loadStopwatch() {
     stopwatchStates.set(fullWidgetId, state);
     
     // Get widget-specific colors from saved styles or use defaults
-    const stylesKey = `dakboard-widget-styles-${fullWidgetId}-page-${pageIndex}`;
+    // Storage key: fullWidgetId already includes page index, so don't add it again
+    const stylesKey = `dakboard-widget-styles-${fullWidgetId}`;
     const savedStyles = localStorage.getItem(stylesKey);
     let textColor = '#1a1a1a';
     let playButtonColor = '#4a90e2';
@@ -3203,7 +3204,8 @@ function saveStopwatchState(widgetId) {
   const state = stopwatchStates.get(widgetId);
   if (!state) return;
   
-  const stateKey = `dakboard-stopwatch-state-${widgetId}`;
+  // Storage key format matches load function: dakboard-stopwatch-{widgetId}
+  const stateKey = `dakboard-stopwatch-${widgetId}`;
   const stateToSave = {
     elapsed: state.elapsed,
     isRunning: state.isRunning,
