@@ -3225,12 +3225,72 @@ function applyCurrentStylesToWidget(widget) {
   
   // Update clip art if this is a blank widget
   if (widget.classList.contains('blank-widget')) {
-    const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
-    const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
-    if (!isApplyingToAll || applyToAllFlags.clipArtEmoji || applyToAllFlags.clipArtColor) {
-      // Reload clip art with new emoji and color
-      if (typeof loadClipArt === 'function') {
-        setTimeout(() => loadClipArt(), 0);
+    const container = widget.querySelector('.clipart-content');
+    if (container) {
+      const clipArtVisible = currentStyles.clipArtVisible !== undefined ? currentStyles.clipArtVisible : true;
+      const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
+      const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
+      const clipArtTintColor = currentStyles.clipArtTintColor || '#ffffff';
+      const clipArtImageUrl = currentStyles.clipArtImageUrl || '';
+      const clipArtShadowEnabled = currentStyles.clipArtShadowEnabled !== undefined ? currentStyles.clipArtShadowEnabled : true;
+      const clipArtTintEnabled = currentStyles.clipArtTintEnabled !== undefined ? currentStyles.clipArtTintEnabled : true;
+      
+      // Apply clip art directly using currentStyles (not localStorage)
+      if (!clipArtVisible) {
+        container.innerHTML = '';
+      } else if (clipArtImageUrl) {
+        // Helper function for image tinting (same as in app.js)
+        function generateImageTintFilter(tintColor) {
+          if (!tintColor || tintColor === '#ffffff' || tintColor === '#FFFFFF') {
+            return 'brightness(0) invert(1)';
+          }
+          const r = parseInt(tintColor.slice(1, 3), 16);
+          const g = parseInt(tintColor.slice(3, 5), 16);
+          const b = parseInt(tintColor.slice(5, 7), 16);
+          const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+          const hue = getHueFromRGB(r, g, b);
+          const max = Math.max(r, g, b) / 255;
+          const min = Math.min(r, g, b) / 255;
+          const saturation = max === 0 ? 0 : (max - min) / max;
+          
+          if (brightness > 200) {
+            return `brightness(0) invert(1) sepia(1) saturate(${Math.max(1, saturation * 3)}) hue-rotate(${hue}deg) brightness(${brightness / 255})`;
+          } else if (brightness > 128) {
+            return `brightness(0) invert(1) sepia(1) saturate(${Math.max(2, saturation * 4)}) hue-rotate(${hue}deg) brightness(${brightness / 255})`;
+          } else if (brightness > 64) {
+            return `brightness(0) invert(1) sepia(1) saturate(${Math.max(3, saturation * 5)}) hue-rotate(${hue}deg) brightness(${brightness / 200})`;
+          } else {
+            return `brightness(0) saturate(100%) invert(${brightness / 255}) sepia(1) saturate(${Math.max(4, saturation * 6)}) hue-rotate(${hue}deg)`;
+          }
+        }
+        
+        function getHueFromRGB(r, g, b) {
+          r /= 255;
+          g /= 255;
+          b /= 255;
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          let h = 0;
+          if (max === min) {
+            h = 0;
+          } else if (max === r) {
+            h = ((g - b) / (max - min)) % 6;
+          } else if (max === g) {
+            h = (b - r) / (max - min) + 2;
+          } else {
+            h = (r - g) / (max - min) + 4;
+          }
+          h = Math.round(h * 60);
+          if (h < 0) h += 360;
+          return h;
+        }
+        
+        const shadowFilter = (clipArtShadowEnabled && clipArtColor) ? `drop-shadow(0 0 12px ${clipArtColor})` : '';
+        const tintFilter = clipArtTintEnabled ? generateImageTintFilter(clipArtTintColor) : '';
+        const combinedFilter = [shadowFilter, tintFilter].filter(f => f).join(' ');
+        container.innerHTML = `<div class="clipart-display" style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;"><img src="${clipArtImageUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: ${combinedFilter || 'none'};" alt="Clip art"></div>`;
+      } else {
+        container.innerHTML = `<div class="clipart-display" style="color: ${clipArtColor}; font-size: 120px; text-align: center; line-height: 1; display: flex; align-items: center; justify-content: center; height: 100%;">${clipArtEmoji}</div>`;
       }
     }
   }

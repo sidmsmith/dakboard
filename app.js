@@ -3569,7 +3569,8 @@ function loadClipArt() {
     }
     
     // Get saved clip art and color from localStorage
-    const stylesKey = `dakboard-widget-styles-${fullWidgetId}-page-${pageIndex}`;
+    // Storage key: fullWidgetId already includes page index, so don't add it again
+    const stylesKey = `dakboard-widget-styles-${fullWidgetId}`;
     const savedStyles = localStorage.getItem(stylesKey);
     
     let clipArtEmoji = '🎨'; // Default
