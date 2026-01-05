@@ -2544,7 +2544,7 @@ function updatePreview() {
         }).join('')}
       </div>
     `;
-  } else if (currentWidgetId === 'blank-widget') {
+  } else if (previewContent && widgetType === 'blank-widget') {
     // Render clip art preview
     const clipArtVisible = currentStyles.clipArtVisible !== false; // Default to true
     const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
