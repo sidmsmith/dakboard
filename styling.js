@@ -913,6 +913,10 @@ function generateAdvancedTab() {
 
 // Attach event listeners for current tab
 function attachTabEventListeners(tabName) {
+  // Parse widgetType from currentWidgetId at the start of the function
+  const parsed = typeof parseWidgetId !== 'undefined' && currentWidgetId ? parseWidgetId(currentWidgetId) : { widgetType: currentWidgetId || '', pageIndex: 0, instanceIndex: 0, isLegacy: true };
+  const widgetType = parsed.widgetType;
+  
   if (tabName === 'background') {
     // Background type selector - must be first to set initial visibility
     // Scope all queries to the styling modal to avoid conflicts
@@ -1581,6 +1585,7 @@ function attachTabEventListeners(tabName) {
         }
         
         if (pixabayBtn) {
+          console.log('Image button setup: pixabayBtn found, setting up handler');
           // Remove any existing listeners by cloning
           const newBtn = pixabayBtn.cloneNode(true);
           pixabayBtn.parentNode.replaceChild(newBtn, pixabayBtn);
@@ -1588,23 +1593,32 @@ function attachTabEventListeners(tabName) {
           // Set disabled state based on checkbox
           const isVisible = clipartVisibleCheckbox ? clipartVisibleCheckbox.checked : (currentStyles.clipArtVisible !== false);
           newBtn.disabled = !isVisible;
+          console.log('Image button setup: pixabayBtn disabled state:', newBtn.disabled, 'isVisible:', isVisible);
+          console.log('Image button setup: window.openPixabayModal exists:', typeof window.openPixabayModal);
+          console.log('Image button setup: openPixabayModal exists:', typeof openPixabayModal);
           
           // Attach click handler - use direct function call
           newBtn.onclick = (e) => {
+            console.log('Image button clicked: pixabayBtn clicked');
             e.preventDefault();
             e.stopPropagation();
             if (newBtn.disabled) {
+              console.log('Image button clicked: button is disabled, returning');
               return;
             }
             // Call the function directly - it's defined in global scope
             if (window.openPixabayModal) {
+              console.log('Image button clicked: calling window.openPixabayModal()');
               window.openPixabayModal();
             } else if (typeof openPixabayModal === 'function') {
+              console.log('Image button clicked: calling openPixabayModal()');
               openPixabayModal();
             } else {
-              console.error('openPixabayModal function not found');
+              console.error('Image button clicked: openPixabayModal function not found');
             }
           };
+        } else {
+          console.log('Image button setup: pixabayBtn NOT found in modal');
         }
         
         const clipartShadowEnabled = stylingModal.querySelector('#clipart-shadow-enabled');
