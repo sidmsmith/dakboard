@@ -5712,7 +5712,14 @@ function cloneWidget(fullWidgetId) {
   // Clone the widget element
   const cloned = originalWidget.cloneNode(true);
   cloned.className = `widget ${widgetType} ${newFullId}`;
-  cloned.classList.remove('hidden');
+  
+  // Copy visibility state from source widget
+  const isSourceVisible = !originalWidget.classList.contains('hidden');
+  if (isSourceVisible) {
+    cloned.classList.remove('hidden');
+  } else {
+    cloned.classList.add('hidden');
+  }
   
   // Offset position slightly
   const rect = originalWidget.getBoundingClientRect();
@@ -5923,8 +5930,9 @@ function copyWidgetConfiguration(sourceFullId, targetFullId, targetPageIndex, so
   const sourcePage = sourcePageIndex !== null ? sourcePageIndex : sourceParsed.pageIndex;
   
   // Copy styles
-  const sourceStylesKey = `dakboard-widget-styles-${sourceFullId}-page-${sourcePage}`;
-  const targetStylesKey = `dakboard-widget-styles-${targetFullId}-page-${targetPageIndex}`;
+  // Storage key: fullWidgetId already includes page index, so don't add it again
+  const sourceStylesKey = `dakboard-widget-styles-${sourceFullId}`;
+  const targetStylesKey = `dakboard-widget-styles-${targetFullId}`;
   const sourceStyles = localStorage.getItem(sourceStylesKey);
   if (sourceStyles) {
     localStorage.setItem(targetStylesKey, sourceStyles);
