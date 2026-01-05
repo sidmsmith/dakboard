@@ -5773,10 +5773,11 @@ function removeWidgetInstance(fullWidgetId) {
   }
   
   // Remove all localStorage entries for this instance
+  // Keys now use format: dakboard-{type}-{fullWidgetId} where fullWidgetId already includes page and instance
   const keysToRemove = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && key.includes(`-${fullWidgetId}-page-${pageIndex}`)) {
+    if (key && key.includes(fullWidgetId)) {
       keysToRemove.push(key);
     }
   }
@@ -5796,12 +5797,14 @@ function removeWidgetInstance(fullWidgetId) {
       }
       
       // Rename localStorage keys
+      // Keys now use format: dakboard-{type}-{fullWidgetId} where fullWidgetId already includes page and instance
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && key.includes(`-${oldId}-page-${pageIndex}`)) {
-          const newKey = key.replace(`-${oldId}-page-${pageIndex}`, `-${newId}-page-${pageIndex}`);
+        if (key && key.includes(oldId)) {
+          // Replace oldId with newId in the key
+          const newKey = key.replace(oldId, newId);
           const value = localStorage.getItem(key);
-          if (value) {
+          if (value && newKey !== key) {
             localStorage.setItem(newKey, value);
             localStorage.removeItem(key);
           }
