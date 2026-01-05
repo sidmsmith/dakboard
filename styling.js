@@ -547,13 +547,27 @@ function generateTitleTab() {
   const titleIconVisible = currentStyles.titleIconVisible !== undefined ? currentStyles.titleIconVisible : true;
   const titleAlignment = currentStyles.titleAlignment || 'left';
   const isSpecialWidget = widgetType === 'calendar-widget' || widgetType === 'whiteboard-widget';
-  const textColor = currentStyles.textColor || '#fff';
+  // Normalize color to 6-digit hex format for color input
+  const normalizeHexColor = (color) => {
+    if (!color) return '#ffffff';
+    // If it's a 3-digit hex, expand it
+    if (/^#[0-9A-F]{3}$/i.test(color)) {
+      return '#' + color[1] + color[1] + color[2] + color[2] + color[3] + color[3];
+    }
+    // If it's already 6-digit, return as is
+    if (/^#[0-9A-F]{6}$/i.test(color)) {
+      return color;
+    }
+    return '#ffffff'; // Default fallback
+  };
+  const textColorRaw = currentStyles.textColor || '#fff';
+  const textColor = normalizeHexColor(textColorRaw);
   const fontSize = currentStyles.fontSize !== undefined ? currentStyles.fontSize : 18;
   const fontWeight = currentStyles.fontWeight || '600';
   // Default to dynamic (true) if textColorDynamic is not set, or if textColor is not explicitly set
   const textColorDynamic = currentStyles.textColorDynamic !== undefined 
     ? currentStyles.textColorDynamic 
-    : (currentStyles.textColor === undefined || currentStyles.textColor === '#fff');
+    : (currentStyles.textColor === undefined || textColorRaw === '#fff');
   
   return `
     <div class="styling-form-section">
@@ -1558,7 +1572,6 @@ function attachTabEventListeners(tabName) {
         const clipartVisibleCheckbox = stylingModal.querySelector('#clipart-visible');
         
         if (clipartSelectBtn) {
-          console.log('Image button setup: clipartSelectBtn found, setting up handler');
           // Remove any existing listeners by cloning
           const newBtn = clipartSelectBtn.cloneNode(true);
           clipartSelectBtn.parentNode.replaceChild(newBtn, clipartSelectBtn);
@@ -1566,36 +1579,26 @@ function attachTabEventListeners(tabName) {
           // Set disabled state based on checkbox
           const isVisible = clipartVisibleCheckbox ? clipartVisibleCheckbox.checked : (currentStyles.clipArtVisible !== false);
           newBtn.disabled = !isVisible;
-          console.log('Image button setup: clipartSelectBtn disabled state:', newBtn.disabled, 'isVisible:', isVisible);
-          console.log('Image button setup: window.openClipArtModal exists:', typeof window.openClipArtModal);
-          console.log('Image button setup: openClipArtModal exists:', typeof openClipArtModal);
           
           // Attach click handler - use direct function call
           newBtn.onclick = (e) => {
-            console.log('Image button clicked: clipartSelectBtn clicked');
             e.preventDefault();
             e.stopPropagation();
             if (newBtn.disabled) {
-              console.log('Image button clicked: button is disabled, returning');
               return;
             }
             // Call the function directly - it's defined in global scope
             if (window.openClipArtModal) {
-              console.log('Image button clicked: calling window.openClipArtModal()');
               window.openClipArtModal();
             } else if (typeof openClipArtModal === 'function') {
-              console.log('Image button clicked: calling openClipArtModal()');
               openClipArtModal();
             } else {
-              console.error('Image button clicked: openClipArtModal function not found');
+              console.error('openClipArtModal function not found');
             }
           };
-        } else {
-          console.log('Image button setup: clipartSelectBtn NOT found in modal');
         }
         
         if (pixabayBtn) {
-          console.log('Image button setup: pixabayBtn found, setting up handler');
           // Remove any existing listeners by cloning
           const newBtn = pixabayBtn.cloneNode(true);
           pixabayBtn.parentNode.replaceChild(newBtn, pixabayBtn);
@@ -1603,32 +1606,23 @@ function attachTabEventListeners(tabName) {
           // Set disabled state based on checkbox
           const isVisible = clipartVisibleCheckbox ? clipartVisibleCheckbox.checked : (currentStyles.clipArtVisible !== false);
           newBtn.disabled = !isVisible;
-          console.log('Image button setup: pixabayBtn disabled state:', newBtn.disabled, 'isVisible:', isVisible);
-          console.log('Image button setup: window.openPixabayModal exists:', typeof window.openPixabayModal);
-          console.log('Image button setup: openPixabayModal exists:', typeof openPixabayModal);
           
           // Attach click handler - use direct function call
           newBtn.onclick = (e) => {
-            console.log('Image button clicked: pixabayBtn clicked');
             e.preventDefault();
             e.stopPropagation();
             if (newBtn.disabled) {
-              console.log('Image button clicked: button is disabled, returning');
               return;
             }
             // Call the function directly - it's defined in global scope
             if (window.openPixabayModal) {
-              console.log('Image button clicked: calling window.openPixabayModal()');
               window.openPixabayModal();
             } else if (typeof openPixabayModal === 'function') {
-              console.log('Image button clicked: calling openPixabayModal()');
               openPixabayModal();
             } else {
-              console.error('Image button clicked: openPixabayModal function not found');
+              console.error('openPixabayModal function not found');
             }
           };
-        } else {
-          console.log('Image button setup: pixabayBtn NOT found in modal');
         }
         
         const clipartShadowEnabled = stylingModal.querySelector('#clipart-shadow-enabled');

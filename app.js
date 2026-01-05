@@ -4933,7 +4933,8 @@ function getNextInstanceIndex(widgetType, pageIndex) {
 // Get widget's configured title (from localStorage)
 function getWidgetTitle(fullWidgetId) {
   const parsed = parseWidgetId(fullWidgetId);
-  const stylesKey = `dakboard-widget-styles-${fullWidgetId}-page-${parsed.pageIndex}`;
+  // Storage key: fullWidgetId already includes page index, so don't add it again
+  const stylesKey = `dakboard-widget-styles-${fullWidgetId}`;
   const savedStyles = localStorage.getItem(stylesKey);
   
   if (savedStyles) {
