@@ -1558,6 +1558,7 @@ function attachTabEventListeners(tabName) {
         const clipartVisibleCheckbox = stylingModal.querySelector('#clipart-visible');
         
         if (clipartSelectBtn) {
+          console.log('Image button setup: clipartSelectBtn found, setting up handler');
           // Remove any existing listeners by cloning
           const newBtn = clipartSelectBtn.cloneNode(true);
           clipartSelectBtn.parentNode.replaceChild(newBtn, clipartSelectBtn);
@@ -1565,23 +1566,32 @@ function attachTabEventListeners(tabName) {
           // Set disabled state based on checkbox
           const isVisible = clipartVisibleCheckbox ? clipartVisibleCheckbox.checked : (currentStyles.clipArtVisible !== false);
           newBtn.disabled = !isVisible;
+          console.log('Image button setup: clipartSelectBtn disabled state:', newBtn.disabled, 'isVisible:', isVisible);
+          console.log('Image button setup: window.openClipArtModal exists:', typeof window.openClipArtModal);
+          console.log('Image button setup: openClipArtModal exists:', typeof openClipArtModal);
           
           // Attach click handler - use direct function call
           newBtn.onclick = (e) => {
+            console.log('Image button clicked: clipartSelectBtn clicked');
             e.preventDefault();
             e.stopPropagation();
             if (newBtn.disabled) {
+              console.log('Image button clicked: button is disabled, returning');
               return;
             }
             // Call the function directly - it's defined in global scope
             if (window.openClipArtModal) {
+              console.log('Image button clicked: calling window.openClipArtModal()');
               window.openClipArtModal();
             } else if (typeof openClipArtModal === 'function') {
+              console.log('Image button clicked: calling openClipArtModal()');
               openClipArtModal();
             } else {
-              console.error('openClipArtModal function not found');
+              console.error('Image button clicked: openClipArtModal function not found');
             }
           };
+        } else {
+          console.log('Image button setup: clipartSelectBtn NOT found in modal');
         }
         
         if (pixabayBtn) {
