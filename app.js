@@ -5783,6 +5783,34 @@ function removeWidgetInstance(fullWidgetId) {
   }
   keysToRemove.forEach(key => localStorage.removeItem(key));
   
+  // Remove visibility entry for this widget instance
+  const visibilityKey = `dakboard-widget-visibility-page-${pageIndex}`;
+  const savedVisibility = localStorage.getItem(visibilityKey);
+  if (savedVisibility) {
+    try {
+      const visibility = JSON.parse(savedVisibility);
+      // Remove the visibility entry for this widget instance
+      delete visibility[fullWidgetId];
+      localStorage.setItem(visibilityKey, JSON.stringify(visibility));
+    } catch (e) {
+      console.error('Error updating visibility when removing widget:', e);
+    }
+  }
+  
+  // Remove layout entry for this widget instance
+  const layoutKey = `dakboard-widget-layout-page-${pageIndex}`;
+  const savedLayout = localStorage.getItem(layoutKey);
+  if (savedLayout) {
+    try {
+      const layout = JSON.parse(savedLayout);
+      // Remove the layout entry for this widget instance
+      delete layout[fullWidgetId];
+      localStorage.setItem(layoutKey, JSON.stringify(layout));
+    } catch (e) {
+      console.error('Error updating layout when removing widget:', e);
+    }
+  }
+  
   // Reindex remaining instances (shift down instance indices)
   const instances = getWidgetInstances(widgetType, pageIndex);
   instances.forEach(inst => {
@@ -5808,6 +5836,40 @@ function removeWidgetInstance(fullWidgetId) {
             localStorage.setItem(newKey, value);
             localStorage.removeItem(key);
           }
+        }
+      }
+      
+      // Update visibility entry for reindexed widget
+      const visibilityKey = `dakboard-widget-visibility-page-${pageIndex}`;
+      const savedVisibility = localStorage.getItem(visibilityKey);
+      if (savedVisibility) {
+        try {
+          const visibility = JSON.parse(savedVisibility);
+          // If old visibility entry exists, rename it to new ID
+          if (visibility[oldId] !== undefined) {
+            visibility[newId] = visibility[oldId];
+            delete visibility[oldId];
+            localStorage.setItem(visibilityKey, JSON.stringify(visibility));
+          }
+        } catch (e) {
+          console.error('Error updating visibility when reindexing widget:', e);
+        }
+      }
+      
+      // Update layout entry for reindexed widget
+      const layoutKey = `dakboard-widget-layout-page-${pageIndex}`;
+      const savedLayout = localStorage.getItem(layoutKey);
+      if (savedLayout) {
+        try {
+          const layout = JSON.parse(savedLayout);
+          // If old layout entry exists, rename it to new ID
+          if (layout[oldId] !== undefined) {
+            layout[newId] = layout[oldId];
+            delete layout[oldId];
+            localStorage.setItem(layoutKey, JSON.stringify(layout));
+          }
+        } catch (e) {
+          console.error('Error updating layout when reindexing widget:', e);
         }
       }
     }
