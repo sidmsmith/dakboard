@@ -5694,6 +5694,11 @@ function cloneWidget(fullWidgetId) {
     const cloned = original.cloneNode(true);
     cloned.className = `${widgetType} ${newFullId}`;
     cloned.classList.remove('hidden');
+    
+    // Clear drag listener flag - cloned widgets need drag listeners re-attached
+    // This prevents the cloned widget from being skipped during drag initialization
+    delete cloned.dataset.dragListenerAdded;
+    
     cloned.style.left = (parseInt(original.style.left) || 50) + 50 + 'px';
     cloned.style.top = (parseInt(original.style.top) || 50) + 50 + 'px';
     pageElement.appendChild(cloned);
@@ -5722,6 +5727,10 @@ function cloneWidget(fullWidgetId) {
   // Clone the widget element
   const cloned = originalWidget.cloneNode(true);
   cloned.className = `widget ${widgetType} ${newFullId}`;
+  
+  // Clear drag listener flag - cloned widgets need drag listeners re-attached
+  // This prevents the cloned widget from being skipped during drag initialization
+  delete cloned.dataset.dragListenerAdded;
   
   // Copy visibility state from source widget
   const isSourceVisible = !originalWidget.classList.contains('hidden');
