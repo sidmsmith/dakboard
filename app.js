@@ -5704,6 +5704,14 @@ function cloneWidget(fullWidgetId) {
     // Initialize the cloned widget
     initializeWidgetInstance(newFullId, cloned);
     
+    // Load and apply styles immediately so the cloned widget displays correctly
+    // This ensures title visibility and other styling matches the configuration
+    if (typeof loadWidgetStyles === 'function' && typeof applyCurrentStylesToWidget === 'function') {
+      loadWidgetStyles(newFullId);
+      // Apply styles to the cloned widget immediately
+      applyCurrentStylesToWidget(cloned);
+    }
+    
     // Save visibility state immediately so widget persists after refresh
     saveWidgetVisibility();
     
@@ -5736,6 +5744,14 @@ function cloneWidget(fullWidgetId) {
   
   // Initialize the cloned widget
   initializeWidgetInstance(newFullId, cloned);
+  
+  // Load and apply styles immediately so the cloned widget displays correctly
+  // This ensures title visibility and other styling matches the configuration
+  if (typeof loadWidgetStyles === 'function' && typeof applyCurrentStylesToWidget === 'function') {
+    loadWidgetStyles(newFullId);
+    // Apply styles to the cloned widget immediately
+    applyCurrentStylesToWidget(cloned);
+  }
   
   // Save visibility state immediately so widget persists after refresh
   saveWidgetVisibility();
