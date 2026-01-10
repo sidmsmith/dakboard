@@ -15,7 +15,8 @@ A customizable smart home dashboard designed for fixed displays (tablets/TVs) th
 - **Stopwatch Widget** - Full-featured stopwatch with start/pause/reset and customizable colors
 - **Scoreboard Widget** - Team-based scoring with customizable icons, colors, confetti animations, and drag-and-drop team reordering
 - **Stoplight Widget** - Interactive stoplight with clickable lights (red/amber/green), optional text labels with per-color styling, and state persistence
-- **Blank/Clip Art Widget** - Display emojis or images from Pixabay API with shadow and tint color effects
+- **Blank/Clip Art Widget** - Display emojis, images from Pixabay API, or rich text content with comprehensive styling options and 25+ fun fonts
+- **Whiteboard Widget** - Interactive drawing canvas with per-instance state, title styling, temporary floating header, and immediate background color updates
 - **Auto-refresh** - Updates every 30-60 seconds
 - **Responsive Design** - Optimized for landscape tablets and TVs
 
@@ -45,6 +46,53 @@ Four different layout options are available for you to choose from:
    - Garage doors and alarm at bottom
 
 ## 📝 Changelog
+
+### Version 2.8
+- **Blank Widget Text Mode** - Major enhancement to Blank widget!
+  - **Display Modes**: Added three mutually exclusive display modes (Blank, Image, Text) selectable via dropdown in Advanced tab
+  - **Rich Text Editing**: Full text editing capabilities with comprehensive styling options
+    - Direct in-widget editing with real-time updates in Preview
+    - 25 fun font families (Google Fonts) including Comic Sans MS, Bangers, Fredoka One, Nunito, Quicksand, Indie Flower, Permanent Marker, Chewy, Lobster, Pacifico, Bubblegum Sans, Poppins, Righteous, Bungee, Boogaloo, Creepster, Luckiest Guy, Amatic SC, Shadows Into Light, Kalam, Patrick Hand, Schoolbell, and more
+    - Font preview in dropdown (font names displayed in their actual fonts)
+    - Font size slider (8-72px)
+    - Font weight options (Normal, Light, Semi-Bold, Bold)
+    - Text color picker
+    - Text alignment (Left, Center, Right, Justify)
+    - Rich text formatting: Italic and Underline (Bold removed as it's redundant with font weight)
+  - **Multi-line Support**: Text wraps automatically based on widget size with proper line breaks
+  - **Backward Compatibility**: Existing widgets with images default to "Image" mode; new widgets default to "Blank" mode
+  - **Preview Integration**: Real-time preview updates with proper text styling, including fixed underline display
+  - **State Persistence**: All text content and styling saved per widget instance
+  - **Cloning Support**: Text mode settings fully copied when cloning widgets
+- **Whiteboard Widget Enhancements**:
+  - **Independent Instance State**: Refactored to support multiple whiteboard instances with per-instance drawing state, colors, and brush sizes
+  - **Title Styling**: Now supports title visibility, icon visibility, title text, font size, and font weight (alignment still disabled due to toolbar layout)
+  - **Temporary Floating Header**: When title is hidden, a floating header appears for 5 seconds when drawing starts or controls are used, allowing quick configuration changes without permanently showing the header
+    - Header appears above the widget (doesn't affect canvas size)
+    - Auto-hides after 5 seconds of inactivity
+    - Timer resets on any control interaction
+  - **Background Color Updates**: Background color now updates immediately while preserving existing drawings using pixel replacement technology
+  - **Cloning Fixes**: Whiteboard widgets now clone correctly with independent state, proper positioning, and clean initialization
+  - **Drag/Resize Improvements**: Fixed drag and resize "jumping" issues when temporary header is visible by using style-based position calculations instead of getBoundingClientRect
+- **Clone Widget System Improvements**:
+  - **Reliable Source Widget Lookup**: Uses `getWidgetInstances()` to find source widget by fullId instead of guessing, ensuring clone-of-clone works correctly
+  - **Improved Position Calculation**: Better fallback chain for position (style → localStorage → boundingRect → default) ensuring accurate positioning
+  - **Position Preservation**: Layout saved before initialization to prevent `loadWidgetLayout()` from overriding clone position
+  - **Intended Position Tracking**: Stores and restores intended position after initialization to ensure clones appear with correct offset
+- **Edit Mode Enhancements**:
+  - **Extended Drag Functionality**: Whiteboard canvas and blank widget textarea now draggable in edit mode (not just headers)
+    - Canvas and textarea elements explicitly allow dragging when in edit mode
+    - Matches behavior of other widgets like weather and scoreboard
+  - **Visual Feedback**: Added move cursor (move icon) for whiteboard canvas and blank widget textarea in edit mode
+    - Clear visual indication that these areas are draggable
+    - Uses `cursor: move !important` to override default cursor styles
+- **UI/UX Improvements**:
+  - **Image Centering Fix**: Fixed blank widget image centering by using flex layout properly (flex: 1 instead of height: 100% for content area)
+  - **Removed Verbose Logging**: Cleaned up all debug console.log statements for production-ready console output
+- **Technical Fixes**:
+  - Fixed position calculation to properly handle 0 as a valid position value
+  - Improved class management when cloning (preserves existing classes, only updates instance ID)
+  - Enhanced error handling for widget lookup and positioning
 
 ### Version 2.7
 - **Move to Page Functionality** - Now fully functional!
