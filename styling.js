@@ -3042,27 +3042,39 @@ function updatePreview() {
       };
       const mappedFontFamily = fontFamilyMap[fontFamily] || fontFamily;
       
-      // Build style string
-      const textStyle = [
+      // Build container style string (without text-decoration on container)
+      const containerStyle = [
         `font-family: ${mappedFontFamily}`,
         `font-size: ${fontSize}px`,
         `font-weight: ${fontWeight}`,
         `color: ${textColor}`,
         `text-align: ${textAlign}`,
         isItalic ? 'font-style: italic' : '',
-        isUnderline ? 'text-decoration: underline' : '',
-        'white-space: pre-wrap',
-        'word-wrap: break-word',
         'width: 100%',
         'height: 100%',
         'padding: 20px',
         'box-sizing: border-box'
       ].filter(s => s).join('; ');
       
+      // Build text wrapper style (inline element with underline - only wraps text, not whitespace)
+      const textWrapperStyle = [
+        'white-space: pre-wrap',
+        'word-wrap: break-word',
+        'display: inline-block',
+        'max-width: 100%',
+        isUnderline ? 'text-decoration: underline' : ''
+      ].filter(s => s).join('; ');
+      
+      // Escape HTML to prevent XSS
+      const escapedText = (textContent || 'Enter your text here...')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      
       previewHtml = `
         <div style="display: flex; align-items: flex-start; justify-content: ${textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : textAlign === 'justify' ? 'stretch' : 'flex-start'}; height: 100%; width: 100%; padding: 20px; box-sizing: border-box;">
-          <div style="${textStyle}">
-            ${textContent || 'Enter your text here...'}
+          <div style="${containerStyle}">
+            <span style="${textWrapperStyle}">${escapedText}</span>
           </div>
         </div>
       `;
