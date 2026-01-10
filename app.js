@@ -4904,10 +4904,8 @@ function initializeWhiteboard() {
         widgetHeader.style.display = '';
         widgetHeader.classList.add('whiteboard-header-temporary');
         
-        // Ensure widget has position relative for absolute positioning of header
-        if (whiteboardWidget.style.position !== 'relative' && !whiteboardWidget.style.position) {
-          whiteboardWidget.style.position = 'relative';
-        }
+        // Widget is already position: absolute (from .widget class), which is sufficient
+        // for absolutely positioning the header relative to it. No need to change position.
         
         // Set timer to hide after 5 seconds
         state.autoHideTimer = setTimeout(() => {
@@ -4943,10 +4941,8 @@ function initializeWhiteboard() {
         widgetHeader.style.display = '';
         widgetHeader.classList.add('whiteboard-header-temporary');
         
-        // Ensure widget has position relative for absolute positioning of header
-        if (whiteboardWidget.style.position !== 'relative' && !whiteboardWidget.style.position) {
-          whiteboardWidget.style.position = 'relative';
-        }
+        // Widget is already position: absolute (from .widget class), which is sufficient
+        // for absolutely positioning the header relative to it. No need to change position.
       } else if (!widgetHeader.classList.contains('whiteboard-header-temporary')) {
         // Header is permanently visible (titleVisible is true), don't set timer
         return;

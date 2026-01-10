@@ -3253,8 +3253,8 @@ footer a:hover {
 .whiteboard-widget {
   min-width: 200px;
   min-height: 150px;
-  position: relative; /* Ensure temporary header can be positioned relative to widget */
-  overflow: visible; /* Allow temporary header to appear above widget */
+  /* Note: position is inherited from .widget (absolute) - do not override here */
+  /* Temporary header positioning is handled via inline styles when needed */
 }
 
 .whiteboard-container {
@@ -3284,10 +3284,11 @@ footer a:hover {
 }
 
 /* Temporary header appears above widget without affecting layout */
+/* Widget is already position: absolute, so header can be positioned relative to it */
 .whiteboard-widget .widget-header.whiteboard-header-temporary {
   position: absolute;
   top: -60px; /* Position above the widget (adjust based on header height) */
-  left: -24px; /* Account for widget padding */
+  left: -24px; /* Account for widget padding (24px on each side) */
   right: -24px;
   width: calc(100% + 48px); /* Match widget width including padding */
   z-index: 100;
@@ -3296,6 +3297,8 @@ footer a:hover {
   padding: 12px 24px;
   margin-bottom: 0;
   margin-top: 0;
+  margin-left: 0;
+  margin-right: 0;
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
   border-bottom: 2px solid #3a3a3a;
   opacity: 1;
