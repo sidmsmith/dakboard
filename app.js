@@ -5701,8 +5701,44 @@ function cloneWidget(fullWidgetId) {
     // This prevents the cloned widget from being skipped during drag initialization
     delete cloned.dataset.dragListenerAdded;
     
-    cloned.style.left = (parseInt(original.style.left) || 50) + 50 + 'px';
-    cloned.style.top = (parseInt(original.style.top) || 50) + 50 + 'px';
+    // Get source widget position and rotation
+    // Use style values for accurate position (not affected by rotation)
+    const sourceLeft = parseFloat(original.style.left) || 50;
+    const sourceTop = parseFloat(original.style.top) || 50;
+    const sourceWidth = parseFloat(original.style.width) || original.offsetWidth || 300;
+    const sourceHeight = parseFloat(original.style.height) || original.offsetHeight || 200;
+    
+    // Get rotation from source widget (from data-rotation attribute or parse from transform)
+    let sourceRotation = 0;
+    const rotationAttr = original.getAttribute('data-rotation');
+    if (rotationAttr) {
+      sourceRotation = parseFloat(rotationAttr) || 0;
+    } else {
+      // Try to parse from transform style
+      const transform = original.style.transform || window.getComputedStyle(original).transform;
+      if (transform && transform.includes('rotate')) {
+        const match = transform.match(/rotate\(([^)]+)\)/);
+        if (match) {
+          const rotationValue = match[1].replace('deg', '').trim();
+          sourceRotation = parseFloat(rotationValue) || 0;
+        }
+      }
+    }
+    
+    // Offset position to the right and down (offset by widget width/4 and height/4 for better visibility)
+    const offsetX = Math.max(80, sourceWidth * 0.3); // At least 80px or 30% of width
+    const offsetY = Math.max(80, sourceHeight * 0.3); // At least 80px or 30% of height
+    cloned.style.left = (sourceLeft + offsetX) + 'px';
+    cloned.style.top = (sourceTop + offsetY) + 'px';
+    cloned.style.width = sourceWidth + 'px';
+    cloned.style.height = sourceHeight + 'px';
+    
+    // Apply same rotation as source widget
+    if (sourceRotation !== 0) {
+      cloned.style.transform = `rotate(${sourceRotation}deg)`;
+      cloned.setAttribute('data-rotation', sourceRotation);
+    }
+    
     pageElement.appendChild(cloned);
     
     // Copy configuration from original (if it exists)
@@ -5733,6 +5769,13 @@ function cloneWidget(fullWidgetId) {
     
     // Save visibility state again to ensure it's persisted
     saveWidgetVisibility();
+    
+    // Save layout (position, size, rotation) for the cloned widget
+    if (typeof saveCurrentPageLayout === 'function') {
+      saveCurrentPageLayout();
+    } else if (typeof saveWidgetLayout === 'function') {
+      saveWidgetLayout();
+    }
     
     // Update control panel
     updateWidgetControlPanel();
@@ -5780,11 +5823,43 @@ function cloneWidget(fullWidgetId) {
   // Always make cloned widgets visible by default (eye icon selected)
   cloned.classList.remove('hidden');
   
-  // Offset position slightly
-  const rect = originalWidget.getBoundingClientRect();
-  const pageRect = pageElement.getBoundingClientRect();
-  cloned.style.left = (rect.left - pageRect.left + 50) + 'px';
-  cloned.style.top = (rect.top - pageRect.top + 50) + 'px';
+  // Get source widget position and rotation
+  // Use style values for accurate position (not affected by rotation)
+  const sourceLeft = parseFloat(originalWidget.style.left) || 0;
+  const sourceTop = parseFloat(originalWidget.style.top) || 0;
+  const sourceWidth = parseFloat(originalWidget.style.width) || originalWidget.offsetWidth || 300;
+  const sourceHeight = parseFloat(originalWidget.style.height) || originalWidget.offsetHeight || 200;
+  
+  // Get rotation from source widget (from data-rotation attribute or parse from transform)
+  let sourceRotation = 0;
+  const rotationAttr = originalWidget.getAttribute('data-rotation');
+  if (rotationAttr) {
+    sourceRotation = parseFloat(rotationAttr) || 0;
+  } else {
+    // Try to parse from transform style
+    const transform = originalWidget.style.transform || window.getComputedStyle(originalWidget).transform;
+    if (transform && transform.includes('rotate')) {
+      const match = transform.match(/rotate\(([^)]+)\)/);
+      if (match) {
+        const rotationValue = match[1].replace('deg', '').trim();
+        sourceRotation = parseFloat(rotationValue) || 0;
+      }
+    }
+  }
+  
+  // Offset position to the right and down (offset by widget width/4 and height/4 for better visibility)
+  const offsetX = Math.max(80, sourceWidth * 0.3); // At least 80px or 30% of width
+  const offsetY = Math.max(80, sourceHeight * 0.3); // At least 80px or 30% of height
+  cloned.style.left = (sourceLeft + offsetX) + 'px';
+  cloned.style.top = (sourceTop + offsetY) + 'px';
+  cloned.style.width = sourceWidth + 'px';
+  cloned.style.height = sourceHeight + 'px';
+  
+  // Apply same rotation as source widget
+  if (sourceRotation !== 0) {
+    cloned.style.transform = `rotate(${sourceRotation}deg)`;
+    cloned.setAttribute('data-rotation', sourceRotation);
+  }
   
   pageElement.appendChild(cloned);
   
@@ -5816,6 +5891,13 @@ function cloneWidget(fullWidgetId) {
   
   // Save visibility state again to ensure it's persisted
   saveWidgetVisibility();
+  
+  // Save layout (position, size, rotation) for the cloned widget
+  if (typeof saveCurrentPageLayout === 'function') {
+    saveCurrentPageLayout();
+  } else if (typeof saveWidgetLayout === 'function') {
+    saveWidgetLayout();
+  }
   
   // Update control panel
   updateWidgetControlPanel();
@@ -7130,16 +7212,41 @@ function saveCurrentPageLayout() {
         }
       }
       
-      const rect = widget.getBoundingClientRect();
-      const dashboardRect = pageElement.getBoundingClientRect();
+      // Get position from style values (more accurate, especially for rotated widgets)
+      // Fallback to getBoundingClientRect if style values aren't set
+      let x, y;
+      const styleLeft = widget.style.left;
+      const styleTop = widget.style.top;
+      
+      if (styleLeft && styleLeft !== 'auto') {
+        x = parseFloat(styleLeft) || 0;
+      } else {
+        const rect = widget.getBoundingClientRect();
+        const dashboardRect = pageElement.getBoundingClientRect();
+        x = rect.left - dashboardRect.left;
+      }
+      
+      if (styleTop && styleTop !== 'auto') {
+        y = parseFloat(styleTop) || 0;
+      } else {
+        const rect = widget.getBoundingClientRect();
+        const dashboardRect = pageElement.getBoundingClientRect();
+        y = rect.top - dashboardRect.top;
+      }
+      
+      // Get size from style or computed size
+      const styleWidth = widget.style.width;
+      const styleHeight = widget.style.height;
+      const width = (styleWidth && styleWidth !== 'auto') ? parseFloat(styleWidth) : widget.offsetWidth;
+      const height = (styleHeight && styleHeight !== 'auto') ? parseFloat(styleHeight) : widget.offsetHeight;
       
       const zIndex = parseInt(window.getComputedStyle(widget).zIndex) || 1;
       const rotation = widget.getAttribute('data-rotation') ? parseFloat(widget.getAttribute('data-rotation')) : 0;
       layout[widgetId] = {
-        x: rect.left - dashboardRect.left,
-        y: rect.top - dashboardRect.top,
-        width: rect.width,
-        height: rect.height,
+        x: x,
+        y: y,
+        width: width,
+        height: height,
         zIndex: zIndex,
         rotation: rotation
       };
