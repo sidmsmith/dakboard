@@ -210,7 +210,7 @@ function initializeDragAndResize() {
       // Add resize handles
       addResizeHandles(widget);
       
-      // Add rotate handle for blank widget only
+      // Add rotate handle for blank widget and stoplight widget
       if (widget.classList.contains('blank-widget') || widget.classList.contains('stoplight-widget')) {
         addRotateHandle(widget);
       }
@@ -337,7 +337,7 @@ function addResizeHandles(widget) {
   // Resize handles added (logging removed to reduce console noise)
 }
 
-// Add rotate handle to widget (only for blank widget)
+// Add rotate handle to widget (for blank widget and stoplight widget)
 function addRotateHandle(widget) {
   // Remove existing rotate handle
   widget.querySelectorAll('.rotate-handle').forEach(h => h.remove());
@@ -400,7 +400,7 @@ function initializeWidgetDragAndResize(widget) {
   // Add resize handles
   addResizeHandles(widget);
   
-  // Add rotate handle for blank widget only
+  // Add rotate handle for blank widget and stoplight widget
   if (widget.classList.contains('blank-widget') || widget.classList.contains('stoplight-widget')) {
     addRotateHandle(widget);
   }
