@@ -3607,6 +3607,7 @@ footer a:hover {
   background: #333;
   border-radius: 8px;
   transition: background 0.2s, opacity 0.2s;
+  position: relative;
 }
 
 .widget-control-item:hover {

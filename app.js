@@ -5666,9 +5666,25 @@ function setEditMode(enabled) {
 }
 
 // Update widget control panel with current widget states
+// Set up global click handler for closing move dropdowns (only once)
+let moveDropdownClickHandlerSetup = false;
+
 function updateWidgetControlPanel() {
   const list = document.getElementById('widget-control-list');
   if (!list) return;
+  
+  // Set up global click handler for closing dropdowns (only once)
+  if (!moveDropdownClickHandlerSetup) {
+    document.addEventListener('click', (e) => {
+      // Close all move dropdowns if click is outside any move button or dropdown
+      if (!e.target.closest('.widget-control-move-btn') && !e.target.closest('.widget-control-move-dropdown')) {
+        document.querySelectorAll('.widget-control-move-dropdown').forEach(dd => {
+          dd.style.display = 'none';
+        });
+      }
+    });
+    moveDropdownClickHandlerSetup = true;
+  }
   
   list.innerHTML = '';
   
@@ -5809,6 +5825,7 @@ function updateWidgetControlPanel() {
     
     // Move button (only if more than 1 page exists)
     let moveBtn = null;
+    let moveDropdown = null;
     if (totalPages > 1) {
       moveBtn = document.createElement('button');
       moveBtn.className = 'widget-control-move-btn';
@@ -5816,7 +5833,7 @@ function updateWidgetControlPanel() {
       moveBtn.title = 'Move to page';
       
       // Create dropdown for page selection
-      const moveDropdown = document.createElement('div');
+      moveDropdown = document.createElement('div');
       moveDropdown.className = 'widget-control-move-dropdown';
       moveDropdown.style.display = 'none';
       
@@ -5843,15 +5860,6 @@ function updateWidgetControlPanel() {
         });
         moveDropdown.style.display = isVisible ? 'none' : 'block';
       });
-      
-      // Close dropdown when clicking outside
-      document.addEventListener('click', function closeDropdown(e) {
-        if (!moveBtn.contains(e.target) && !moveDropdown.contains(e.target)) {
-          moveDropdown.style.display = 'none';
-        }
-      });
-      
-      item.appendChild(moveDropdown);
     }
     
     item.innerHTML = `
@@ -5864,7 +5872,13 @@ function updateWidgetControlPanel() {
     item.appendChild(styleBtn);
     item.appendChild(cloneBtn);
     if (removeBtn) item.appendChild(removeBtn);
-    if (moveBtn) item.appendChild(moveBtn);
+    if (moveBtn) {
+      item.appendChild(moveBtn);
+      // Append dropdown AFTER innerHTML is set and after moveBtn is appended
+      if (moveDropdown) {
+        item.appendChild(moveDropdown);
+      }
+    }
     
     list.appendChild(item);
   });
