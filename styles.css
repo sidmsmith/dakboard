@@ -3253,6 +3253,8 @@ footer a:hover {
 .whiteboard-widget {
   min-width: 200px;
   min-height: 150px;
+  position: relative; /* Ensure temporary header can be positioned relative to widget */
+  overflow: visible; /* Allow temporary header to appear above widget */
 }
 
 .whiteboard-container {
@@ -3269,6 +3271,10 @@ footer a:hover {
    Title styling system (visibility, icon, name, size) is enabled for this widget,
    but alignment is disabled. When title is hidden and user draws, header appears
    temporarily for 5 seconds. See styling.js and app.js for implementation details. */
+.whiteboard-widget {
+  position: relative; /* Ensure temporary header can be positioned relative to widget */
+}
+
 .whiteboard-widget .widget-header {
   display: flex;
   justify-content: space-between;
@@ -3277,10 +3283,26 @@ footer a:hover {
   transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
 
+/* Temporary header appears above widget without affecting layout */
 .whiteboard-widget .widget-header.whiteboard-header-temporary {
+  position: absolute;
+  top: -60px; /* Position above the widget (adjust based on header height) */
+  left: -24px; /* Account for widget padding */
+  right: -24px;
+  width: calc(100% + 48px); /* Match widget width including padding */
+  z-index: 100;
+  background: #2a2a2a;
+  border-radius: 12px 12px 0 0;
+  padding: 12px 24px;
+  margin-bottom: 0;
+  margin-top: 0;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+  border-bottom: 2px solid #3a3a3a;
   opacity: 1;
   transform: translateY(0);
   animation: slideDownFadeIn 0.3s ease-out;
+  pointer-events: auto; /* Ensure controls are clickable */
+  box-sizing: border-box; /* Include padding in width calculation */
 }
 
 @keyframes slideDownFadeIn {
