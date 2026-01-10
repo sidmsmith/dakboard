@@ -2858,7 +2858,7 @@ footer a:hover {
 
 .stoplight-container {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 20px;
   height: 100%;
   width: 100%;
@@ -2867,6 +2867,11 @@ footer a:hover {
 
 .stoplight-container.has-labels {
   justify-content: flex-start;
+}
+
+.stoplight-container:not(.has-labels) .stoplight-casing {
+  margin-top: auto;
+  margin-bottom: auto;
 }
 
 .stoplight-casing {

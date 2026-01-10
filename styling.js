@@ -2844,14 +2844,14 @@ function updatePreview() {
     
     const previewHtml = `
       <div style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;">
-        <div style="display: flex; align-items: center; gap: 20px; height: 100%; width: 100%; ${hasLabels ? 'justify-content: flex-start;' : 'justify-content: center;'}">
-          <div style="display: flex; flex-direction: column; gap: 12px; background: #333; border: 3px solid #1a1a1a; border-radius: 20px; padding: 20px; box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);">
+        <div style="display: flex; align-items: flex-start; gap: 20px; height: 100%; width: 100%; ${hasLabels ? 'justify-content: flex-start;' : 'justify-content: center;'}">
+          <div style="display: flex; flex-direction: column; gap: 12px; background: #333; border: 3px solid #1a1a1a; border-radius: 20px; padding: 20px; box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3); height: fit-content; ${!hasLabels ? 'margin-top: auto; margin-bottom: auto;' : ''}">
             <div style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #1a1a1a; background: ${activeLight === 'red' ? '#dc3545' : '#5c1a1a'}; box-shadow: ${activeLight === 'red' ? '0 0 20px rgba(220, 53, 69, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.2)' : 'inset 0 2px 4px rgba(0, 0, 0, 0.5)'};"></div>
             <div style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #1a1a1a; background: ${activeLight === 'amber' ? '#ffc107' : '#4a3a1a'}; box-shadow: ${activeLight === 'amber' ? '0 0 20px rgba(255, 193, 7, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.2)' : 'inset 0 2px 4px rgba(0, 0, 0, 0.5)'};"></div>
             <div style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #1a1a1a; background: ${activeLight === 'green' ? '#28a745' : '#1a4a1a'}; box-shadow: ${activeLight === 'green' ? '0 0 20px rgba(40, 167, 69, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.2)' : 'inset 0 2px 4px rgba(0, 0, 0, 0.5)'};"></div>
           </div>
           ${hasLabels ? `
-          <div style="display: flex; flex-direction: column; gap: 12px; justify-content: flex-start; height: fit-content; min-width: 100px; align-self: flex-start; margin-top: 20px;">
+          <div style="display: flex; flex-direction: column; gap: 12px; justify-content: flex-start; height: fit-content; min-width: 100px; margin-top: 20px;">
             <div style="display: flex; align-items: center; height: 80px; padding-left: 10px; font-size: 16px; color: #e0e0e0; font-weight: 500; ${redTextStyleStr.join('; ')}">${redText}</div>
             <div style="display: flex; align-items: center; height: 80px; padding-left: 10px; font-size: 16px; color: #e0e0e0; font-weight: 500; ${amberTextStyleStr.join('; ')}">${amberText}</div>
             <div style="display: flex; align-items: center; height: 80px; padding-left: 10px; font-size: 16px; color: #e0e0e0; font-weight: 500; ${greenTextStyleStr.join('; ')}">${greenText}</div>
