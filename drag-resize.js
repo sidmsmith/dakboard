@@ -534,7 +534,6 @@ function startResize(widget, direction, e) {
   resizeDirection = direction;
   widget.classList.add('resizing');
   
-  const rect = widget.getBoundingClientRect();
   const dashboard = widget.closest('.dashboard.page');
   if (!dashboard) return;
   const dashboardRect = dashboard.getBoundingClientRect();
@@ -543,12 +542,20 @@ function startResize(widget, direction, e) {
   const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
   const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
   
+  // Use widget's actual style values instead of getBoundingClientRect()
+  // This prevents issues with temporary headers or other absolutely positioned elements
+  const widgetLeft = parseFloat(widget.style.left) || 0;
+  const widgetTop = parseFloat(widget.style.top) || 0;
+  const widgetWidth = parseFloat(widget.style.width) || widget.offsetWidth || 300;
+  const widgetHeight = parseFloat(widget.style.height) || widget.offsetHeight || 200;
+  
+  // Store initial values for resize calculation
   resizeStart.x = clientX;
   resizeStart.y = clientY;
-  resizeStart.width = rect.width;
-  resizeStart.height = rect.height;
-  resizeStart.left = rect.left - dashboardRect.left;
-  resizeStart.top = rect.top - dashboardRect.top;
+  resizeStart.width = widgetWidth;
+  resizeStart.height = widgetHeight;
+  resizeStart.left = widgetLeft;
+  resizeStart.top = widgetTop;
   
   e.preventDefault();
   e.stopPropagation();
