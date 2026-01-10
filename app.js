@@ -3687,6 +3687,15 @@ function loadClipArt() {
         'Bubblegum Sans': 'Bubblegum Sans, cursive',
         'Poppins': 'Poppins, sans-serif',
         'Righteous': 'Righteous, cursive',
+        'Bungee': 'Bungee, cursive',
+        'Boogaloo': 'Boogaloo, cursive',
+        'Creepster': 'Creepster, cursive',
+        'Luckiest Guy': 'Luckiest Guy, cursive',
+        'Amatic SC': 'Amatic SC, cursive',
+        'Shadows Into Light': 'Shadows Into Light, cursive',
+        'Kalam': 'Kalam, cursive',
+        'Patrick Hand': 'Patrick Hand, cursive',
+        'Schoolbell': 'Schoolbell, cursive',
         'Arial': 'Arial, sans-serif',
         'Impact': 'Impact, sans-serif'
       };

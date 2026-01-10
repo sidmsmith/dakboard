@@ -310,6 +310,42 @@ body {
   font-family: 'Righteous', cursive;
 }
 
+.blank-font-select option[value="Bungee"] {
+  font-family: 'Bungee', cursive;
+}
+
+.blank-font-select option[value="Boogaloo"] {
+  font-family: 'Boogaloo', cursive;
+}
+
+.blank-font-select option[value="Creepster"] {
+  font-family: 'Creepster', cursive;
+}
+
+.blank-font-select option[value="Luckiest Guy"] {
+  font-family: 'Luckiest Guy', cursive;
+}
+
+.blank-font-select option[value="Amatic SC"] {
+  font-family: 'Amatic SC', cursive;
+}
+
+.blank-font-select option[value="Shadows Into Light"] {
+  font-family: 'Shadows Into Light', cursive;
+}
+
+.blank-font-select option[value="Kalam"] {
+  font-family: 'Kalam', cursive;
+}
+
+.blank-font-select option[value="Patrick Hand"] {
+  font-family: 'Patrick Hand', cursive;
+}
+
+.blank-font-select option[value="Schoolbell"] {
+  font-family: 'Schoolbell', cursive;
+}
+
 /* Ensure textarea fills container in blank widget */
 .blank-widget .clipart-content {
   align-items: flex-start;

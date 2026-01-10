@@ -967,6 +967,15 @@ function generateAdvancedTab() {
               <option value="Bubblegum Sans" data-font="Bubblegum Sans, cursive" ${currentStyles.blankTextFontFamily === 'Bubblegum Sans' ? 'selected' : ''} style="font-family: Bubblegum Sans, cursive;">Bubblegum Sans</option>
               <option value="Poppins" data-font="Poppins, sans-serif" ${currentStyles.blankTextFontFamily === 'Poppins' ? 'selected' : ''} style="font-family: Poppins, sans-serif;">Poppins</option>
               <option value="Righteous" data-font="Righteous, cursive" ${currentStyles.blankTextFontFamily === 'Righteous' ? 'selected' : ''} style="font-family: Righteous, cursive;">Righteous</option>
+              <option value="Bungee" data-font="Bungee, cursive" ${currentStyles.blankTextFontFamily === 'Bungee' ? 'selected' : ''} style="font-family: Bungee, cursive;">Bungee</option>
+              <option value="Boogaloo" data-font="Boogaloo, cursive" ${currentStyles.blankTextFontFamily === 'Boogaloo' ? 'selected' : ''} style="font-family: Boogaloo, cursive;">Boogaloo</option>
+              <option value="Creepster" data-font="Creepster, cursive" ${currentStyles.blankTextFontFamily === 'Creepster' ? 'selected' : ''} style="font-family: Creepster, cursive;">Creepster</option>
+              <option value="Luckiest Guy" data-font="Luckiest Guy, cursive" ${currentStyles.blankTextFontFamily === 'Luckiest Guy' ? 'selected' : ''} style="font-family: Luckiest Guy, cursive;">Luckiest Guy</option>
+              <option value="Amatic SC" data-font="Amatic SC, cursive" ${currentStyles.blankTextFontFamily === 'Amatic SC' ? 'selected' : ''} style="font-family: Amatic SC, cursive;">Amatic SC</option>
+              <option value="Shadows Into Light" data-font="Shadows Into Light, cursive" ${currentStyles.blankTextFontFamily === 'Shadows Into Light' ? 'selected' : ''} style="font-family: Shadows Into Light, cursive;">Shadows Into Light</option>
+              <option value="Kalam" data-font="Kalam, cursive" ${currentStyles.blankTextFontFamily === 'Kalam' ? 'selected' : ''} style="font-family: Kalam, cursive;">Kalam</option>
+              <option value="Patrick Hand" data-font="Patrick Hand, cursive" ${currentStyles.blankTextFontFamily === 'Patrick Hand' ? 'selected' : ''} style="font-family: Patrick Hand, cursive;">Patrick Hand</option>
+              <option value="Schoolbell" data-font="Schoolbell, cursive" ${currentStyles.blankTextFontFamily === 'Schoolbell' ? 'selected' : ''} style="font-family: Schoolbell, cursive;">Schoolbell</option>
               <option value="Arial" data-font="Arial, sans-serif" ${currentStyles.blankTextFontFamily === 'Arial' ? 'selected' : ''} style="font-family: Arial, sans-serif;">Arial</option>
               <option value="Impact" data-font="Impact, sans-serif" ${currentStyles.blankTextFontFamily === 'Impact' ? 'selected' : ''} style="font-family: Impact, sans-serif;">Impact</option>
             </select>
@@ -3037,6 +3046,15 @@ function updatePreview() {
         'Bubblegum Sans': 'Bubblegum Sans, cursive',
         'Poppins': 'Poppins, sans-serif',
         'Righteous': 'Righteous, cursive',
+        'Bungee': 'Bungee, cursive',
+        'Boogaloo': 'Boogaloo, cursive',
+        'Creepster': 'Creepster, cursive',
+        'Luckiest Guy': 'Luckiest Guy, cursive',
+        'Amatic SC': 'Amatic SC, cursive',
+        'Shadows Into Light': 'Shadows Into Light, cursive',
+        'Kalam': 'Kalam, cursive',
+        'Patrick Hand': 'Patrick Hand, cursive',
+        'Schoolbell': 'Schoolbell, cursive',
         'Arial': 'Arial, sans-serif',
         'Impact': 'Impact, sans-serif'
       };
@@ -3952,7 +3970,7 @@ function applyCurrentStylesToWidget(widget) {
       if (displayMode === 'text') {
         // Text mode - create editable textarea
         const textContent = currentStyles.blankTextContent || '';
-        const fontFamily = currentStyles.blankTextFontFamily || 'Arial';
+        const fontFamily = currentStyles.blankTextFontFamily || 'Comic Sans MS';
         const fontSize = currentStyles.blankTextFontSize || 16;
         const fontWeight = currentStyles.blankTextFontWeight || 'normal';
         const textColor = currentStyles.blankTextColor || '#ffffff';
@@ -3960,9 +3978,38 @@ function applyCurrentStylesToWidget(widget) {
       const isItalic = currentStyles.blankTextItalic || false;
       const isUnderline = currentStyles.blankTextUnderline || false;
       
+      // Map font family to Google Fonts if needed
+      const fontFamilyMap = {
+        'Comic Sans MS': 'Comic Sans MS, cursive',
+        'Bangers': 'Bangers, cursive',
+        'Fredoka One': 'Fredoka One, cursive',
+        'Nunito': 'Nunito, sans-serif',
+        'Quicksand': 'Quicksand, sans-serif',
+        'Indie Flower': 'Indie Flower, cursive',
+        'Permanent Marker': 'Permanent Marker, cursive',
+        'Chewy': 'Chewy, cursive',
+        'Lobster': 'Lobster, cursive',
+        'Pacifico': 'Pacifico, cursive',
+        'Bubblegum Sans': 'Bubblegum Sans, cursive',
+        'Poppins': 'Poppins, sans-serif',
+        'Righteous': 'Righteous, cursive',
+        'Bungee': 'Bungee, cursive',
+        'Boogaloo': 'Boogaloo, cursive',
+        'Creepster': 'Creepster, cursive',
+        'Luckiest Guy': 'Luckiest Guy, cursive',
+        'Amatic SC': 'Amatic SC, cursive',
+        'Shadows Into Light': 'Shadows Into Light, cursive',
+        'Kalam': 'Kalam, cursive',
+        'Patrick Hand': 'Patrick Hand, cursive',
+        'Schoolbell': 'Schoolbell, cursive',
+        'Arial': 'Arial, sans-serif',
+        'Impact': 'Impact, sans-serif'
+      };
+      const mappedFontFamily = fontFamilyMap[fontFamily] || fontFamily;
+      
       // Build style string
       const textStyle = [
-        `font-family: ${fontFamily}`,
+        `font-family: ${mappedFontFamily}`,
         `font-size: ${fontSize}px`,
         `font-weight: ${fontWeight}`,
           `color: ${textColor}`,
