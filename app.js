@@ -5814,9 +5814,10 @@ function cloneWidget(fullWidgetId) {
     }, 150);
     
     return;
-  }
+    } // Close the nested if (!sourceWidget) block on line 5684
+  } // Close the outer if (!sourceWidget) block on line 5681
   
-  // Clone the widget element
+  // Clone the widget element (this path executes when sourceWidget was found)
   const cloned = sourceWidget.cloneNode(true);
   cloned.className = `widget ${widgetType} ${newFullId}`;
   

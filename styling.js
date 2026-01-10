@@ -76,7 +76,9 @@ function openStylingModal(fullWidgetId) {
   const widget = currentPage ? currentPage.querySelector(`.${fullWidgetId}`) : document.querySelector(`.${fullWidgetId}`);
   if (!widget) return;
 
-  const config = WIDGET_CONFIG[widgetType];
+  // Safety check: WIDGET_CONFIG might not be loaded yet
+  const widgetConfig = (typeof WIDGET_CONFIG !== 'undefined') ? WIDGET_CONFIG : {};
+  const config = widgetConfig[widgetType];
   if (!config) {
     console.error(`Widget config not found for ${widgetType}`);
     return;
@@ -540,8 +542,10 @@ function generateTitleTab() {
   const widgetType = parsed.widgetType;
   
   // Get current widget's default title from WIDGET_CONFIG
-  const defaultTitle = WIDGET_CONFIG[widgetType]?.name || 'Widget';
-  const defaultIcon = WIDGET_CONFIG[widgetType]?.icon || '';
+  // Safety check: WIDGET_CONFIG might not be loaded yet
+  const widgetConfig = (typeof WIDGET_CONFIG !== 'undefined') ? WIDGET_CONFIG : {};
+  const defaultTitle = widgetConfig[widgetType]?.name || 'Widget';
+  const defaultIcon = widgetConfig[widgetType]?.icon || '';
   const titleText = currentStyles.titleText !== undefined ? currentStyles.titleText : defaultTitle;
   const titleVisible = currentStyles.titleVisible !== undefined ? currentStyles.titleVisible : true;
   const titleIconVisible = currentStyles.titleIconVisible !== undefined ? currentStyles.titleIconVisible : true;
@@ -2320,8 +2324,10 @@ function updatePreview() {
   // Apply text
   const titleText = preview.querySelector('.styling-preview-title-text');
   if (titleText) {
+    // Safety check: WIDGET_CONFIG might not be loaded yet
+    const widgetConfig = (typeof WIDGET_CONFIG !== 'undefined') ? WIDGET_CONFIG : {};
     // Get widget icon
-    const widgetIcon = WIDGET_CONFIG[widgetType]?.icon || '';
+    const widgetIcon = widgetConfig[widgetType]?.icon || '';
     const showIcon = currentStyles.titleIconVisible !== undefined ? currentStyles.titleIconVisible : true;
     
     // Title text
@@ -2330,7 +2336,7 @@ function updatePreview() {
       titleTextValue = currentStyles.titleText;
     } else {
       // Use default from WIDGET_CONFIG
-      titleTextValue = WIDGET_CONFIG[widgetType]?.name || 'Widget';
+      titleTextValue = widgetConfig[widgetType]?.name || 'Widget';
     }
     
     // Apply icon visibility
@@ -2752,7 +2758,9 @@ function updateCurrentStylesFromForm() {
   
   const titleText = document.getElementById('title-text');
   if (titleText) {
-    const defaultTitle = WIDGET_CONFIG[currentWidgetId]?.name || 'Widget';
+    // Safety check: WIDGET_CONFIG might not be loaded yet
+    const widgetConfig = (typeof WIDGET_CONFIG !== 'undefined') ? WIDGET_CONFIG : {};
+    const defaultTitle = widgetConfig[currentWidgetId]?.name || 'Widget';
     // Only save if different from default (to allow resetting to default)
     if (titleText.value && titleText.value !== defaultTitle) {
       currentStyles.titleText = titleText.value;
@@ -3051,14 +3059,16 @@ function applyCurrentStylesToWidget(widget) {
   if (title && !isSpecialWidget) {
     // Get widget ID and icon
     const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
-    const widgetIcon = widgetId && WIDGET_CONFIG[widgetId] ? WIDGET_CONFIG[widgetId].icon : '';
+    // Safety check: WIDGET_CONFIG might not be loaded yet
+    const widgetConfig = (typeof WIDGET_CONFIG !== 'undefined') ? WIDGET_CONFIG : {};
+    const widgetIcon = widgetId && widgetConfig[widgetId] ? widgetConfig[widgetId].icon : '';
     
     // Determine title text (custom or default)
     let titleTextValue = currentStyles.titleText;
     if (titleTextValue === undefined) {
       // Use default from WIDGET_CONFIG if no custom title
-      if (widgetId && WIDGET_CONFIG[widgetId]) {
-        titleTextValue = WIDGET_CONFIG[widgetId].name;
+      if (widgetId && widgetConfig[widgetId]) {
+        titleTextValue = widgetConfig[widgetId].name;
       } else {
         titleTextValue = 'Widget';
       }
@@ -3997,14 +4007,16 @@ function loadStylesToWidget(widget, styles) {
   if (title && !isSpecialWidget) {
     // Get widget ID and icon
     const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
-    const widgetIcon = widgetId && WIDGET_CONFIG[widgetId] ? WIDGET_CONFIG[widgetId].icon : '';
+    // Safety check: WIDGET_CONFIG might not be loaded yet
+    const widgetConfig = (typeof WIDGET_CONFIG !== 'undefined') ? WIDGET_CONFIG : {};
+    const widgetIcon = widgetId && widgetConfig[widgetId] ? widgetConfig[widgetId].icon : '';
     
     // Determine title text (custom or default)
     let titleTextValue = styles.titleText;
     if (titleTextValue === undefined) {
       // Use default from WIDGET_CONFIG if no custom title
-      if (widgetId && WIDGET_CONFIG[widgetId]) {
-        titleTextValue = WIDGET_CONFIG[widgetId].name;
+      if (widgetId && widgetConfig[widgetId]) {
+        titleTextValue = widgetConfig[widgetId].name;
       } else {
         titleTextValue = 'Widget';
       }
