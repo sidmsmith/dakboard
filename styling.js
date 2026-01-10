@@ -711,6 +711,7 @@ function generateAdvancedTab() {
   const isStopwatchWidget = widgetType === 'stopwatch-widget';
   const isScoreboardWidget = widgetType === 'scoreboard-widget';
   const isBlankWidget = widgetType === 'blank-widget';
+  const isStoplightWidget = widgetType === 'stoplight-widget';
   const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
   const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
   
@@ -921,6 +922,107 @@ function generateAdvancedTab() {
               </label>
             </div>
             <div style="font-size: 11px; color: #888; margin-top: 5px;">Makes images look like stickers. Use white for classic sticker look.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+    ${isStoplightWidget ? `
+    <div class="styling-form-section">
+      <div class="styling-section-title">Stoplight Text Labels</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">
+            <input type="checkbox" id="stoplight-labels-enabled" ${currentStyles.stoplightLabelsEnabled === true ? 'checked' : ''} style="margin-right: 8px;"> Enable Text Labels
+          </label>
+        </div>
+        <div id="stoplight-labels-container" style="${currentStyles.stoplightLabelsEnabled === true ? '' : 'display: none;'}">
+          <div class="styling-form-row">
+            <label class="styling-form-label">Red Light Text</label>
+            <div class="styling-form-control">
+              <input type="text" id="stoplight-red-text" value="${currentStyles.stoplightRedText || ''}" placeholder="Enter text for red light">
+            </div>
+          </div>
+          <div class="styling-form-row">
+            <label class="styling-form-label">Red Text Font Size</label>
+            <div class="styling-form-control">
+              <input type="range" id="stoplight-red-font-size" min="10" max="32" value="${currentStyles.stoplightRedFontSize || 16}">
+              <span class="styling-range-value" id="stoplight-red-font-size-value">${currentStyles.stoplightRedFontSize || 16}px</span>
+            </div>
+          </div>
+          <div class="styling-form-row">
+            <label class="styling-form-label">Red Text Color</label>
+            <div class="styling-form-control">
+              <input type="color" id="stoplight-red-text-color" value="${currentStyles.stoplightRedTextColor || '#e0e0e0'}">
+            </div>
+          </div>
+          <div class="styling-form-row">
+            <label class="styling-form-label">Red Text Weight</label>
+            <div class="styling-form-control">
+              <select id="stoplight-red-font-weight">
+                <option value="normal" ${(currentStyles.stoplightRedFontWeight || 'normal') === 'normal' ? 'selected' : ''}>Normal</option>
+                <option value="bold" ${currentStyles.stoplightRedFontWeight === 'bold' ? 'selected' : ''}>Bold</option>
+                <option value="600" ${currentStyles.stoplightRedFontWeight === '600' ? 'selected' : ''}>Semi-bold</option>
+              </select>
+            </div>
+          </div>
+          <div class="styling-form-row">
+            <label class="styling-form-label">Amber Light Text</label>
+            <div class="styling-form-control">
+              <input type="text" id="stoplight-amber-text" value="${currentStyles.stoplightAmberText || ''}" placeholder="Enter text for amber light">
+            </div>
+          </div>
+          <div class="styling-form-row">
+            <label class="styling-form-label">Amber Text Font Size</label>
+            <div class="styling-form-control">
+              <input type="range" id="stoplight-amber-font-size" min="10" max="32" value="${currentStyles.stoplightAmberFontSize || 16}">
+              <span class="styling-range-value" id="stoplight-amber-font-size-value">${currentStyles.stoplightAmberFontSize || 16}px</span>
+            </div>
+          </div>
+          <div class="styling-form-row">
+            <label class="styling-form-label">Amber Text Color</label>
+            <div class="styling-form-control">
+              <input type="color" id="stoplight-amber-text-color" value="${currentStyles.stoplightAmberTextColor || '#e0e0e0'}">
+            </div>
+          </div>
+          <div class="styling-form-row">
+            <label class="styling-form-label">Amber Text Weight</label>
+            <div class="styling-form-control">
+              <select id="stoplight-amber-font-weight">
+                <option value="normal" ${(currentStyles.stoplightAmberFontWeight || 'normal') === 'normal' ? 'selected' : ''}>Normal</option>
+                <option value="bold" ${currentStyles.stoplightAmberFontWeight === 'bold' ? 'selected' : ''}>Bold</option>
+                <option value="600" ${currentStyles.stoplightAmberFontWeight === '600' ? 'selected' : ''}>Semi-bold</option>
+              </select>
+            </div>
+          </div>
+          <div class="styling-form-row">
+            <label class="styling-form-label">Green Light Text</label>
+            <div class="styling-form-control">
+              <input type="text" id="stoplight-green-text" value="${currentStyles.stoplightGreenText || ''}" placeholder="Enter text for green light">
+            </div>
+          </div>
+          <div class="styling-form-row">
+            <label class="styling-form-label">Green Text Font Size</label>
+            <div class="styling-form-control">
+              <input type="range" id="stoplight-green-font-size" min="10" max="32" value="${currentStyles.stoplightGreenFontSize || 16}">
+              <span class="styling-range-value" id="stoplight-green-font-size-value">${currentStyles.stoplightGreenFontSize || 16}px</span>
+            </div>
+          </div>
+          <div class="styling-form-row">
+            <label class="styling-form-label">Green Text Color</label>
+            <div class="styling-form-control">
+              <input type="color" id="stoplight-green-text-color" value="${currentStyles.stoplightGreenTextColor || '#e0e0e0'}">
+            </div>
+          </div>
+          <div class="styling-form-row">
+            <label class="styling-form-label">Green Text Weight</label>
+            <div class="styling-form-control">
+              <select id="stoplight-green-font-weight">
+                <option value="normal" ${(currentStyles.stoplightGreenFontWeight || 'normal') === 'normal' ? 'selected' : ''}>Normal</option>
+                <option value="bold" ${currentStyles.stoplightGreenFontWeight === 'bold' ? 'selected' : ''}>Bold</option>
+                <option value="600" ${currentStyles.stoplightGreenFontWeight === '600' ? 'selected' : ''}>Semi-bold</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -1736,6 +1838,128 @@ function attachTabEventListeners(tabName) {
               currentStyles.clipArtTintColor = normalized;
               updatePreview();
             }
+          });
+        }
+      }
+      
+      // Stoplight widget controls
+      if (widgetType === 'stoplight-widget') {
+        // Labels enabled checkbox
+        const labelsEnabled = stylingModal.querySelector('#stoplight-labels-enabled');
+        const labelsContainer = stylingModal.querySelector('#stoplight-labels-container');
+        if (labelsEnabled && labelsContainer) {
+          labelsEnabled.addEventListener('change', (e) => {
+            currentStyles.stoplightLabelsEnabled = e.target.checked;
+            labelsContainer.style.display = e.target.checked ? '' : 'none';
+            updatePreview();
+          });
+        }
+        
+        // Red light text and styling
+        const redText = stylingModal.querySelector('#stoplight-red-text');
+        if (redText) {
+          redText.addEventListener('input', (e) => {
+            currentStyles.stoplightRedText = e.target.value;
+            updatePreview();
+          });
+        }
+        
+        const redFontSize = stylingModal.querySelector('#stoplight-red-font-size');
+        const redFontSizeValue = stylingModal.querySelector('#stoplight-red-font-size-value');
+        if (redFontSize && redFontSizeValue) {
+          redFontSize.addEventListener('input', (e) => {
+            const val = e.target.value;
+            redFontSizeValue.textContent = val + 'px';
+            currentStyles.stoplightRedFontSize = parseInt(val);
+            updatePreview();
+          });
+        }
+        
+        const redTextColor = stylingModal.querySelector('#stoplight-red-text-color');
+        if (redTextColor) {
+          redTextColor.addEventListener('input', (e) => {
+            currentStyles.stoplightRedTextColor = e.target.value;
+            updatePreview();
+          });
+        }
+        
+        const redFontWeight = stylingModal.querySelector('#stoplight-red-font-weight');
+        if (redFontWeight) {
+          redFontWeight.addEventListener('change', (e) => {
+            currentStyles.stoplightRedFontWeight = e.target.value;
+            updatePreview();
+          });
+        }
+        
+        // Amber light text and styling
+        const amberText = stylingModal.querySelector('#stoplight-amber-text');
+        if (amberText) {
+          amberText.addEventListener('input', (e) => {
+            currentStyles.stoplightAmberText = e.target.value;
+            updatePreview();
+          });
+        }
+        
+        const amberFontSize = stylingModal.querySelector('#stoplight-amber-font-size');
+        const amberFontSizeValue = stylingModal.querySelector('#stoplight-amber-font-size-value');
+        if (amberFontSize && amberFontSizeValue) {
+          amberFontSize.addEventListener('input', (e) => {
+            const val = e.target.value;
+            amberFontSizeValue.textContent = val + 'px';
+            currentStyles.stoplightAmberFontSize = parseInt(val);
+            updatePreview();
+          });
+        }
+        
+        const amberTextColor = stylingModal.querySelector('#stoplight-amber-text-color');
+        if (amberTextColor) {
+          amberTextColor.addEventListener('input', (e) => {
+            currentStyles.stoplightAmberTextColor = e.target.value;
+            updatePreview();
+          });
+        }
+        
+        const amberFontWeight = stylingModal.querySelector('#stoplight-amber-font-weight');
+        if (amberFontWeight) {
+          amberFontWeight.addEventListener('change', (e) => {
+            currentStyles.stoplightAmberFontWeight = e.target.value;
+            updatePreview();
+          });
+        }
+        
+        // Green light text and styling
+        const greenText = stylingModal.querySelector('#stoplight-green-text');
+        if (greenText) {
+          greenText.addEventListener('input', (e) => {
+            currentStyles.stoplightGreenText = e.target.value;
+            updatePreview();
+          });
+        }
+        
+        const greenFontSize = stylingModal.querySelector('#stoplight-green-font-size');
+        const greenFontSizeValue = stylingModal.querySelector('#stoplight-green-font-size-value');
+        if (greenFontSize && greenFontSizeValue) {
+          greenFontSize.addEventListener('input', (e) => {
+            const val = e.target.value;
+            greenFontSizeValue.textContent = val + 'px';
+            currentStyles.stoplightGreenFontSize = parseInt(val);
+            updatePreview();
+          });
+        }
+        
+        const greenTextColor = stylingModal.querySelector('#stoplight-green-text-color');
+        if (greenTextColor) {
+          greenTextColor.addEventListener('input', (e) => {
+            currentStyles.stoplightGreenTextColor = e.target.value;
+            updatePreview();
+          });
+        }
+        
+        const greenFontWeight = stylingModal.querySelector('#stoplight-green-font-weight');
+        if (greenFontWeight) {
+          greenFontWeight.addEventListener('change', (e) => {
+            currentStyles.stoplightGreenFontWeight = e.target.value;
+            updatePreview();
           });
         }
       }
@@ -2589,7 +2813,52 @@ function updatePreview() {
     if (previewContent) {
       previewContent.innerHTML = previewHtml;
     }
-  } else if (previewContent && widgetType !== 'dice-widget' && widgetType !== 'blank-widget' && widgetType !== 'scoreboard-widget') {
+  } else if (previewContent && widgetType === 'stoplight-widget') {
+    // Render stoplight preview (read-only)
+    const labelsEnabled = currentStyles.stoplightLabelsEnabled === true;
+    const redText = labelsEnabled ? (currentStyles.stoplightRedText || '') : '';
+    const amberText = labelsEnabled ? (currentStyles.stoplightAmberText || '') : '';
+    const greenText = labelsEnabled ? (currentStyles.stoplightGreenText || '') : '';
+    
+    // Get current state (all lights off in preview - read-only)
+    const activeLight = null; // Preview always shows all lights off
+    
+    // Build text style strings
+    const redTextStyleStr = [];
+    if (currentStyles.stoplightRedFontSize) redTextStyleStr.push(`font-size: ${currentStyles.stoplightRedFontSize}px`);
+    if (currentStyles.stoplightRedTextColor) redTextStyleStr.push(`color: ${currentStyles.stoplightRedTextColor}`);
+    if (currentStyles.stoplightRedFontWeight) redTextStyleStr.push(`font-weight: ${currentStyles.stoplightRedFontWeight}`);
+    
+    const amberTextStyleStr = [];
+    if (currentStyles.stoplightAmberFontSize) amberTextStyleStr.push(`font-size: ${currentStyles.stoplightAmberFontSize}px`);
+    if (currentStyles.stoplightAmberTextColor) amberTextStyleStr.push(`color: ${currentStyles.stoplightAmberTextColor}`);
+    if (currentStyles.stoplightAmberFontWeight) amberTextStyleStr.push(`font-weight: ${currentStyles.stoplightAmberFontWeight}`);
+    
+    const greenTextStyleStr = [];
+    if (currentStyles.stoplightGreenFontSize) greenTextStyleStr.push(`font-size: ${currentStyles.stoplightGreenFontSize}px`);
+    if (currentStyles.stoplightGreenTextColor) greenTextStyleStr.push(`color: ${currentStyles.stoplightGreenTextColor}`);
+    if (currentStyles.stoplightGreenFontWeight) greenTextStyleStr.push(`font-weight: ${currentStyles.stoplightGreenFontWeight}`);
+    
+    const previewHtml = `
+      <div style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;">
+        <div style="display: flex; align-items: center; gap: 20px; height: 100%;">
+          <div style="display: flex; flex-direction: column; gap: 12px; background: #333; border: 3px solid #1a1a1a; border-radius: 20px; padding: 20px; box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);">
+            <div style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #1a1a1a; background: ${activeLight === 'red' ? '#dc3545' : '#5c1a1a'}; box-shadow: ${activeLight === 'red' ? '0 0 20px rgba(220, 53, 69, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.2)' : 'inset 0 2px 4px rgba(0, 0, 0, 0.5)'};"></div>
+            <div style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #1a1a1a; background: ${activeLight === 'amber' ? '#ffc107' : '#4a3a1a'}; box-shadow: ${activeLight === 'amber' ? '0 0 20px rgba(255, 193, 7, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.2)' : 'inset 0 2px 4px rgba(0, 0, 0, 0.5)'};"></div>
+            <div style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #1a1a1a; background: ${activeLight === 'green' ? '#28a745' : '#1a4a1a'}; box-shadow: ${activeLight === 'green' ? '0 0 20px rgba(40, 167, 69, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.2)' : 'inset 0 2px 4px rgba(0, 0, 0, 0.5)'};"></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px; justify-content: space-around; height: 100%; min-width: 100px;">
+            <div style="display: flex; align-items: center; min-height: 80px; padding-left: 10px; ${redTextStyleStr.join('; ')}">${redText}</div>
+            <div style="display: flex; align-items: center; min-height: 80px; padding-left: 10px; ${amberTextStyleStr.join('; ')}">${amberText}</div>
+            <div style="display: flex; align-items: center; min-height: 80px; padding-left: 10px; ${greenTextStyleStr.join('; ')}">${greenText}</div>
+          </div>
+        </div>
+      </div>
+    `;
+    if (previewContent) {
+      previewContent.innerHTML = previewHtml;
+    }
+  } else if (previewContent && widgetType !== 'dice-widget' && widgetType !== 'blank-widget' && widgetType !== 'scoreboard-widget' && widgetType !== 'stoplight-widget') {
     // Reset to default text for other widgets
     previewContent.innerHTML = 'Preview updates in real-time as you adjust settings';
   }
@@ -2827,6 +3096,72 @@ function updateCurrentStylesFromForm() {
   const stopwatchResetButtonColorText = stylingModal.querySelector('#stopwatch-reset-button-color-text');
   if (stopwatchResetButtonColor && stopwatchResetButtonColorText) {
     currentStyles.stopwatchResetButtonColor = stopwatchResetButtonColor.value;
+  }
+  
+  // Stoplight widget text labels and styling
+  const labelsEnabled = stylingModal.querySelector('#stoplight-labels-enabled');
+  if (labelsEnabled) {
+    currentStyles.stoplightLabelsEnabled = labelsEnabled.checked;
+  }
+  
+  const stoplightRedText = stylingModal.querySelector('#stoplight-red-text');
+  if (stoplightRedText) {
+    currentStyles.stoplightRedText = stoplightRedText.value;
+  }
+  
+  const stoplightRedFontSize = stylingModal.querySelector('#stoplight-red-font-size');
+  if (stoplightRedFontSize) {
+    currentStyles.stoplightRedFontSize = parseInt(stoplightRedFontSize.value);
+  }
+  
+  const stoplightRedTextColor = stylingModal.querySelector('#stoplight-red-text-color');
+  if (stoplightRedTextColor) {
+    currentStyles.stoplightRedTextColor = stoplightRedTextColor.value;
+  }
+  
+  const stoplightRedFontWeight = stylingModal.querySelector('#stoplight-red-font-weight');
+  if (stoplightRedFontWeight) {
+    currentStyles.stoplightRedFontWeight = stoplightRedFontWeight.value;
+  }
+  
+  const stoplightAmberText = stylingModal.querySelector('#stoplight-amber-text');
+  if (stoplightAmberText) {
+    currentStyles.stoplightAmberText = stoplightAmberText.value;
+  }
+  
+  const stoplightAmberFontSize = stylingModal.querySelector('#stoplight-amber-font-size');
+  if (stoplightAmberFontSize) {
+    currentStyles.stoplightAmberFontSize = parseInt(stoplightAmberFontSize.value);
+  }
+  
+  const stoplightAmberTextColor = stylingModal.querySelector('#stoplight-amber-text-color');
+  if (stoplightAmberTextColor) {
+    currentStyles.stoplightAmberTextColor = stoplightAmberTextColor.value;
+  }
+  
+  const stoplightAmberFontWeight = stylingModal.querySelector('#stoplight-amber-font-weight');
+  if (stoplightAmberFontWeight) {
+    currentStyles.stoplightAmberFontWeight = stoplightAmberFontWeight.value;
+  }
+  
+  const stoplightGreenText = stylingModal.querySelector('#stoplight-green-text');
+  if (stoplightGreenText) {
+    currentStyles.stoplightGreenText = stoplightGreenText.value;
+  }
+  
+  const stoplightGreenFontSize = stylingModal.querySelector('#stoplight-green-font-size');
+  if (stoplightGreenFontSize) {
+    currentStyles.stoplightGreenFontSize = parseInt(stoplightGreenFontSize.value);
+  }
+  
+  const stoplightGreenTextColor = stylingModal.querySelector('#stoplight-green-text-color');
+  if (stoplightGreenTextColor) {
+    currentStyles.stoplightGreenTextColor = stoplightGreenTextColor.value;
+  }
+  
+  const stoplightGreenFontWeight = stylingModal.querySelector('#stoplight-green-font-weight');
+  if (stoplightGreenFontWeight) {
+    currentStyles.stoplightGreenFontWeight = stoplightGreenFontWeight.value;
   }
   
 }
@@ -3295,6 +3630,59 @@ function applyCurrentStylesToWidget(widget) {
         container.innerHTML = `<div class="clipart-display" style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;"><img src="${clipArtImageUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: ${combinedFilter || 'none'};" alt="Clip art"></div>`;
       } else {
         container.innerHTML = `<div class="clipart-display" style="color: ${clipArtColor}; font-size: 120px; text-align: center; line-height: 1; display: flex; align-items: center; justify-content: center; height: 100%;">${clipArtEmoji}</div>`;
+      }
+    }
+  }
+  
+  // Update stoplight text labels if this is a stoplight widget
+  if (widget.classList.contains('stoplight-widget')) {
+    // Get widget instance ID
+    const classes = Array.from(widget.classList);
+    const instanceIdClass = classes.find(c => c.startsWith('stoplight-widget-page-') && c.includes('-instance-'));
+    const fullWidgetId = instanceIdClass || classes.find(c => c.includes('stoplight-widget'));
+    
+    if (fullWidgetId) {
+      // Read text labels and styling from currentStyles
+      const labelsEnabled = currentStyles.stoplightLabelsEnabled === true;
+      const redText = currentStyles.stoplightRedText || '';
+      const amberText = currentStyles.stoplightAmberText || '';
+      const greenText = currentStyles.stoplightGreenText || '';
+      
+      // Build text style objects
+      const redTextStyle = {
+        fontSize: currentStyles.stoplightRedFontSize,
+        color: currentStyles.stoplightRedTextColor,
+        fontWeight: currentStyles.stoplightRedFontWeight
+      };
+      const amberTextStyle = {
+        fontSize: currentStyles.stoplightAmberFontSize,
+        color: currentStyles.stoplightAmberTextColor,
+        fontWeight: currentStyles.stoplightAmberFontWeight
+      };
+      const greenTextStyle = {
+        fontSize: currentStyles.stoplightGreenFontSize,
+        color: currentStyles.stoplightGreenTextColor,
+        fontWeight: currentStyles.stoplightGreenFontWeight
+      };
+      
+      // Only apply if labels are enabled or if this is initial application
+      if (labelsEnabled || currentStyles.stoplightLabelsEnabled === undefined) {
+        updateStoplightLabels(widget, 
+          labelsEnabled ? redText : '', 
+          labelsEnabled ? amberText : '', 
+          labelsEnabled ? greenText : '',
+          redTextStyle, 
+          amberTextStyle, 
+          greenTextStyle
+        );
+      } else {
+        // Labels disabled - clear all text
+        updateStoplightLabels(widget, '', '', '', {}, {}, {});
+      }
+      
+      // Reload stoplight to ensure state and handlers are correct
+      if (typeof loadStoplight === 'function') {
+        setTimeout(() => loadStoplight(), 0);
       }
     }
   }

@@ -1434,6 +1434,7 @@ async function loadAllData() {
       loadStopwatch(), // Load stopwatch widget
       loadScoreboard(), // Load scoreboard widget
       loadClipArt(), // Load clip art widget
+      loadStoplight(), // Load stoplight widget
       loadThermostat(), // Load thermostat
       loadNews(), // Load news feed
       initializeWhiteboard(), // Initialize whiteboard
@@ -3658,6 +3659,189 @@ function loadClipArt() {
   });
 }
 
+// Stoplight state management
+let stoplightStates = new Map(); // Track state per widget instance: { activeLight: 'red'|'amber'|'green'|null }
+
+// Load and initialize stoplight widgets
+function loadStoplight() {
+  const stoplightWidgets = document.querySelectorAll('.stoplight-widget');
+  
+  if (stoplightWidgets.length === 0) return;
+  
+  stoplightWidgets.forEach((widget) => {
+    const container = widget.querySelector('.stoplight-content');
+    if (!container) return;
+    
+    // Get the page index from the widget's parent page
+    const pageElement = widget.closest('.dashboard.page');
+    const pageIndex = pageElement ? parseInt(pageElement.getAttribute('data-page-id')) || 0 : 0;
+    
+    // Get widget instance ID from widget's class list
+    const classes = Array.from(widget.classList);
+    const instanceIdClass = classes.find(c => c.startsWith('stoplight-widget-page-') && c.includes('-instance-'));
+    const fullWidgetId = instanceIdClass || generateWidgetId('stoplight-widget', pageIndex, 0);
+    
+    // If widget doesn't have instance ID, add it
+    if (!instanceIdClass) {
+      widget.classList.add(fullWidgetId);
+    }
+    
+    // Load saved state or initialize to null (all lights off)
+    let state = stoplightStates.get(fullWidgetId);
+    if (!state) {
+      const savedState = localStorage.getItem(`dakboard-stoplight-${fullWidgetId}`);
+      if (savedState) {
+        try {
+          state = JSON.parse(savedState);
+        } catch (e) {
+          console.error('Error parsing stoplight state:', e);
+          state = { activeLight: null };
+        }
+      } else {
+        state = { activeLight: null };
+      }
+      stoplightStates.set(fullWidgetId, state);
+    }
+    
+    // Load text labels and styling from widget styles (for cloning compatibility)
+    const stylesKey = `dakboard-widget-styles-${fullWidgetId}`;
+    const savedStyles = localStorage.getItem(stylesKey);
+    let labelsEnabled = false;
+    let redText = '';
+    let amberText = '';
+    let greenText = '';
+    let redTextStyle = {};
+    let amberTextStyle = {};
+    let greenTextStyle = {};
+    
+    if (savedStyles) {
+      try {
+        const styles = JSON.parse(savedStyles);
+        labelsEnabled = styles.stoplightLabelsEnabled === true;
+        redText = styles.stoplightRedText || '';
+        amberText = styles.stoplightAmberText || '';
+        greenText = styles.stoplightGreenText || '';
+        redTextStyle = {
+          fontSize: styles.stoplightRedFontSize,
+          color: styles.stoplightRedTextColor,
+          fontWeight: styles.stoplightRedFontWeight
+        };
+        amberTextStyle = {
+          fontSize: styles.stoplightAmberFontSize,
+          color: styles.stoplightAmberTextColor,
+          fontWeight: styles.stoplightAmberFontWeight
+        };
+        greenTextStyle = {
+          fontSize: styles.stoplightGreenFontSize,
+          color: styles.stoplightGreenTextColor,
+          fontWeight: styles.stoplightGreenFontWeight
+        };
+      } catch (e) {
+        console.error('Error parsing stoplight styles:', e);
+      }
+    }
+    
+    // Only show text labels if enabled
+    if (!labelsEnabled) {
+      redText = '';
+      amberText = '';
+      greenText = '';
+    }
+    
+    // Update UI
+    updateStoplightDisplay(widget, state.activeLight);
+    updateStoplightLabels(widget, redText, amberText, greenText, redTextStyle, amberTextStyle, greenTextStyle);
+    
+    // Attach click handlers (only in normal mode, not edit mode)
+    if (!isEditMode) {
+      const lights = widget.querySelectorAll('.stoplight-light');
+      lights.forEach(light => {
+        // Remove existing listeners by cloning
+        const newLight = light.cloneNode(true);
+        light.parentNode.replaceChild(newLight, light);
+        
+        newLight.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggleStoplight(fullWidgetId, newLight.dataset.color, widget);
+        });
+      });
+    }
+  });
+}
+
+// Update stoplight display (which light is on)
+function updateStoplightDisplay(widget, activeLight) {
+  const lights = widget.querySelectorAll('.stoplight-light');
+  lights.forEach(light => {
+    const color = light.dataset.color;
+    if (color === activeLight) {
+      light.classList.add('active');
+    } else {
+      light.classList.remove('active');
+    }
+  });
+}
+
+// Update stoplight text labels
+function updateStoplightLabels(widget, redText, amberText, greenText, redTextStyle, amberTextStyle, greenTextStyle) {
+  const redLabel = widget.querySelector('.red-label');
+  const amberLabel = widget.querySelector('.amber-label');
+  const greenLabel = widget.querySelector('.green-label');
+  
+  if (redLabel) {
+    redLabel.textContent = redText || '';
+    if (redTextStyle.fontSize) redLabel.style.fontSize = redTextStyle.fontSize + 'px';
+    if (redTextStyle.color) redLabel.style.color = redTextStyle.color;
+    if (redTextStyle.fontWeight) redLabel.style.fontWeight = redTextStyle.fontWeight;
+  }
+  
+  if (amberLabel) {
+    amberLabel.textContent = amberText || '';
+    if (amberTextStyle.fontSize) amberLabel.style.fontSize = amberTextStyle.fontSize + 'px';
+    if (amberTextStyle.color) amberLabel.style.color = amberTextStyle.color;
+    if (amberTextStyle.fontWeight) amberLabel.style.fontWeight = amberTextStyle.fontWeight;
+  }
+  
+  if (greenLabel) {
+    greenLabel.textContent = greenText || '';
+    if (greenTextStyle.fontSize) greenLabel.style.fontSize = greenTextStyle.fontSize + 'px';
+    if (greenTextStyle.color) greenLabel.style.color = greenTextStyle.color;
+    if (greenTextStyle.fontWeight) greenLabel.style.fontWeight = greenTextStyle.fontWeight;
+  }
+}
+
+// Toggle stoplight (click handler)
+function toggleStoplight(widgetId, clickedColor, widget) {
+  // Don't allow interaction in edit mode
+  if (isEditMode) return;
+  
+  const state = stoplightStates.get(widgetId);
+  if (!state) return;
+  
+  // If clicking the same light that's already on, turn it off
+  if (state.activeLight === clickedColor) {
+    state.activeLight = null;
+  } else {
+    // Otherwise, turn on the clicked light (turns off the previous one automatically)
+    state.activeLight = clickedColor;
+  }
+  
+  // Update display
+  updateStoplightDisplay(widget, state.activeLight);
+  
+  // Save state
+  saveStoplightState(widgetId);
+}
+
+// Save stoplight state to localStorage
+function saveStoplightState(widgetId) {
+  const state = stoplightStates.get(widgetId);
+  if (!state) return;
+  
+  const stateKey = `dakboard-stoplight-${widgetId}`;
+  localStorage.setItem(stateKey, JSON.stringify({ activeLight: state.activeLight }));
+}
+
 // Trigger confetti animation
 function triggerConfetti() {
   // Remove existing confetti container if any
@@ -4827,7 +5011,8 @@ const WIDGET_CONFIG = {
   'clock-widget': { name: 'Clock', icon: '🕐' },
   'thermostat-widget': { name: 'Thermostat', icon: '🌡️' },
   'news-widget': { name: 'News', icon: '📰' },
-  'whiteboard-widget': { name: 'Whiteboard', icon: '🖊️' }
+  'whiteboard-widget': { name: 'Whiteboard', icon: '🖊️' },
+  'stoplight-widget': { name: 'Stoplight', icon: '🚦' }
 };
 
 // Widget Instance Management Functions
@@ -5233,6 +5418,8 @@ function toggleWidgetVisibility(fullWidgetId) {
         loadScoreboard();
       } else if (widgetType === 'clip-art-widget') {
         loadClipArt();
+      } else if (widgetType === 'stoplight-widget') {
+        loadStoplight();
       } else if (widgetType === 'weather-widget') {
         loadWeather();
       } else if (widgetType === 'todos-widget') {
@@ -5444,6 +5631,11 @@ function setEditMode(enabled) {
       if (pageElement) {
         pageElement.querySelectorAll('.resize-handle, .rotate-handle').forEach(handle => handle.remove());
       }
+    }
+    
+    // Reload stoplight widgets to update click handlers based on edit mode
+    if (typeof loadStoplight === 'function') {
+      loadStoplight();
     }
   } else {
     console.error('initializeDragAndResize function not found!');
@@ -6222,6 +6414,16 @@ function copyWidgetConfiguration(sourceFullId, targetFullId, targetPageIndex, so
     }
   }
   
+  // Stoplight state
+  if (widgetType === 'stoplight-widget') {
+    const sourceStoplightKey = `dakboard-stoplight-${sourceFullId}`;
+    const targetStoplightKey = `dakboard-stoplight-${targetFullId}`;
+    const sourceStoplight = localStorage.getItem(sourceStoplightKey);
+    if (sourceStoplight) {
+      localStorage.setItem(targetStoplightKey, sourceStoplight);
+    }
+  }
+  
   // Scoreboard config and scores
   if (widgetType === 'scoreboard-widget') {
     const sourceConfigKey = `dakboard-scoreboard-config-${sourceFullId}`;
@@ -6275,6 +6477,8 @@ function initializeWidgetInstance(fullWidgetId, widgetElement) {
     setTimeout(() => loadCalendarEvents(), 50);
   } else if (widgetType === 'blank-widget' && typeof loadClipArt === 'function') {
     setTimeout(() => loadClipArt(), 50);
+  } else if (widgetType === 'stoplight-widget' && typeof loadStoplight === 'function') {
+    setTimeout(() => loadStoplight(), 50);
   }
   
   // Load layout (position, size, rotation)

@@ -2842,6 +2842,141 @@ footer a:hover {
   background: #555;
 }
 
+/* Stoplight Widget */
+.stoplight-widget {
+  min-width: 120px;
+  min-height: 300px;
+}
+
+.stoplight-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+}
+
+.stoplight-container {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: 100%;
+}
+
+.stoplight-casing {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #333;
+  border: 3px solid #1a1a1a;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.stoplight-light {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid #1a1a1a;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.stoplight-light.red-light {
+  background: #5c1a1a;
+}
+
+.stoplight-light.red-light.active {
+  background: #dc3545;
+  box-shadow: 0 0 20px rgba(220, 53, 69, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.2);
+  animation: stoplightGlowRed 2s ease-in-out infinite;
+}
+
+.stoplight-light.amber-light {
+  background: #4a3a1a;
+}
+
+.stoplight-light.amber-light.active {
+  background: #ffc107;
+  box-shadow: 0 0 20px rgba(255, 193, 7, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.2);
+  animation: stoplightGlowAmber 2s ease-in-out infinite;
+}
+
+.stoplight-light.green-light {
+  background: #1a4a1a;
+}
+
+.stoplight-light.green-light.active {
+  background: #28a745;
+  box-shadow: 0 0 20px rgba(40, 167, 69, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.2);
+  animation: stoplightGlowGreen 2s ease-in-out infinite;
+}
+
+@keyframes stoplightGlowRed {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(220, 53, 69, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    opacity: 0.9;
+    box-shadow: 0 0 25px rgba(220, 53, 69, 1), inset 0 0 15px rgba(255, 255, 255, 0.3);
+  }
+}
+
+@keyframes stoplightGlowAmber {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(255, 193, 7, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    opacity: 0.9;
+    box-shadow: 0 0 25px rgba(255, 193, 7, 1), inset 0 0 15px rgba(255, 255, 255, 0.3);
+  }
+}
+
+@keyframes stoplightGlowGreen {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(40, 167, 69, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    opacity: 0.9;
+    box-shadow: 0 0 25px rgba(40, 167, 69, 1), inset 0 0 15px rgba(255, 255, 255, 0.3);
+  }
+}
+
+.stoplight-light:hover:not(.active) {
+  opacity: 0.7;
+  transform: scale(1.05);
+}
+
+.edit-mode .stoplight-light {
+  cursor: default;
+  pointer-events: none;
+}
+
+.stoplight-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: space-around;
+  height: 100%;
+  min-width: 100px;
+}
+
+.stoplight-label {
+  display: flex;
+  align-items: center;
+  min-height: 80px;
+  font-size: 16px;
+  color: #e0e0e0;
+  font-weight: 500;
+  padding-left: 10px;
+}
+
 .news-list {
   display: flex;
   flex-direction: column;
