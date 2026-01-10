@@ -497,13 +497,30 @@ function startDrag(widget, e) {
   draggedWidget = widget;
   widget.classList.add('dragging');
   
-  const rect = widget.getBoundingClientRect();
   // Support both mouse and touch events
   const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
   const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
   
-  dragOffset.x = clientX - rect.left;
-  dragOffset.y = clientY - rect.top;
+  // Get dashboard for coordinate calculation
+  const dashboard = widget.closest('.dashboard.page');
+  if (!dashboard) {
+    e.preventDefault();
+    return;
+  }
+  const dashboardRect = dashboard.getBoundingClientRect();
+  
+  // Use widget's actual style.left and style.top for accurate position calculation
+  // This avoids issues with getBoundingClientRect() when temporary headers are present
+  const widgetLeft = parseFloat(widget.style.left) || 0;
+  const widgetTop = parseFloat(widget.style.top) || 0;
+  
+  // Calculate mouse position relative to dashboard
+  const mouseX = clientX - dashboardRect.left;
+  const mouseY = clientY - dashboardRect.top;
+  
+  // Calculate offset from mouse to widget's top-left corner (using style values, not bounding rect)
+  dragOffset.x = mouseX - widgetLeft;
+  dragOffset.y = mouseY - widgetTop;
   
   e.preventDefault();
   if (e.touches) {
