@@ -5711,6 +5711,14 @@ function cloneWidget(fullWidgetId) {
     // Initialize the cloned widget
     initializeWidgetInstance(newFullId, cloned);
     
+    // Explicitly save visibility for the new widget as visible
+    // Do this before applying styles to ensure it's saved correctly
+    const visibilityKey = `dakboard-widget-visibility-page-${pageIndex}`;
+    const savedVisibility = localStorage.getItem(visibilityKey);
+    const visibility = savedVisibility ? JSON.parse(savedVisibility) : {};
+    visibility[newFullId] = true; // Always visible by default
+    localStorage.setItem(visibilityKey, JSON.stringify(visibility));
+    
     // Load and apply styles immediately so the cloned widget displays correctly
     // This ensures title visibility and other styling matches the configuration
     if (typeof loadWidgetStyles === 'function' && typeof applyCurrentStylesToWidget === 'function') {
@@ -5719,24 +5727,45 @@ function cloneWidget(fullWidgetId) {
       applyCurrentStylesToWidget(cloned);
     }
     
-    // Save visibility state immediately so widget persists after refresh
+    // Force widget to be visible - ensure it's not hidden by any operations
+    cloned.classList.remove('hidden');
+    cloned.style.display = ''; // Ensure display is not set to none
+    
+    // Save visibility state again to ensure it's persisted
     saveWidgetVisibility();
     
-    // Initialize drag/resize for the cloned widget immediately
-    // This ensures the widget can be moved and resized right away
-    if (typeof initializeWidgetDragAndResize === 'function') {
-      // Use a small delay to ensure the widget is fully in the DOM
-      setTimeout(() => {
-        initializeWidgetDragAndResize(cloned);
-      }, 50);
-    } else if (typeof initializeDragAndResize === 'function') {
-      // Fallback to full reinitialization if helper function doesn't exist
-      setTimeout(() => {
-        initializeDragAndResize();
-      }, 100);
-    }
-    
+    // Update control panel
     updateWidgetControlPanel();
+    
+    // Initialize drag/resize for the cloned widget with a delay to ensure everything is ready
+    setTimeout(() => {
+      // Force widget visible again just before initializing drag/resize
+      cloned.classList.remove('hidden');
+      cloned.style.display = '';
+      
+      // Try multiple ways to access the function in case of timing issues
+      let initFunction = null;
+      if (typeof window !== 'undefined' && typeof window.initializeWidgetDragAndResize === 'function') {
+        initFunction = window.initializeWidgetDragAndResize;
+      } else if (typeof initializeWidgetDragAndResize === 'function') {
+        initFunction = initializeWidgetDragAndResize;
+      }
+      
+      if (initFunction) {
+        initFunction(cloned);
+      } else if (typeof initializeDragAndResize === 'function') {
+        // Fallback to full reinitialization
+        initializeDragAndResize();
+      } else {
+        // Last resort: try again after a longer delay
+        setTimeout(() => {
+          if (typeof initializeDragAndResize === 'function') {
+            initializeDragAndResize();
+          }
+        }, 200);
+      }
+    }, 150);
+    
     return;
   }
   
@@ -5765,6 +5794,14 @@ function cloneWidget(fullWidgetId) {
   // Initialize the cloned widget
   initializeWidgetInstance(newFullId, cloned);
   
+  // Explicitly save visibility for the new widget as visible
+  // Do this before applying styles to ensure it's saved correctly
+  const visibilityKey = `dakboard-widget-visibility-page-${pageIndex}`;
+  const savedVisibility = localStorage.getItem(visibilityKey);
+  const visibility = savedVisibility ? JSON.parse(savedVisibility) : {};
+  visibility[newFullId] = true; // Always visible by default
+  localStorage.setItem(visibilityKey, JSON.stringify(visibility));
+  
   // Load and apply styles immediately so the cloned widget displays correctly
   // This ensures title visibility and other styling matches the configuration
   if (typeof loadWidgetStyles === 'function' && typeof applyCurrentStylesToWidget === 'function') {
@@ -5773,25 +5810,44 @@ function cloneWidget(fullWidgetId) {
     applyCurrentStylesToWidget(cloned);
   }
   
-  // Save visibility state immediately so widget persists after refresh
+  // Force widget to be visible - ensure it's not hidden by any operations
+  cloned.classList.remove('hidden');
+  cloned.style.display = ''; // Ensure display is not set to none
+  
+  // Save visibility state again to ensure it's persisted
   saveWidgetVisibility();
   
   // Update control panel
   updateWidgetControlPanel();
   
-  // Initialize drag/resize for the cloned widget immediately
-  // This ensures the widget can be moved and resized right away
-  if (typeof initializeWidgetDragAndResize === 'function') {
-    // Use a small delay to ensure the widget is fully in the DOM
-    setTimeout(() => {
-      initializeWidgetDragAndResize(cloned);
-    }, 50);
-  } else if (typeof initializeDragAndResize === 'function') {
-    // Fallback to full reinitialization if helper function doesn't exist
-    setTimeout(() => {
+  // Initialize drag/resize for the cloned widget with a delay to ensure everything is ready
+  setTimeout(() => {
+    // Force widget visible again just before initializing drag/resize
+    cloned.classList.remove('hidden');
+    cloned.style.display = '';
+    
+    // Try multiple ways to access the function in case of timing issues
+    let initFunction = null;
+    if (typeof window !== 'undefined' && typeof window.initializeWidgetDragAndResize === 'function') {
+      initFunction = window.initializeWidgetDragAndResize;
+    } else if (typeof initializeWidgetDragAndResize === 'function') {
+      initFunction = initializeWidgetDragAndResize;
+    }
+    
+    if (initFunction) {
+      initFunction(cloned);
+    } else if (typeof initializeDragAndResize === 'function') {
+      // Fallback to full reinitialization
       initializeDragAndResize();
-    }, 100);
-  }
+    } else {
+      // Last resort: try again after a longer delay
+      setTimeout(() => {
+        if (typeof initializeDragAndResize === 'function') {
+          initializeDragAndResize();
+        }
+      }, 200);
+    }
+  }, 150);
 }
 
 // Remove widget instance (only for clones)

@@ -457,6 +457,11 @@ function initializeWidgetDragAndResize(widget) {
   updateWidgetScale(widget);
 }
 
+// Expose function globally so it can be called from app.js
+if (typeof window !== 'undefined') {
+  window.initializeWidgetDragAndResize = initializeWidgetDragAndResize;
+}
+
 // Start rotating widget
 function startRotate(widget, e) {
   rotateWidget = widget;
