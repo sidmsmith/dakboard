@@ -6435,6 +6435,8 @@ function cloneWidget(fullWidgetId) {
   let sourceLeft = parseFloat(sourceWidget.style.left);
   let sourceTop = parseFloat(sourceWidget.style.top);
   
+  console.log(`Cloning widget ${fullWidgetId}: initial position from style - left: ${sourceLeft}, top: ${sourceTop}`);
+  
   // If position isn't in inline styles, try to get from saved layout
   if (isNaN(sourceLeft) || isNaN(sourceTop)) {
     const layoutKey = `dakboard-widget-layout-page-${pageIndex}`;
@@ -6446,9 +6448,10 @@ function cloneWidget(fullWidgetId) {
         if (sourceLayout) {
           sourceLeft = sourceLayout.x || 0;
           sourceTop = sourceLayout.y || 0;
+          console.log(`Position from saved layout: left: ${sourceLeft}, top: ${sourceTop}`);
         }
       } catch (e) {
-        // If parsing fails, fall back to bounding rect
+        console.error('Error parsing saved layout:', e);
       }
     }
     
@@ -6458,15 +6461,24 @@ function cloneWidget(fullWidgetId) {
       const dashboardRect = pageElement.getBoundingClientRect();
       sourceLeft = widgetRect.left - dashboardRect.left;
       sourceTop = widgetRect.top - dashboardRect.top;
+      console.log(`Position from bounding rect: left: ${sourceLeft}, top: ${sourceTop}`);
     }
   }
   
   // Default to 0 only if still NaN (0 is a valid position, so don't override it)
-  if (isNaN(sourceLeft)) sourceLeft = 0;
-  if (isNaN(sourceTop)) sourceTop = 0;
+  if (isNaN(sourceLeft)) {
+    console.warn(`Source left position is NaN, defaulting to 0`);
+    sourceLeft = 0;
+  }
+  if (isNaN(sourceTop)) {
+    console.warn(`Source top position is NaN, defaulting to 0`);
+    sourceTop = 0;
+  }
   
   const sourceWidth = parseFloat(sourceWidget.style.width) || sourceWidget.offsetWidth || 300;
   const sourceHeight = parseFloat(sourceWidget.style.height) || sourceWidget.offsetHeight || 200;
+  
+  console.log(`Source widget dimensions: width: ${sourceWidth}, height: ${sourceHeight}`);
   
   // Get rotation from source widget (from data-rotation attribute or parse from transform)
   let sourceRotation = 0;
@@ -6491,10 +6503,18 @@ function cloneWidget(fullWidgetId) {
   const newLeft = sourceLeft + offsetX;
   const newTop = sourceTop + offsetY;
   
+  console.log(`Clone positioning: offsetX: ${offsetX}, offsetY: ${offsetY}, newLeft: ${newLeft}, newTop: ${newTop}`);
+  
+  // Append cloned widget to page FIRST (so it exists in DOM)
+  pageElement.appendChild(cloned);
+  console.log(`Cloned widget appended to page. New widget ID: ${newFullId}`);
+  
+  // Set position and size immediately after appending
   cloned.style.left = `${newLeft}px`;
   cloned.style.top = `${newTop}px`;
   cloned.style.width = `${sourceWidth}px`;
   cloned.style.height = `${sourceHeight}px`;
+  cloned.style.position = 'absolute'; // Ensure absolute positioning
   
   // Apply same rotation as source widget
   if (sourceRotation !== 0) {
@@ -6502,13 +6522,40 @@ function cloneWidget(fullWidgetId) {
     cloned.setAttribute('data-rotation', sourceRotation.toString());
   }
   
-  pageElement.appendChild(cloned);
+  console.log(`Position set: left=${newLeft}px, top=${newTop}px`);
   
   // Copy configuration from original
   copyWidgetConfiguration(fullWidgetId, newFullId, pageIndex);
+  console.log(`Configuration copied from ${fullWidgetId} to ${newFullId}`);
   
-  // Initialize the cloned widget
+  // Save layout IMMEDIATELY after setting position, BEFORE initializeWidgetInstance
+  // This ensures the position is in localStorage before loadWidgetLayout is called
+  if (typeof saveCurrentPageLayout === 'function') {
+    saveCurrentPageLayout();
+    console.log(`Layout saved BEFORE initialization`);
+  }
+  
+  // Store the intended position so we can restore it after initialization
+  // (in case loadWidgetLayout overrides it)
+  const intendedPosition = { left: newLeft, top: newTop, width: sourceWidth, height: sourceHeight, rotation: sourceRotation };
+  
+  // Initialize the cloned widget (this may call loadWidgetLayout, which might override position)
   initializeWidgetInstance(newFullId, cloned);
+  console.log(`Widget instance initialized: ${newFullId}`);
+  
+  // CRITICAL: Re-apply position IMMEDIATELY after initialization
+  // loadWidgetLayout may have been called and could have overridden our position
+  // We must restore it to ensure the clone appears with the correct offset
+  cloned.style.left = `${intendedPosition.left}px`;
+  cloned.style.top = `${intendedPosition.top}px`;
+  cloned.style.width = `${intendedPosition.width}px`;
+  cloned.style.height = `${intendedPosition.height}px`;
+  cloned.style.position = 'absolute';
+  if (intendedPosition.rotation !== 0) {
+    cloned.style.transform = `rotate(${intendedPosition.rotation}deg)`;
+    cloned.setAttribute('data-rotation', intendedPosition.rotation.toString());
+  }
+  console.log(`Position restored AFTER initialization: left=${intendedPosition.left}px, top=${intendedPosition.top}px`);
   
   // Explicitly save visibility for the new widget as visible
   // Do this before applying styles to ensure it's saved correctly
@@ -6518,27 +6565,37 @@ function cloneWidget(fullWidgetId) {
   visibility[newFullId] = true; // Always visible by default
   localStorage.setItem(visibilityKey, JSON.stringify(visibility));
   
+  // Force widget to be visible BEFORE applying styles - ensure it's not hidden
+  cloned.classList.remove('hidden');
+  cloned.style.display = ''; // Ensure display is not set to none
+  
   // Load and apply styles immediately so the cloned widget displays correctly
   // This ensures title visibility and other styling matches the configuration
+  // Note: applyCurrentStylesToWidget does NOT modify position, so our position will be preserved
   if (typeof loadWidgetStyles === 'function' && typeof applyCurrentStylesToWidget === 'function') {
     loadWidgetStyles(newFullId);
     // Apply styles to the cloned widget immediately
     applyCurrentStylesToWidget(cloned);
   }
   
-  // Force widget to be visible - ensure it's not hidden by any operations
-  cloned.classList.remove('hidden');
-  cloned.style.display = ''; // Ensure display is not set to none
+  // Position was already restored after initializeWidgetInstance above
+  // But re-apply again after styles to be absolutely sure
+  cloned.style.left = `${intendedPosition.left}px`;
+  cloned.style.top = `${intendedPosition.top}px`;
+  cloned.style.position = 'absolute';
   
-  // Save visibility state again to ensure it's persisted
+  // Save visibility state
   saveWidgetVisibility();
   
   // Save layout (position, size, rotation) for the cloned widget
+  // This MUST be called after position is set
   if (typeof saveCurrentPageLayout === 'function') {
     saveCurrentPageLayout();
   } else if (typeof saveWidgetLayout === 'function') {
     saveWidgetLayout();
   }
+  
+  console.log(`Layout saved. Final position: left=${newLeft}px, top=${newTop}px`);
   
   // Update control panel
   updateWidgetControlPanel();
