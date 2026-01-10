@@ -7856,7 +7856,7 @@ function exportConfiguration() {
     const currentPage = parseInt(localStorage.getItem('dakboard-current-page')) || 0;
     
     const config = {
-      version: '2.6', // Updated: Added Stoplight widget with interactive light controls, text labels with per-color styling, rotation support, and full cloning/editing capabilities.
+      version: '2.7', // Updated: Move to page functionality now working - fixed dropdown visibility, event handling, and displays page descriptions in "Page X: Description Y" format.
       exportDate: new Date().toISOString(),
       metadata: {
         totalPages: totalPages,

@@ -46,6 +46,19 @@ Four different layout options are available for you to choose from:
 
 ## 📝 Changelog
 
+### Version 2.7
+- **Move to Page Functionality** - Now fully functional!
+  - **Fixed Dropdown Display**: Resolved issues with move-to-page dropdown not appearing
+  - **Fixed Variable Scope**: Corrected JavaScript scope issues preventing dropdown from being appended to DOM
+  - **Fixed CSS Positioning**: Added `position: relative` to widget control items for proper dropdown positioning
+  - **Global Click Handler**: Added efficient global click handler to close dropdowns when clicking outside (prevents multiple event listeners)
+  - **Page Descriptions**: Dropdown now displays "Page X: Description Y" format (e.g., "Page 1: Parker", "Page 3: Caroline")
+  - **Smart Widget Handling**: 
+    - Original widgets (instance-0) are hidden on source page when moved (preserved for potential restoration)
+    - Clone widgets are completely removed from source page when moved
+    - All configuration (styles, layout, position, rotation, widget-specific state) is copied to target page
+    - Widget appears immediately on target page with full functionality
+
 ### Version 2.6
 - **New Widget: Stoplight** 🚦
   - **Interactive Light Control**: Click any color (red, amber/yellow, green) to illuminate it

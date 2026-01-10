@@ -1,6 +1,6 @@
 {
   "name": "dakboard",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Smart home dashboard for fixed displays with HA, calendar, weather, and todo integration",
   "type": "module",
   "scripts": {
