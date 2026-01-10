@@ -877,6 +877,21 @@ function generateAdvancedTab() {
     ` : ''}
     ${isBlankWidget ? `
     <div class="styling-form-section">
+      <div class="styling-section-title">Display Mode</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Display Mode</label>
+          <div class="styling-form-control">
+            <select id="blank-display-mode" class="styling-select" style="width: 100%;">
+              <option value="blank" ${(!currentStyles.blankDisplayMode || currentStyles.blankDisplayMode === 'blank') && !currentStyles.clipArtEmoji && !currentStyles.clipArtImageUrl ? 'selected' : ''}>Blank</option>
+              <option value="image" ${currentStyles.blankDisplayMode === 'image' || currentStyles.clipArtEmoji || currentStyles.clipArtImageUrl ? 'selected' : ''}>Image</option>
+              <option value="text" ${currentStyles.blankDisplayMode === 'text' ? 'selected' : ''}>Text</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="styling-form-section" id="blank-image-section" style="display: ${currentStyles.blankDisplayMode === 'text' ? 'none' : (currentStyles.blankDisplayMode === 'image' || currentStyles.clipArtEmoji || currentStyles.clipArtImageUrl ? 'block' : 'none')};">
       <div class="styling-section-title">Image</div>
       <div class="styling-form-group">
         <div class="styling-form-row">
@@ -922,6 +937,86 @@ function generateAdvancedTab() {
               </label>
             </div>
             <div style="font-size: 11px; color: #888; margin-top: 5px;">Makes images look like stickers. Use white for classic sticker look.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="styling-form-section" id="blank-text-section" style="display: ${currentStyles.blankDisplayMode === 'text' ? 'block' : 'none'};">
+      <div class="styling-section-title">Text</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Text Content</label>
+          <div class="styling-form-control">
+            <textarea id="blank-text-content" class="styling-textarea" rows="6" placeholder="Enter your text here...">${currentStyles.blankTextContent || ''}</textarea>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Font Family</label>
+          <div class="styling-form-control">
+            <select id="blank-text-font-family" class="styling-select" style="width: 100%;">
+              <option value="Arial" ${(!currentStyles.blankTextFontFamily || currentStyles.blankTextFontFamily === 'Arial') ? 'selected' : ''}>Arial</option>
+              <option value="Times New Roman" ${currentStyles.blankTextFontFamily === 'Times New Roman' ? 'selected' : ''}>Times New Roman</option>
+              <option value="Courier New" ${currentStyles.blankTextFontFamily === 'Courier New' ? 'selected' : ''}>Courier New</option>
+              <option value="Georgia" ${currentStyles.blankTextFontFamily === 'Georgia' ? 'selected' : ''}>Georgia</option>
+              <option value="Verdana" ${currentStyles.blankTextFontFamily === 'Verdana' ? 'selected' : ''}>Verdana</option>
+              <option value="Helvetica" ${currentStyles.blankTextFontFamily === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+              <option value="Comic Sans MS" ${currentStyles.blankTextFontFamily === 'Comic Sans MS' ? 'selected' : ''}>Comic Sans MS</option>
+              <option value="Impact" ${currentStyles.blankTextFontFamily === 'Impact' ? 'selected' : ''}>Impact</option>
+            </select>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Font Size: <span id="blank-text-font-size-value">${currentStyles.blankTextFontSize || 16}</span>px</label>
+          <div class="styling-form-control">
+            <input type="range" id="blank-text-font-size" min="8" max="72" value="${currentStyles.blankTextFontSize || 16}" step="1" class="styling-slider">
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Font Weight</label>
+          <div class="styling-form-control">
+            <select id="blank-text-font-weight" class="styling-select" style="width: 100%;">
+              <option value="normal" ${(!currentStyles.blankTextFontWeight || currentStyles.blankTextFontWeight === 'normal') ? 'selected' : ''}>Normal</option>
+              <option value="bold" ${currentStyles.blankTextFontWeight === 'bold' ? 'selected' : ''}>Bold</option>
+              <option value="300" ${currentStyles.blankTextFontWeight === '300' ? 'selected' : ''}>Light</option>
+              <option value="600" ${currentStyles.blankTextFontWeight === '600' ? 'selected' : ''}>Semi-Bold</option>
+              <option value="700" ${currentStyles.blankTextFontWeight === '700' ? 'selected' : ''}>Bold</option>
+            </select>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Text Color</label>
+          <div class="styling-form-control">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <input type="color" id="blank-text-color" value="${currentStyles.blankTextColor || '#ffffff'}" style="width: 50px; height: 40px; padding: 2px; border-radius: 4px;">
+              <input type="text" id="blank-text-color-text" value="${currentStyles.blankTextColor || '#ffffff'}" pattern="^#[0-9A-F]{6}$" placeholder="#ffffff" style="width: 80px; padding: 6px 8px; border-radius: 4px; border: 1px solid #4a4a4a; background: #1a1a1a; color: #e0e0e0; font-size: 12px;">
+            </div>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Text Alignment</label>
+          <div class="styling-form-control">
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="styling-btn-secondary blank-text-align-btn" data-align="left" style="flex: 1;">◀ Left</button>
+              <button type="button" class="styling-btn-secondary blank-text-align-btn" data-align="center" style="flex: 1;">● Center</button>
+              <button type="button" class="styling-btn-secondary blank-text-align-btn" data-align="right" style="flex: 1;">Right ▶</button>
+              <button type="button" class="styling-btn-secondary blank-text-align-btn" data-align="justify" style="flex: 1;">⬌ Justify</button>
+            </div>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Rich Text Formatting</label>
+          <div class="styling-form-control">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <label class="styling-apply-all-checkbox" style="margin: 0;">
+                <input type="checkbox" id="blank-text-bold" ${currentStyles.blankTextBold ? 'checked' : ''}> <strong>Bold</strong>
+              </label>
+              <label class="styling-apply-all-checkbox" style="margin: 0;">
+                <input type="checkbox" id="blank-text-italic" ${currentStyles.blankTextItalic ? 'checked' : ''}> <em>Italic</em>
+              </label>
+              <label class="styling-apply-all-checkbox" style="margin: 0;">
+                <input type="checkbox" id="blank-text-underline" ${currentStyles.blankTextUnderline ? 'checked' : ''}> <u>Underline</u>
+              </label>
+            </div>
           </div>
         </div>
       </div>
@@ -1838,6 +1933,132 @@ function attachTabEventListeners(tabName) {
               currentStyles.clipArtTintColor = normalized;
               updatePreview();
             }
+          });
+        }
+        
+        // Display mode selector
+        const blankDisplayMode = stylingModal.querySelector('#blank-display-mode');
+        if (blankDisplayMode) {
+          blankDisplayMode.addEventListener('change', (e) => {
+            const mode = e.target.value;
+            currentStyles.blankDisplayMode = mode;
+            const imageSection = stylingModal.querySelector('#blank-image-section');
+            const textSection = stylingModal.querySelector('#blank-text-section');
+            
+            if (imageSection) imageSection.style.display = mode === 'image' ? 'block' : 'none';
+            if (textSection) textSection.style.display = mode === 'text' ? 'block' : 'none';
+            
+            updatePreview();
+          });
+        }
+        
+        // Text content textarea
+        const blankTextContent = stylingModal.querySelector('#blank-text-content');
+        if (blankTextContent) {
+          blankTextContent.addEventListener('input', (e) => {
+            currentStyles.blankTextContent = e.target.value;
+            updatePreview();
+          });
+        }
+        
+        // Font family
+        const blankTextFontFamily = stylingModal.querySelector('#blank-text-font-family');
+        if (blankTextFontFamily) {
+          blankTextFontFamily.addEventListener('change', (e) => {
+            currentStyles.blankTextFontFamily = e.target.value;
+            updatePreview();
+          });
+        }
+        
+        // Font size
+        const blankTextFontSize = stylingModal.querySelector('#blank-text-font-size');
+        const blankTextFontSizeValue = stylingModal.querySelector('#blank-text-font-size-value');
+        if (blankTextFontSize) {
+          blankTextFontSize.addEventListener('input', (e) => {
+            currentStyles.blankTextFontSize = parseInt(e.target.value);
+            if (blankTextFontSizeValue) blankTextFontSizeValue.textContent = e.target.value;
+            updatePreview();
+          });
+        }
+        
+        // Font weight
+        const blankTextFontWeight = stylingModal.querySelector('#blank-text-font-weight');
+        if (blankTextFontWeight) {
+          blankTextFontWeight.addEventListener('change', (e) => {
+            currentStyles.blankTextFontWeight = e.target.value;
+            updatePreview();
+          });
+        }
+        
+        // Text color
+        const blankTextColor = stylingModal.querySelector('#blank-text-color');
+        const blankTextColorText = stylingModal.querySelector('#blank-text-color-text');
+        if (blankTextColor && blankTextColorText) {
+          blankTextColor.addEventListener('input', (e) => {
+            blankTextColorText.value = e.target.value;
+            currentStyles.blankTextColor = e.target.value;
+            updatePreview();
+          });
+          blankTextColor.addEventListener('change', (e) => {
+            blankTextColorText.value = e.target.value;
+            currentStyles.blankTextColor = e.target.value;
+            updatePreview();
+          });
+          blankTextColorText.addEventListener('input', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+              blankTextColor.value = e.target.value;
+              currentStyles.blankTextColor = e.target.value;
+              updatePreview();
+            }
+          });
+        }
+        
+        // Text alignment buttons
+        const blankTextAlignBtns = stylingModal.querySelectorAll('.blank-text-align-btn');
+        blankTextAlignBtns.forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const align = btn.dataset.align;
+            currentStyles.blankTextAlignment = align;
+            
+            // Update button states
+            blankTextAlignBtns.forEach(b => {
+              b.style.background = b === btn ? '#4a90e2' : '';
+              b.style.color = b === btn ? '#fff' : '';
+            });
+            
+            updatePreview();
+          });
+          
+          // Set initial active state
+          if (btn.dataset.align === (currentStyles.blankTextAlignment || 'left')) {
+            btn.style.background = '#4a90e2';
+            btn.style.color = '#fff';
+          }
+        });
+        
+        // Rich text formatting checkboxes
+        const blankTextBold = stylingModal.querySelector('#blank-text-bold');
+        if (blankTextBold) {
+          blankTextBold.addEventListener('change', (e) => {
+            currentStyles.blankTextBold = e.target.checked;
+            updatePreview();
+          });
+        }
+        
+        const blankTextItalic = stylingModal.querySelector('#blank-text-italic');
+        if (blankTextItalic) {
+          blankTextItalic.addEventListener('change', (e) => {
+            currentStyles.blankTextItalic = e.target.checked;
+            updatePreview();
+          });
+        }
+        
+        const blankTextUnderline = stylingModal.querySelector('#blank-text-underline');
+        if (blankTextUnderline) {
+          blankTextUnderline.addEventListener('change', (e) => {
+            currentStyles.blankTextUnderline = e.target.checked;
+            updatePreview();
           });
         }
       }
@@ -2779,37 +3000,83 @@ function updatePreview() {
       </div>
     `;
   } else if (previewContent && widgetType === 'blank-widget') {
-    // Render clip art preview
-    const clipArtVisible = currentStyles.clipArtVisible !== false; // Default to true
-    const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
-    const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
-    const clipArtTintColor = currentStyles.clipArtTintColor || '#ffffff';
-    const clipArtImageUrl = currentStyles.clipArtImageUrl || '';
-    const clipArtShadowEnabled = currentStyles.clipArtShadowEnabled !== false; // Default to true
-    const clipArtTintEnabled = currentStyles.clipArtTintEnabled !== false; // Default to true
+    // Determine display mode - default to 'blank' or 'image' based on existing content
+    const displayMode = currentStyles.blankDisplayMode || (currentStyles.clipArtEmoji || currentStyles.clipArtImageUrl ? 'image' : 'blank');
     let previewHtml = '';
     
-    if (!clipArtVisible) {
-      // Image is hidden
-      previewHtml = '';
-    } else if (clipArtImageUrl) {
-      // Build filter string with shadow and tint (only if enabled)
-      const shadowFilter = (clipArtShadowEnabled && clipArtColor) ? `drop-shadow(0 0 12px ${clipArtColor})` : '';
-      const tintFilter = clipArtTintEnabled ? generateImageTintFilter(clipArtTintColor) : '';
-      const combinedFilter = [shadowFilter, tintFilter].filter(f => f).join(' ');
+    if (displayMode === 'text') {
+      // Render text preview
+      const textContent = currentStyles.blankTextContent || '';
+      const fontFamily = currentStyles.blankTextFontFamily || 'Arial';
+      const fontSize = currentStyles.blankTextFontSize || 16;
+      const fontWeight = currentStyles.blankTextFontWeight || 'normal';
+      const textColor = currentStyles.blankTextColor || '#ffffff';
+      const textAlign = currentStyles.blankTextAlignment || 'left';
+      const isBold = currentStyles.blankTextBold || false;
+      const isItalic = currentStyles.blankTextItalic || false;
+      const isUnderline = currentStyles.blankTextUnderline || false;
+      
+      // Build style string
+      const textStyle = [
+        `font-family: ${fontFamily}`,
+        `font-size: ${fontSize}px`,
+        `font-weight: ${fontWeight}`,
+        `color: ${textColor}`,
+        `text-align: ${textAlign}`,
+        isBold ? 'font-weight: bold' : '',
+        isItalic ? 'font-style: italic' : '',
+        isUnderline ? 'text-decoration: underline' : '',
+        'white-space: pre-wrap',
+        'word-wrap: break-word',
+        'width: 100%',
+        'height: 100%',
+        'padding: 20px',
+        'box-sizing: border-box'
+      ].filter(s => s).join('; ');
       
       previewHtml = `
-        <div style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;">
-          <img src="${clipArtImageUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: ${combinedFilter || 'none'};" alt="Clip art">
+        <div style="display: flex; align-items: flex-start; justify-content: ${textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : textAlign === 'justify' ? 'stretch' : 'flex-start'}; height: 100%; width: 100%; padding: 20px; box-sizing: border-box;">
+          <div style="${textStyle}">
+            ${textContent || 'Enter your text here...'}
+          </div>
         </div>
       `;
+    } else if (displayMode === 'image') {
+      // Render clip art preview
+      const clipArtVisible = currentStyles.clipArtVisible !== false; // Default to true
+      const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
+      const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
+      const clipArtTintColor = currentStyles.clipArtTintColor || '#ffffff';
+      const clipArtImageUrl = currentStyles.clipArtImageUrl || '';
+      const clipArtShadowEnabled = currentStyles.clipArtShadowEnabled !== false; // Default to true
+      const clipArtTintEnabled = currentStyles.clipArtTintEnabled !== false; // Default to true
+      
+      if (!clipArtVisible) {
+        // Image is hidden
+        previewHtml = '';
+      } else if (clipArtImageUrl) {
+        // Build filter string with shadow and tint (only if enabled)
+        const shadowFilter = (clipArtShadowEnabled && clipArtColor) ? `drop-shadow(0 0 12px ${clipArtColor})` : '';
+        const tintFilter = clipArtTintEnabled ? generateImageTintFilter(clipArtTintColor) : '';
+        const combinedFilter = [shadowFilter, tintFilter].filter(f => f).join(' ');
+        
+        previewHtml = `
+          <div style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;">
+            <img src="${clipArtImageUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: ${combinedFilter || 'none'};" alt="Clip art">
+          </div>
+        `;
+      } else {
+        previewHtml = `
+          <div style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;">
+            <div style="font-size: 120px; color: ${clipArtColor}; text-align: center; line-height: 1;">${clipArtEmoji}</div>
+          </div>
+        `;
+      }
     } else {
-      previewHtml = `
-        <div style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;">
-          <div style="font-size: 120px; color: ${clipArtColor}; text-align: center; line-height: 1;">${clipArtEmoji}</div>
-        </div>
-      `;
+      // Blank mode - empty preview
+      previewHtml = '';
     }
+    
     if (previewContent) {
       previewContent.innerHTML = previewHtml;
     }
@@ -3167,6 +3434,67 @@ function updateCurrentStylesFromForm() {
   const stoplightGreenFontWeight = stylingModal.querySelector('#stoplight-green-font-weight');
   if (stoplightGreenFontWeight) {
     currentStyles.stoplightGreenFontWeight = stoplightGreenFontWeight.value;
+  }
+  
+  // Blank widget display mode and text settings
+  const blankDisplayMode = stylingModal.querySelector('#blank-display-mode');
+  if (blankDisplayMode) {
+    currentStyles.blankDisplayMode = blankDisplayMode.value;
+  }
+  
+  const blankTextContent = stylingModal.querySelector('#blank-text-content');
+  if (blankTextContent) {
+    currentStyles.blankTextContent = blankTextContent.value;
+  }
+  
+  const blankTextFontFamily = stylingModal.querySelector('#blank-text-font-family');
+  if (blankTextFontFamily) {
+    currentStyles.blankTextFontFamily = blankTextFontFamily.value;
+  }
+  
+  const blankTextFontSize = stylingModal.querySelector('#blank-text-font-size');
+  if (blankTextFontSize) {
+    currentStyles.blankTextFontSize = parseInt(blankTextFontSize.value);
+  }
+  
+  const blankTextFontWeight = stylingModal.querySelector('#blank-text-font-weight');
+  if (blankTextFontWeight) {
+    currentStyles.blankTextFontWeight = blankTextFontWeight.value;
+  }
+  
+  const blankTextColor = stylingModal.querySelector('#blank-text-color');
+  const blankTextColorText = stylingModal.querySelector('#blank-text-color-text');
+  if (blankTextColor) {
+    currentStyles.blankTextColor = blankTextColor.value;
+  } else if (blankTextColorText) {
+    // Fallback to text input if color picker not found
+    if (/^#[0-9A-F]{6}$/i.test(blankTextColorText.value)) {
+      currentStyles.blankTextColor = blankTextColorText.value;
+    }
+  }
+  
+  // Text alignment is set via button clicks, already in currentStyles
+  // But check if alignment buttons exist and get active one
+  const blankTextAlignBtns = stylingModal.querySelectorAll('.blank-text-align-btn');
+  blankTextAlignBtns.forEach(btn => {
+    if (btn.style.background === '#4a90e2' || btn.style.backgroundColor === '#4a90e2') {
+      currentStyles.blankTextAlignment = btn.dataset.align;
+    }
+  });
+  
+  const blankTextBold = stylingModal.querySelector('#blank-text-bold');
+  if (blankTextBold) {
+    currentStyles.blankTextBold = blankTextBold.checked;
+  }
+  
+  const blankTextItalic = stylingModal.querySelector('#blank-text-italic');
+  if (blankTextItalic) {
+    currentStyles.blankTextItalic = blankTextItalic.checked;
+  }
+  
+  const blankTextUnderline = stylingModal.querySelector('#blank-text-underline');
+  if (blankTextUnderline) {
+    currentStyles.blankTextUnderline = blankTextUnderline.checked;
   }
   
 }
@@ -3567,74 +3895,169 @@ function applyCurrentStylesToWidget(widget) {
     }
   }
   
-  // Update clip art if this is a blank widget
+  // Update blank widget content based on display mode
   if (widget.classList.contains('blank-widget')) {
     const container = widget.querySelector('.clipart-content');
     if (container) {
-      const clipArtVisible = currentStyles.clipArtVisible !== undefined ? currentStyles.clipArtVisible : true;
-      const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
-      const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
-      const clipArtTintColor = currentStyles.clipArtTintColor || '#ffffff';
-      const clipArtImageUrl = currentStyles.clipArtImageUrl || '';
-      const clipArtShadowEnabled = currentStyles.clipArtShadowEnabled !== undefined ? currentStyles.clipArtShadowEnabled : true;
-      const clipArtTintEnabled = currentStyles.clipArtTintEnabled !== undefined ? currentStyles.clipArtTintEnabled : true;
+      // Get widget instance ID for saving
+      const classes = Array.from(widget.classList);
+      const instanceIdClass = classes.find(c => c.startsWith('blank-widget-page-') && c.includes('-instance-'));
+      const fullWidgetId = instanceIdClass || classes.find(c => c.includes('blank-widget'));
       
-      // Apply clip art directly using currentStyles (not localStorage)
-      if (!clipArtVisible) {
-        container.innerHTML = '';
-      } else if (clipArtImageUrl) {
-        // Helper function for image tinting (same as in app.js)
-        function generateImageTintFilter(tintColor) {
-          if (!tintColor || tintColor === '#ffffff' || tintColor === '#FFFFFF') {
-            return 'brightness(0) invert(1)';
-          }
-          const r = parseInt(tintColor.slice(1, 3), 16);
-          const g = parseInt(tintColor.slice(3, 5), 16);
-          const b = parseInt(tintColor.slice(5, 7), 16);
-          const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-          const hue = getHueFromRGB(r, g, b);
-          const max = Math.max(r, g, b) / 255;
-          const min = Math.min(r, g, b) / 255;
-          const saturation = max === 0 ? 0 : (max - min) / max;
+      // Determine display mode
+      const displayMode = currentStyles.blankDisplayMode || (currentStyles.clipArtEmoji || currentStyles.clipArtImageUrl ? 'image' : 'blank');
+      
+      if (displayMode === 'text') {
+        // Text mode - create editable textarea
+        const textContent = currentStyles.blankTextContent || '';
+        const fontFamily = currentStyles.blankTextFontFamily || 'Arial';
+        const fontSize = currentStyles.blankTextFontSize || 16;
+        const fontWeight = currentStyles.blankTextFontWeight || 'normal';
+        const textColor = currentStyles.blankTextColor || '#ffffff';
+        const textAlign = currentStyles.blankTextAlignment || 'left';
+        const isBold = currentStyles.blankTextBold || false;
+        const isItalic = currentStyles.blankTextItalic || false;
+        const isUnderline = currentStyles.blankTextUnderline || false;
+        
+        // Build style string
+        const textStyle = [
+          `font-family: ${fontFamily}`,
+          `font-size: ${fontSize}px`,
+          `font-weight: ${isBold ? 'bold' : fontWeight}`,
+          `color: ${textColor}`,
+          `text-align: ${textAlign}`,
+          isItalic ? 'font-style: italic' : '',
+          isUnderline ? 'text-decoration: underline' : '',
+          'white-space: pre-wrap',
+          'word-wrap: break-word',
+          'width: 100%',
+          'height: 100%',
+          'padding: 20px',
+          'box-sizing: border-box',
+          'background: transparent',
+          'border: none',
+          'outline: none',
+          'resize: none',
+          'overflow: auto'
+        ].filter(s => s).join('; ');
+        
+        container.innerHTML = `<textarea class="blank-text-editable" data-widget-id="${fullWidgetId || ''}" style="${textStyle}" placeholder="Enter your text here...">${textContent}</textarea>`;
+        
+        // Make textarea editable and save on blur
+        const textarea = container.querySelector('.blank-text-editable');
+        if (textarea && fullWidgetId) {
+          textarea.addEventListener('blur', () => {
+            const updatedContent = textarea.value;
+            const stylesKey = `dakboard-widget-styles-${fullWidgetId}`;
+            const saved = localStorage.getItem(stylesKey);
+            const styles = saved ? JSON.parse(saved) : {};
+            styles.blankTextContent = updatedContent;
+            localStorage.setItem(stylesKey, JSON.stringify(styles));
+          });
           
-          if (brightness > 200) {
-            return `brightness(0) invert(1) sepia(1) saturate(${Math.max(1, saturation * 3)}) hue-rotate(${hue}deg) brightness(${brightness / 255})`;
-          } else if (brightness > 128) {
-            return `brightness(0) invert(1) sepia(1) saturate(${Math.max(2, saturation * 4)}) hue-rotate(${hue}deg) brightness(${brightness / 255})`;
-          } else if (brightness > 64) {
-            return `brightness(0) invert(1) sepia(1) saturate(${Math.max(3, saturation * 5)}) hue-rotate(${hue}deg) brightness(${brightness / 200})`;
-          } else {
-            return `brightness(0) saturate(100%) invert(${brightness / 255}) sepia(1) saturate(${Math.max(4, saturation * 6)}) hue-rotate(${hue}deg)`;
-          }
+          // Auto-resize textarea to fit content
+          textarea.addEventListener('input', () => {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+          });
+          
+          // Initial height adjustment
+          setTimeout(() => {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+          }, 0);
         }
+      } else if (displayMode === 'image') {
+        // Image mode - apply clip art
+        const clipArtVisible = currentStyles.clipArtVisible !== undefined ? currentStyles.clipArtVisible : true;
+        const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
+        const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
+        const clipArtTintColor = currentStyles.clipArtTintColor || '#ffffff';
+        const clipArtImageUrl = currentStyles.clipArtImageUrl || '';
+        const clipArtShadowEnabled = currentStyles.clipArtShadowEnabled !== undefined ? currentStyles.clipArtShadowEnabled : true;
+        const clipArtTintEnabled = currentStyles.clipArtTintEnabled !== undefined ? currentStyles.clipArtTintEnabled : true;
         
-        function getHueFromRGB(r, g, b) {
-          r /= 255;
-          g /= 255;
-          b /= 255;
-          const max = Math.max(r, g, b);
-          const min = Math.min(r, g, b);
-          let h = 0;
-          if (max === min) {
-            h = 0;
-          } else if (max === r) {
-            h = ((g - b) / (max - min)) % 6;
-          } else if (max === g) {
-            h = (b - r) / (max - min) + 2;
-          } else {
-            h = (r - g) / (max - min) + 4;
+        // Apply clip art directly using currentStyles (not localStorage)
+        if (!clipArtVisible) {
+          container.innerHTML = '';
+        } else if (clipArtImageUrl) {
+          // Helper function for image tinting (same as in app.js)
+          function generateImageTintFilter(tintColor) {
+            if (!tintColor || tintColor === '#ffffff' || tintColor === '#FFFFFF') {
+              return 'brightness(0) invert(1)';
+            }
+            const r = parseInt(tintColor.slice(1, 3), 16);
+            const g = parseInt(tintColor.slice(3, 5), 16);
+            const b = parseInt(tintColor.slice(5, 7), 16);
+            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+            const hue = getHueFromRGB(r, g, b);
+            const max = Math.max(r, g, b) / 255;
+            const min = Math.min(r, g, b) / 255;
+            const saturation = max === 0 ? 0 : (max - min) / max;
+            
+            if (brightness > 200) {
+              return `brightness(0) invert(1) sepia(1) saturate(${Math.max(1, saturation * 3)}) hue-rotate(${hue}deg) brightness(${brightness / 255})`;
+            } else if (brightness > 128) {
+              return `brightness(0) invert(1) sepia(1) saturate(${Math.max(2, saturation * 4)}) hue-rotate(${hue}deg) brightness(${brightness / 255})`;
+            } else if (brightness > 64) {
+              return `brightness(0) invert(1) sepia(1) saturate(${Math.max(3, saturation * 5)}) hue-rotate(${hue}deg) brightness(${brightness / 200})`;
+            } else {
+              return `brightness(0) saturate(100%) invert(${brightness / 255}) sepia(1) saturate(${Math.max(4, saturation * 6)}) hue-rotate(${hue}deg)`;
+            }
           }
-          h = Math.round(h * 60);
-          if (h < 0) h += 360;
-          return h;
+          
+          function getHueFromRGB(r, g, b) {
+            r /= 255;
+            g /= 255;
+            b /= 255;
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            let h = 0;
+            if (max === min) {
+              h = 0;
+            } else if (max === r) {
+              h = ((g - b) / (max - min)) % 6;
+            } else if (max === g) {
+              h = (b - r) / (max - min) + 2;
+            } else {
+              h = (r - g) / (max - min) + 4;
+            }
+            h = Math.round(h * 60);
+            if (h < 0) h += 360;
+            return h;
+          }
+          
+          const shadowFilter = (clipArtShadowEnabled && clipArtColor) ? `drop-shadow(0 0 12px ${clipArtColor})` : '';
+          const tintFilter = clipArtTintEnabled ? generateImageTintFilter(clipArtTintColor) : '';
+          const combinedFilter = [shadowFilter, tintFilter].filter(f => f).join(' ');
+          container.innerHTML = `<div class="clipart-display" style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;"><img src="${clipArtImageUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: ${combinedFilter || 'none'};" alt="Clip art"></div>`;
+        } else {
+          container.innerHTML = `<div class="clipart-display" style="color: ${clipArtColor}; font-size: 120px; text-align: center; line-height: 1; display: flex; align-items: center; justify-content: center; height: 100%;">${clipArtEmoji}</div>`;
         }
-        
-        const shadowFilter = (clipArtShadowEnabled && clipArtColor) ? `drop-shadow(0 0 12px ${clipArtColor})` : '';
-        const tintFilter = clipArtTintEnabled ? generateImageTintFilter(clipArtTintColor) : '';
-        const combinedFilter = [shadowFilter, tintFilter].filter(f => f).join(' ');
-        container.innerHTML = `<div class="clipart-display" style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;"><img src="${clipArtImageUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: ${combinedFilter || 'none'};" alt="Clip art"></div>`;
       } else {
-        container.innerHTML = `<div class="clipart-display" style="color: ${clipArtColor}; font-size: 120px; text-align: center; line-height: 1; display: flex; align-items: center; justify-content: center; height: 100%;">${clipArtEmoji}</div>`;
+        // Blank mode - empty
+        container.innerHTML = '';
+      }
+      
+      // Save display mode to localStorage
+      if (fullWidgetId) {
+        const stylesKey = `dakboard-widget-styles-${fullWidgetId}`;
+        const saved = localStorage.getItem(stylesKey);
+        const styles = saved ? JSON.parse(saved) : {};
+        styles.blankDisplayMode = displayMode;
+        if (displayMode === 'text') {
+          // Save all text-related styles
+          styles.blankTextContent = currentStyles.blankTextContent || '';
+          styles.blankTextFontFamily = currentStyles.blankTextFontFamily || 'Arial';
+          styles.blankTextFontSize = currentStyles.blankTextFontSize || 16;
+          styles.blankTextFontWeight = currentStyles.blankTextFontWeight || 'normal';
+          styles.blankTextColor = currentStyles.blankTextColor || '#ffffff';
+          styles.blankTextAlignment = currentStyles.blankTextAlignment || 'left';
+          styles.blankTextBold = currentStyles.blankTextBold || false;
+          styles.blankTextItalic = currentStyles.blankTextItalic || false;
+          styles.blankTextUnderline = currentStyles.blankTextUnderline || false;
+        }
+        localStorage.setItem(stylesKey, JSON.stringify(styles));
       }
     }
   }
@@ -3920,6 +4343,17 @@ function loadWidgetStyles(fullWidgetId) {
   
   // Set clip art defaults if this is a blank widget
   if (widgetType === 'blank-widget') {
+    // Determine display mode - prioritize explicit mode, fallback based on content
+    if (!currentStyles.blankDisplayMode) {
+      if (currentStyles.blankTextContent) {
+        currentStyles.blankDisplayMode = 'text';
+      } else if (currentStyles.clipArtEmoji || currentStyles.clipArtImageUrl) {
+        currentStyles.blankDisplayMode = 'image';
+      } else {
+        currentStyles.blankDisplayMode = 'blank';
+      }
+    }
+    
     if (!currentStyles.clipArtEmoji) {
       currentStyles.clipArtEmoji = '🎨';
     }

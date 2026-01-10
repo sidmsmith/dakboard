@@ -3576,6 +3576,8 @@ function loadClipArt() {
     const stylesKey = `dakboard-widget-styles-${fullWidgetId}`;
     const savedStyles = localStorage.getItem(stylesKey);
     
+    // Determine display mode - default to 'blank' or 'image' based on existing content
+    let displayMode = 'blank';
     let clipArtEmoji = '🎨'; // Default
     let clipArtColor = '#4a90e2'; // Default
     let clipArtTintColor = '#ffffff'; // Default
@@ -3584,9 +3586,23 @@ function loadClipArt() {
     let clipArtTintEnabled = true; // Default
     let clipArtVisible = true; // Default
     
+    // Text mode variables
+    let textContent = '';
+    let textFontFamily = 'Arial';
+    let textFontSize = 16;
+    let textFontWeight = 'normal';
+    let textColor = '#ffffff';
+    let textAlignment = 'left';
+    let textBold = false;
+    let textItalic = false;
+    let textUnderline = false;
+    
     if (savedStyles) {
       try {
         const styles = JSON.parse(savedStyles);
+        // Determine display mode - prioritize explicit mode, fallback to image if content exists
+        displayMode = styles.blankDisplayMode || (styles.clipArtEmoji || styles.clipArtImageUrl ? 'image' : 'blank');
+        
         clipArtEmoji = styles.clipArtEmoji || clipArtEmoji;
         clipArtColor = styles.clipArtColor || clipArtColor;
         clipArtTintColor = styles.clipArtTintColor || clipArtTintColor;
@@ -3594,6 +3610,17 @@ function loadClipArt() {
         clipArtShadowEnabled = styles.clipArtShadowEnabled !== undefined ? styles.clipArtShadowEnabled : true;
         clipArtTintEnabled = styles.clipArtTintEnabled !== undefined ? styles.clipArtTintEnabled : true;
         clipArtVisible = styles.clipArtVisible !== undefined ? styles.clipArtVisible : true;
+        
+        // Load text mode settings
+        textContent = styles.blankTextContent || '';
+        textFontFamily = styles.blankTextFontFamily || 'Arial';
+        textFontSize = styles.blankTextFontSize || 16;
+        textFontWeight = styles.blankTextFontWeight || 'normal';
+        textColor = styles.blankTextColor || '#ffffff';
+        textAlignment = styles.blankTextAlignment || 'left';
+        textBold = styles.blankTextBold || false;
+        textItalic = styles.blankTextItalic || false;
+        textUnderline = styles.blankTextUnderline || false;
       } catch (e) {
         console.error('Error parsing clip art styles:', e);
       }
@@ -3645,16 +3672,66 @@ function loadClipArt() {
       return h;
     }
     
-    // Display the clip art (image or emoji) only if visible
-    if (!clipArtVisible) {
-      container.innerHTML = '';
-    } else if (clipArtImageUrl) {
-      const shadowFilter = (clipArtShadowEnabled && clipArtColor) ? `drop-shadow(0 0 12px ${clipArtColor})` : '';
-      const tintFilter = clipArtTintEnabled ? generateImageTintFilter(clipArtTintColor) : '';
-      const combinedFilter = [shadowFilter, tintFilter].filter(f => f).join(' ');
-      container.innerHTML = `<div class="clipart-display" style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;"><img src="${clipArtImageUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: ${combinedFilter || 'none'};" alt="Clip art"></div>`;
+    // Display based on mode
+    if (displayMode === 'text') {
+      // Text mode - create editable text area
+      const textStyle = [
+        `font-family: ${textFontFamily}`,
+        `font-size: ${textFontSize}px`,
+        `font-weight: ${textBold ? 'bold' : textFontWeight}`,
+        `color: ${textColor}`,
+        `text-align: ${textAlignment}`,
+        textItalic ? 'font-style: italic' : '',
+        textUnderline ? 'text-decoration: underline' : '',
+        'white-space: pre-wrap',
+        'word-wrap: break-word',
+        'width: 100%',
+        'height: 100%',
+        'padding: 20px',
+        'box-sizing: border-box',
+        'background: transparent',
+        'border: none',
+        'outline: none',
+        'resize: none',
+        'overflow: auto'
+      ].filter(s => s).join('; ');
+      
+      container.innerHTML = `<textarea class="blank-text-editable" data-widget-id="${fullWidgetId}" style="${textStyle}" placeholder="Enter your text here...">${textContent}</textarea>`;
+      
+      // Make textarea editable and save on blur/input
+      const textarea = container.querySelector('.blank-text-editable');
+      if (textarea) {
+        // Allow editing in both normal and edit mode
+        textarea.addEventListener('blur', () => {
+          const updatedContent = textarea.value;
+          const stylesKey = `dakboard-widget-styles-${fullWidgetId}`;
+          const saved = localStorage.getItem(stylesKey);
+          const styles = saved ? JSON.parse(saved) : {};
+          styles.blankTextContent = updatedContent;
+          localStorage.setItem(stylesKey, JSON.stringify(styles));
+        });
+        
+        // Auto-resize textarea to fit content
+        textarea.addEventListener('input', () => {
+          textarea.style.height = 'auto';
+          textarea.style.height = textarea.scrollHeight + 'px';
+        });
+      }
+    } else if (displayMode === 'image') {
+      // Image mode - display clip art (image or emoji) only if visible
+      if (!clipArtVisible) {
+        container.innerHTML = '';
+      } else if (clipArtImageUrl) {
+        const shadowFilter = (clipArtShadowEnabled && clipArtColor) ? `drop-shadow(0 0 12px ${clipArtColor})` : '';
+        const tintFilter = clipArtTintEnabled ? generateImageTintFilter(clipArtTintColor) : '';
+        const combinedFilter = [shadowFilter, tintFilter].filter(f => f).join(' ');
+        container.innerHTML = `<div class="clipart-display" style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;"><img src="${clipArtImageUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: ${combinedFilter || 'none'};" alt="Clip art"></div>`;
+      } else {
+        container.innerHTML = `<div class="clipart-display" style="color: ${clipArtColor}; font-size: 120px; text-align: center; line-height: 1; display: flex; align-items: center; justify-content: center; height: 100%;">${clipArtEmoji}</div>`;
+      }
     } else {
-      container.innerHTML = `<div class="clipart-display" style="color: ${clipArtColor}; font-size: 120px; text-align: center; line-height: 1; display: flex; align-items: center; justify-content: center; height: 100%;">${clipArtEmoji}</div>`;
+      // Blank mode - empty
+      container.innerHTML = '';
     }
   });
 }
