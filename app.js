@@ -4752,11 +4752,8 @@ function formatNewsDate(dateString) {
 }
 
 // Whiteboard state
-let whiteboardCanvas = null;
-let whiteboardCtx = null;
-let isDrawing = false;
-let lastX = 0;
-let lastY = 0;
+// Whiteboard state management - per widget instance
+let whiteboardStates = new Map(); // Track drawing state per widget: { canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, isDrawing: boolean, lastX: number, lastY: number }
 
 // Initialize whiteboard
 function initializeWhiteboard() {
@@ -4766,280 +4763,315 @@ function initializeWhiteboard() {
   
   const instances = getWidgetInstances('whiteboard-widget', currentPageIndex);
   
-  // Initialize first whiteboard instance (whiteboards use global state, so only one active at a time)
+  // Initialize all whiteboard instances (each with independent state)
   if (instances.length === 0) return;
   
-  const firstInstance = instances[0];
-  const widget = firstInstance.element;
-  if (!widget || widget.classList.contains('hidden')) return;
-  const canvas = widget.querySelector('#whiteboard-canvas');
-  if (!canvas) return;
-  
-  whiteboardCanvas = canvas;
-  whiteboardCtx = canvas.getContext('2d');
-  
-  // Set canvas size to match container
-  const container = canvas.closest('.whiteboard-container');
-  const whiteboardWidget = canvas.closest('.whiteboard-widget');
-  if (container && whiteboardWidget) {
-    const resizeCanvas = () => {
-      // Get the actual container dimensions
-      const containerRect = container.getBoundingClientRect();
-      
-      // Calculate available space for canvas (no toolbar in container anymore)
-      const availableWidth = containerRect.width - 2; // Account for border
-      const availableHeight = Math.max(50, containerRect.height - 2); // Account for border
-      
-      // Only resize if dimensions actually changed to avoid unnecessary redraws
-      if (canvas.width !== availableWidth || canvas.height !== availableHeight) {
-        const wasDrawing = canvas.width > 0 && canvas.height > 0;
-        const oldImage = wasDrawing ? canvas.toDataURL() : null;
+  instances.forEach(instance => {
+    const widget = instance.element;
+    if (!widget || widget.classList.contains('hidden')) return;
+    
+    // Get widget instance ID
+    const classes = Array.from(widget.classList);
+    const instanceIdClass = classes.find(c => c.startsWith('whiteboard-widget-page-') && c.includes('-instance-'));
+    const fullWidgetId = instanceIdClass || classes.find(c => c.includes('whiteboard-widget'));
+    if (!fullWidgetId) return;
+    
+    const canvas = widget.querySelector('#whiteboard-canvas');
+    if (!canvas) return;
+    
+    // Get or create state for this widget instance
+    let state = whiteboardStates.get(fullWidgetId);
+    if (!state) {
+      state = {
+        canvas: canvas,
+        ctx: canvas.getContext('2d'),
+        isDrawing: false,
+        lastX: 0,
+        lastY: 0
+      };
+      whiteboardStates.set(fullWidgetId, state);
+    } else {
+      // Update canvas and context if widget was recreated
+      state.canvas = canvas;
+      state.ctx = canvas.getContext('2d');
+    }
+    
+    // Set canvas size to match container
+    const container = canvas.closest('.whiteboard-container');
+    const whiteboardWidget = canvas.closest('.whiteboard-widget');
+    if (container && whiteboardWidget) {
+      const resizeCanvas = () => {
+        // Get the actual container dimensions
+        const containerRect = container.getBoundingClientRect();
         
-        canvas.width = availableWidth;
-        canvas.height = availableHeight;
+        // Calculate available space for canvas (no toolbar in container anymore)
+        const availableWidth = containerRect.width - 2; // Account for border
+        const availableHeight = Math.max(50, containerRect.height - 2); // Account for border
         
-        // Restore drawing or set background
-        if (oldImage && wasDrawing) {
-          const img = new Image();
-          img.onload = () => {
-            whiteboardCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          };
-          img.src = oldImage;
-        } else {
-          const pageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
-          const bgColor = localStorage.getItem(`whiteboard-bg-color-page-${pageIndex}`) || '#ffffff';
-          whiteboardCtx.fillStyle = bgColor;
-          whiteboardCtx.fillRect(0, 0, canvas.width, canvas.height);
+        // Only resize if dimensions actually changed to avoid unnecessary redraws
+        if (canvas.width !== availableWidth || canvas.height !== availableHeight) {
+          const wasDrawing = canvas.width > 0 && canvas.height > 0;
+          const oldImage = wasDrawing ? canvas.toDataURL() : null;
+          
+          canvas.width = availableWidth;
+          canvas.height = availableHeight;
+          
+          // Restore drawing or set background
+          if (oldImage && wasDrawing) {
+            const img = new Image();
+            img.onload = () => {
+              state.ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            };
+            img.src = oldImage;
+          } else {
+            // Load background color for this widget instance
+            const bgColor = localStorage.getItem(`whiteboard-bg-color-${fullWidgetId}`) || localStorage.getItem(`whiteboard-bg-color-page-${currentPageIndex}`) || '#ffffff';
+            state.ctx.fillStyle = bgColor;
+            state.ctx.fillRect(0, 0, canvas.width, canvas.height);
+          }
         }
-      }
-    };
+      };
+      
+      resizeCanvas();
+      
+      // Observe both container and widget for resize
+      const resizeObserver = new ResizeObserver(resizeCanvas);
+      resizeObserver.observe(container);
+      resizeObserver.observe(widget);
+    }
     
-    resizeCanvas();
-    
-    // Observe both container and widget for resize
-    const resizeObserver = new ResizeObserver(resizeCanvas);
-    resizeObserver.observe(container);
-    resizeObserver.observe(widget);
-  }
-  
-  // Set default background color (page-specific)
-  const bgColor = localStorage.getItem(`whiteboard-bg-color-page-${currentPageIndex}`) || '#ffffff';
-  whiteboardCtx.fillStyle = bgColor;
-  whiteboardCtx.fillRect(0, 0, canvas.width, canvas.height);
-  
-  // Load saved drawing (page-specific) - must be done after canvas is sized
-  const savedDrawing = localStorage.getItem(`whiteboard-drawing-page-${currentPageIndex}`);
-  if (savedDrawing) {
-    const img = new Image();
-    img.onload = () => {
-      whiteboardCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    };
-    img.src = savedDrawing;
-  }
-  
-  // Load saved settings (page-specific)
-  const savedInkColor = localStorage.getItem(`whiteboard-ink-color-page-${currentPageIndex}`) || '#000000';
-  const savedBrushSize = localStorage.getItem(`whiteboard-brush-size-page-${currentPageIndex}`) || '3';
-  
-  // Find controls on current page (whiteboard controls are in the widget header)
-  const inkColorInput = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-ink-color') : document.getElementById('whiteboard-ink-color');
-  const bgColorInput = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-bg-color') : document.getElementById('whiteboard-bg-color');
-  const brushSizeInput = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-brush-size') : document.getElementById('whiteboard-brush-size');
-  const brushSizeLabel = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-brush-size-label') : document.getElementById('whiteboard-brush-size-label');
-  const clearBtn = whiteboardWidget ? whiteboardWidget.querySelector('#whiteboard-clear') : document.getElementById('whiteboard-clear');
-  
-  if (inkColorInput) inkColorInput.value = savedInkColor;
-  if (bgColorInput) bgColorInput.value = bgColor;
-  if (brushSizeInput) {
-    brushSizeInput.value = savedBrushSize;
-    if (brushSizeLabel) brushSizeLabel.textContent = `${savedBrushSize}px`;
-  }
-  
-  // Event listeners
-  if (clearBtn) {
-    clearBtn.addEventListener('click', clearWhiteboard);
-  }
-  
-  if (inkColorInput) {
-    inkColorInput.addEventListener('change', (e) => {
-      localStorage.setItem(`whiteboard-ink-color-page-${currentPageIndex}`, e.target.value);
-    });
-  }
-  
-  if (bgColorInput) {
-    bgColorInput.addEventListener('change', (e) => {
-      const newBgColor = e.target.value;
-      localStorage.setItem(`whiteboard-bg-color-page-${currentPageIndex}`, newBgColor);
-      // Redraw canvas with new background
-      const currentImage = canvas.toDataURL();
-      whiteboardCtx.fillStyle = newBgColor;
-      whiteboardCtx.fillRect(0, 0, canvas.width, canvas.height);
+    // Load saved drawing for this widget instance (instance-specific, fallback to page-specific for backward compatibility)
+    const savedDrawing = localStorage.getItem(`whiteboard-drawing-${fullWidgetId}`) || localStorage.getItem(`whiteboard-drawing-page-${currentPageIndex}`);
+    if (savedDrawing) {
       const img = new Image();
       img.onload = () => {
-        whiteboardCtx.drawImage(img, 0, 0);
+        state.ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       };
-      img.src = currentImage;
-      saveWhiteboard();
-    });
-  }
-  
-  if (brushSizeInput && brushSizeLabel) {
-    brushSizeInput.addEventListener('input', (e) => {
-      const size = e.target.value;
-      brushSizeLabel.textContent = `${size}px`;
-      localStorage.setItem(`whiteboard-brush-size-page-${currentPageIndex}`, size);
-    });
-  }
-  
-  // Drawing event listeners (only in normal mode)
-  setupWhiteboardDrawing();
+      img.src = savedDrawing;
+    } else {
+      // Set default background color if no saved drawing
+      const bgColor = localStorage.getItem(`whiteboard-bg-color-${fullWidgetId}`) || localStorage.getItem(`whiteboard-bg-color-page-${currentPageIndex}`) || '#ffffff';
+      state.ctx.fillStyle = bgColor;
+      state.ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    // Load saved settings (instance-specific, fallback to page-specific)
+    const savedInkColor = localStorage.getItem(`whiteboard-ink-color-${fullWidgetId}`) || localStorage.getItem(`whiteboard-ink-color-page-${currentPageIndex}`) || '#000000';
+    const savedBrushSize = localStorage.getItem(`whiteboard-brush-size-${fullWidgetId}`) || localStorage.getItem(`whiteboard-brush-size-page-${currentPageIndex}`) || '3';
+    const bgColor = localStorage.getItem(`whiteboard-bg-color-${fullWidgetId}`) || localStorage.getItem(`whiteboard-bg-color-page-${currentPageIndex}`) || '#ffffff';
+    
+    // Find controls for this specific widget instance
+    const inkColorInput = whiteboardWidget.querySelector('#whiteboard-ink-color');
+    const bgColorInput = whiteboardWidget.querySelector('#whiteboard-bg-color');
+    const brushSizeInput = whiteboardWidget.querySelector('#whiteboard-brush-size');
+    const brushSizeLabel = whiteboardWidget.querySelector('#whiteboard-brush-size-label');
+    const clearBtn = whiteboardWidget.querySelector('#whiteboard-clear');
+    
+    if (inkColorInput) {
+      inkColorInput.value = savedInkColor;
+      // Remove old listeners and add new one
+      const newInkInput = inkColorInput.cloneNode(true);
+      inkColorInput.parentNode.replaceChild(newInkInput, inkColorInput);
+      newInkInput.addEventListener('change', (e) => {
+        localStorage.setItem(`whiteboard-ink-color-${fullWidgetId}`, e.target.value);
+      });
+    }
+    
+    if (bgColorInput) {
+      bgColorInput.value = bgColor;
+      // Remove old listeners and add new one
+      const newBgInput = bgColorInput.cloneNode(true);
+      bgColorInput.parentNode.replaceChild(newBgInput, bgColorInput);
+      newBgInput.addEventListener('change', (e) => {
+        const newBgColor = e.target.value;
+        localStorage.setItem(`whiteboard-bg-color-${fullWidgetId}`, newBgColor);
+        // Redraw canvas with new background
+        const currentImage = canvas.toDataURL();
+        state.ctx.fillStyle = newBgColor;
+        state.ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const img = new Image();
+        img.onload = () => {
+          state.ctx.drawImage(img, 0, 0);
+        };
+        img.src = currentImage;
+        saveWhiteboardInstance(fullWidgetId);
+      });
+    }
+    
+    if (brushSizeInput && brushSizeLabel) {
+      brushSizeInput.value = savedBrushSize;
+      brushSizeLabel.textContent = `${savedBrushSize}px`;
+      // Remove old listeners and add new one
+      const newBrushInput = brushSizeInput.cloneNode(true);
+      const newBrushLabel = brushSizeLabel.cloneNode(true);
+      brushSizeInput.parentNode.replaceChild(newBrushInput, brushSizeInput);
+      brushSizeLabel.parentNode.replaceChild(newBrushLabel, brushSizeLabel);
+      newBrushInput.addEventListener('input', (e) => {
+        const size = e.target.value;
+        newBrushLabel.textContent = `${size}px`;
+        localStorage.setItem(`whiteboard-brush-size-${fullWidgetId}`, size);
+      });
+    }
+    
+    // Clear button - remove old listener and add new one
+    if (clearBtn) {
+      const newClearBtn = clearBtn.cloneNode(true);
+      clearBtn.parentNode.replaceChild(newClearBtn, clearBtn);
+      newClearBtn.addEventListener('click', () => {
+        clearWhiteboardInstance(fullWidgetId);
+      });
+    }
+    
+    // Setup drawing event listeners for this specific canvas instance
+    setupWhiteboardDrawingInstance(fullWidgetId);
+  });
 }
 
-// Setup whiteboard drawing
-function setupWhiteboardDrawing() {
-  if (!whiteboardCanvas) return;
+// Setup whiteboard drawing for a specific widget instance
+function setupWhiteboardDrawingInstance(widgetId) {
+  const state = whiteboardStates.get(widgetId);
+  if (!state || !state.canvas) return;
+  
+  const canvas = state.canvas;
   
   // Remove existing listeners
-  whiteboardCanvas.removeEventListener('mousedown', startDrawing);
-  whiteboardCanvas.removeEventListener('mousemove', draw);
-  whiteboardCanvas.removeEventListener('mouseup', stopDrawing);
-  whiteboardCanvas.removeEventListener('mouseout', stopDrawing);
-  whiteboardCanvas.removeEventListener('touchstart', startDrawingTouch);
-  whiteboardCanvas.removeEventListener('touchmove', drawTouch);
-  whiteboardCanvas.removeEventListener('touchend', stopDrawing);
+  canvas.removeEventListener('mousedown', state.startDrawingHandler);
+  canvas.removeEventListener('mousemove', state.drawHandler);
+  canvas.removeEventListener('mouseup', state.stopDrawingHandler);
+  canvas.removeEventListener('mouseout', state.stopDrawingHandler);
+  canvas.removeEventListener('touchstart', state.startDrawingTouchHandler);
+  canvas.removeEventListener('touchmove', state.drawTouchHandler);
+  canvas.removeEventListener('touchend', state.stopDrawingHandler);
+  
+  // Create instance-specific handlers
+  state.startDrawingHandler = (e) => {
+    if (isEditMode) return;
+    state.isDrawing = true;
+    const rect = canvas.getBoundingClientRect();
+    state.lastX = e.clientX - rect.left;
+    state.lastY = e.clientY - rect.top;
+  };
+  
+  state.startDrawingTouchHandler = (e) => {
+    if (isEditMode) return;
+    e.preventDefault();
+    state.isDrawing = true;
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    state.lastX = touch.clientX - rect.left;
+    state.lastY = touch.clientY - rect.top;
+  };
+  
+  state.drawHandler = (e) => {
+    if (!state.isDrawing || isEditMode) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
+    
+    const whiteboardWidget = canvas.closest('.whiteboard-widget');
+    const inkColorInput = whiteboardWidget?.querySelector('#whiteboard-ink-color');
+    const brushSizeInput = whiteboardWidget?.querySelector('#whiteboard-brush-size');
+    const inkColor = inkColorInput?.value || localStorage.getItem(`whiteboard-ink-color-${widgetId}`) || '#000000';
+    const brushSize = parseInt(brushSizeInput?.value || localStorage.getItem(`whiteboard-brush-size-${widgetId}`) || '3');
+    
+    state.ctx.strokeStyle = inkColor;
+    state.ctx.lineWidth = brushSize;
+    state.ctx.lineCap = 'round';
+    state.ctx.lineJoin = 'round';
+    
+    state.ctx.beginPath();
+    state.ctx.moveTo(state.lastX, state.lastY);
+    state.ctx.lineTo(currentX, currentY);
+    state.ctx.stroke();
+    
+    state.lastX = currentX;
+    state.lastY = currentY;
+    
+    // Save drawing immediately after each stroke segment
+    saveWhiteboardInstance(widgetId);
+  };
+  
+  state.drawTouchHandler = (e) => {
+    if (!state.isDrawing || isEditMode) return;
+    e.preventDefault();
+    
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const currentX = touch.clientX - rect.left;
+    const currentY = touch.clientY - rect.top;
+    
+    const whiteboardWidget = canvas.closest('.whiteboard-widget');
+    const inkColorInput = whiteboardWidget?.querySelector('#whiteboard-ink-color');
+    const brushSizeInput = whiteboardWidget?.querySelector('#whiteboard-brush-size');
+    const inkColor = inkColorInput?.value || localStorage.getItem(`whiteboard-ink-color-${widgetId}`) || '#000000';
+    const brushSize = parseInt(brushSizeInput?.value || localStorage.getItem(`whiteboard-brush-size-${widgetId}`) || '3');
+    
+    state.ctx.strokeStyle = inkColor;
+    state.ctx.lineWidth = brushSize;
+    state.ctx.lineCap = 'round';
+    state.ctx.lineJoin = 'round';
+    
+    state.ctx.beginPath();
+    state.ctx.moveTo(state.lastX, state.lastY);
+    state.ctx.lineTo(currentX, currentY);
+    state.ctx.stroke();
+    
+    state.lastX = currentX;
+    state.lastY = currentY;
+    
+    // Save drawing immediately after each stroke segment
+    saveWhiteboardInstance(widgetId);
+  };
+  
+  state.stopDrawingHandler = () => {
+    if (state.isDrawing) {
+      state.isDrawing = false;
+      saveWhiteboardInstance(widgetId);
+    }
+  };
   
   // Only enable drawing in normal mode
   if (!isEditMode) {
-    whiteboardCanvas.addEventListener('mousedown', startDrawing);
-    whiteboardCanvas.addEventListener('mousemove', draw);
-    whiteboardCanvas.addEventListener('mouseup', stopDrawing);
-    whiteboardCanvas.addEventListener('mouseout', stopDrawing);
+    canvas.addEventListener('mousedown', state.startDrawingHandler);
+    canvas.addEventListener('mousemove', state.drawHandler);
+    canvas.addEventListener('mouseup', state.stopDrawingHandler);
+    canvas.addEventListener('mouseout', state.stopDrawingHandler);
     
     // Touch events for mobile
-    whiteboardCanvas.addEventListener('touchstart', startDrawingTouch, { passive: false });
-    whiteboardCanvas.addEventListener('touchmove', drawTouch, { passive: false });
-    whiteboardCanvas.addEventListener('touchend', stopDrawing);
+    canvas.addEventListener('touchstart', state.startDrawingTouchHandler, { passive: false });
+    canvas.addEventListener('touchmove', state.drawTouchHandler, { passive: false });
+    canvas.addEventListener('touchend', state.stopDrawingHandler);
     
-    whiteboardCanvas.style.cursor = 'crosshair';
+    canvas.style.cursor = 'crosshair';
   } else {
-    whiteboardCanvas.style.cursor = 'default';
+    canvas.style.cursor = 'default';
   }
 }
 
-// Start drawing
-function startDrawing(e) {
-  if (isEditMode) return;
-  isDrawing = true;
-  const rect = whiteboardCanvas.getBoundingClientRect();
-  lastX = e.clientX - rect.left;
-  lastY = e.clientY - rect.top;
+// Clear whiteboard for a specific widget instance
+function clearWhiteboardInstance(widgetId) {
+  const state = whiteboardStates.get(widgetId);
+  if (!state || !state.canvas || !state.ctx) return;
+  
+  const whiteboardWidget = state.canvas.closest('.whiteboard-widget');
+  const bgColorInput = whiteboardWidget?.querySelector('#whiteboard-bg-color');
+  const bgColor = bgColorInput?.value || localStorage.getItem(`whiteboard-bg-color-${widgetId}`) || '#ffffff';
+  state.ctx.fillStyle = bgColor;
+  state.ctx.fillRect(0, 0, state.canvas.width, state.canvas.height);
+  
+  localStorage.removeItem(`whiteboard-drawing-${widgetId}`);
+  saveWhiteboardInstance(widgetId);
 }
 
-// Start drawing (touch)
-function startDrawingTouch(e) {
-  if (isEditMode) return;
-  e.preventDefault();
-  isDrawing = true;
-  const touch = e.touches[0];
-  const rect = whiteboardCanvas.getBoundingClientRect();
-  lastX = touch.clientX - rect.left;
-  lastY = touch.clientY - rect.top;
-}
-
-// Draw
-function draw(e) {
-  if (!isDrawing || isEditMode) return;
-  
-  const rect = whiteboardCanvas.getBoundingClientRect();
-  const currentX = e.clientX - rect.left;
-  const currentY = e.clientY - rect.top;
-  
-  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
-  const inkColorInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-ink-color') || document.getElementById('whiteboard-ink-color');
-  const brushSizeInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-brush-size') || document.getElementById('whiteboard-brush-size');
-  const inkColor = inkColorInput?.value || localStorage.getItem(`whiteboard-ink-color-page-${currentPageIndex}`) || '#000000';
-  const brushSize = parseInt(brushSizeInput?.value || localStorage.getItem(`whiteboard-brush-size-page-${currentPageIndex}`) || '3');
-  
-  whiteboardCtx.strokeStyle = inkColor;
-  whiteboardCtx.lineWidth = brushSize;
-  whiteboardCtx.lineCap = 'round';
-  whiteboardCtx.lineJoin = 'round';
-  
-  whiteboardCtx.beginPath();
-  whiteboardCtx.moveTo(lastX, lastY);
-  whiteboardCtx.lineTo(currentX, currentY);
-  whiteboardCtx.stroke();
-  
-  lastX = currentX;
-  lastY = currentY;
-  
-  // Save drawing immediately after each stroke segment
-  saveWhiteboard();
-}
-
-// Draw (touch)
-function drawTouch(e) {
-  if (!isDrawing || isEditMode) return;
-  e.preventDefault();
-  
-  const touch = e.touches[0];
-  const rect = whiteboardCanvas.getBoundingClientRect();
-  const currentX = touch.clientX - rect.left;
-  const currentY = touch.clientY - rect.top;
-  
-  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
-  const inkColorInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-ink-color') || document.getElementById('whiteboard-ink-color');
-  const brushSizeInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-brush-size') || document.getElementById('whiteboard-brush-size');
-  const inkColor = inkColorInput?.value || localStorage.getItem(`whiteboard-ink-color-page-${currentPageIndex}`) || '#000000';
-  const brushSize = parseInt(brushSizeInput?.value || localStorage.getItem(`whiteboard-brush-size-page-${currentPageIndex}`) || '3');
-  
-  whiteboardCtx.strokeStyle = inkColor;
-  whiteboardCtx.lineWidth = brushSize;
-  whiteboardCtx.lineCap = 'round';
-  whiteboardCtx.lineJoin = 'round';
-  
-  whiteboardCtx.beginPath();
-  whiteboardCtx.moveTo(lastX, lastY);
-  whiteboardCtx.lineTo(currentX, currentY);
-  whiteboardCtx.stroke();
-  
-  lastX = currentX;
-  lastY = currentY;
-  
-  // Save drawing immediately after each stroke segment
-  saveWhiteboard();
-}
-
-// Stop drawing
-function stopDrawing() {
-  if (isDrawing) {
-    isDrawing = false;
-    saveWhiteboard();
-  }
-}
-
-// Clear whiteboard
-function clearWhiteboard() {
-  if (!whiteboardCanvas || !whiteboardCtx) return;
-  
-  const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
-  const bgColorInput = whiteboardCanvas.closest('.whiteboard-widget')?.querySelector('#whiteboard-bg-color') || document.getElementById('whiteboard-bg-color');
-  const bgColor = bgColorInput?.value || localStorage.getItem(`whiteboard-bg-color-page-${currentPageIndex}`) || '#ffffff';
-  whiteboardCtx.fillStyle = bgColor;
-  whiteboardCtx.fillRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
-  
-  localStorage.removeItem(`whiteboard-drawing-page-${currentPageIndex}`);
-  saveWhiteboard();
-}
-
-// Save whiteboard to localStorage (page-specific)
-function saveWhiteboard() {
-  if (!whiteboardCanvas) return;
+// Save whiteboard to localStorage for a specific widget instance
+function saveWhiteboardInstance(widgetId) {
+  const state = whiteboardStates.get(widgetId);
+  if (!state || !state.canvas) return;
   
   try {
-    const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined') ? window.currentPageIndex : 0;
-    const dataURL = whiteboardCanvas.toDataURL('image/png');
-    localStorage.setItem(`whiteboard-drawing-page-${currentPageIndex}`, dataURL);
+    const dataURL = state.canvas.toDataURL('image/png');
+    localStorage.setItem(`whiteboard-drawing-${widgetId}`, dataURL);
   } catch (error) {
     console.error('Error saving whiteboard:', error);
   }
@@ -5694,8 +5726,9 @@ function setEditMode(enabled) {
   }
   
   // Update whiteboard drawing state
-  if (typeof setupWhiteboardDrawing === 'function') {
-    setupWhiteboardDrawing();
+  // Reinitialize whiteboard drawing for all instances when toggling edit mode
+  if (typeof initializeWhiteboard === 'function') {
+    initializeWhiteboard();
   }
   
   // Toggle watermark visibility
@@ -6583,6 +6616,39 @@ function copyWidgetConfiguration(sourceFullId, targetFullId, targetPageIndex, so
     const sourceScores = localStorage.getItem(sourceScoresKey);
     if (sourceScores) {
       localStorage.setItem(targetScoresKey, sourceScores);
+    }
+  }
+  
+  // Whiteboard drawing and settings (instance-specific)
+  if (widgetType === 'whiteboard-widget') {
+    // Copy drawing
+    const sourceDrawingKey = `whiteboard-drawing-${sourceFullId}`;
+    const targetDrawingKey = `whiteboard-drawing-${targetFullId}`;
+    const sourceDrawing = localStorage.getItem(sourceDrawingKey);
+    if (sourceDrawing) {
+      localStorage.setItem(targetDrawingKey, sourceDrawing);
+    }
+    
+    // Copy settings
+    const sourceInkColorKey = `whiteboard-ink-color-${sourceFullId}`;
+    const targetInkColorKey = `whiteboard-ink-color-${targetFullId}`;
+    const sourceInkColor = localStorage.getItem(sourceInkColorKey);
+    if (sourceInkColor) {
+      localStorage.setItem(targetInkColorKey, sourceInkColor);
+    }
+    
+    const sourceBgColorKey = `whiteboard-bg-color-${sourceFullId}`;
+    const targetBgColorKey = `whiteboard-bg-color-${targetFullId}`;
+    const sourceBgColor = localStorage.getItem(sourceBgColorKey);
+    if (sourceBgColor) {
+      localStorage.setItem(targetBgColorKey, sourceBgColor);
+    }
+    
+    const sourceBrushSizeKey = `whiteboard-brush-size-${sourceFullId}`;
+    const targetBrushSizeKey = `whiteboard-brush-size-${targetFullId}`;
+    const sourceBrushSize = localStorage.getItem(sourceBrushSizeKey);
+    if (sourceBrushSize) {
+      localStorage.setItem(targetBrushSizeKey, sourceBrushSize);
     }
   }
 }
