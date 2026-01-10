@@ -2374,8 +2374,9 @@ footer a:hover {
 .dashboard.edit-mode .blank-widget .rotate-handle,
 .dashboard.page.edit-mode .stoplight-widget .rotate-handle,
 .dashboard.edit-mode .stoplight-widget .rotate-handle {
-  opacity: 1;
-  pointer-events: auto;
+  display: flex !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 /* Enhanced visibility on hover/rotate */
