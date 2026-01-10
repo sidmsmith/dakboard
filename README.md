@@ -14,6 +14,7 @@ A customizable smart home dashboard designed for fixed displays (tablets/TVs) th
 - **Dice Widget** - Interactive 3D dice with customizable colors and animations
 - **Stopwatch Widget** - Full-featured stopwatch with start/pause/reset and customizable colors
 - **Scoreboard Widget** - Team-based scoring with customizable icons, colors, confetti animations, and drag-and-drop team reordering
+- **Stoplight Widget** - Interactive stoplight with clickable lights (red/amber/green), optional text labels with per-color styling, and state persistence
 - **Blank/Clip Art Widget** - Display emojis or images from Pixabay API with shadow and tint color effects
 - **Auto-refresh** - Updates every 30-60 seconds
 - **Responsive Design** - Optimized for landscape tablets and TVs
@@ -44,6 +45,33 @@ Four different layout options are available for you to choose from:
    - Garage doors and alarm at bottom
 
 ## 📝 Changelog
+
+### Version 2.6
+- **New Widget: Stoplight** 🚦
+  - **Interactive Light Control**: Click any color (red, amber/yellow, green) to illuminate it
+  - **Single Active Light**: Only one light can be on at a time - clicking a different color switches to that color
+  - **Toggle Functionality**: Click an illuminated light again to turn it off
+  - **Read-Only in Preview**: State changes only allowed in normal view, preview mode is read-only
+  - **Text Labels Support**: Optional text labels for each light color with per-color styling
+    - Enable/disable text labels via Advanced tab checkbox
+    - Three separate text inputs (one per color) - empty text hides the label for that line
+    - Text displays on the right side of each light
+    - Individual styling per color: font size, color, and font weight
+  - **Visual Design**:
+    - Vertical layout with realistic stoplight casing
+    - Glow animations for active lights (red, amber, green)
+    - Smooth transitions and hover effects
+    - Responsive sizing with proper alignment
+  - **Full Integration**:
+    - State persistence (active light saved per instance)
+    - Rotation support (same as Blank widget) with rotate handle in Edit Mode
+    - Cloning functionality with state copying
+    - Styling modal preview with read-only display
+    - Works seamlessly with existing widget management system
+  - **Advanced Styling Options**:
+    - Per-color text label customization (font size, color, weight)
+    - Conditional text display (only shows labels when text is present)
+    - Automatic layout adjustment (centers when no labels, left-aligns with labels)
 
 ### Version 2.5
 - **Widget Cloning Improvements**:

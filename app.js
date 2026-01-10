@@ -7838,7 +7838,7 @@ function exportConfiguration() {
     const currentPage = parseInt(localStorage.getItem('dakboard-current-page')) || 0;
     
     const config = {
-      version: '2.5', // Updated: Comprehensive widget cloning improvements - Fixed persistence issues, immediate drag/resize initialization, proper source widget offset positioning, rotation copying, visibility defaults, and resolved syntax/reference errors.
+      version: '2.6', // Updated: Added Stoplight widget with interactive light controls, text labels with per-color styling, rotation support, and full cloning/editing capabilities.
       exportDate: new Date().toISOString(),
       metadata: {
         totalPages: totalPages,
