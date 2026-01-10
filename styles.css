@@ -247,6 +247,69 @@ body {
   opacity: 1;
 }
 
+/* Font selector styling - show fonts in dropdown */
+.blank-font-select {
+  font-family: Arial, sans-serif;
+}
+
+.blank-font-select option {
+  padding: 8px;
+  font-size: 16px;
+}
+
+/* Style each option with its font (limited browser support but helps where supported) */
+.blank-font-select option[value="Comic Sans MS"] {
+  font-family: 'Comic Sans MS', cursive;
+}
+
+.blank-font-select option[value="Bangers"] {
+  font-family: 'Bangers', cursive;
+}
+
+.blank-font-select option[value="Fredoka One"] {
+  font-family: 'Fredoka One', cursive;
+}
+
+.blank-font-select option[value="Nunito"] {
+  font-family: 'Nunito', sans-serif;
+}
+
+.blank-font-select option[value="Quicksand"] {
+  font-family: 'Quicksand', sans-serif;
+}
+
+.blank-font-select option[value="Indie Flower"] {
+  font-family: 'Indie Flower', cursive;
+}
+
+.blank-font-select option[value="Permanent Marker"] {
+  font-family: 'Permanent Marker', cursive;
+}
+
+.blank-font-select option[value="Chewy"] {
+  font-family: 'Chewy', cursive;
+}
+
+.blank-font-select option[value="Lobster"] {
+  font-family: 'Lobster', cursive;
+}
+
+.blank-font-select option[value="Pacifico"] {
+  font-family: 'Pacifico', cursive;
+}
+
+.blank-font-select option[value="Bubblegum Sans"] {
+  font-family: 'Bubblegum Sans', cursive;
+}
+
+.blank-font-select option[value="Poppins"] {
+  font-family: 'Poppins', sans-serif;
+}
+
+.blank-font-select option[value="Righteous"] {
+  font-family: 'Righteous', cursive;
+}
+
 /* Ensure textarea fills container in blank widget */
 .blank-widget .clipart-content {
   align-items: flex-start;

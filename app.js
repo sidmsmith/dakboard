@@ -3588,12 +3588,11 @@ function loadClipArt() {
     
     // Text mode variables
     let textContent = '';
-    let textFontFamily = 'Arial';
+    let textFontFamily = 'Comic Sans MS';
     let textFontSize = 16;
     let textFontWeight = 'normal';
     let textColor = '#ffffff';
     let textAlignment = 'left';
-    let textBold = false;
     let textItalic = false;
     let textUnderline = false;
     
@@ -3613,12 +3612,11 @@ function loadClipArt() {
         
         // Load text mode settings
         textContent = styles.blankTextContent || '';
-        textFontFamily = styles.blankTextFontFamily || 'Arial';
+        textFontFamily = styles.blankTextFontFamily || 'Comic Sans MS';
         textFontSize = styles.blankTextFontSize || 16;
         textFontWeight = styles.blankTextFontWeight || 'normal';
         textColor = styles.blankTextColor || '#ffffff';
         textAlignment = styles.blankTextAlignment || 'left';
-        textBold = styles.blankTextBold || false;
         textItalic = styles.blankTextItalic || false;
         textUnderline = styles.blankTextUnderline || false;
       } catch (e) {
@@ -3674,11 +3672,31 @@ function loadClipArt() {
     
     // Display based on mode
     if (displayMode === 'text') {
+      // Map font family to Google Fonts if needed
+      const fontFamilyMap = {
+        'Comic Sans MS': 'Comic Sans MS, cursive',
+        'Bangers': 'Bangers, cursive',
+        'Fredoka One': 'Fredoka One, cursive',
+        'Nunito': 'Nunito, sans-serif',
+        'Quicksand': 'Quicksand, sans-serif',
+        'Indie Flower': 'Indie Flower, cursive',
+        'Permanent Marker': 'Permanent Marker, cursive',
+        'Chewy': 'Chewy, cursive',
+        'Lobster': 'Lobster, cursive',
+        'Pacifico': 'Pacifico, cursive',
+        'Bubblegum Sans': 'Bubblegum Sans, cursive',
+        'Poppins': 'Poppins, sans-serif',
+        'Righteous': 'Righteous, cursive',
+        'Arial': 'Arial, sans-serif',
+        'Impact': 'Impact, sans-serif'
+      };
+      const mappedFontFamily = fontFamilyMap[textFontFamily] || textFontFamily;
+      
       // Text mode - create editable text area
       const textStyle = [
-        `font-family: ${textFontFamily}`,
+        `font-family: ${mappedFontFamily}`,
         `font-size: ${textFontSize}px`,
-        `font-weight: ${textBold ? 'bold' : textFontWeight}`,
+        `font-weight: ${textFontWeight}`,
         `color: ${textColor}`,
         `text-align: ${textAlignment}`,
         textItalic ? 'font-style: italic' : '',

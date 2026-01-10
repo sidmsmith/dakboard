@@ -953,15 +953,22 @@ function generateAdvancedTab() {
         <div class="styling-form-row">
           <label class="styling-form-label">Font Family</label>
           <div class="styling-form-control">
-            <select id="blank-text-font-family" class="styling-select" style="width: 100%;">
-              <option value="Arial" ${(!currentStyles.blankTextFontFamily || currentStyles.blankTextFontFamily === 'Arial') ? 'selected' : ''}>Arial</option>
-              <option value="Times New Roman" ${currentStyles.blankTextFontFamily === 'Times New Roman' ? 'selected' : ''}>Times New Roman</option>
-              <option value="Courier New" ${currentStyles.blankTextFontFamily === 'Courier New' ? 'selected' : ''}>Courier New</option>
-              <option value="Georgia" ${currentStyles.blankTextFontFamily === 'Georgia' ? 'selected' : ''}>Georgia</option>
-              <option value="Verdana" ${currentStyles.blankTextFontFamily === 'Verdana' ? 'selected' : ''}>Verdana</option>
-              <option value="Helvetica" ${currentStyles.blankTextFontFamily === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-              <option value="Comic Sans MS" ${currentStyles.blankTextFontFamily === 'Comic Sans MS' ? 'selected' : ''}>Comic Sans MS</option>
-              <option value="Impact" ${currentStyles.blankTextFontFamily === 'Impact' ? 'selected' : ''}>Impact</option>
+            <select id="blank-text-font-family" class="styling-select blank-font-select" style="width: 100%;">
+              <option value="Comic Sans MS" data-font="Comic Sans MS, cursive" ${(!currentStyles.blankTextFontFamily || currentStyles.blankTextFontFamily === 'Comic Sans MS') ? 'selected' : ''} style="font-family: Comic Sans MS, cursive;">Comic Sans MS</option>
+              <option value="Bangers" data-font="Bangers, cursive" ${currentStyles.blankTextFontFamily === 'Bangers' ? 'selected' : ''} style="font-family: Bangers, cursive;">Bangers</option>
+              <option value="Fredoka One" data-font="Fredoka One, cursive" ${currentStyles.blankTextFontFamily === 'Fredoka One' ? 'selected' : ''} style="font-family: Fredoka One, cursive;">Fredoka One</option>
+              <option value="Nunito" data-font="Nunito, sans-serif" ${currentStyles.blankTextFontFamily === 'Nunito' ? 'selected' : ''} style="font-family: Nunito, sans-serif;">Nunito</option>
+              <option value="Quicksand" data-font="Quicksand, sans-serif" ${currentStyles.blankTextFontFamily === 'Quicksand' ? 'selected' : ''} style="font-family: Quicksand, sans-serif;">Quicksand</option>
+              <option value="Indie Flower" data-font="Indie Flower, cursive" ${currentStyles.blankTextFontFamily === 'Indie Flower' ? 'selected' : ''} style="font-family: Indie Flower, cursive;">Indie Flower</option>
+              <option value="Permanent Marker" data-font="Permanent Marker, cursive" ${currentStyles.blankTextFontFamily === 'Permanent Marker' ? 'selected' : ''} style="font-family: Permanent Marker, cursive;">Permanent Marker</option>
+              <option value="Chewy" data-font="Chewy, cursive" ${currentStyles.blankTextFontFamily === 'Chewy' ? 'selected' : ''} style="font-family: Chewy, cursive;">Chewy</option>
+              <option value="Lobster" data-font="Lobster, cursive" ${currentStyles.blankTextFontFamily === 'Lobster' ? 'selected' : ''} style="font-family: Lobster, cursive;">Lobster</option>
+              <option value="Pacifico" data-font="Pacifico, cursive" ${currentStyles.blankTextFontFamily === 'Pacifico' ? 'selected' : ''} style="font-family: Pacifico, cursive;">Pacifico</option>
+              <option value="Bubblegum Sans" data-font="Bubblegum Sans, cursive" ${currentStyles.blankTextFontFamily === 'Bubblegum Sans' ? 'selected' : ''} style="font-family: Bubblegum Sans, cursive;">Bubblegum Sans</option>
+              <option value="Poppins" data-font="Poppins, sans-serif" ${currentStyles.blankTextFontFamily === 'Poppins' ? 'selected' : ''} style="font-family: Poppins, sans-serif;">Poppins</option>
+              <option value="Righteous" data-font="Righteous, cursive" ${currentStyles.blankTextFontFamily === 'Righteous' ? 'selected' : ''} style="font-family: Righteous, cursive;">Righteous</option>
+              <option value="Arial" data-font="Arial, sans-serif" ${currentStyles.blankTextFontFamily === 'Arial' ? 'selected' : ''} style="font-family: Arial, sans-serif;">Arial</option>
+              <option value="Impact" data-font="Impact, sans-serif" ${currentStyles.blankTextFontFamily === 'Impact' ? 'selected' : ''} style="font-family: Impact, sans-serif;">Impact</option>
             </select>
           </div>
         </div>
@@ -1007,9 +1014,6 @@ function generateAdvancedTab() {
           <label class="styling-form-label">Rich Text Formatting</label>
           <div class="styling-form-control">
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <label class="styling-apply-all-checkbox" style="margin: 0;">
-                <input type="checkbox" id="blank-text-bold" ${currentStyles.blankTextBold ? 'checked' : ''}> <strong>Bold</strong>
-              </label>
               <label class="styling-apply-all-checkbox" style="margin: 0;">
                 <input type="checkbox" id="blank-text-italic" ${currentStyles.blankTextItalic ? 'checked' : ''}> <em>Italic</em>
               </label>
@@ -1964,8 +1968,19 @@ function attachTabEventListeners(tabName) {
         // Font family
         const blankTextFontFamily = stylingModal.querySelector('#blank-text-font-family');
         if (blankTextFontFamily) {
+          // Update select element to use selected font for preview
+          const updateFontPreview = () => {
+            const selectedOption = blankTextFontFamily.options[blankTextFontFamily.selectedIndex];
+            const fontFamily = selectedOption.dataset.font || selectedOption.value;
+            blankTextFontFamily.style.fontFamily = fontFamily;
+          };
+          
+          // Set initial font
+          updateFontPreview();
+          
           blankTextFontFamily.addEventListener('change', (e) => {
             currentStyles.blankTextFontFamily = e.target.value;
+            updateFontPreview();
             updatePreview();
           });
         }
@@ -2038,14 +2053,6 @@ function attachTabEventListeners(tabName) {
         });
         
         // Rich text formatting checkboxes
-        const blankTextBold = stylingModal.querySelector('#blank-text-bold');
-        if (blankTextBold) {
-          blankTextBold.addEventListener('change', (e) => {
-            currentStyles.blankTextBold = e.target.checked;
-            updatePreview();
-          });
-        }
-        
         const blankTextItalic = stylingModal.querySelector('#blank-text-italic');
         if (blankTextItalic) {
           blankTextItalic.addEventListener('change', (e) => {
@@ -3007,23 +3014,41 @@ function updatePreview() {
     if (displayMode === 'text') {
       // Render text preview
       const textContent = currentStyles.blankTextContent || '';
-      const fontFamily = currentStyles.blankTextFontFamily || 'Arial';
+      const fontFamily = currentStyles.blankTextFontFamily || 'Comic Sans MS';
       const fontSize = currentStyles.blankTextFontSize || 16;
       const fontWeight = currentStyles.blankTextFontWeight || 'normal';
       const textColor = currentStyles.blankTextColor || '#ffffff';
       const textAlign = currentStyles.blankTextAlignment || 'left';
-      const isBold = currentStyles.blankTextBold || false;
       const isItalic = currentStyles.blankTextItalic || false;
       const isUnderline = currentStyles.blankTextUnderline || false;
       
+      // Map font family to Google Fonts if needed
+      const fontFamilyMap = {
+        'Comic Sans MS': 'Comic Sans MS, cursive',
+        'Bangers': 'Bangers, cursive',
+        'Fredoka One': 'Fredoka One, cursive',
+        'Nunito': 'Nunito, sans-serif',
+        'Quicksand': 'Quicksand, sans-serif',
+        'Indie Flower': 'Indie Flower, cursive',
+        'Permanent Marker': 'Permanent Marker, cursive',
+        'Chewy': 'Chewy, cursive',
+        'Lobster': 'Lobster, cursive',
+        'Pacifico': 'Pacifico, cursive',
+        'Bubblegum Sans': 'Bubblegum Sans, cursive',
+        'Poppins': 'Poppins, sans-serif',
+        'Righteous': 'Righteous, cursive',
+        'Arial': 'Arial, sans-serif',
+        'Impact': 'Impact, sans-serif'
+      };
+      const mappedFontFamily = fontFamilyMap[fontFamily] || fontFamily;
+      
       // Build style string
       const textStyle = [
-        `font-family: ${fontFamily}`,
+        `font-family: ${mappedFontFamily}`,
         `font-size: ${fontSize}px`,
         `font-weight: ${fontWeight}`,
         `color: ${textColor}`,
         `text-align: ${textAlign}`,
-        isBold ? 'font-weight: bold' : '',
         isItalic ? 'font-style: italic' : '',
         isUnderline ? 'text-decoration: underline' : '',
         'white-space: pre-wrap',
@@ -3497,6 +3522,11 @@ function updateCurrentStylesFromForm() {
     currentStyles.blankTextUnderline = blankTextUnderline.checked;
   }
   
+  // Remove blankTextBold if it exists (legacy)
+  if (currentStyles.blankTextBold !== undefined) {
+    delete currentStyles.blankTextBold;
+  }
+  
 }
 
 // Apply current styles to a single widget
@@ -3915,15 +3945,14 @@ function applyCurrentStylesToWidget(widget) {
         const fontWeight = currentStyles.blankTextFontWeight || 'normal';
         const textColor = currentStyles.blankTextColor || '#ffffff';
         const textAlign = currentStyles.blankTextAlignment || 'left';
-        const isBold = currentStyles.blankTextBold || false;
-        const isItalic = currentStyles.blankTextItalic || false;
-        const isUnderline = currentStyles.blankTextUnderline || false;
-        
-        // Build style string
-        const textStyle = [
-          `font-family: ${fontFamily}`,
-          `font-size: ${fontSize}px`,
-          `font-weight: ${isBold ? 'bold' : fontWeight}`,
+      const isItalic = currentStyles.blankTextItalic || false;
+      const isUnderline = currentStyles.blankTextUnderline || false;
+      
+      // Build style string
+      const textStyle = [
+        `font-family: ${fontFamily}`,
+        `font-size: ${fontSize}px`,
+        `font-weight: ${fontWeight}`,
           `color: ${textColor}`,
           `text-align: ${textAlign}`,
           isItalic ? 'font-style: italic' : '',
@@ -4048,12 +4077,11 @@ function applyCurrentStylesToWidget(widget) {
         if (displayMode === 'text') {
           // Save all text-related styles
           styles.blankTextContent = currentStyles.blankTextContent || '';
-          styles.blankTextFontFamily = currentStyles.blankTextFontFamily || 'Arial';
+          styles.blankTextFontFamily = currentStyles.blankTextFontFamily || 'Comic Sans MS';
           styles.blankTextFontSize = currentStyles.blankTextFontSize || 16;
           styles.blankTextFontWeight = currentStyles.blankTextFontWeight || 'normal';
           styles.blankTextColor = currentStyles.blankTextColor || '#ffffff';
           styles.blankTextAlignment = currentStyles.blankTextAlignment || 'left';
-          styles.blankTextBold = currentStyles.blankTextBold || false;
           styles.blankTextItalic = currentStyles.blankTextItalic || false;
           styles.blankTextUnderline = currentStyles.blankTextUnderline || false;
         }
@@ -4352,6 +4380,11 @@ function loadWidgetStyles(fullWidgetId) {
       } else {
         currentStyles.blankDisplayMode = 'blank';
       }
+    }
+    
+    // Set default font for text mode
+    if (!currentStyles.blankTextFontFamily) {
+      currentStyles.blankTextFontFamily = 'Comic Sans MS';
     }
     
     if (!currentStyles.clipArtEmoji) {
