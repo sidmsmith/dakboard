@@ -3784,9 +3784,32 @@ function updateStoplightDisplay(widget, activeLight) {
 
 // Update stoplight text labels
 function updateStoplightLabels(widget, redText, amberText, greenText, redTextStyle, amberTextStyle, greenTextStyle) {
+  const container = widget.querySelector('.stoplight-container');
+  const labelsContainer = widget.querySelector('.stoplight-labels');
   const redLabel = widget.querySelector('.red-label');
   const amberLabel = widget.querySelector('.amber-label');
   const greenLabel = widget.querySelector('.green-label');
+  
+  // Check if any labels have text
+  const hasLabels = (redText && redText.trim()) || (amberText && amberText.trim()) || (greenText && greenText.trim());
+  
+  // Update container class for centering
+  if (container) {
+    if (hasLabels) {
+      container.classList.add('has-labels');
+    } else {
+      container.classList.remove('has-labels');
+    }
+  }
+  
+  // Show/hide labels container
+  if (labelsContainer) {
+    if (hasLabels) {
+      labelsContainer.style.display = 'flex';
+    } else {
+      labelsContainer.style.display = 'none';
+    }
+  }
   
   if (redLabel) {
     redLabel.textContent = redText || '';
