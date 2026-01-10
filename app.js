@@ -6213,18 +6213,25 @@ function cloneWidget(fullWidgetId) {
   if (!pageElement) return;
   
   // Find the source widget (the one being cloned) using the fullWidgetId
-  // This ensures we clone from the correct widget, not always instance-0
-  // Try multiple querySelector patterns to find the widget
-  let sourceWidget = pageElement.querySelector(`.${fullWidgetId}`);
-  if (!sourceWidget) {
-    // Try finding by class list (widget might have multiple classes)
-    const allWidgets = pageElement.querySelectorAll(`.${widgetType}`);
-    sourceWidget = Array.from(allWidgets).find(w => w.classList.contains(fullWidgetId));
-  }
-  if (!sourceWidget) {
-    // Fallback: if the specific widget isn't found, try to find any widget of this type
-    sourceWidget = pageElement.querySelector(`.${widgetType}`);
+  // Use getWidgetInstances to reliably find the widget by its fullId
+  let sourceWidget = null;
+  const instances = getWidgetInstances(widgetType, pageIndex);
+  const matchingInstance = instances.find(inst => inst.fullId === fullWidgetId);
+  
+  if (matchingInstance && matchingInstance.element) {
+    sourceWidget = matchingInstance.element;
+  } else {
+    // Fallback: Try direct class selector
+    sourceWidget = pageElement.querySelector(`.${fullWidgetId}`);
     if (!sourceWidget) {
+      // Last resort: Find by widget type and check class list
+      const allWidgets = pageElement.querySelectorAll(`.${widgetType}`);
+      sourceWidget = Array.from(allWidgets).find(w => w.classList.contains(fullWidgetId));
+    }
+  }
+  
+  if (!sourceWidget) {
+    console.error(`Could not find source widget with ID: ${fullWidgetId}`);
     // If original doesn't exist, create it first
     const templateWidget = document.querySelector(`.${widgetType}`);
     if (!templateWidget) {
@@ -6375,13 +6382,24 @@ function cloneWidget(fullWidgetId) {
       }
     }, 150);
     
-    return;
-    } // Close the nested if (!sourceWidget) block on line 5684
-  } // Close the outer if (!sourceWidget) block on line 5681
+    return; // Exit early after creating original and cloning it
+  }
   
   // Clone the widget element (this path executes when sourceWidget was found)
   const cloned = sourceWidget.cloneNode(true);
-  cloned.className = `widget ${widgetType} ${newFullId}`;
+  
+  // Update the cloned widget's classes: remove old instance ID, add new one
+  // Preserve all other classes (widget, widgetType, etc.)
+  cloned.classList.remove(fullWidgetId);
+  cloned.classList.add(newFullId);
+  
+  // Ensure widget and widgetType classes are present (they should be from clone, but verify)
+  if (!cloned.classList.contains('widget')) {
+    cloned.classList.add('widget');
+  }
+  if (!cloned.classList.contains(widgetType)) {
+    cloned.classList.add(widgetType);
+  }
   
   // Clear drag listener flag - cloned widgets need drag listeners re-attached
   // This prevents the cloned widget from being skipped during drag initialization
@@ -6435,9 +6453,9 @@ function cloneWidget(fullWidgetId) {
     }
   }
   
-  // Default to 0 if still not found
-  sourceLeft = sourceLeft || 0;
-  sourceTop = sourceTop || 0;
+  // Default to 0 only if still NaN (0 is a valid position, so don't override it)
+  if (isNaN(sourceLeft)) sourceLeft = 0;
+  if (isNaN(sourceTop)) sourceTop = 0;
   
   const sourceWidth = parseFloat(sourceWidget.style.width) || sourceWidget.offsetWidth || 300;
   const sourceHeight = parseFloat(sourceWidget.style.height) || sourceWidget.offsetHeight || 200;
