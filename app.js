@@ -6362,6 +6362,19 @@ function cloneWidget(fullWidgetId) {
   // This prevents the cloned widget from being skipped during drag initialization
   delete cloned.dataset.dragListenerAdded;
   
+  // For whiteboard widgets, remove any temporary header state from the clone
+  if (widgetType === 'whiteboard-widget') {
+    const clonedHeader = cloned.querySelector('.widget-header');
+    if (clonedHeader) {
+      clonedHeader.classList.remove('whiteboard-header-temporary');
+      clonedHeader.style.display = ''; // Reset display to default
+      // Ensure no inline position styles that might interfere
+      if (cloned.style.position === 'relative') {
+        cloned.style.position = '';
+      }
+    }
+  }
+  
   // Always make cloned widgets visible by default (eye icon selected)
   cloned.classList.remove('hidden');
   
