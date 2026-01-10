@@ -4863,10 +4863,28 @@ function initializeWhiteboard() {
     // Load saved settings (instance-specific, fallback to page-specific)
     const savedInkColor = localStorage.getItem(`whiteboard-ink-color-${fullWidgetId}`) || localStorage.getItem(`whiteboard-ink-color-page-${currentPageIndex}`) || '#000000';
     const savedBrushSize = localStorage.getItem(`whiteboard-brush-size-${fullWidgetId}`) || localStorage.getItem(`whiteboard-brush-size-page-${currentPageIndex}`) || '3';
-    const bgColor = localStorage.getItem(`whiteboard-bg-color-${fullWidgetId}`) || localStorage.getItem(`whiteboard-bg-color-page-${currentPageIndex}`) || '#ffffff';
+    let bgColor = localStorage.getItem(`whiteboard-bg-color-${fullWidgetId}`) || localStorage.getItem(`whiteboard-bg-color-page-${currentPageIndex}`) || '#ffffff';
+    
+    // Check if title should be hidden (from saved styles)
+    const stylesKey = `dakboard-widget-styles-${fullWidgetId}`;
+    const checkTitleShouldBeHidden = () => {
+      const savedStylesStr = localStorage.getItem(stylesKey);
+      if (savedStylesStr) {
+        try {
+          const savedStyles = JSON.parse(savedStylesStr);
+          return savedStyles.titleVisible === false;
+        } catch (e) {
+          return false;
+        }
+      }
+      return false;
+    };
     
     // Helper function to show header temporarily if hidden (accessible to controls and drawing handlers)
     const showHeaderTemporarily = () => {
+      // Only show temporary header if title should be hidden
+      if (!checkTitleShouldBeHidden()) return;
+      
       const widgetHeader = whiteboardWidget.querySelector('.widget-header');
       if (!widgetHeader) return;
       
@@ -4888,8 +4906,11 @@ function initializeWhiteboard() {
         
         // Set timer to hide after 5 seconds
         state.autoHideTimer = setTimeout(() => {
-          widgetHeader.style.display = 'none';
-          widgetHeader.classList.remove('whiteboard-header-temporary');
+          // Double-check title should still be hidden before hiding
+          if (checkTitleShouldBeHidden() && widgetHeader.classList.contains('whiteboard-header-temporary')) {
+            widgetHeader.style.display = 'none';
+            widgetHeader.classList.remove('whiteboard-header-temporary');
+          }
           state.autoHideTimer = null;
         }, 5000);
       }
@@ -4897,24 +4918,41 @@ function initializeWhiteboard() {
     
     // Helper function to reset auto-hide timer (when controls are used)
     const resetAutoHideTimer = () => {
+      // Only manage timer if title should be hidden
+      if (!checkTitleShouldBeHidden()) return;
+      
+      const widgetHeader = whiteboardWidget.querySelector('.widget-header');
+      if (!widgetHeader) return;
+      
+      // Clear any existing timer first
       if (state.autoHideTimer) {
         clearTimeout(state.autoHideTimer);
         state.autoHideTimer = null;
       }
-      // Show header if hidden
-      const widgetHeader = whiteboardWidget.querySelector('.widget-header');
-      if (widgetHeader) {
-        const computedStyle = window.getComputedStyle(widgetHeader);
-        if (computedStyle.display === 'none') {
-          widgetHeader.style.display = '';
-          widgetHeader.classList.add('whiteboard-header-temporary');
-          // Set new timer
-          state.autoHideTimer = setTimeout(() => {
+      
+      const computedStyle = window.getComputedStyle(widgetHeader);
+      const isCurrentlyHidden = computedStyle.display === 'none';
+      
+      // If header is hidden, show it temporarily
+      if (isCurrentlyHidden) {
+        widgetHeader.style.display = '';
+        widgetHeader.classList.add('whiteboard-header-temporary');
+      } else if (!widgetHeader.classList.contains('whiteboard-header-temporary')) {
+        // Header is permanently visible (titleVisible is true), don't set timer
+        return;
+      }
+      // If header already has temporary class, we'll reset the timer below
+      
+      // Always set timer if header has temporary class (it should eventually hide)
+      if (widgetHeader.classList.contains('whiteboard-header-temporary')) {
+        state.autoHideTimer = setTimeout(() => {
+          // Verify title should still be hidden and header is still temporary before hiding
+          if (checkTitleShouldBeHidden() && widgetHeader.classList.contains('whiteboard-header-temporary')) {
             widgetHeader.style.display = 'none';
             widgetHeader.classList.remove('whiteboard-header-temporary');
-            state.autoHideTimer = null;
-          }, 5000);
-        }
+          }
+          state.autoHideTimer = null;
+        }, 5000);
       }
     };
     
@@ -4944,18 +4982,60 @@ function initializeWhiteboard() {
       // Remove old listeners and add new one
       const newBgInput = bgColorInput.cloneNode(true);
       bgColorInput.parentNode.replaceChild(newBgInput, bgColorInput);
+      
+      // Helper function to replace background color in canvas
+      const replaceBackgroundColor = (oldBgColor, newBgColor) => {
+        const imageData = state.ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        const oldBgR = parseInt(oldBgColor.slice(1, 3), 16);
+        const oldBgG = parseInt(oldBgColor.slice(3, 5), 16);
+        const oldBgB = parseInt(oldBgColor.slice(5, 7), 16);
+        const newBgR = parseInt(newBgColor.slice(1, 3), 16);
+        const newBgG = parseInt(newBgColor.slice(3, 5), 16);
+        const newBgB = parseInt(newBgColor.slice(5, 7), 16);
+        
+        // Replace background pixels (with tolerance for anti-aliasing and slight variations)
+        const tolerance = 20; // Allow slight color differences due to anti-aliasing
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const a = data[i + 3]; // Alpha channel
+          
+          // Only process visible pixels (alpha > 0)
+          if (a > 0) {
+            // Check if pixel matches old background (within tolerance)
+            if (Math.abs(r - oldBgR) <= tolerance &&
+                Math.abs(g - oldBgG) <= tolerance &&
+                Math.abs(b - oldBgB) <= tolerance) {
+              // Replace with new background color
+              data[i] = newBgR;
+              data[i + 1] = newBgG;
+              data[i + 2] = newBgB;
+              // Keep alpha as is
+            }
+          }
+        }
+        
+        // Put modified image data back
+        state.ctx.putImageData(imageData, 0, 0);
+      };
+      
       newBgInput.addEventListener('change', (e) => {
         const newBgColor = e.target.value;
+        
+        // Get the saved background color (the one we should replace)
+        const savedBgColor = localStorage.getItem(`whiteboard-bg-color-${fullWidgetId}`) || bgColor;
+        
+        // Replace background color while preserving drawing
+        // Always compare against the saved background color to avoid cascading issues
+        if (savedBgColor !== newBgColor) {
+          replaceBackgroundColor(savedBgColor, newBgColor);
+        }
+        
+        // Update stored background color
         localStorage.setItem(`whiteboard-bg-color-${fullWidgetId}`, newBgColor);
-        // Redraw canvas with new background
-        const currentImage = canvas.toDataURL();
-        state.ctx.fillStyle = newBgColor;
-        state.ctx.fillRect(0, 0, canvas.width, canvas.height);
-        const img = new Image();
-        img.onload = () => {
-          state.ctx.drawImage(img, 0, 0);
-        };
-        img.src = currentImage;
+        
         saveWhiteboardInstance(fullWidgetId);
         resetAutoHideTimer(); // Reset timer when control is used
       });
