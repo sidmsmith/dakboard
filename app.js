@@ -5675,9 +5675,13 @@ function cloneWidget(fullWidgetId) {
   const pageElement = getPageElement(pageIndex);
   if (!pageElement) return;
   
-  // Find the original widget
-  const originalWidget = pageElement.querySelector(`.${widgetType}`);
-  if (!originalWidget) {
+  // Find the source widget (the one being cloned) using the fullWidgetId
+  // This ensures we clone from the correct widget, not always instance-0
+  let sourceWidget = pageElement.querySelector(`.${fullWidgetId}`);
+  if (!sourceWidget) {
+    // Fallback: if the specific widget isn't found, try to find any widget of this type
+    sourceWidget = pageElement.querySelector(`.${widgetType}`);
+    if (!sourceWidget) {
     // If original doesn't exist, create it first
     const templateWidget = document.querySelector(`.${widgetType}`);
     if (!templateWidget) {
@@ -5813,7 +5817,7 @@ function cloneWidget(fullWidgetId) {
   }
   
   // Clone the widget element
-  const cloned = originalWidget.cloneNode(true);
+  const cloned = sourceWidget.cloneNode(true);
   cloned.className = `widget ${widgetType} ${newFullId}`;
   
   // Clear drag listener flag - cloned widgets need drag listeners re-attached
@@ -5825,19 +5829,19 @@ function cloneWidget(fullWidgetId) {
   
   // Get source widget position and rotation
   // Use style values for accurate position (not affected by rotation)
-  const sourceLeft = parseFloat(originalWidget.style.left) || 0;
-  const sourceTop = parseFloat(originalWidget.style.top) || 0;
-  const sourceWidth = parseFloat(originalWidget.style.width) || originalWidget.offsetWidth || 300;
-  const sourceHeight = parseFloat(originalWidget.style.height) || originalWidget.offsetHeight || 200;
+  const sourceLeft = parseFloat(sourceWidget.style.left) || 0;
+  const sourceTop = parseFloat(sourceWidget.style.top) || 0;
+  const sourceWidth = parseFloat(sourceWidget.style.width) || sourceWidget.offsetWidth || 300;
+  const sourceHeight = parseFloat(sourceWidget.style.height) || sourceWidget.offsetHeight || 200;
   
   // Get rotation from source widget (from data-rotation attribute or parse from transform)
   let sourceRotation = 0;
-  const rotationAttr = originalWidget.getAttribute('data-rotation');
+  const rotationAttr = sourceWidget.getAttribute('data-rotation');
   if (rotationAttr) {
     sourceRotation = parseFloat(rotationAttr) || 0;
   } else {
     // Try to parse from transform style
-    const transform = originalWidget.style.transform || window.getComputedStyle(originalWidget).transform;
+    const transform = sourceWidget.style.transform || window.getComputedStyle(sourceWidget).transform;
     if (transform && transform.includes('rotate')) {
       const match = transform.match(/rotate\(([^)]+)\)/);
       if (match) {
