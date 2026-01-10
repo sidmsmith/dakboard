@@ -6111,6 +6111,8 @@ function updateWidgetControlPanel() {
     cloneBtn.title = 'Clone widget';
     cloneBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      e.preventDefault();
+      console.log('Clone button clicked for widget:', instance.fullId);
       cloneWidget(instance.fullId);
     });
     
@@ -6213,25 +6215,31 @@ function cloneWidget(fullWidgetId) {
   if (!pageElement) return;
   
   // Find the source widget (the one being cloned) using the fullWidgetId
-  // Use getWidgetInstances to reliably find the widget by its fullId
+  // Use getWidgetInstances to reliably find the widget by its fullId - this is the correct way
   let sourceWidget = null;
   const instances = getWidgetInstances(widgetType, pageIndex);
   const matchingInstance = instances.find(inst => inst.fullId === fullWidgetId);
   
   if (matchingInstance && matchingInstance.element) {
     sourceWidget = matchingInstance.element;
+    console.log(`Found source widget using getWidgetInstances: ${fullWidgetId}`);
   } else {
     // Fallback: Try direct class selector
     sourceWidget = pageElement.querySelector(`.${fullWidgetId}`);
-    if (!sourceWidget) {
+    if (sourceWidget) {
+      console.log(`Found source widget using direct selector: ${fullWidgetId}`);
+    } else {
       // Last resort: Find by widget type and check class list
       const allWidgets = pageElement.querySelectorAll(`.${widgetType}`);
       sourceWidget = Array.from(allWidgets).find(w => w.classList.contains(fullWidgetId));
+      if (sourceWidget) {
+        console.log(`Found source widget by checking class list: ${fullWidgetId}`);
+      }
     }
   }
   
   if (!sourceWidget) {
-    console.error(`Could not find source widget with ID: ${fullWidgetId}`);
+    console.error(`Could not find source widget with ID: ${fullWidgetId}. Available instances:`, instances.map(i => i.fullId));
     // If original doesn't exist, create it first
     const templateWidget = document.querySelector(`.${widgetType}`);
     if (!templateWidget) {
