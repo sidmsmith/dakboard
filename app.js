@@ -5720,6 +5720,20 @@ function cloneWidget(fullWidgetId) {
     // Save visibility state immediately so widget persists after refresh
     saveWidgetVisibility();
     
+    // Initialize drag/resize for the cloned widget immediately
+    // This ensures the widget can be moved and resized right away
+    if (typeof initializeWidgetDragAndResize === 'function') {
+      // Use a small delay to ensure the widget is fully in the DOM
+      setTimeout(() => {
+        initializeWidgetDragAndResize(cloned);
+      }, 50);
+    } else if (typeof initializeDragAndResize === 'function') {
+      // Fallback to full reinitialization if helper function doesn't exist
+      setTimeout(() => {
+        initializeDragAndResize();
+      }, 100);
+    }
+    
     updateWidgetControlPanel();
     return;
   }
@@ -5768,8 +5782,15 @@ function cloneWidget(fullWidgetId) {
   // Update control panel
   updateWidgetControlPanel();
   
-  // Reinitialize drag/resize
-  if (typeof initializeDragAndResize === 'function') {
+  // Initialize drag/resize for the cloned widget immediately
+  // This ensures the widget can be moved and resized right away
+  if (typeof initializeWidgetDragAndResize === 'function') {
+    // Use a small delay to ensure the widget is fully in the DOM
+    setTimeout(() => {
+      initializeWidgetDragAndResize(cloned);
+    }, 50);
+  } else if (typeof initializeDragAndResize === 'function') {
+    // Fallback to full reinitialization if helper function doesn't exist
     setTimeout(() => {
       initializeDragAndResize();
     }, 100);

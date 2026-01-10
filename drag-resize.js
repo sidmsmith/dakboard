@@ -371,6 +371,92 @@ function addRotateHandle(widget) {
   widget.appendChild(handleEl);
 }
 
+// Initialize drag and resize for a specific widget (helper function)
+function initializeWidgetDragAndResize(widget) {
+  if (!widget) return;
+  
+  // Check if edit mode is enabled
+  const dashboard = widget.closest('.dashboard.page');
+  if (!dashboard) return;
+  
+  const inEditMode = dashboard.classList.contains('edit-mode');
+  if (!inEditMode) {
+    // Remove handles if not in edit mode
+    widget.querySelectorAll('.resize-handle, .rotate-handle').forEach(h => h.remove());
+    return;
+  }
+  
+  // Skip hidden widgets
+  if (widget.classList.contains('hidden')) {
+    return;
+  }
+  
+  // Remove existing resize handles first
+  widget.querySelectorAll('.resize-handle').forEach(h => h.remove());
+  
+  // Remove existing rotate handles
+  widget.querySelectorAll('.rotate-handle').forEach(h => h.remove());
+  
+  // Add resize handles
+  addResizeHandles(widget);
+  
+  // Add rotate handle for blank widget only
+  if (widget.classList.contains('blank-widget')) {
+    addRotateHandle(widget);
+  }
+  
+  // Add z-index controls to widget header (if function exists)
+  if (typeof addZIndexControls === 'function') {
+    addZIndexControls(widget);
+  }
+  
+  // Create drag handler for this specific widget
+  const handleDragStart = (e) => {
+    // Check if edit mode is active on the current page
+    const dashboard = widget.closest('.dashboard.page');
+    const inEditMode = dashboard && dashboard.classList.contains('edit-mode');
+    
+    if (!inEditMode) {
+      return; // Don't allow dragging in normal mode
+    }
+    
+    // Don't drag if clicking on resize handles or rotate handle
+    const target = e.target || (e.touches && e.touches[0] ? document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY) : null);
+    if (target && (target.classList.contains('resize-handle') || target.closest('.resize-handle'))) {
+      return;
+    }
+    if (target && (target.classList.contains('rotate-handle') || target.closest('.rotate-handle'))) {
+      return;
+    }
+    
+    // Don't drag if clicking on buttons or interactive elements
+    if (target && (target.tagName === 'BUTTON' || 
+        target.tagName === 'INPUT' || 
+        target.tagName === 'SELECT' ||
+        target.closest('button') ||
+        target.closest('input') ||
+        target.closest('select'))) {
+      return;
+    }
+    
+    startDrag(widget, e);
+  };
+  
+  // Remove existing drag listeners by cloning the widget's event listeners won't work
+  // Instead, clear the flag and re-add listeners
+  delete widget.dataset.dragListenerAdded;
+  
+  // Add drag listeners if not already added
+  if (!widget.dataset.dragListenerAdded) {
+    widget.addEventListener('mousedown', handleDragStart);
+    widget.addEventListener('touchstart', handleDragStart, { passive: false });
+    widget.dataset.dragListenerAdded = 'true';
+  }
+  
+  // Update scale on initial load
+  updateWidgetScale(widget);
+}
+
 // Start rotating widget
 function startRotate(widget, e) {
   rotateWidget = widget;
