@@ -4753,7 +4753,7 @@ function formatNewsDate(dateString) {
 
 // Whiteboard state
 // Whiteboard state management - per widget instance
-let whiteboardStates = new Map(); // Track drawing state per widget: { canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, isDrawing: boolean, lastX: number, lastY: number }
+let whiteboardStates = new Map(); // Track drawing state per widget: { canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, isDrawing: boolean, lastX: number, lastY: number, autoHideTimer: number }
 
 // Initialize whiteboard
 function initializeWhiteboard() {
@@ -4787,13 +4787,18 @@ function initializeWhiteboard() {
         ctx: canvas.getContext('2d'),
         isDrawing: false,
         lastX: 0,
-        lastY: 0
+        lastY: 0,
+        autoHideTimer: null
       };
       whiteboardStates.set(fullWidgetId, state);
     } else {
       // Update canvas and context if widget was recreated
       state.canvas = canvas;
       state.ctx = canvas.getContext('2d');
+      // Initialize autoHideTimer if not present (for existing states)
+      if (state.autoHideTimer === undefined) {
+        state.autoHideTimer = null;
+      }
     }
     
     // Set canvas size to match container
@@ -4860,6 +4865,59 @@ function initializeWhiteboard() {
     const savedBrushSize = localStorage.getItem(`whiteboard-brush-size-${fullWidgetId}`) || localStorage.getItem(`whiteboard-brush-size-page-${currentPageIndex}`) || '3';
     const bgColor = localStorage.getItem(`whiteboard-bg-color-${fullWidgetId}`) || localStorage.getItem(`whiteboard-bg-color-page-${currentPageIndex}`) || '#ffffff';
     
+    // Helper function to show header temporarily if hidden (accessible to controls and drawing handlers)
+    const showHeaderTemporarily = () => {
+      const widgetHeader = whiteboardWidget.querySelector('.widget-header');
+      if (!widgetHeader) return;
+      
+      // Check if header is currently hidden
+      const computedStyle = window.getComputedStyle(widgetHeader);
+      const isHidden = computedStyle.display === 'none';
+      
+      // Only show if hidden (title visibility is disabled)
+      if (isHidden) {
+        // Clear any existing timer
+        if (state.autoHideTimer) {
+          clearTimeout(state.autoHideTimer);
+          state.autoHideTimer = null;
+        }
+        
+        // Show header temporarily
+        widgetHeader.style.display = '';
+        widgetHeader.classList.add('whiteboard-header-temporary');
+        
+        // Set timer to hide after 5 seconds
+        state.autoHideTimer = setTimeout(() => {
+          widgetHeader.style.display = 'none';
+          widgetHeader.classList.remove('whiteboard-header-temporary');
+          state.autoHideTimer = null;
+        }, 5000);
+      }
+    };
+    
+    // Helper function to reset auto-hide timer (when controls are used)
+    const resetAutoHideTimer = () => {
+      if (state.autoHideTimer) {
+        clearTimeout(state.autoHideTimer);
+        state.autoHideTimer = null;
+      }
+      // Show header if hidden
+      const widgetHeader = whiteboardWidget.querySelector('.widget-header');
+      if (widgetHeader) {
+        const computedStyle = window.getComputedStyle(widgetHeader);
+        if (computedStyle.display === 'none') {
+          widgetHeader.style.display = '';
+          widgetHeader.classList.add('whiteboard-header-temporary');
+          // Set new timer
+          state.autoHideTimer = setTimeout(() => {
+            widgetHeader.style.display = 'none';
+            widgetHeader.classList.remove('whiteboard-header-temporary');
+            state.autoHideTimer = null;
+          }, 5000);
+        }
+      }
+    };
+    
     // Find controls for this specific widget instance
     const inkColorInput = whiteboardWidget.querySelector('#whiteboard-ink-color');
     const bgColorInput = whiteboardWidget.querySelector('#whiteboard-bg-color');
@@ -4874,6 +4932,10 @@ function initializeWhiteboard() {
       inkColorInput.parentNode.replaceChild(newInkInput, inkColorInput);
       newInkInput.addEventListener('change', (e) => {
         localStorage.setItem(`whiteboard-ink-color-${fullWidgetId}`, e.target.value);
+        resetAutoHideTimer(); // Reset timer when control is used
+      });
+      newInkInput.addEventListener('click', () => {
+        resetAutoHideTimer(); // Reset timer when control is clicked
       });
     }
     
@@ -4895,6 +4957,10 @@ function initializeWhiteboard() {
         };
         img.src = currentImage;
         saveWhiteboardInstance(fullWidgetId);
+        resetAutoHideTimer(); // Reset timer when control is used
+      });
+      newBgInput.addEventListener('click', () => {
+        resetAutoHideTimer(); // Reset timer when control is clicked
       });
     }
     
@@ -4910,6 +4976,10 @@ function initializeWhiteboard() {
         const size = e.target.value;
         newBrushLabel.textContent = `${size}px`;
         localStorage.setItem(`whiteboard-brush-size-${fullWidgetId}`, size);
+        resetAutoHideTimer(); // Reset timer when control is used
+      });
+      newBrushInput.addEventListener('mousedown', () => {
+        resetAutoHideTimer(); // Reset timer when control is clicked
       });
     }
     
@@ -4919,16 +4989,17 @@ function initializeWhiteboard() {
       clearBtn.parentNode.replaceChild(newClearBtn, clearBtn);
       newClearBtn.addEventListener('click', () => {
         clearWhiteboardInstance(fullWidgetId);
+        resetAutoHideTimer(); // Reset timer when control is used
       });
     }
     
-    // Setup drawing event listeners for this specific canvas instance
-    setupWhiteboardDrawingInstance(fullWidgetId);
+    // Setup drawing event listeners for this specific canvas instance (pass showHeaderTemporarily)
+    setupWhiteboardDrawingInstance(fullWidgetId, showHeaderTemporarily);
   });
 }
 
 // Setup whiteboard drawing for a specific widget instance
-function setupWhiteboardDrawingInstance(widgetId) {
+function setupWhiteboardDrawingInstance(widgetId, showHeaderTemporarilyCallback) {
   const state = whiteboardStates.get(widgetId);
   if (!state || !state.canvas) return;
   
@@ -4950,6 +5021,11 @@ function setupWhiteboardDrawingInstance(widgetId) {
     const rect = canvas.getBoundingClientRect();
     state.lastX = e.clientX - rect.left;
     state.lastY = e.clientY - rect.top;
+    
+    // Show header temporarily if hidden when drawing starts
+    if (showHeaderTemporarilyCallback) {
+      showHeaderTemporarilyCallback();
+    }
   };
   
   state.startDrawingTouchHandler = (e) => {
@@ -4960,6 +5036,11 @@ function setupWhiteboardDrawingInstance(widgetId) {
     const rect = canvas.getBoundingClientRect();
     state.lastX = touch.clientX - rect.left;
     state.lastY = touch.clientY - rect.top;
+    
+    // Show header temporarily if hidden when drawing starts
+    if (showHeaderTemporarilyCallback) {
+      showHeaderTemporarilyCallback();
+    }
   };
   
   state.drawHandler = (e) => {

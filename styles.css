@@ -3266,13 +3266,32 @@ footer a:hover {
 
 /* SPECIAL CASE: Whiteboard widget has custom header layout with toolbar controls
    (clear button, color pickers, brush size) in the header.
-   Title styling system (visibility, alignment, editable text) is disabled for this widget
-   to preserve these functional elements. See styling.js for implementation details. */
+   Title styling system (visibility, icon, name, size) is enabled for this widget,
+   but alignment is disabled. When title is hidden and user draws, header appears
+   temporarily for 5 seconds. See styling.js and app.js for implementation details. */
 .whiteboard-widget .widget-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+.whiteboard-widget .widget-header.whiteboard-header-temporary {
+  opacity: 1;
+  transform: translateY(0);
+  animation: slideDownFadeIn 0.3s ease-out;
+}
+
+@keyframes slideDownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .whiteboard-toolbar {
