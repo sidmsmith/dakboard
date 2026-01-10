@@ -5841,7 +5841,11 @@ function updateWidgetControlPanel() {
         if (i !== currentPageIndex) {
           const pageOption = document.createElement('button');
           pageOption.className = 'widget-control-move-option';
-          pageOption.textContent = `Page ${i + 1}`;
+          // Get page name/description from localStorage
+          const pageNameKey = `dakboard-page-name-${i}`;
+          const pageName = localStorage.getItem(pageNameKey) || `Page ${i + 1}`;
+          // Display as "Page X: Description Y" format
+          pageOption.textContent = `Page ${i + 1}: ${pageName}`;
           pageOption.addEventListener('click', (e) => {
             e.stopPropagation();
             moveWidgetToPage(instance.fullId, i);
