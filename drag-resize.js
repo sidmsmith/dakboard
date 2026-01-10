@@ -256,12 +256,21 @@ function initializeDragAndResize() {
         }
         
         // Don't drag if clicking on buttons or interactive elements
+        // BUT allow dragging on canvas and textarea in edit mode (for whiteboard and blank widgets)
         if (target && (target.tagName === 'BUTTON' || 
             target.tagName === 'INPUT' || 
             target.tagName === 'SELECT' ||
             target.closest('button') ||
             target.closest('input') ||
             target.closest('select'))) {
+          return;
+        }
+        
+        // In edit mode, allow dragging even when clicking on canvas or textarea
+        // These elements normally block events, but we want to allow dragging in edit mode
+        if (inEditMode && target && (target.tagName === 'CANVAS' || target.tagName === 'TEXTAREA')) {
+          // Allow dragging on canvas/textarea in edit mode
+          startDrag(widget, e);
           return;
         }
         
