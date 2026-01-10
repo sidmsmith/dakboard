@@ -2369,15 +2369,24 @@ footer a:hover {
   color: #ffffff;
 }
 
-/* Always show rotate handle in edit mode for blank widget */
-.dashboard.edit-mode .blank-widget .rotate-handle {
+/* Always show rotate handle in edit mode for blank widget and stoplight widget */
+.dashboard.page.edit-mode .blank-widget .rotate-handle,
+.dashboard.edit-mode .blank-widget .rotate-handle,
+.dashboard.page.edit-mode .stoplight-widget .rotate-handle,
+.dashboard.edit-mode .stoplight-widget .rotate-handle {
   opacity: 1;
   pointer-events: auto;
 }
 
 /* Enhanced visibility on hover/rotate */
+.dashboard.page.edit-mode .blank-widget:hover .rotate-handle,
 .dashboard.edit-mode .blank-widget:hover .rotate-handle,
-.dashboard.edit-mode .blank-widget.rotating .rotate-handle {
+.dashboard.page.edit-mode .blank-widget.rotating .rotate-handle,
+.dashboard.edit-mode .blank-widget.rotating .rotate-handle,
+.dashboard.page.edit-mode .stoplight-widget:hover .rotate-handle,
+.dashboard.edit-mode .stoplight-widget:hover .rotate-handle,
+.dashboard.page.edit-mode .stoplight-widget.rotating .rotate-handle,
+.dashboard.edit-mode .stoplight-widget.rotating .rotate-handle {
   background: rgba(74, 144, 226, 0.8);
   border-color: #5ba0f2;
 }
@@ -2396,7 +2405,8 @@ footer a:hover {
   display: none;
 }
 
-.blank-widget.rotating {
+.blank-widget.rotating,
+.stoplight-widget.rotating {
   cursor: grabbing;
 }
 
