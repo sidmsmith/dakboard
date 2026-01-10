@@ -5693,6 +5693,8 @@ function cloneWidget(fullWidgetId) {
     // Now clone the original
     const cloned = original.cloneNode(true);
     cloned.className = `${widgetType} ${newFullId}`;
+    
+    // Always make cloned widgets visible by default (eye icon selected)
     cloned.classList.remove('hidden');
     
     // Clear drag listener flag - cloned widgets need drag listeners re-attached
@@ -5746,13 +5748,8 @@ function cloneWidget(fullWidgetId) {
   // This prevents the cloned widget from being skipped during drag initialization
   delete cloned.dataset.dragListenerAdded;
   
-  // Copy visibility state from source widget
-  const isSourceVisible = !originalWidget.classList.contains('hidden');
-  if (isSourceVisible) {
-    cloned.classList.remove('hidden');
-  } else {
-    cloned.classList.add('hidden');
-  }
+  // Always make cloned widgets visible by default (eye icon selected)
+  cloned.classList.remove('hidden');
   
   // Offset position slightly
   const rect = originalWidget.getBoundingClientRect();
