@@ -240,6 +240,11 @@ body {
   cursor: text;
 }
 
+/* Show move cursor for textarea in blank widgets when in edit mode */
+.dashboard.edit-mode .blank-widget .blank-text-editable {
+  cursor: move !important;
+}
+
 .blank-text-editable:focus {
   outline: 2px solid rgba(74, 144, 226, 0.5);
   outline-offset: -2px;
@@ -3432,7 +3437,7 @@ footer a:hover {
 }
 
 .dashboard.edit-mode #whiteboard-canvas {
-  cursor: default;
+  cursor: move !important;
 }
 
 .photos-placeholder h3 {
