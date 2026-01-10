@@ -5939,20 +5939,16 @@ function setEditMode(enabled) {
   // Reinitialize drag/resize when toggling edit mode
   if (typeof initializeDragAndResize === 'function') {
     if (enabled) {
-      console.log(`setEditMode: Enabling edit mode for page ${currentPageIndex}`);
       // When entering edit mode, initialize immediately and also after a short delay
       // This ensures handles appear even if DOM isn't fully ready
       initializeDragAndResize();
       setTimeout(() => {
-        console.log(`setEditMode: Retrying initializeDragAndResize after delay`);
         initializeDragAndResize();
       }, 100);
       setTimeout(() => {
-        console.log(`setEditMode: Final retry initializeDragAndResize`);
         initializeDragAndResize();
       }, 300);
     } else {
-      console.log(`setEditMode: Disabling edit mode for page ${currentPageIndex}`);
       // When exiting edit mode, remove all handles immediately
       const pageElement = getPageElement(currentPageIndex);
       if (pageElement) {
@@ -6484,11 +6480,8 @@ function cloneWidget(fullWidgetId) {
   const newLeft = sourceLeft + offsetX;
   const newTop = sourceTop + offsetY;
   
-  console.log(`Clone positioning: offsetX: ${offsetX}, offsetY: ${offsetY}, newLeft: ${newLeft}, newTop: ${newTop}`);
-  
   // Append cloned widget to page FIRST (so it exists in DOM)
   pageElement.appendChild(cloned);
-  console.log(`Cloned widget appended to page. New widget ID: ${newFullId}`);
   
   // Set position and size immediately after appending
   cloned.style.left = `${newLeft}px`;
@@ -6503,17 +6496,13 @@ function cloneWidget(fullWidgetId) {
     cloned.setAttribute('data-rotation', sourceRotation.toString());
   }
   
-  console.log(`Position set: left=${newLeft}px, top=${newTop}px`);
-  
   // Copy configuration from original
   copyWidgetConfiguration(fullWidgetId, newFullId, pageIndex);
-  console.log(`Configuration copied from ${fullWidgetId} to ${newFullId}`);
   
   // Save layout IMMEDIATELY after setting position, BEFORE initializeWidgetInstance
   // This ensures the position is in localStorage before loadWidgetLayout is called
   if (typeof saveCurrentPageLayout === 'function') {
     saveCurrentPageLayout();
-    console.log(`Layout saved BEFORE initialization`);
   }
   
   // Store the intended position so we can restore it after initialization
@@ -6522,7 +6511,6 @@ function cloneWidget(fullWidgetId) {
   
   // Initialize the cloned widget (this may call loadWidgetLayout, which might override position)
   initializeWidgetInstance(newFullId, cloned);
-  console.log(`Widget instance initialized: ${newFullId}`);
   
   // CRITICAL: Re-apply position IMMEDIATELY after initialization
   // loadWidgetLayout may have been called and could have overridden our position
@@ -6536,7 +6524,6 @@ function cloneWidget(fullWidgetId) {
     cloned.style.transform = `rotate(${intendedPosition.rotation}deg)`;
     cloned.setAttribute('data-rotation', intendedPosition.rotation.toString());
   }
-  console.log(`Position restored AFTER initialization: left=${intendedPosition.left}px, top=${intendedPosition.top}px`);
   
   // Explicitly save visibility for the new widget as visible
   // Do this before applying styles to ensure it's saved correctly

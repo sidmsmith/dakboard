@@ -278,8 +278,6 @@ function initializeDragAndResize() {
       // Update scale on initial load
       updateWidgetScale(widget);
     });
-    
-    console.log(`Added resize handles to ${allWidgets.length} widgets`);
   };
   
   // Process immediately
