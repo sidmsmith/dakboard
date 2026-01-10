@@ -82,6 +82,86 @@
         <span class="edit-mode-label">Edit Layout</span>
       </label>
     </div>
+    <div class="widget-control-annotate-mode">
+      <button id="annotate-mode-toggle" class="annotate-mode-toggle-btn" title="Start Annotating">
+        <span class="annotate-mode-icon">✏️</span>
+        <span class="annotate-mode-label">Annotate</span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Annotation Overlay Canvas -->
+  <canvas id="annotation-canvas" class="annotation-overlay"></canvas>
+  
+  <!-- Annotation Toolbar -->
+  <div id="annotation-toolbar" class="annotation-toolbar">
+    <div class="annotation-toolbar-content">
+      <div class="annotation-tools">
+        <button class="annotation-tool-btn active" data-tool="pen" title="Pen">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+            <path d="M2 2l7.586 7.586"></path>
+            <circle cx="11" cy="11" r="2"></circle>
+          </svg>
+        </button>
+        <button class="annotation-tool-btn" data-tool="highlighter" title="Highlighter">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 21h18"></path>
+            <path d="M5 21V7l8-4v18"></path>
+            <path d="M19 21V11l-6-4"></path>
+            <line x1="9" y1="9" x2="9" y2="21"></line>
+            <line x1="9" y1="9" x2="9" y2="21"></line>
+          </svg>
+        </button>
+        <button class="annotation-tool-btn" data-tool="paintbrush" title="Paintbrush">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9.06 2.06A2 2 0 0 1 11 2h2a2 2 0 0 1 2 2v.5M21 15v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3"></path>
+            <path d="M12 2v20"></path>
+            <path d="M3 15h18"></path>
+          </svg>
+        </button>
+        <button class="annotation-tool-btn" data-tool="eraser" title="Eraser">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"></path>
+            <path d="M15 9l-6 6"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="annotation-separator"></div>
+      <div class="annotation-color-controls">
+        <label class="annotation-control-label">Color:</label>
+        <input type="color" id="annotation-color" class="annotation-color-picker" value="#000000" title="Select color">
+        <input type="text" id="annotation-color-text" class="annotation-color-text" value="#000000" maxlength="7">
+      </div>
+      <div class="annotation-separator"></div>
+      <div class="annotation-size-controls">
+        <label class="annotation-control-label">Size:</label>
+        <input type="range" id="annotation-brush-size" class="annotation-brush-size" min="1" max="50" value="3">
+        <span id="annotation-brush-size-value" class="annotation-brush-size-value">3px</span>
+      </div>
+      <div class="annotation-separator"></div>
+      <div class="annotation-actions">
+        <button id="annotation-clear" class="annotation-action-btn" title="Clear All">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+        <button id="annotation-toggle-visibility" class="annotation-action-btn" title="Toggle Visibility">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+        <button id="annotation-close" class="annotation-action-btn annotation-close-btn" title="Stop Annotating (ESC)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
   </div>
   
   <!-- Widget Control Toggle Button -->

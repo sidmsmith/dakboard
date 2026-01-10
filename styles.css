@@ -2364,6 +2364,228 @@ footer a:hover {
   text-decoration: underline;
 }
 
+/* Annotation Overlay */
+.annotation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 5000;
+  pointer-events: none;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.annotation-mode .annotation-overlay {
+  pointer-events: auto;
+}
+
+/* Annotation Toolbar */
+.annotation-toolbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(42, 42, 42, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 2px solid #4a4a4a;
+  padding: 12px 20px;
+  z-index: 10002;
+  display: none;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.annotation-mode .annotation-toolbar {
+  display: block;
+}
+
+.annotation-toolbar-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.annotation-tools {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.annotation-tool-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  border: 2px solid #4a4a4a;
+  background: #2a2a2a;
+  color: #e0e0e0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.annotation-tool-btn:hover {
+  background: #3a3a3a;
+  border-color: #5a5a5a;
+  transform: translateY(-2px);
+}
+
+.annotation-tool-btn.active {
+  background: #4a90e2;
+  border-color: #5ba0f2;
+  color: #fff;
+}
+
+.annotation-separator {
+  width: 1px;
+  height: 32px;
+  background: #4a4a4a;
+}
+
+.annotation-color-controls,
+.annotation-size-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.annotation-control-label {
+  color: #e0e0e0;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.annotation-color-picker {
+  width: 44px;
+  height: 44px;
+  border: 2px solid #4a4a4a;
+  border-radius: 8px;
+  cursor: pointer;
+  background: transparent;
+  padding: 0;
+}
+
+.annotation-color-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.annotation-color-picker::-webkit-color-swatch {
+  border: none;
+  border-radius: 6px;
+}
+
+.annotation-color-text {
+  width: 80px;
+  padding: 8px 12px;
+  background: #1a1a1a;
+  border: 2px solid #4a4a4a;
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-size: 13px;
+  font-family: monospace;
+}
+
+.annotation-color-text:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+.annotation-brush-size {
+  width: 120px;
+  height: 6px;
+  border-radius: 3px;
+  background: #3a3a3a;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.annotation-brush-size::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #4a90e2;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.annotation-brush-size::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #4a90e2;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.annotation-brush-size-value {
+  color: #e0e0e0;
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 40px;
+  text-align: center;
+}
+
+.annotation-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.annotation-action-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  border: 2px solid #4a4a4a;
+  background: #2a2a2a;
+  color: #e0e0e0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.annotation-action-btn:hover {
+  background: #3a3a3a;
+  border-color: #5a5a5a;
+  transform: translateY(-2px);
+}
+
+.annotation-close-btn {
+  background: #e74c3c;
+  border-color: #c0392b;
+  color: #fff;
+}
+
+.annotation-close-btn:hover {
+  background: #c0392b;
+  border-color: #a93226;
+}
+
+/* Disable widget interactions when annotation mode is active */
+.annotation-mode .widget {
+  pointer-events: none;
+}
+
+.annotation-mode .widget-control-panel,
+.annotation-mode .widget-control-toggle,
+.annotation-mode .page-nav-arrow {
+  pointer-events: auto;
+}
+
 /* Edit Mode Watermark */
 .diagonal-watermark {
   position: fixed;
@@ -3502,6 +3724,50 @@ footer a:hover {
   border-top: 2px solid #3a3a3a;
   flex-shrink: 0;
   margin-top: auto;
+}
+
+.widget-control-annotate-mode {
+  padding: 20px;
+  border-top: 2px solid #3a3a3a;
+  flex-shrink: 0;
+}
+
+.annotate-mode-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  padding: 8px 16px;
+  background: rgba(42, 42, 42, 0.95);
+  border-radius: 25px;
+  border: 2px solid #3a3a3a;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  width: 100%;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  justify-content: center;
+}
+
+.annotate-mode-toggle-btn:hover {
+  background: rgba(58, 58, 58, 0.95);
+  border-color: #4a90e2;
+}
+
+.annotate-mode-toggle-btn.active {
+  background: rgba(74, 144, 226, 0.2);
+  border-color: #4a90e2;
+  color: #4a90e2;
+}
+
+.annotate-mode-icon {
+  font-size: 18px;
+}
+
+.annotate-mode-label {
+  white-space: nowrap;
 }
 
 /* Modern Switch Toggle */

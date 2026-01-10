@@ -113,6 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeCalendar();
   initializeClock(); // Initialize clock
   initializeEventListeners();
+  initializeAnnotationCanvas(); // Initialize annotation system
+  initializeAnnotationListeners(); // Set up annotation event listeners
   
   // Styling system will initialize itself via styling.js
   
@@ -5322,6 +5324,335 @@ async function triggerHAWebhook(webhookId) {
   }
 }
 
+// Annotation System
+let isAnnotationMode = false;
+let annotationCanvas = null;
+let annotationCtx = null;
+let annotationState = {
+  isDrawing: false,
+  lastX: 0,
+  lastY: 0,
+  currentTool: 'pen',
+  currentColor: '#000000',
+  brushSize: 3,
+  isVisible: true
+};
+
+// Initialize annotation canvas
+function initializeAnnotationCanvas() {
+  annotationCanvas = document.getElementById('annotation-canvas');
+  if (!annotationCanvas) return;
+  
+  annotationCtx = annotationCanvas.getContext('2d');
+  if (!annotationCtx) return;
+  
+  // Set canvas size to match viewport
+  function resizeCanvas() {
+    annotationCanvas.width = window.innerWidth;
+    annotationCanvas.height = window.innerHeight;
+    // Reload saved annotations if visible
+    if (annotationState.isVisible) {
+      loadAnnotationData();
+    }
+  }
+  
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+  
+  // Load saved annotations
+  loadAnnotationData();
+}
+
+// Set annotation mode
+function setAnnotationMode(enabled) {
+  isAnnotationMode = enabled;
+  document.body.classList.toggle('annotation-mode', enabled);
+  
+  if (enabled) {
+    if (!annotationCanvas) {
+      initializeAnnotationCanvas();
+    }
+    setupAnnotationDrawing();
+    updateAnnotationToolbar();
+  } else {
+    removeAnnotationDrawing();
+  }
+  
+  // Update toggle button
+  const toggleBtn = document.getElementById('annotate-mode-toggle');
+  if (toggleBtn) {
+    toggleBtn.classList.toggle('active', enabled);
+  }
+}
+
+// Setup drawing event listeners
+function setupAnnotationDrawing() {
+  if (!annotationCanvas) return;
+  
+  annotationCanvas.addEventListener('mousedown', startAnnotationDrawing);
+  annotationCanvas.addEventListener('mousemove', drawAnnotation);
+  annotationCanvas.addEventListener('mouseup', stopAnnotationDrawing);
+  annotationCanvas.addEventListener('mouseout', stopAnnotationDrawing);
+  annotationCanvas.addEventListener('touchstart', startAnnotationDrawingTouch, { passive: false });
+  annotationCanvas.addEventListener('touchmove', drawAnnotationTouch, { passive: false });
+  annotationCanvas.addEventListener('touchend', stopAnnotationDrawing);
+}
+
+// Remove drawing event listeners
+function removeAnnotationDrawing() {
+  if (!annotationCanvas) return;
+  
+  annotationCanvas.removeEventListener('mousedown', startAnnotationDrawing);
+  annotationCanvas.removeEventListener('mousemove', drawAnnotation);
+  annotationCanvas.removeEventListener('mouseup', stopAnnotationDrawing);
+  annotationCanvas.removeEventListener('mouseout', stopAnnotationDrawing);
+  annotationCanvas.removeEventListener('touchstart', startAnnotationDrawingTouch);
+  annotationCanvas.removeEventListener('touchmove', drawAnnotationTouch);
+  annotationCanvas.removeEventListener('touchend', stopAnnotationDrawing);
+}
+
+// Start drawing
+function startAnnotationDrawing(e) {
+  if (!annotationCanvas || !annotationCtx) return;
+  annotationState.isDrawing = true;
+  
+  const rect = annotationCanvas.getBoundingClientRect();
+  annotationState.lastX = e.clientX - rect.left;
+  annotationState.lastY = e.clientY - rect.top;
+}
+
+// Draw
+function drawAnnotation(e) {
+  if (!annotationState.isDrawing || !annotationCtx) return;
+  
+  const rect = annotationCanvas.getBoundingClientRect();
+  const currentX = e.clientX - rect.left;
+  const currentY = e.clientY - rect.top;
+  
+  drawAnnotationLine(annotationState.lastX, annotationState.lastY, currentX, currentY);
+  
+  annotationState.lastX = currentX;
+  annotationState.lastY = currentY;
+}
+
+// Stop drawing
+function stopAnnotationDrawing() {
+  if (annotationState.isDrawing) {
+    annotationState.isDrawing = false;
+    saveAnnotationData();
+  }
+}
+
+// Touch handlers
+function startAnnotationDrawingTouch(e) {
+  e.preventDefault();
+  if (!annotationCanvas || !annotationCtx) return;
+  annotationState.isDrawing = true;
+  
+  const touch = e.touches[0];
+  const rect = annotationCanvas.getBoundingClientRect();
+  annotationState.lastX = touch.clientX - rect.left;
+  annotationState.lastY = touch.clientY - rect.top;
+}
+
+function drawAnnotationTouch(e) {
+  e.preventDefault();
+  if (!annotationState.isDrawing || !annotationCtx) return;
+  
+  const touch = e.touches[0];
+  const rect = annotationCanvas.getBoundingClientRect();
+  const currentX = touch.clientX - rect.left;
+  const currentY = touch.clientY - rect.top;
+  
+  drawAnnotationLine(annotationState.lastX, annotationState.lastY, currentX, currentY);
+  
+  annotationState.lastX = currentX;
+  annotationState.lastY = currentY;
+}
+
+// Draw a line based on current tool
+function drawAnnotationLine(x1, y1, x2, y2) {
+  if (!annotationCtx) return;
+  
+  annotationCtx.lineCap = 'round';
+  annotationCtx.lineJoin = 'round';
+  annotationCtx.lineWidth = annotationState.brushSize;
+  
+  switch (annotationState.currentTool) {
+    case 'pen':
+      annotationCtx.globalCompositeOperation = 'source-over';
+      annotationCtx.strokeStyle = annotationState.currentColor;
+      annotationCtx.globalAlpha = 1.0;
+      break;
+    case 'highlighter':
+      annotationCtx.globalCompositeOperation = 'multiply';
+      annotationCtx.strokeStyle = annotationState.currentColor;
+      annotationCtx.globalAlpha = 0.4;
+      break;
+    case 'paintbrush':
+      annotationCtx.globalCompositeOperation = 'source-over';
+      annotationCtx.strokeStyle = annotationState.currentColor;
+      annotationCtx.globalAlpha = 0.7;
+      break;
+    case 'eraser':
+      annotationCtx.globalCompositeOperation = 'destination-out';
+      annotationCtx.strokeStyle = 'rgba(0,0,0,1)';
+      annotationCtx.globalAlpha = 1.0;
+      break;
+  }
+  
+  annotationCtx.beginPath();
+  annotationCtx.moveTo(x1, y1);
+  annotationCtx.lineTo(x2, y2);
+  annotationCtx.stroke();
+}
+
+// Save annotation data
+function saveAnnotationData() {
+  if (!annotationCanvas) return;
+  const dataURL = annotationCanvas.toDataURL('image/png');
+  const key = `dakboard-annotation-page-${currentPageIndex}`;
+  localStorage.setItem(key, dataURL);
+}
+
+// Load annotation data
+function loadAnnotationData() {
+  if (!annotationCanvas || !annotationCtx) return;
+  
+  const key = `dakboard-annotation-page-${currentPageIndex}`;
+  const saved = localStorage.getItem(key);
+  
+  if (saved) {
+    const img = new Image();
+    img.onload = () => {
+      annotationCtx.clearRect(0, 0, annotationCanvas.width, annotationCanvas.height);
+      annotationCtx.drawImage(img, 0, 0);
+    };
+    img.src = saved;
+  } else {
+    annotationCtx.clearRect(0, 0, annotationCanvas.width, annotationCanvas.height);
+  }
+}
+
+// Clear annotations
+function clearAnnotations() {
+  if (!annotationCanvas || !annotationCtx) return;
+  annotationCtx.clearRect(0, 0, annotationCanvas.width, annotationCanvas.height);
+  const key = `dakboard-annotation-page-${currentPageIndex}`;
+  localStorage.removeItem(key);
+}
+
+// Toggle annotation visibility
+function toggleAnnotationVisibility() {
+  annotationState.isVisible = !annotationState.isVisible;
+  if (annotationCanvas) {
+    annotationCanvas.style.opacity = annotationState.isVisible ? '1' : '0';
+  }
+  const toggleBtn = document.getElementById('annotation-toggle-visibility');
+  if (toggleBtn) {
+    toggleBtn.style.opacity = annotationState.isVisible ? '1' : '0.5';
+  }
+}
+
+// Update toolbar UI
+function updateAnnotationToolbar() {
+  // Update tool buttons
+  document.querySelectorAll('.annotation-tool-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tool === annotationState.currentTool);
+  });
+  
+  // Update color picker
+  const colorPicker = document.getElementById('annotation-color');
+  const colorText = document.getElementById('annotation-color-text');
+  if (colorPicker) colorPicker.value = annotationState.currentColor;
+  if (colorText) colorText.value = annotationState.currentColor;
+  
+  // Update brush size
+  const brushSize = document.getElementById('annotation-brush-size');
+  const brushSizeValue = document.getElementById('annotation-brush-size-value');
+  if (brushSize) brushSize.value = annotationState.brushSize;
+  if (brushSizeValue) brushSizeValue.textContent = annotationState.brushSize + 'px';
+}
+
+// Initialize annotation event listeners
+function initializeAnnotationListeners() {
+  // Annotate toggle button
+  const annotateToggle = document.getElementById('annotate-mode-toggle');
+  if (annotateToggle) {
+    annotateToggle.addEventListener('click', () => {
+      setAnnotationMode(!isAnnotationMode);
+    });
+  }
+  
+  // Tool buttons
+  document.querySelectorAll('.annotation-tool-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      annotationState.currentTool = btn.dataset.tool;
+      updateAnnotationToolbar();
+    });
+  });
+  
+  // Color picker
+  const colorPicker = document.getElementById('annotation-color');
+  const colorText = document.getElementById('annotation-color-text');
+  if (colorPicker) {
+    colorPicker.addEventListener('input', (e) => {
+      annotationState.currentColor = e.target.value;
+      if (colorText) colorText.value = e.target.value;
+    });
+  }
+  if (colorText) {
+    colorText.addEventListener('input', (e) => {
+      const value = e.target.value;
+      if (/^#[0-9A-F]{6}$/i.test(value)) {
+        annotationState.currentColor = value;
+        if (colorPicker) colorPicker.value = value;
+      }
+    });
+  }
+  
+  // Brush size
+  const brushSize = document.getElementById('annotation-brush-size');
+  const brushSizeValue = document.getElementById('annotation-brush-size-value');
+  if (brushSize) {
+    brushSize.addEventListener('input', (e) => {
+      annotationState.brushSize = parseInt(e.target.value);
+      if (brushSizeValue) brushSizeValue.textContent = annotationState.brushSize + 'px';
+    });
+  }
+  
+  // Clear button
+  const clearBtn = document.getElementById('annotation-clear');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      if (confirm('Clear all annotations on this page?')) {
+        clearAnnotations();
+      }
+    });
+  }
+  
+  // Toggle visibility
+  const toggleVisibilityBtn = document.getElementById('annotation-toggle-visibility');
+  if (toggleVisibilityBtn) {
+    toggleVisibilityBtn.addEventListener('click', toggleAnnotationVisibility);
+  }
+  
+  // Close button
+  const closeBtn = document.getElementById('annotation-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      setAnnotationMode(false);
+    });
+  }
+  
+  // ESC key to exit annotation mode
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isAnnotationMode) {
+      setAnnotationMode(false);
+    }
+  });
+}
+
 // Widget Visibility Management
 const WIDGET_CONFIG = {
   'calendar-widget': { name: 'Calendar', icon: '📅' },
@@ -7777,6 +8108,11 @@ function loadCurrentPage() {
   
   // Load widget visibility FIRST - this ensures widgets are created/hidden before layout is applied
   loadWidgetVisibility();
+  
+  // Load annotations for current page
+  if (annotationCanvas && annotationCtx) {
+    loadAnnotationData();
+  }
   
   // Load page-specific edit mode
   const editModeKey = `dakboard-edit-mode-page-${currentPageIndex}`;
