@@ -6214,7 +6214,13 @@ function cloneWidget(fullWidgetId) {
   
   // Find the source widget (the one being cloned) using the fullWidgetId
   // This ensures we clone from the correct widget, not always instance-0
+  // Try multiple querySelector patterns to find the widget
   let sourceWidget = pageElement.querySelector(`.${fullWidgetId}`);
+  if (!sourceWidget) {
+    // Try finding by class list (widget might have multiple classes)
+    const allWidgets = pageElement.querySelectorAll(`.${widgetType}`);
+    sourceWidget = Array.from(allWidgets).find(w => w.classList.contains(fullWidgetId));
+  }
   if (!sourceWidget) {
     // Fallback: if the specific widget isn't found, try to find any widget of this type
     sourceWidget = pageElement.querySelector(`.${widgetType}`);
@@ -6257,8 +6263,14 @@ function cloneWidget(fullWidgetId) {
     
     // Get source widget position and rotation
     // Use style values for accurate position (not affected by rotation)
-    const sourceLeft = parseFloat(original.style.left) || 50;
-    const sourceTop = parseFloat(original.style.top) || 50;
+    // Default to (50, 50) for newly created originals
+    let sourceLeft = parseFloat(original.style.left);
+    let sourceTop = parseFloat(original.style.top);
+    
+    // Default to 50, 50 if not set (for newly created widgets)
+    if (isNaN(sourceLeft)) sourceLeft = 50;
+    if (isNaN(sourceTop)) sourceTop = 50;
+    
     const sourceWidth = parseFloat(original.style.width) || original.offsetWidth || 300;
     const sourceHeight = parseFloat(original.style.height) || original.offsetHeight || 200;
     
@@ -6393,8 +6405,40 @@ function cloneWidget(fullWidgetId) {
   
   // Get source widget position and rotation
   // Use style values for accurate position (not affected by rotation)
-  const sourceLeft = parseFloat(sourceWidget.style.left) || 0;
-  const sourceTop = parseFloat(sourceWidget.style.top) || 0;
+  // If style values aren't set, try to get from saved layout or use bounding rect
+  let sourceLeft = parseFloat(sourceWidget.style.left);
+  let sourceTop = parseFloat(sourceWidget.style.top);
+  
+  // If position isn't in inline styles, try to get from saved layout
+  if (isNaN(sourceLeft) || isNaN(sourceTop)) {
+    const layoutKey = `dakboard-widget-layout-page-${pageIndex}`;
+    const savedLayout = localStorage.getItem(layoutKey);
+    if (savedLayout) {
+      try {
+        const layout = JSON.parse(savedLayout);
+        const sourceLayout = layout[fullWidgetId];
+        if (sourceLayout) {
+          sourceLeft = sourceLayout.x || 0;
+          sourceTop = sourceLayout.y || 0;
+        }
+      } catch (e) {
+        // If parsing fails, fall back to bounding rect
+      }
+    }
+    
+    // If still not found, use bounding rect relative to dashboard
+    if (isNaN(sourceLeft) || isNaN(sourceTop)) {
+      const widgetRect = sourceWidget.getBoundingClientRect();
+      const dashboardRect = pageElement.getBoundingClientRect();
+      sourceLeft = widgetRect.left - dashboardRect.left;
+      sourceTop = widgetRect.top - dashboardRect.top;
+    }
+  }
+  
+  // Default to 0 if still not found
+  sourceLeft = sourceLeft || 0;
+  sourceTop = sourceTop || 0;
+  
   const sourceWidth = parseFloat(sourceWidget.style.width) || sourceWidget.offsetWidth || 300;
   const sourceHeight = parseFloat(sourceWidget.style.height) || sourceWidget.offsetHeight || 200;
   
@@ -6415,18 +6459,21 @@ function cloneWidget(fullWidgetId) {
     }
   }
   
-  // Offset position to the right and down (offset by widget width/4 and height/4 for better visibility)
+  // Offset position to the right and down (offset by widget width/height for better visibility)
   const offsetX = Math.max(80, sourceWidth * 0.3); // At least 80px or 30% of width
   const offsetY = Math.max(80, sourceHeight * 0.3); // At least 80px or 30% of height
-  cloned.style.left = (sourceLeft + offsetX) + 'px';
-  cloned.style.top = (sourceTop + offsetY) + 'px';
-  cloned.style.width = sourceWidth + 'px';
-  cloned.style.height = sourceHeight + 'px';
+  const newLeft = sourceLeft + offsetX;
+  const newTop = sourceTop + offsetY;
+  
+  cloned.style.left = `${newLeft}px`;
+  cloned.style.top = `${newTop}px`;
+  cloned.style.width = `${sourceWidth}px`;
+  cloned.style.height = `${sourceHeight}px`;
   
   // Apply same rotation as source widget
   if (sourceRotation !== 0) {
     cloned.style.transform = `rotate(${sourceRotation}deg)`;
-    cloned.setAttribute('data-rotation', sourceRotation);
+    cloned.setAttribute('data-rotation', sourceRotation.toString());
   }
   
   pageElement.appendChild(cloned);
