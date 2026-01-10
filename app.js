@@ -3752,7 +3752,7 @@ function loadClipArt() {
         const shadowFilter = (clipArtShadowEnabled && clipArtColor) ? `drop-shadow(0 0 12px ${clipArtColor})` : '';
         const tintFilter = clipArtTintEnabled ? generateImageTintFilter(clipArtTintColor) : '';
         const combinedFilter = [shadowFilter, tintFilter].filter(f => f).join(' ');
-        container.innerHTML = `<div class="clipart-display" style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;"><img src="${clipArtImageUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: ${combinedFilter || 'none'};" alt="Clip art"></div>`;
+        container.innerHTML = `<div class="clipart-display" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 0; padding: 20px; box-sizing: border-box;"><img src="${clipArtImageUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: ${combinedFilter || 'none'};" alt="Clip art"></div>`;
       } else {
         container.innerHTML = `<div class="clipart-display" style="color: ${clipArtColor}; font-size: 120px; text-align: center; line-height: 1; display: flex; align-items: center; justify-content: center; height: 100%;">${clipArtEmoji}</div>`;
       }
@@ -6112,7 +6112,6 @@ function updateWidgetControlPanel() {
     cloneBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       e.preventDefault();
-      console.log('Clone button clicked for widget:', instance.fullId);
       cloneWidget(instance.fullId);
     });
     
@@ -6222,19 +6221,13 @@ function cloneWidget(fullWidgetId) {
   
   if (matchingInstance && matchingInstance.element) {
     sourceWidget = matchingInstance.element;
-    console.log(`Found source widget using getWidgetInstances: ${fullWidgetId}`);
   } else {
     // Fallback: Try direct class selector
     sourceWidget = pageElement.querySelector(`.${fullWidgetId}`);
-    if (sourceWidget) {
-      console.log(`Found source widget using direct selector: ${fullWidgetId}`);
-    } else {
+    if (!sourceWidget) {
       // Last resort: Find by widget type and check class list
       const allWidgets = pageElement.querySelectorAll(`.${widgetType}`);
       sourceWidget = Array.from(allWidgets).find(w => w.classList.contains(fullWidgetId));
-      if (sourceWidget) {
-        console.log(`Found source widget by checking class list: ${fullWidgetId}`);
-      }
     }
   }
   
@@ -6435,8 +6428,6 @@ function cloneWidget(fullWidgetId) {
   let sourceLeft = parseFloat(sourceWidget.style.left);
   let sourceTop = parseFloat(sourceWidget.style.top);
   
-  console.log(`Cloning widget ${fullWidgetId}: initial position from style - left: ${sourceLeft}, top: ${sourceTop}`);
-  
   // If position isn't in inline styles, try to get from saved layout
   if (isNaN(sourceLeft) || isNaN(sourceTop)) {
     const layoutKey = `dakboard-widget-layout-page-${pageIndex}`;
@@ -6448,10 +6439,9 @@ function cloneWidget(fullWidgetId) {
         if (sourceLayout) {
           sourceLeft = sourceLayout.x || 0;
           sourceTop = sourceLayout.y || 0;
-          console.log(`Position from saved layout: left: ${sourceLeft}, top: ${sourceTop}`);
         }
       } catch (e) {
-        console.error('Error parsing saved layout:', e);
+        // Error parsing saved layout - will fall back to bounding rect
       }
     }
     
@@ -6461,24 +6451,15 @@ function cloneWidget(fullWidgetId) {
       const dashboardRect = pageElement.getBoundingClientRect();
       sourceLeft = widgetRect.left - dashboardRect.left;
       sourceTop = widgetRect.top - dashboardRect.top;
-      console.log(`Position from bounding rect: left: ${sourceLeft}, top: ${sourceTop}`);
     }
   }
   
   // Default to 0 only if still NaN (0 is a valid position, so don't override it)
-  if (isNaN(sourceLeft)) {
-    console.warn(`Source left position is NaN, defaulting to 0`);
-    sourceLeft = 0;
-  }
-  if (isNaN(sourceTop)) {
-    console.warn(`Source top position is NaN, defaulting to 0`);
-    sourceTop = 0;
-  }
+  if (isNaN(sourceLeft)) sourceLeft = 0;
+  if (isNaN(sourceTop)) sourceTop = 0;
   
   const sourceWidth = parseFloat(sourceWidget.style.width) || sourceWidget.offsetWidth || 300;
   const sourceHeight = parseFloat(sourceWidget.style.height) || sourceWidget.offsetHeight || 200;
-  
-  console.log(`Source widget dimensions: width: ${sourceWidth}, height: ${sourceHeight}`);
   
   // Get rotation from source widget (from data-rotation attribute or parse from transform)
   let sourceRotation = 0;
@@ -6595,7 +6576,6 @@ function cloneWidget(fullWidgetId) {
     saveWidgetLayout();
   }
   
-  console.log(`Layout saved. Final position: left=${newLeft}px, top=${newTop}px`);
   
   // Update control panel
   updateWidgetControlPanel();
