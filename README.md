@@ -45,6 +45,20 @@ Four different layout options are available for you to choose from:
 
 ## 📝 Changelog
 
+### Version 2.5
+- **Widget Cloning Improvements**:
+  - **Persistence Fix**: Fixed cloned widgets reappearing after page refresh by properly removing visibility and layout entries from localStorage when widgets are deleted
+  - **Initial Display Fix**: Cloned widgets now display with correct styles (including hidden titles) immediately after creation, without requiring a page refresh
+  - **Drag/Resize Fix**: Cloned widgets are now immediately draggable and resizable after creation by properly initializing drag/resize handlers and clearing flags
+  - **Source Widget Positioning**: Fixed clone-of-clone positioning to offset from the actual source widget (the one being cloned) instead of always using instance-0
+  - **Visibility Default**: Newly cloned widgets are now visible by default (eye icon selected in Manage Widgets panel)
+  - **Rotation Copying**: Cloned widgets now properly copy rotation from their source widget, maintaining the same rotation angle
+  - **Smart Offset**: Cloned widgets are positioned with an intelligent offset (right and down) from their source - at least 80px or 30% of widget dimensions, whichever is larger
+- **Technical Fixes**:
+  - Fixed JavaScript syntax errors in cloneWidget function (missing closing braces)
+  - Fixed WIDGET_CONFIG reference errors in styling.js by adding proper safety checks
+  - Improved layout saving to use style values instead of getBoundingClientRect for accurate position tracking, especially for rotated widgets
+
 ### Version 2.4
 - **Widget Rotation**: Added rotation support for Blank/Clip Art widget with 15-degree snapping and visual rotate handle in Edit Mode
 - **Z-index Controls**: Moved z-index controls (Bring Forward, Send Backward, Bring to Front, Send to Back) from side panel to individual widget headers, visible in Edit Mode

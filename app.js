@@ -7611,7 +7611,7 @@ function exportConfiguration() {
     const currentPage = parseInt(localStorage.getItem('dakboard-current-page')) || 0;
     
     const config = {
-      version: '2.4', // Updated: Added widget rotation support (15-degree snapping) for Blank/Clip Art widget. Removed OpenClipart integration (API unstable). Clip Art widget now supports emoji selector and Pixabay API integration only. Z-index controls moved to widget headers in Edit Mode.
+      version: '2.5', // Updated: Comprehensive widget cloning improvements - Fixed persistence issues, immediate drag/resize initialization, proper source widget offset positioning, rotation copying, visibility defaults, and resolved syntax/reference errors.
       exportDate: new Date().toISOString(),
       metadata: {
         totalPages: totalPages,
