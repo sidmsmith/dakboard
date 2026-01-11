@@ -1696,9 +1696,7 @@ function attachTabEventListeners(tabName) {
       }
       
       // Scoreboard configuration
-      const parsed = typeof parseWidgetId !== 'undefined' && currentWidgetId ? parseWidgetId(currentWidgetId) : { widgetType: currentWidgetId || '', pageIndex: 0, instanceIndex: 0, isLegacy: true };
-      const currentWidgetType = parsed.widgetType;
-      if (currentWidgetType === 'scoreboard-widget') {
+      if (widgetType === 'scoreboard-widget') {
         // Target score
         const targetScoreInput = stylingModal.querySelector('#scoreboard-target-score');
         if (targetScoreInput) {
