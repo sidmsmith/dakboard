@@ -5487,12 +5487,12 @@ function drawAnnotationLine(x1, y1, x2, y2) {
     case 'highlighter':
       annotationCtx.globalCompositeOperation = 'source-over';
       annotationCtx.strokeStyle = annotationState.currentColor;
-      annotationCtx.globalAlpha = 1.0;
+      annotationCtx.globalAlpha = 0.3;
       break;
     case 'paintbrush':
-      annotationCtx.globalCompositeOperation = 'source-over';
+      annotationCtx.globalCompositeOperation = 'multiply';
       annotationCtx.strokeStyle = annotationState.currentColor;
-      annotationCtx.globalAlpha = 0.7;
+      annotationCtx.globalAlpha = 0.8;
       break;
     case 'eraser':
       annotationCtx.globalCompositeOperation = 'destination-out';
