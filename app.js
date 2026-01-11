@@ -5453,6 +5453,9 @@ function startAnnotationDrawingTouch(e) {
   const rect = annotationCanvas.getBoundingClientRect();
   annotationState.lastX = touch.clientX - rect.left;
   annotationState.lastY = touch.clientY - rect.top;
+  
+  // Draw a dot at the start point to ensure coverage when drawing slowly
+  drawAnnotationDot(annotationState.lastX, annotationState.lastY);
 }
 
 function drawAnnotationTouch(e) {
@@ -5487,12 +5490,12 @@ function drawAnnotationLine(x1, y1, x2, y2) {
     case 'highlighter':
       annotationCtx.globalCompositeOperation = 'source-over';
       annotationCtx.strokeStyle = annotationState.currentColor;
-      annotationCtx.globalAlpha = 0.3;
+      annotationCtx.globalAlpha = 0.15;
       break;
     case 'paintbrush':
-      annotationCtx.globalCompositeOperation = 'multiply';
+      annotationCtx.globalCompositeOperation = 'source-over';
       annotationCtx.strokeStyle = annotationState.currentColor;
-      annotationCtx.globalAlpha = 0.8;
+      annotationCtx.globalAlpha = 0.85;
       break;
     case 'eraser':
       annotationCtx.globalCompositeOperation = 'destination-out';
