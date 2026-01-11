@@ -5419,6 +5419,9 @@ function startAnnotationDrawing(e) {
   const rect = annotationCanvas.getBoundingClientRect();
   annotationState.lastX = e.clientX - rect.left;
   annotationState.lastY = e.clientY - rect.top;
+  
+  // Draw a dot at the start point to ensure coverage when drawing slowly
+  drawAnnotationDot(annotationState.lastX, annotationState.lastY);
 }
 
 // Draw
@@ -5471,6 +5474,42 @@ function drawAnnotationTouch(e) {
   
   annotationState.lastX = currentX;
   annotationState.lastY = currentY;
+}
+
+// Draw a dot at a point (for smooth drawing)
+function drawAnnotationDot(x, y) {
+  if (!annotationCtx) return;
+  
+  annotationCtx.lineCap = 'round';
+  annotationCtx.lineJoin = 'round';
+  annotationCtx.lineWidth = annotationState.brushSize;
+  
+  switch (annotationState.currentTool) {
+    case 'pen':
+      annotationCtx.globalCompositeOperation = 'source-over';
+      annotationCtx.fillStyle = annotationState.currentColor;
+      annotationCtx.globalAlpha = 1.0;
+      break;
+    case 'highlighter':
+      annotationCtx.globalCompositeOperation = 'source-over';
+      annotationCtx.fillStyle = annotationState.currentColor;
+      annotationCtx.globalAlpha = 0.15;
+      break;
+    case 'paintbrush':
+      annotationCtx.globalCompositeOperation = 'source-over';
+      annotationCtx.fillStyle = annotationState.currentColor;
+      annotationCtx.globalAlpha = 0.85;
+      break;
+    case 'eraser':
+      annotationCtx.globalCompositeOperation = 'destination-out';
+      annotationCtx.fillStyle = 'rgba(0,0,0,1)';
+      annotationCtx.globalAlpha = 1.0;
+      break;
+  }
+  
+  annotationCtx.beginPath();
+  annotationCtx.arc(x, y, annotationState.brushSize / 2, 0, Math.PI * 2);
+  annotationCtx.fill();
 }
 
 // Draw a line based on current tool
