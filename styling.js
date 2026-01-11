@@ -4382,6 +4382,10 @@ function loadWidgetStyles(fullWidgetId) {
   
   if (saved) {
     currentStyles = JSON.parse(saved);
+    // Remove scoreboardConfig from widget styles - it's stored separately
+    if (widgetType === 'scoreboard-widget' && currentStyles.scoreboardConfig) {
+      delete currentStyles.scoreboardConfig;
+    }
     if (widgetType === 'clock-widget') {
       console.log('Parsed currentStyles:', JSON.stringify(currentStyles, null, 2));
       console.log('Background type:', currentStyles.backgroundType);
