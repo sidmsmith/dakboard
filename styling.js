@@ -1696,7 +1696,9 @@ function attachTabEventListeners(tabName) {
       }
       
       // Scoreboard configuration
-      if (currentWidgetId === 'scoreboard-widget') {
+      const parsed = typeof parseWidgetId !== 'undefined' && currentWidgetId ? parseWidgetId(currentWidgetId) : { widgetType: currentWidgetId || '', pageIndex: 0, instanceIndex: 0, isLegacy: true };
+      const currentWidgetType = parsed.widgetType;
+      if (currentWidgetType === 'scoreboard-widget') {
         // Target score
         const targetScoreInput = stylingModal.querySelector('#scoreboard-target-score');
         if (targetScoreInput) {
@@ -1728,6 +1730,9 @@ function attachTabEventListeners(tabName) {
         // (must be after drag setup because drag setup clones elements)
         setupScoreboardTeamListeners();
         updateRemoveButtonsVisibility();
+        
+        // Update config from form to ensure preview shows correct data
+        updateScoreboardConfig();
       }
       
       // Clip art widget controls
