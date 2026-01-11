@@ -3269,6 +3269,20 @@ function applyStyles() {
   // Save styles for current widget
   saveStyles();
   
+  // Handle scoreboard widget: save config and reload widget
+  const parsed = typeof parseWidgetId !== 'undefined' && currentWidgetId ? parseWidgetId(currentWidgetId) : { widgetType: currentWidgetId || '', pageIndex: 0, instanceIndex: 0, isLegacy: true };
+  const widgetType = parsed.widgetType;
+  if (widgetType === 'scoreboard-widget' && currentStyles.scoreboardConfig) {
+    // Save scoreboard config to localStorage
+    const configKey = `dakboard-scoreboard-config-${currentWidgetId}`;
+    localStorage.setItem(configKey, JSON.stringify(currentStyles.scoreboardConfig));
+    
+    // Reload the scoreboard widget to apply the new config
+    if (typeof loadScoreboard === 'function') {
+      setTimeout(() => loadScoreboard(), 50);
+    }
+  }
+  
   // Close modal
   closeStylingModal();
 }
@@ -3562,6 +3576,14 @@ function updateCurrentStylesFromForm() {
   // Remove blankTextBold if it exists (legacy)
   if (currentStyles.blankTextBold !== undefined) {
     delete currentStyles.blankTextBold;
+  }
+  
+  // Scoreboard configuration
+  const parsed = typeof parseWidgetId !== 'undefined' && currentWidgetId ? parseWidgetId(currentWidgetId) : { widgetType: currentWidgetId || '', pageIndex: 0, instanceIndex: 0, isLegacy: true };
+  const widgetType = parsed.widgetType;
+  if (widgetType === 'scoreboard-widget') {
+    // Update scoreboard config from form (ensures latest values are captured)
+    updateScoreboardConfig();
   }
   
 }
