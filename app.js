@@ -133,7 +133,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 500);
   }
   
-  loadAllData();
+  // Load data for current page first
+  loadAllData().then(() => {
+    // After current page loads, preload all other pages
+    const savedTotalPages = parseInt(localStorage.getItem('dakboard-total-pages')) || 1;
+    
+    // Preload other pages sequentially to avoid overwhelming the system
+    // Load adjacent pages first (before and after current page), then others
+    const sortedPages = [];
+    
+    // Add pages before current (in reverse order)
+    for (let i = currentPageIndex - 1; i >= 0; i--) {
+      sortedPages.push(i);
+    }
+    
+    // Add pages after current (in order)
+    for (let i = currentPageIndex + 1; i < savedTotalPages; i++) {
+      sortedPages.push(i);
+    }
+    
+    // Load pages sequentially (one at a time to avoid overwhelming APIs)
+    async function preloadNextPage() {
+      if (sortedPages.length === 0) return;
+      const pageIndex = sortedPages.shift();
+      await loadDataForPage(pageIndex);
+      // Use a small delay between pages to avoid overwhelming the system
+      setTimeout(preloadNextPage, 100);
+    }
+    
+    if (sortedPages.length > 0) {
+      preloadNextPage();
+    }
+  });
+  
   startAutoRefresh();
 });
 
@@ -1444,6 +1476,27 @@ async function loadAllData() {
     ]);
   } catch (error) {
     console.error('Error loading dashboard data:', error);
+  }
+}
+
+// Load widget data for a specific page index
+async function loadDataForPage(pageIndex) {
+  // Save current page index
+  const originalPageIndex = currentPageIndex;
+  
+  try {
+    // Temporarily set currentPageIndex to the target page
+    currentPageIndex = pageIndex;
+    window.currentPageIndex = pageIndex;
+    
+    // Load all data for this page
+    await loadAllData();
+  } catch (error) {
+    console.error(`Error loading data for page ${pageIndex}:`, error);
+  } finally {
+    // Restore original page index
+    currentPageIndex = originalPageIndex;
+    window.currentPageIndex = originalPageIndex;
   }
 }
 
