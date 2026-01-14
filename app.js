@@ -1472,7 +1472,8 @@ async function loadAllData() {
       loadThermostat(), // Load thermostat
       loadNews(), // Load news feed
       initializeWhiteboard(), // Initialize whiteboard
-      loadCalendarEvents() // Reload calendar events on refresh
+      loadCalendarEvents(), // Reload calendar events on refresh
+      loadAgenda() // Load agenda widget
     ]);
   } catch (error) {
     console.error('Error loading dashboard data:', error);
@@ -3821,6 +3822,10 @@ function loadClipArt() {
 // Stoplight state management
 let stoplightStates = new Map(); // Track state per widget instance: { activeLight: 'red'|'amber'|'green'|null }
 
+// Agenda widget state management
+let agendaDates = new Map(); // Track current date per widget instance: Date object
+let agendaMidnightCheckInterval = null; // Interval for checking midnight
+
 // Load and initialize stoplight widgets
 function loadStoplight() {
   const stoplightWidgets = document.querySelectorAll('.stoplight-widget');
@@ -4274,6 +4279,257 @@ function updateThermostatControlStyles(widget) {
   widget.style.setProperty('--thermostat-hover-bg', widget.style.getPropertyValue('--widget-hover-bg'));
   widget.style.setProperty('--thermostat-text-primary', widget.style.getPropertyValue('--widget-text-primary'));
   widget.style.setProperty('--thermostat-text-secondary', widget.style.getPropertyValue('--widget-text-secondary'));
+}
+
+// Load and initialize agenda widgets
+function loadAgenda() {
+  // Get all agenda widget instances on the current page
+  const pageElement = getPageElement(currentPageIndex);
+  if (!pageElement) return;
+  
+  const instances = getWidgetInstances('agenda-widget', currentPageIndex);
+  
+  if (instances.length === 0) return;
+  
+  // Initialize midnight check if not already running
+  if (!agendaMidnightCheckInterval) {
+    initializeAgendaMidnightCheck();
+  }
+  
+  instances.forEach(instance => {
+    const widget = instance.element;
+    if (!widget || widget.classList.contains('hidden')) return;
+    
+    let container = widget.querySelector('.agenda-content');
+    if (!container) {
+      // Create container if it doesn't exist
+      container = document.createElement('div');
+      container.className = 'agenda-content';
+      widget.appendChild(container);
+    }
+    
+    const fullWidgetId = instance.id;
+    
+    // Initialize date to today if not set
+    if (!agendaDates.has(fullWidgetId)) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      agendaDates.set(fullWidgetId, today);
+    }
+    
+    // Render the agenda
+    renderAgenda(fullWidgetId, container);
+    
+    // Set up navigation buttons
+    setupAgendaNavigation(fullWidgetId, container);
+  });
+}
+
+// Render agenda for a specific widget instance
+function renderAgenda(widgetId, container) {
+  const date = agendaDates.get(widgetId);
+  if (!date) return;
+  
+  // Get events for this date (reuse calendarEvents array)
+  const dayStart = new Date(date);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(date);
+  dayEnd.setHours(23, 59, 59, 999);
+  
+  const dayEvents = calendarEvents.filter(event => {
+    const eventStart = new Date(event.start);
+    const eventEnd = new Date(event.end || event.start);
+    
+    // For all-day events, check if the day falls within the event's date range (ignoring time)
+    if (event.allDay) {
+      const parseDateString = (dateStr) => {
+        const datePart = dateStr.split('T')[0];
+        const parts = datePart.split('-');
+        return {
+          year: parseInt(parts[0], 10),
+          month: parseInt(parts[1], 10) - 1,
+          day: parseInt(parts[2], 10)
+        };
+      };
+      
+      const eventStartParts = parseDateString(event.start);
+      const eventEndParts = parseDateString(event.end || event.start);
+      
+      const eventEndDateObj = new Date(eventEndParts.year, eventEndParts.month, eventEndParts.day);
+      eventEndDateObj.setDate(eventEndDateObj.getDate() - 1);
+      
+      const currentYear = date.getFullYear();
+      const currentMonth = date.getMonth();
+      const currentDay = date.getDate();
+      const currentDateObj = new Date(currentYear, currentMonth, currentDay);
+      
+      const eventStartDateObj = new Date(eventStartParts.year, eventStartParts.month, eventStartParts.day);
+      
+      return (currentDateObj >= eventStartDateObj && currentDateObj <= eventEndDateObj);
+    } else {
+      return (eventStart <= dayEnd && eventEnd >= dayStart);
+    }
+  });
+  
+  // Sort events by start time
+  const sortedEvents = [...dayEvents].sort((a, b) => {
+    return new Date(a.start) - new Date(b.start);
+  });
+  
+  // Format date for display
+  const dateStr = date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+  
+  // Build agenda HTML
+  let agendaHTML = `<div class="agenda-date-header">${dateStr}</div>`;
+  
+  if (sortedEvents.length === 0) {
+    agendaHTML += '<div class="agenda-empty">No events scheduled for this day.</div>';
+  } else {
+    sortedEvents.forEach(event => {
+      const eventStart = new Date(event.start);
+      const eventEnd = new Date(event.end || event.start);
+      
+      // Format time
+      let timeStr = '';
+      if (event.allDay) {
+        timeStr = 'All Day';
+      } else {
+        const startTime = eventStart.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+        const endTime = eventEnd.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+        timeStr = `${startTime} - ${endTime}`;
+      }
+      
+      agendaHTML += `
+        <div class="agenda-event" data-event-id="${event.uid || ''}">
+          <div class="agenda-event-time">${timeStr}</div>
+          <div class="agenda-event-content">
+            <div class="agenda-event-title">${event.title || 'Untitled Event'}</div>
+            ${event.location ? `<div class="agenda-event-location">📍 ${event.location}</div>` : ''}
+            ${event.description ? `<div class="agenda-event-description">${event.description.replace(/<[^>]*>/g, '').replace(/\[CAUTION:.*?\]/g, '').trim()}</div>` : ''}
+          </div>
+        </div>
+      `;
+    });
+  }
+  
+  container.innerHTML = agendaHTML;
+  
+  // Add click handlers to events to show details
+  container.querySelectorAll('.agenda-event').forEach(eventEl => {
+    eventEl.style.cursor = 'pointer';
+    eventEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!isEditMode) {
+        const eventId = eventEl.dataset.eventId;
+        const event = sortedEvents.find(e => (e.uid || '') === eventId);
+        if (event) {
+          showEventDetails(event);
+        }
+      }
+    });
+  });
+}
+
+// Set up navigation buttons for agenda widget
+function setupAgendaNavigation(widgetId, container) {
+  const widget = container.closest('.agenda-widget');
+  if (!widget) return;
+  
+  // Find or create navigation buttons
+  let navContainer = widget.querySelector('.agenda-nav');
+  if (!navContainer) {
+    navContainer = document.createElement('div');
+    navContainer.className = 'agenda-nav';
+    widget.insertBefore(navContainer, container);
+  }
+  
+  // Clear existing buttons
+  navContainer.innerHTML = '';
+  
+  // Create previous day button
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'agenda-nav-btn agenda-prev-day';
+  prevBtn.textContent = '← Previous Day';
+  prevBtn.title = 'Previous Day';
+  
+  // Create next day button
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'agenda-nav-btn agenda-next-day';
+  nextBtn.textContent = 'Next Day →';
+  nextBtn.title = 'Next Day';
+  
+  // Add event listeners
+  prevBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!isEditMode) {
+      const currentDate = agendaDates.get(widgetId);
+      if (currentDate) {
+        const newDate = new Date(currentDate);
+        newDate.setDate(newDate.getDate() - 1);
+        agendaDates.set(widgetId, newDate);
+        renderAgenda(widgetId, container);
+      }
+    }
+  });
+  
+  nextBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!isEditMode) {
+      const currentDate = agendaDates.get(widgetId);
+      if (currentDate) {
+        const newDate = new Date(currentDate);
+        newDate.setDate(newDate.getDate() + 1);
+        agendaDates.set(widgetId, newDate);
+        renderAgenda(widgetId, container);
+      }
+    }
+  });
+  
+  navContainer.appendChild(prevBtn);
+  navContainer.appendChild(nextBtn);
+}
+
+// Initialize midnight check for agenda widgets
+function initializeAgendaMidnightCheck() {
+  // Check every minute for midnight
+  agendaMidnightCheckInterval = setInterval(() => {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    
+    // Check if we just passed midnight (between 00:00 and 00:01)
+    if (hours === 0 && minutes === 0) {
+      // Reset all agenda widgets to today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      agendaDates.forEach((date, widgetId) => {
+        agendaDates.set(widgetId, today);
+        
+        // Find and re-render the widget
+        const widget = document.querySelector(`.${widgetId}`);
+        if (widget) {
+          const container = widget.querySelector('.agenda-content');
+          if (container) {
+            renderAgenda(widgetId, container);
+          }
+        }
+      });
+    }
+  }, 60000); // Check every minute
 }
 
 // Load thermostat data
@@ -5751,6 +6007,7 @@ function initializeAnnotationListeners() {
 // Widget Visibility Management
 const WIDGET_CONFIG = {
   'calendar-widget': { name: 'Calendar', icon: '📅' },
+  'agenda-widget': { name: 'Agenda', icon: '📋' },
   'weather-widget': { name: 'Weather', icon: '🌤️' },
   'todo-widget': { name: 'Todo List', icon: '✅' },
   'garage-widget': { name: 'Garage Doors', icon: '🚗' },
@@ -6188,6 +6445,8 @@ function toggleWidgetVisibility(fullWidgetId) {
         loadNews();
       } else if (widgetType === 'calendar-widget') {
         loadCalendarEvents();
+      } else if (widgetType === 'agenda-widget') {
+        loadAgenda();
       } else if (widgetType === 'blank-widget') {
         // Blank widget doesn't need special loading
       }
