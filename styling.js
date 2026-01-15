@@ -4962,44 +4962,7 @@ function saveStyles() {
     console.log(`[saveStyles] START - widgetId: ${currentWidgetId}, storageKey: ${storageKey}`);
     console.log(`[saveStyles] currentStyles object:`, currentStyles);
     
-    // Debug logging for agenda widgets
-    const parsed = typeof parseWidgetId !== 'undefined' ? parseWidgetId(currentWidgetId) : { widgetType: currentWidgetId || '', pageIndex: 0, instanceIndex: 0, isLegacy: true };
-    if (parsed.widgetType === 'agenda-widget') {
-      console.log(`[saveStyles] AGENDA WIDGET - Saving agenda widget styles`);
-      console.log(`[saveStyles] Agenda card styles in currentStyles:`, {
-        agendaCardBackground: currentStyles.agendaCardBackground,
-        agendaCardBorder: currentStyles.agendaCardBorder,
-        agendaCardBorderRadius: currentStyles.agendaCardBorderRadius,
-        agendaCardBorderWidth: currentStyles.agendaCardBorderWidth,
-        agendaCardShadow: currentStyles.agendaCardShadow,
-        agendaCardHoverBorder: currentStyles.agendaCardHoverBorder
-      });
-    }
-    
     localStorage.setItem(storageKey, JSON.stringify(currentStyles));
-    
-    // Verify it was saved
-    const verify = localStorage.getItem(storageKey);
-    if (verify) {
-      const verifyParsed = JSON.parse(verify);
-      console.log(`[saveStyles] VERIFIED - Styles saved successfully`);
-      if (parsed.widgetType === 'agenda-widget') {
-        console.log(`[saveStyles] Verified agenda card styles in localStorage:`, {
-          agendaCardBackground: verifyParsed.agendaCardBackground,
-          agendaCardBorder: verifyParsed.agendaCardBorder,
-          agendaCardBorderRadius: verifyParsed.agendaCardBorderRadius,
-          agendaCardBorderWidth: verifyParsed.agendaCardBorderWidth,
-          agendaCardShadow: verifyParsed.agendaCardShadow,
-          agendaCardHoverBorder: verifyParsed.agendaCardHoverBorder
-        });
-      }
-    } else {
-      console.error(`[saveStyles] ERROR - Styles were NOT saved to localStorage!`);
-    }
-    
-    console.log(`[saveStyles] END - widgetId: ${currentWidgetId}`);
-  } else {
-    console.error(`[saveStyles] ERROR - currentWidgetId is null/undefined!`);
   }
 }
 
