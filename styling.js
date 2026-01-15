@@ -4606,6 +4606,12 @@ function saveTheme() {
 
 // Load widget styles (page-specific)
 function loadWidgetStyles(fullWidgetId) {
+  // Ensure we clear any previous styles to avoid mixing data from different widgets
+  // Only clear if we're loading a different widget
+  if (fullWidgetId && fullWidgetId !== currentWidgetId) {
+    currentStyles = {};
+  }
+  
   // Parse instance ID to get widget type
   const parsed = typeof parseWidgetId !== 'undefined' ? parseWidgetId(fullWidgetId) : { widgetType: fullWidgetId, pageIndex: 0, instanceIndex: 0, isLegacy: true };
   const widgetType = parsed.widgetType;
@@ -4616,11 +4622,30 @@ function loadWidgetStyles(fullWidgetId) {
   // Format: dakboard-widget-styles-{widgetType}-page-{pageIndex}-instance-{instanceIndex}
   const storageKey = `dakboard-widget-styles-${fullWidgetId}`;
   
-  // DEBUG: Log for clock widget only
+  // DEBUG: Log for agenda widget to verify correct widget ID is being used
+  if (widgetType === 'agenda-widget') {
+    console.log(`loadWidgetStyles: Loading styles for agenda widget ID: ${fullWidgetId}`);
+    console.log(`loadWidgetStyles: Storage key: ${storageKey}`);
+  }
+  
   const saved = localStorage.getItem(storageKey);
   
   if (saved) {
-    currentStyles = JSON.parse(saved);
+    // Parse and create a fresh copy to avoid reference issues
+    const parsedStyles = JSON.parse(saved);
+    currentStyles = { ...parsedStyles }; // Create a copy to ensure we have a fresh object
+    
+    // DEBUG: Log for agenda widget to verify styles are loaded correctly
+    if (widgetType === 'agenda-widget') {
+      console.log(`loadWidgetStyles: Loaded agenda card styles:`, {
+        background: currentStyles.agendaCardBackground,
+        border: currentStyles.agendaCardBorder,
+        borderRadius: currentStyles.agendaCardBorderRadius,
+        borderWidth: currentStyles.agendaCardBorderWidth,
+        shadow: currentStyles.agendaCardShadow,
+        hoverBorder: currentStyles.agendaCardHoverBorder
+      });
+    }
     // Remove scoreboardConfig from widget styles - it's stored separately
     if (widgetType === 'scoreboard-widget' && currentStyles.scoreboardConfig) {
       delete currentStyles.scoreboardConfig;
