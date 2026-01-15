@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agenda Widget - Card Design Samples</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+      padding: 40px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+      color: #4a90e2;
+    }
+
+    .subtitle {
+      color: #aaa;
+      margin-bottom: 40px;
+      font-size: 16px;
+    }
+
+    .design-section {
+      margin-bottom: 60px;
+    }
+
+    .section-title {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #fff;
+      border-bottom: 2px solid #4a90e2;
+      padding-bottom: 10px;
+    }
+
+    .sample-widget {
+      background: #2a2a2a;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .widget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #3a3a3a;
+    }
+
+    .widget-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .agenda-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 10px;
+    }
+
+    .agenda-nav-btn {
+      background: #3a3a3a;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .agenda-nav-btn:hover {
+      background: #4a4a4a;
+    }
+
+    .agenda-date-header {
+      font-size: 16px;
+      font-weight: 600;
+      color: #aaa;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .agenda-content {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Design 1: Minimal Rounded Cards */
+    .design-1 .agenda-event {
+      background: #353535;
+      border-radius: 8px;
+      padding: 16px;
+      border-left: 4px solid #4a90e2;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+
+    .design-1 .agenda-event:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .design-1 .agenda-event-time {
+      font-size: 14px;
+      color: #4a90e2;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .design-1 .agenda-event-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .design-1 .agenda-event-location {
+      font-size: 14px;
+      color: #aaa;
+      margin-top: 4px;
+    }
+
+    /* Design 2: Elevated Cards with Shadow */
+    .design-2 .agenda-event {
+      background: #353535;
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      border: 1px solid #404040;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+
+    .design-2 .agenda-event:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+      border-color: #4a90e2;
+    }
+
+    .design-2 .agenda-event-time {
+      font-size: 13px;
+      color: #aaa;
+      font-weight: 500;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .design-2 .agenda-event-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .design-2 .agenda-event-location {
+      font-size: 14px;
+      color: #aaa;
+      margin-top: 6px;
+    }
+
+    /* Design 3: Colored Border Cards */
+    .design-3 .agenda-event {
+      background: #353535;
+      border-radius: 8px;
+      padding: 16px;
+      border: 2px solid #4a90e2;
+      transition: all 0.2s;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .design-3 .agenda-event::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: #4a90e2;
+    }
+
+    .design-3 .agenda-event:hover {
+      background: #3a3a3a;
+      border-color: #5ba0f2;
+      transform: translateX(4px);
+    }
+
+    .design-3 .agenda-event-time {
+      font-size: 14px;
+      color: #4a90e2;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .design-3 .agenda-event-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .design-3 .agenda-event-location {
+      font-size: 14px;
+      color: #aaa;
+      margin-top: 4px;
+    }
+
+    /* Design 4: Gradient Cards */
+    .design-4 .agenda-event {
+      background: linear-gradient(135deg, #353535 0%, #2a2a2a 100%);
+      border-radius: 10px;
+      padding: 18px;
+      border: 1px solid rgba(74, 144, 226, 0.2);
+      transition: all 0.2s;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .design-4 .agenda-event::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #4a90e2, #5ba0f2);
+      border-radius: 10px 10px 0 0;
+    }
+
+    .design-4 .agenda-event:hover {
+      background: linear-gradient(135deg, #3a3a3a 0%, #2f2f2f 100%);
+      border-color: rgba(74, 144, 226, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+    }
+
+    .design-4 .agenda-event-time {
+      font-size: 14px;
+      color: #4a90e2;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .design-4 .agenda-event-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .design-4 .agenda-event-location {
+      font-size: 14px;
+      color: #aaa;
+      margin-top: 6px;
+    }
+
+    /* Design 5: Compact Side-by-Side */
+    .design-5 .agenda-event {
+      background: #353535;
+      border-radius: 8px;
+      padding: 14px 18px;
+      border-left: 4px solid #4a90e2;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .design-5 .agenda-event:hover {
+      background: #3a3a3a;
+      transform: translateX(4px);
+    }
+
+    .design-5 .agenda-event-time {
+      font-size: 14px;
+      color: #4a90e2;
+      font-weight: 600;
+      min-width: 100px;
+      text-align: right;
+    }
+
+    .design-5 .agenda-event-content {
+      flex: 1;
+    }
+
+    .design-5 .agenda-event-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .design-5 .agenda-event-location {
+      font-size: 13px;
+      color: #aaa;
+    }
+
+    /* Design 6: Glassmorphism Style */
+    .design-6 .agenda-event {
+      background: rgba(53, 53, 53, 0.6);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .design-6 .agenda-event:hover {
+      background: rgba(58, 58, 58, 0.8);
+      border-color: rgba(74, 144, 226, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .design-6 .agenda-event-time {
+      font-size: 13px;
+      color: #4a90e2;
+      font-weight: 600;
+      margin-bottom: 10px;
+      opacity: 0.9;
+    }
+
+    .design-6 .agenda-event-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .design-6 .agenda-event-location {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: 6px;
+    }
+
+    /* Design 7: Timeline Style */
+    .design-7 .agenda-event {
+      background: #353535;
+      border-radius: 8px;
+      padding: 16px 20px 16px 40px;
+      position: relative;
+      margin-left: 20px;
+      transition: all 0.2s;
+      cursor: pointer;
+      border-left: 3px solid #4a90e2;
+    }
+
+    .design-7 .agenda-event::before {
+      content: '';
+      position: absolute;
+      left: -8px;
+      top: 20px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #4a90e2;
+      border: 3px solid #2a2a2a;
+    }
+
+    .design-7 .agenda-event:hover {
+      background: #3a3a3a;
+      transform: translateX(4px);
+      border-left-color: #5ba0f2;
+    }
+
+    .design-7 .agenda-event-time {
+      font-size: 14px;
+      color: #4a90e2;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .design-7 .agenda-event-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .design-7 .agenda-event-location {
+      font-size: 14px;
+      color: #aaa;
+      margin-top: 4px;
+    }
+
+    /* Design 8: Modern Card with Icon */
+    .design-8 .agenda-event {
+      background: #353535;
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      gap: 12px;
+      border: 1px solid #404040;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .design-8 .agenda-event:hover {
+      background: #3a3a3a;
+      border-color: #4a90e2;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .design-8 .agenda-event-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #4a90e2, #5ba0f2);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .design-8 .agenda-event-content {
+      flex: 1;
+    }
+
+    .design-8 .agenda-event-time {
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .design-8 .agenda-event-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .design-8 .agenda-event-location {
+      font-size: 14px;
+      color: #aaa;
+      margin-top: 4px;
+    }
+
+    .agenda-empty {
+      text-align: center;
+      color: #666;
+      padding: 40px 20px;
+      font-size: 16px;
+    }
+
+    .description {
+      background: #252525;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      color: #aaa;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .description strong {
+      color: #4a90e2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📋 Agenda Widget - Card Design Samples</h1>
+    <p class="subtitle">Choose your favorite design style for the agenda events</p>
+
+    <!-- Design 1 -->
+    <div class="design-section">
+      <h2 class="section-title">Design 1: Minimal Rounded Cards</h2>
+      <div class="description">
+        <strong>Style:</strong> Clean and minimal with rounded corners, left border accent, subtle hover effect
+      </div>
+      <div class="sample-widget design-1">
+        <div class="widget-header">
+          <div class="widget-title">📋 Agenda</div>
+        </div>
+        <div class="agenda-nav">
+          <button class="agenda-nav-btn">← Previous Day</button>
+          <span class="agenda-date-header">Monday, January 15, 2024</span>
+          <button class="agenda-nav-btn">Next Day →</button>
+        </div>
+        <div class="agenda-content">
+          <div class="agenda-event">
+            <div class="agenda-event-time">9:00 AM - 10:30 AM</div>
+            <div class="agenda-event-title">Team Meeting</div>
+            <div class="agenda-event-location">📍 Conference Room A</div>
+          </div>
+          <div class="agenda-event">
+            <div class="agenda-event-time">All Day</div>
+            <div class="agenda-event-title">Project Deadline</div>
+            <div class="agenda-event-location">📍 Remote</div>
+          </div>
+          <div class="agenda-event">
+            <div class="agenda-event-time">2:00 PM - 3:00 PM</div>
+            <div class="agenda-event-title">Client Presentation</div>
+            <div class="agenda-event-location">📍 Main Office</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design 2 -->
+    <div class="design-section">
+      <h2 class="section-title">Design 2: Elevated Cards with Shadow</h2>
+      <div class="description">
+        <strong>Style:</strong> Elevated appearance with shadow, hover lift effect, uppercase time labels
+      </div>
+      <div class="sample-widget design-2">
+        <div class="widget-header">
+          <div class="widget-title">📋 Agenda</div>
+        </div>
+        <div class="agenda-nav">
+          <button class="agenda-nav-btn">← Previous Day</button>
+          <span class="agenda-date-header">Monday, January 15, 2024</span>
+          <button class="agenda-nav-btn">Next Day →</button>
+        </div>
+        <div class="agenda-content">
+          <div class="agenda-event">
+            <div class="agenda-event-time">9:00 AM - 10:30 AM</div>
+            <div class="agenda-event-title">Team Meeting</div>
+            <div class="agenda-event-location">📍 Conference Room A</div>
+          </div>
+          <div class="agenda-event">
+            <div class="agenda-event-time">All Day</div>
+            <div class="agenda-event-title">Project Deadline</div>
+            <div class="agenda-event-location">📍 Remote</div>
+          </div>
+          <div class="agenda-event">
+            <div class="agenda-event-time">2:00 PM - 3:00 PM</div>
+            <div class="agenda-event-title">Client Presentation</div>
+            <div class="agenda-event-location">📍 Main Office</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design 3 -->
+    <div class="design-section">
+      <h2 class="section-title">Design 3: Colored Border Cards</h2>
+      <div class="description">
+        <strong>Style:</strong> Colored border with left accent stripe, slide-on-hover effect
+      </div>
+      <div class="sample-widget design-3">
+        <div class="widget-header">
+          <div class="widget-title">📋 Agenda</div>
+        </div>
+        <div class="agenda-nav">
+          <button class="agenda-nav-btn">← Previous Day</button>
+          <span class="agenda-date-header">Monday, January 15, 2024</span>
+          <button class="agenda-nav-btn">Next Day →</button>
+        </div>
+        <div class="agenda-content">
+          <div class="agenda-event">
+            <div class="agenda-event-time">9:00 AM - 10:30 AM</div>
+            <div class="agenda-event-title">Team Meeting</div>
+            <div class="agenda-event-location">📍 Conference Room A</div>
+          </div>
+          <div class="agenda-event">
+            <div class="agenda-event-time">All Day</div>
+            <div class="agenda-event-title">Project Deadline</div>
+            <div class="agenda-event-location">📍 Remote</div>
+          </div>
+          <div class="agenda-event">
+            <div class="agenda-event-time">2:00 PM - 3:00 PM</div>
+            <div class="agenda-event-title">Client Presentation</div>
+            <div class="agenda-event-location">📍 Main Office</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design 4 -->
+    <div class="design-section">
+      <h2 class="section-title">Design 4: Gradient Cards</h2>
+      <div class="description">
+        <strong>Style:</strong> Gradient background with top accent bar, modern look
+      </div>
+      <div class="sample-widget design-4">
+        <div class="widget-header">
+          <div class="widget-title">📋 Agenda</div>
+        </div>
+        <div class="agenda-nav">
+          <button class="agenda-nav-btn">← Previous Day</button>
+          <span class="agenda-date-header">Monday, January 15, 2024</span>
+          <button class="agenda-nav-btn">Next Day →</button>
+        </div>
+        <div class="agenda-content">
+          <div class="agenda-event">
+            <div class="agenda-event-time">9:00 AM - 10:30 AM</div>
+            <div class="agenda-event-title">Team Meeting</div>
+            <div class="agenda-event-location">📍 Conference Room A</div>
+          </div>
+          <div class="agenda-event">
+            <div class="agenda-event-time">All Day</div>
+            <div class="agenda-event-title">Project Deadline</div>
+            <div class="agenda-event-location">📍 Remote</div>
+          </div>
+          <div class="agenda-event">
+            <div class="agenda-event-time">2:00 PM - 3:00 PM</div>
+            <div class="agenda-event-title">Client Presentation</div>
+            <div class="agenda-event-location">📍 Main Office</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design 5 -->
+    <div class="design-section">
+      <h2 class="section-title">Design 5: Compact Side-by-Side</h2>
+      <div class="description">
+        <strong>Style:</strong> Time on left, content on right, compact layout, efficient use of space
+      </div>
+      <div class="sample-widget design-5">
+        <div class="widget-header">
+          <div class="widget-title">📋 Agenda</div>
+        </div>
+        <div class="agenda-nav">
+          <button class="agenda-nav-btn">← Previous Day</button>
+          <span class="agenda-date-header">Monday, January 15, 2024</span>
+          <button class="agenda-nav-btn">Next Day →</button>
+        </div>
+        <div class="agenda-content">
+          <div class="agenda-event">
+            <div class="agenda-event-time">9:00 AM - 10:30 AM</div>
+            <div class="agenda-event-content">
+              <div class="agenda-event-title">Team Meeting</div>
+              <div class="agenda-event-location">📍 Conference Room A</div>
+            </div>
+          </div>
+          <div class="agenda-event">
+            <div class="agenda-event-time">All Day</div>
+            <div class="agenda-event-content">
+              <div class="agenda-event-title">Project Deadline</div>
+              <div class="agenda-event-location">📍 Remote</div>
+            </div>
+          </div>
+          <div class="agenda-event">
+            <div class="agenda-event-time">2:00 PM - 3:00 PM</div>
+            <div class="agenda-event-content">
+              <div class="agenda-event-title">Client Presentation</div>
+              <div class="agenda-event-location">📍 Main Office</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design 6 -->
+    <div class="design-section">
+      <h2 class="section-title">Design 6: Glassmorphism Style</h2>
+      <div class="description">
+        <strong>Style:</strong> Frosted glass effect with backdrop blur, modern translucent look
+      </div>
+      <div class="sample-widget design-6">
+        <div class="widget-header">
+          <div class="widget-title">📋 Agenda</div>
+        </div>
+        <div class="agenda-nav">
+          <button class="agenda-nav-btn">← Previous Day</button>
+          <span class="agenda-date-header">Monday, January 15, 2024</span>
+          <button class="agenda-nav-btn">Next Day →</button>
+        </div>
+        <div class="agenda-content">
+          <div class="agenda-event">
+            <div class="agenda-event-time">9:00 AM - 10:30 AM</div>
+            <div class="agenda-event-title">Team Meeting</div>
+            <div class="agenda-event-location">📍 Conference Room A</div>
+          </div>
+          <div class="agenda-event">
+            <div class="agenda-event-time">All Day</div>
+            <div class="agenda-event-title">Project Deadline</div>
+            <div class="agenda-event-location">📍 Remote</div>
+          </div>
+          <div class="agenda-event">
+            <div class="agenda-event-time">2:00 PM - 3:00 PM</div>
+            <div class="agenda-event-title">Client Presentation</div>
+            <div class="agenda-event-location">📍 Main Office</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design 7 -->
+    <div class="design-section">
+      <h2 class="section-title">Design 7: Timeline Style</h2>
+      <div class="description">
+        <strong>Style:</strong> Timeline with dot indicators, connected events, vertical flow
+      </div>
+      <div class="sample-widget design-7">
+        <div class="widget-header">
+          <div class="widget-title">📋 Agenda</div>
+        </div>
+        <div class="agenda-nav">
+          <button class="agenda-nav-btn">← Previous Day</button>
+          <span class="agenda-date-header">Monday, January 15, 2024</span>
+          <button class="agenda-nav-btn">Next Day →</button>
+        </div>
+        <div class="agenda-content">
+          <div class="agenda-event">
+            <div class="agenda-event-time">9:00 AM - 10:30 AM</div>
+            <div class="agenda-event-title">Team Meeting</div>
+            <div class="agenda-event-location">📍 Conference Room A</div>
+          </div>
+          <div class="agenda-event">
+            <div class="agenda-event-time">All Day</div>
+            <div class="agenda-event-title">Project Deadline</div>
+            <div class="agenda-event-location">📍 Remote</div>
+          </div>
+          <div class="agenda-event">
+            <div class="agenda-event-time">2:00 PM - 3:00 PM</div>
+            <div class="agenda-event-title">Client Presentation</div>
+            <div class="agenda-event-location">📍 Main Office</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design 8 -->
+    <div class="design-section">
+      <h2 class="section-title">Design 8: Modern Card with Icon</h2>
+      <div class="description">
+        <strong>Style:</strong> Icon badge on left, gradient icon background, spacious layout
+      </div>
+      <div class="sample-widget design-8">
+        <div class="widget-header">
+          <div class="widget-title">📋 Agenda</div>
+        </div>
+        <div class="agenda-nav">
+          <button class="agenda-nav-btn">← Previous Day</button>
+          <span class="agenda-date-header">Monday, January 15, 2024</span>
+          <button class="agenda-nav-btn">Next Day →</button>
+        </div>
+        <div class="agenda-content">
+          <div class="agenda-event">
+            <div class="agenda-event-icon">📅</div>
+            <div class="agenda-event-content">
+              <div class="agenda-event-time">9:00 AM - 10:30 AM</div>
+              <div class="agenda-event-title">Team Meeting</div>
+              <div class="agenda-event-location">📍 Conference Room A</div>
+            </div>
+          </div>
+          <div class="agenda-event">
+            <div class="agenda-event-icon">⭐</div>
+            <div class="agenda-event-content">
+              <div class="agenda-event-time">All Day</div>
+              <div class="agenda-event-title">Project Deadline</div>
+              <div class="agenda-event-location">📍 Remote</div>
+            </div>
+          </div>
+          <div class="agenda-event">
+            <div class="agenda-event-icon">📊</div>
+            <div class="agenda-event-content">
+              <div class="agenda-event-time">2:00 PM - 3:00 PM</div>
+              <div class="agenda-event-title">Client Presentation</div>
+              <div class="agenda-event-location">📍 Main Office</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
