@@ -4985,7 +4985,23 @@ function rgbaToHex(rgba) {
 function saveStyles() {
   if (currentWidgetId) {
     // Storage key: fullWidgetId already includes page index, so don't add it again
-    localStorage.setItem(`dakboard-widget-styles-${currentWidgetId}`, JSON.stringify(currentStyles));
+    const storageKey = `dakboard-widget-styles-${currentWidgetId}`;
+    localStorage.setItem(storageKey, JSON.stringify(currentStyles));
+    
+    // Debug logging for agenda widgets
+    const parsed = typeof parseWidgetId !== 'undefined' ? parseWidgetId(currentWidgetId) : { widgetType: currentWidgetId || '', pageIndex: 0, instanceIndex: 0, isLegacy: true };
+    if (parsed.widgetType === 'agenda-widget') {
+      console.log(`saveStyles: Saving agenda widget styles for ID: ${currentWidgetId}`);
+      console.log(`saveStyles: Storage key: ${storageKey}`);
+      console.log(`saveStyles: Agenda card styles:`, {
+        background: currentStyles.agendaCardBackground,
+        border: currentStyles.agendaCardBorder,
+        borderRadius: currentStyles.agendaCardBorderRadius,
+        borderWidth: currentStyles.agendaCardBorderWidth,
+        shadow: currentStyles.agendaCardShadow,
+        hoverBorder: currentStyles.agendaCardHoverBorder
+      });
+    }
   }
 }
 

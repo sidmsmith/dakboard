@@ -4412,9 +4412,16 @@ function renderAgenda(widgetId, container) {
           if (styles.agendaCardBorderWidth !== undefined) cardStyles.borderWidth = styles.agendaCardBorderWidth;
           if (styles.agendaCardShadow !== undefined) cardStyles.shadow = styles.agendaCardShadow;
           if (styles.agendaCardHoverBorder) cardStyles.hoverBorder = styles.agendaCardHoverBorder;
+          
+          // Debug logging
+          console.log(`renderAgenda: Loaded styles for widgetId: ${widgetId}`);
+          console.log(`renderAgenda: Storage key: ${storageKey}`);
+          console.log(`renderAgenda: Card styles:`, cardStyles);
         } catch (e) {
           console.error(`Error parsing widget styles for agenda cards (widgetId: ${widgetId}):`, e);
         }
+      } else {
+        console.log(`renderAgenda: No saved styles found for widgetId: ${widgetId}, using defaults`);
       }
     }
     
