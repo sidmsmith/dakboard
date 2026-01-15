@@ -3516,9 +3516,35 @@ function applyStyles() {
       loadScoreboard();
     }
   } else if (widgetType === 'agenda-widget') {
-    // Reload agenda widget to apply card styles
-    if (typeof loadAgenda === 'function') {
-      loadAgenda();
+    // Reload the specific agenda widget that was edited to apply card styles
+    // Use renderAgenda directly for the specific widget instead of reloading all
+    if (typeof renderAgenda === 'function' && currentWidgetId) {
+      const pageElement = getPageElement(currentPageIndex);
+      if (pageElement) {
+        const widget = pageElement.querySelector(`.${currentWidgetId}`);
+        if (widget) {
+          let container = widget.querySelector('.agenda-content');
+          if (container) {
+            // Render with the newly saved styles
+            renderAgenda(currentWidgetId, container);
+          } else {
+            // If container doesn't exist, call loadAgenda to initialize it
+            if (typeof loadAgenda === 'function') {
+              loadAgenda();
+            }
+          }
+        } else {
+          // Widget not found, reload all agenda widgets as fallback
+          if (typeof loadAgenda === 'function') {
+            loadAgenda();
+          }
+        }
+      }
+    } else {
+      // Fallback: reload all agenda widgets
+      if (typeof loadAgenda === 'function') {
+        loadAgenda();
+      }
     }
   }
   
