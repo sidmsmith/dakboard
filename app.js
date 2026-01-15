@@ -4425,30 +4425,30 @@ function renderAgenda(widgetId, container) {
       }
     }
     
-    // Only use currentStyles if styling modal is open AND this is the widget being edited
-    // Otherwise, use saved styles from localStorage to ensure each widget uses its own styles
+    // Only use currentStyles for live preview when modal is open and editing this specific widget
+    // After Apply, modal closes and we always use saved styles from localStorage
+    // This ensures each widget instance loads its own styles correctly (same pattern as scoreboard)
     const stylingModal = document.getElementById('styling-modal');
     const isModalOpen = stylingModal && stylingModal.classList.contains('active');
-    const isThisWidgetBeingEdited = isModalOpen && typeof currentWidgetId !== 'undefined' && currentWidgetId === widgetId;
+    const isThisWidgetBeingEdited = isModalOpen && typeof currentWidgetId !== 'undefined' && currentWidgetId === widgetId && typeof currentStyles !== 'undefined';
     
-    // Use currentStyles only if modal is open and this is the widget being edited (for live preview)
-    // Otherwise, always use saved styles to ensure widget independence
-    const cardBg = (isThisWidgetBeingEdited && typeof currentStyles !== 'undefined' && currentStyles?.agendaCardBackground) 
+    // Use currentStyles for live preview (when editing), otherwise use saved styles
+    const cardBg = (isThisWidgetBeingEdited && currentStyles?.agendaCardBackground) 
       ? currentStyles.agendaCardBackground 
       : cardStyles.background;
-    const cardBorder = (isThisWidgetBeingEdited && typeof currentStyles !== 'undefined' && currentStyles?.agendaCardBorder) 
+    const cardBorder = (isThisWidgetBeingEdited && currentStyles?.agendaCardBorder) 
       ? currentStyles.agendaCardBorder 
       : cardStyles.border;
-    const cardBorderRadius = (isThisWidgetBeingEdited && typeof currentStyles !== 'undefined' && currentStyles?.agendaCardBorderRadius !== undefined) 
+    const cardBorderRadius = (isThisWidgetBeingEdited && currentStyles?.agendaCardBorderRadius !== undefined) 
       ? currentStyles.agendaCardBorderRadius 
       : cardStyles.borderRadius;
-    const cardBorderWidth = (isThisWidgetBeingEdited && typeof currentStyles !== 'undefined' && currentStyles?.agendaCardBorderWidth !== undefined) 
+    const cardBorderWidth = (isThisWidgetBeingEdited && currentStyles?.agendaCardBorderWidth !== undefined) 
       ? currentStyles.agendaCardBorderWidth 
       : cardStyles.borderWidth;
-    const cardShadow = (isThisWidgetBeingEdited && typeof currentStyles !== 'undefined' && currentStyles?.agendaCardShadow !== undefined) 
+    const cardShadow = (isThisWidgetBeingEdited && currentStyles?.agendaCardShadow !== undefined) 
       ? currentStyles.agendaCardShadow 
       : cardStyles.shadow;
-    const cardHoverBorder = (isThisWidgetBeingEdited && typeof currentStyles !== 'undefined' && currentStyles?.agendaCardHoverBorder) 
+    const cardHoverBorder = (isThisWidgetBeingEdited && currentStyles?.agendaCardHoverBorder) 
       ? currentStyles.agendaCardHoverBorder 
       : cardStyles.hoverBorder;
     
