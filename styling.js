@@ -719,6 +719,7 @@ function generateAdvancedTab() {
   const isScoreboardWidget = widgetType === 'scoreboard-widget';
   const isBlankWidget = widgetType === 'blank-widget';
   const isStoplightWidget = widgetType === 'stoplight-widget';
+  const isAgendaWidget = widgetType === 'agenda-widget';
   const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
   const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
   
@@ -1037,6 +1038,57 @@ function generateAdvancedTab() {
                 <input type="checkbox" id="blank-text-underline" ${currentStyles.blankTextUnderline ? 'checked' : ''}> <u>Underline</u>
               </label>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+    ${isAgendaWidget ? `
+    <div class="styling-form-section">
+      <div class="styling-section-title">Agenda Card Styling</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Card Background Color</label>
+          <div class="styling-form-control">
+            <input type="color" id="agenda-card-background" value="${currentStyles.agendaCardBackground || '#353535'}">
+            <input type="text" id="agenda-card-background-text" value="${currentStyles.agendaCardBackground || '#353535'}" placeholder="#353535">
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Card Border Color</label>
+          <div class="styling-form-control">
+            <input type="color" id="agenda-card-border" value="${currentStyles.agendaCardBorder || '#404040'}">
+            <input type="text" id="agenda-card-border-text" value="${currentStyles.agendaCardBorder || '#404040'}" placeholder="#404040">
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Card Border Width</label>
+          <div class="styling-form-control">
+            <input type="range" id="agenda-card-border-width" min="0" max="5" value="${currentStyles.agendaCardBorderWidth !== undefined ? currentStyles.agendaCardBorderWidth : 1}">
+            <span class="styling-range-value" id="agenda-card-border-width-value">${currentStyles.agendaCardBorderWidth !== undefined ? currentStyles.agendaCardBorderWidth : 1}px</span>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Card Border Radius</label>
+          <div class="styling-form-control">
+            <input type="range" id="agenda-card-border-radius" min="0" max="20" value="${currentStyles.agendaCardBorderRadius !== undefined ? currentStyles.agendaCardBorderRadius : 12}">
+            <span class="styling-range-value" id="agenda-card-border-radius-value">${currentStyles.agendaCardBorderRadius !== undefined ? currentStyles.agendaCardBorderRadius : 12}px</span>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Card Shadow</label>
+          <div class="styling-form-control">
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="agenda-card-shadow" ${currentStyles.agendaCardShadow !== false ? 'checked' : ''}>
+              <span>Enable shadow</span>
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Card Hover Border Color</label>
+          <div class="styling-form-control">
+            <input type="color" id="agenda-card-hover-border" value="${currentStyles.agendaCardHoverBorder || '#4a90e2'}">
+            <input type="text" id="agenda-card-hover-border-text" value="${currentStyles.agendaCardHoverBorder || '#4a90e2'}" placeholder="#4a90e2">
           </div>
         </div>
       </div>
@@ -1693,6 +1745,111 @@ function attachTabEventListeners(tabName) {
             updatePreview();
           }
         });
+      }
+      
+      // Agenda card styling
+      if (widgetType === 'agenda-widget') {
+        // Card background color
+        const agendaCardBackground = stylingModal.querySelector('#agenda-card-background');
+        const agendaCardBackgroundText = stylingModal.querySelector('#agenda-card-background-text');
+        if (agendaCardBackground && agendaCardBackgroundText) {
+          agendaCardBackground.addEventListener('input', (e) => {
+            agendaCardBackgroundText.value = e.target.value;
+            currentStyles.agendaCardBackground = e.target.value;
+            updatePreview();
+          });
+          agendaCardBackground.addEventListener('change', (e) => {
+            agendaCardBackgroundText.value = e.target.value;
+            currentStyles.agendaCardBackground = e.target.value;
+            updatePreview();
+          });
+          agendaCardBackgroundText.addEventListener('input', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+              agendaCardBackground.value = e.target.value;
+              currentStyles.agendaCardBackground = e.target.value;
+              updatePreview();
+            }
+          });
+        }
+        
+        // Card border color
+        const agendaCardBorder = stylingModal.querySelector('#agenda-card-border');
+        const agendaCardBorderText = stylingModal.querySelector('#agenda-card-border-text');
+        if (agendaCardBorder && agendaCardBorderText) {
+          agendaCardBorder.addEventListener('input', (e) => {
+            agendaCardBorderText.value = e.target.value;
+            currentStyles.agendaCardBorder = e.target.value;
+            updatePreview();
+          });
+          agendaCardBorder.addEventListener('change', (e) => {
+            agendaCardBorderText.value = e.target.value;
+            currentStyles.agendaCardBorder = e.target.value;
+            updatePreview();
+          });
+          agendaCardBorderText.addEventListener('input', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+              agendaCardBorder.value = e.target.value;
+              currentStyles.agendaCardBorder = e.target.value;
+              updatePreview();
+            }
+          });
+        }
+        
+        // Card border width
+        const agendaCardBorderWidth = stylingModal.querySelector('#agenda-card-border-width');
+        const agendaCardBorderWidthValue = stylingModal.querySelector('#agenda-card-border-width-value');
+        if (agendaCardBorderWidth && agendaCardBorderWidthValue) {
+          agendaCardBorderWidth.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            agendaCardBorderWidthValue.textContent = val + 'px';
+            currentStyles.agendaCardBorderWidth = val;
+            updatePreview();
+          });
+        }
+        
+        // Card border radius
+        const agendaCardBorderRadius = stylingModal.querySelector('#agenda-card-border-radius');
+        const agendaCardBorderRadiusValue = stylingModal.querySelector('#agenda-card-border-radius-value');
+        if (agendaCardBorderRadius && agendaCardBorderRadiusValue) {
+          agendaCardBorderRadius.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            agendaCardBorderRadiusValue.textContent = val + 'px';
+            currentStyles.agendaCardBorderRadius = val;
+            updatePreview();
+          });
+        }
+        
+        // Card shadow
+        const agendaCardShadow = stylingModal.querySelector('#agenda-card-shadow');
+        if (agendaCardShadow) {
+          agendaCardShadow.addEventListener('change', (e) => {
+            currentStyles.agendaCardShadow = e.target.checked;
+            updatePreview();
+          });
+        }
+        
+        // Card hover border color
+        const agendaCardHoverBorder = stylingModal.querySelector('#agenda-card-hover-border');
+        const agendaCardHoverBorderText = stylingModal.querySelector('#agenda-card-hover-border-text');
+        if (agendaCardHoverBorder && agendaCardHoverBorderText) {
+          agendaCardHoverBorder.addEventListener('input', (e) => {
+            agendaCardHoverBorderText.value = e.target.value;
+            currentStyles.agendaCardHoverBorder = e.target.value;
+            updatePreview();
+          });
+          agendaCardHoverBorder.addEventListener('change', (e) => {
+            agendaCardHoverBorderText.value = e.target.value;
+            currentStyles.agendaCardHoverBorder = e.target.value;
+            updatePreview();
+          });
+          agendaCardHoverBorderText.addEventListener('input', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+              agendaCardHoverBorder.value = e.target.value;
+              currentStyles.agendaCardHoverBorder = e.target.value;
+              updatePreview();
+            }
+          });
+        }
       }
       
       // Scoreboard configuration
@@ -3195,6 +3352,36 @@ function updatePreview() {
     if (previewContent) {
       previewContent.innerHTML = previewHtml;
     }
+  } else if (previewContent && widgetType === 'agenda-widget') {
+    // Render agenda preview with sample events
+    const cardBg = currentStyles.agendaCardBackground || '#353535';
+    const cardBorder = currentStyles.agendaCardBorder || '#404040';
+    const cardBorderRadius = currentStyles.agendaCardBorderRadius !== undefined ? currentStyles.agendaCardBorderRadius : 12;
+    const cardBorderWidth = currentStyles.agendaCardBorderWidth !== undefined ? currentStyles.agendaCardBorderWidth : 1;
+    const cardShadow = currentStyles.agendaCardShadow !== undefined ? currentStyles.agendaCardShadow : true;
+    const cardHoverBorder = currentStyles.agendaCardHoverBorder || '#4a90e2';
+    const shadowStyle = cardShadow ? '0 2px 8px rgba(0, 0, 0, 0.3)' : 'none';
+    
+    previewContent.innerHTML = `
+      <div style="width: 100%; padding: 12px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 14px; font-weight: 600; color: #aaa; margin-bottom: 8px; text-align: center;">Monday, January 15, 2024</div>
+        <div class="agenda-event" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; padding: 18px; transition: transform 0.2s, box-shadow 0.2s; --agenda-card-hover-border: ${cardHoverBorder};">
+          <div style="font-size: 13px; color: #aaa; font-weight: 500; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">All Day</div>
+          <div style="font-size: 17px; font-weight: 600; color: #fff; margin-bottom: 6px;">Project Deadline</div>
+          <div style="font-size: 14px; color: #aaa; margin-top: 6px;">📍 Remote</div>
+        </div>
+        <div class="agenda-event" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; padding: 18px; transition: transform 0.2s, box-shadow 0.2s; --agenda-card-hover-border: ${cardHoverBorder};">
+          <div style="font-size: 13px; color: #aaa; font-weight: 500; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">9:00 AM - 10:30 AM</div>
+          <div style="font-size: 17px; font-weight: 600; color: #fff; margin-bottom: 6px;">Team Meeting</div>
+          <div style="font-size: 14px; color: #aaa; margin-top: 6px;">📍 Conference Room A</div>
+        </div>
+        <div class="agenda-event" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; padding: 18px; transition: transform 0.2s, box-shadow 0.2s; --agenda-card-hover-border: ${cardHoverBorder};">
+          <div style="font-size: 13px; color: #aaa; font-weight: 500; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">2:00 PM - 3:00 PM</div>
+          <div style="font-size: 17px; font-weight: 600; color: #fff; margin-bottom: 6px;">Client Presentation</div>
+          <div style="font-size: 14px; color: #aaa; margin-top: 6px;">📍 Main Office</div>
+        </div>
+      </div>
+    `;
   } else if (previewContent && widgetType !== 'dice-widget' && widgetType !== 'blank-widget' && widgetType !== 'scoreboard-widget' && widgetType !== 'stoplight-widget') {
     // Reset to default text for other widgets
     previewContent.innerHTML = 'Preview updates in real-time as you adjust settings';
@@ -3279,6 +3466,17 @@ function applyStyles() {
     // Save scoreboard config to localStorage
     const configKey = `dakboard-scoreboard-config-${currentWidgetId}`;
     localStorage.setItem(configKey, JSON.stringify(currentStyles.scoreboardConfig));
+    
+    // Reload scoreboard widget
+    if (typeof loadScoreboard === 'function') {
+      loadScoreboard();
+    }
+  } else if (widgetType === 'agenda-widget') {
+    // Reload agenda widget to apply card styles
+    if (typeof loadAgenda === 'function') {
+      loadAgenda();
+    }
+  }
     
     // Reload the scoreboard widget to apply the new config
     if (typeof loadScoreboard === 'function') {

@@ -4736,3 +4736,126 @@ footer a:hover {
   background: #333;
 }
 
+
+/* Agenda Widget - Default position and size */
+.agenda-widget {
+  top: 20px;
+  left: 20px;
+  width: 500px;
+  height: 600px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.agenda-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.agenda-prev-day-btn,
+.agenda-next-day-btn {
+  background: var(--widget-bg-overlay, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--widget-border-color, rgba(255, 255, 255, 0.2));
+  color: var(--widget-text-primary, #fff);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s, border-color 0.3s;
+  white-space: nowrap;
+}
+
+.agenda-prev-day-btn:hover,
+.agenda-next-day-btn:hover {
+  background: var(--widget-hover-bg, rgba(255, 255, 255, 0.15));
+  border-color: var(--widget-hover-border, rgba(255, 255, 255, 0.3));
+}
+
+.agenda-date-display {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--widget-text-primary, #fff);
+  text-align: center;
+  flex: 1;
+}
+
+.agenda-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.agenda-date-header {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--widget-text-primary, #fff);
+  margin-bottom: 16px;
+  text-align: center;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.agenda-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #888;
+  font-size: 16px;
+}
+
+/* Agenda Event Cards - Design 2 Style */
+.agenda-event {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  margin-bottom: 0;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  cursor: pointer;
+  position: relative;
+}
+
+.agenda-event:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  border-color: var(--agenda-card-hover-border, #4a90e2) !important;
+}
+
+.agenda-event-time {
+  font-size: 13px;
+  color: #aaa;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.agenda-event-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.agenda-event-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.agenda-event-location {
+  font-size: 14px;
+  color: #aaa;
+  line-height: 1.4;
+  margin-top: 4px;
+}

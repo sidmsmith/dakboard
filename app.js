@@ -4317,7 +4317,7 @@ function loadAgenda() {
       agendaDates.set(fullWidgetId, today);
     }
     
-    // Render the agenda
+    // Render the agenda (this will reload styles and apply them)
     renderAgenda(fullWidgetId, container);
     
     // Set up navigation buttons
@@ -4371,8 +4371,12 @@ function renderAgenda(widgetId, container) {
     }
   });
   
-  // Sort events by start time
+  // Sort events: all-day events first, then by start time
   const sortedEvents = [...dayEvents].sort((a, b) => {
+    // All-day events come first
+    if (a.allDay && !b.allDay) return -1;
+    if (!a.allDay && b.allDay) return 1;
+    // For both all-day or both timed, sort by start time
     return new Date(a.start) - new Date(b.start);
   });
   
@@ -4390,6 +4394,41 @@ function renderAgenda(widgetId, container) {
   if (sortedEvents.length === 0) {
     agendaHTML += '<div class="agenda-empty">No events scheduled for this day.</div>';
   } else {
+    // Get widget styles for card styling
+    const widget = container.closest('.agenda-widget');
+    let cardStyles = {};
+    if (widget) {
+      const widgetIdClass = Array.from(widget.classList).find(c => c.startsWith('agenda-widget-page-'));
+      if (widgetIdClass) {
+        const savedStyles = localStorage.getItem(`dakboard-widget-styles-${widgetIdClass}`);
+        if (savedStyles) {
+          try {
+            const styles = JSON.parse(savedStyles);
+            cardStyles = {
+              background: styles.agendaCardBackground || '#353535',
+              border: styles.agendaCardBorder || '#404040',
+              borderRadius: styles.agendaCardBorderRadius !== undefined ? styles.agendaCardBorderRadius : 12,
+              borderWidth: styles.agendaCardBorderWidth !== undefined ? styles.agendaCardBorderWidth : 1,
+              shadow: styles.agendaCardShadow !== undefined ? styles.agendaCardShadow : true,
+              hoverBorder: styles.agendaCardHoverBorder || '#4a90e2'
+            };
+          } catch (e) {
+            console.error('Error parsing widget styles for agenda cards:', e);
+          }
+        }
+      }
+    }
+    
+    // Use currentStyles for preview (when styling modal is open), otherwise use saved styles
+    const cardBg = typeof currentStyles !== 'undefined' && currentStyles?.agendaCardBackground ? currentStyles.agendaCardBackground : cardStyles.background;
+    const cardBorder = typeof currentStyles !== 'undefined' && currentStyles?.agendaCardBorder ? currentStyles.agendaCardBorder : cardStyles.border;
+    const cardBorderRadius = typeof currentStyles !== 'undefined' && currentStyles?.agendaCardBorderRadius !== undefined ? currentStyles.agendaCardBorderRadius : cardStyles.borderRadius;
+    const cardBorderWidth = typeof currentStyles !== 'undefined' && currentStyles?.agendaCardBorderWidth !== undefined ? currentStyles.agendaCardBorderWidth : cardStyles.borderWidth;
+    const cardShadow = typeof currentStyles !== 'undefined' && currentStyles?.agendaCardShadow !== undefined ? currentStyles.agendaCardShadow : cardStyles.shadow;
+    const cardHoverBorder = typeof currentStyles !== 'undefined' && currentStyles?.agendaCardHoverBorder ? currentStyles.agendaCardHoverBorder : cardStyles.hoverBorder;
+    
+    const shadowStyle = cardShadow ? '0 2px 8px rgba(0, 0, 0, 0.3)' : 'none';
+    
     sortedEvents.forEach(event => {
       const eventStart = new Date(event.start);
       const eventEnd = new Date(event.end || event.start);
@@ -4413,12 +4452,11 @@ function renderAgenda(widgetId, container) {
       }
       
       agendaHTML += `
-        <div class="agenda-event" data-event-id="${event.uid || ''}">
+        <div class="agenda-event" data-event-id="${event.uid || ''}" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; --agenda-card-hover-border: ${cardHoverBorder};">
           <div class="agenda-event-time">${timeStr}</div>
           <div class="agenda-event-content">
             <div class="agenda-event-title">${event.title || 'Untitled Event'}</div>
             ${event.location ? `<div class="agenda-event-location">📍 ${event.location}</div>` : ''}
-            ${event.description ? `<div class="agenda-event-description">${event.description.replace(/<[^>]*>/g, '').replace(/\[CAUTION:.*?\]/g, '').trim()}</div>` : ''}
           </div>
         </div>
       `;
