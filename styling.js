@@ -4660,17 +4660,6 @@ function loadWidgetStyles(fullWidgetId) {
     const parsedStyles = JSON.parse(saved);
     currentStyles = { ...parsedStyles }; // Create a copy to ensure we have a fresh object
     
-    // DEBUG: Log for agenda widget to verify styles are loaded correctly
-    if (widgetType === 'agenda-widget') {
-      console.log(`loadWidgetStyles: Loaded agenda card styles:`, {
-        background: currentStyles.agendaCardBackground,
-        border: currentStyles.agendaCardBorder,
-        borderRadius: currentStyles.agendaCardBorderRadius,
-        borderWidth: currentStyles.agendaCardBorderWidth,
-        shadow: currentStyles.agendaCardShadow,
-        hoverBorder: currentStyles.agendaCardHoverBorder
-      });
-    }
     // Remove scoreboardConfig from widget styles - it's stored separately
     if (widgetType === 'scoreboard-widget' && currentStyles.scoreboardConfig) {
       delete currentStyles.scoreboardConfig;
