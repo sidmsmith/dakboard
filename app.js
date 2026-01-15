@@ -1472,9 +1472,11 @@ async function loadAllData() {
       loadThermostat(), // Load thermostat
       loadNews(), // Load news feed
       initializeWhiteboard(), // Initialize whiteboard
-      loadCalendarEvents(), // Reload calendar events on refresh
-      loadAgenda() // Load agenda widget
-    ]);
+      loadCalendarEvents() // Reload calendar events on refresh - agenda will load after this
+    ]).then(() => {
+      // Load agenda after calendar events are loaded
+      loadAgenda();
+    });
   } catch (error) {
     console.error('Error loading dashboard data:', error);
   }
@@ -4317,11 +4319,11 @@ function loadAgenda() {
       agendaDates.set(fullWidgetId, today);
     }
     
-    // Render the agenda (this will reload styles and apply them)
-    renderAgenda(fullWidgetId, container);
-    
-    // Set up navigation buttons
-    setupAgendaNavigation(fullWidgetId, container);
+  // Set up navigation buttons first (so date is displayed)
+  setupAgendaNavigation(fullWidgetId, container);
+  
+  // Render the agenda (this will reload styles and apply them)
+  renderAgenda(fullWidgetId, container);
   });
 }
 
@@ -4380,16 +4382,8 @@ function renderAgenda(widgetId, container) {
     return new Date(a.start) - new Date(b.start);
   });
   
-  // Format date for display
-  const dateStr = date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  });
-  
-  // Build agenda HTML
-  let agendaHTML = `<div class="agenda-date-header">${dateStr}</div>`;
+  // Build agenda HTML (date header is now in nav, not here)
+  let agendaHTML = '';
   
   if (sortedEvents.length === 0) {
     agendaHTML += '<div class="agenda-empty">No events scheduled for this day.</div>';
@@ -4486,27 +4480,48 @@ function setupAgendaNavigation(widgetId, container) {
   const widget = container.closest('.agenda-widget');
   if (!widget) return;
   
-  // Find or create navigation buttons
+  const date = agendaDates.get(widgetId);
+  if (!date) return;
+  
+  // Format date for display
+  const dateStr = date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+  
+  // Find or create navigation container
   let navContainer = widget.querySelector('.agenda-nav');
   if (!navContainer) {
     navContainer = document.createElement('div');
     navContainer.className = 'agenda-nav';
-    widget.insertBefore(navContainer, container);
+    const widgetHeader = widget.querySelector('.widget-header');
+    if (widgetHeader) {
+      widgetHeader.appendChild(navContainer);
+    } else {
+      widget.insertBefore(navContainer, container);
+    }
   }
   
-  // Clear existing buttons
+  // Clear existing content
   navContainer.innerHTML = '';
   
-  // Create previous day button
+  // Create previous day button (modern arrow icon)
   const prevBtn = document.createElement('button');
   prevBtn.className = 'agenda-nav-btn agenda-prev-day';
-  prevBtn.textContent = '← Previous Day';
+  prevBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
   prevBtn.title = 'Previous Day';
   
-  // Create next day button
+  // Create date display
+  const dateDisplay = document.createElement('div');
+  dateDisplay.className = 'agenda-date-display';
+  dateDisplay.textContent = dateStr;
+  
+  // Create next day button (modern arrow icon)
   const nextBtn = document.createElement('button');
   nextBtn.className = 'agenda-nav-btn agenda-next-day';
-  nextBtn.textContent = 'Next Day →';
+  nextBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>';
   nextBtn.title = 'Next Day';
   
   // Add event listeners
@@ -4518,6 +4533,14 @@ function setupAgendaNavigation(widgetId, container) {
         const newDate = new Date(currentDate);
         newDate.setDate(newDate.getDate() - 1);
         agendaDates.set(widgetId, newDate);
+        // Update date display
+        const updatedDateStr = newDate.toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric'
+        });
+        dateDisplay.textContent = updatedDateStr;
         renderAgenda(widgetId, container);
       }
     }
@@ -4531,12 +4554,22 @@ function setupAgendaNavigation(widgetId, container) {
         const newDate = new Date(currentDate);
         newDate.setDate(newDate.getDate() + 1);
         agendaDates.set(widgetId, newDate);
+        // Update date display
+        const updatedDateStr = newDate.toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric'
+        });
+        dateDisplay.textContent = updatedDateStr;
         renderAgenda(widgetId, container);
       }
     }
   });
   
+  // Append buttons and date display in order
   navContainer.appendChild(prevBtn);
+  navContainer.appendChild(dateDisplay);
   navContainer.appendChild(nextBtn);
 }
 

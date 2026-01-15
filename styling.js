@@ -3477,12 +3477,6 @@ function applyStyles() {
       loadAgenda();
     }
   }
-    
-    // Reload the scoreboard widget to apply the new config
-    if (typeof loadScoreboard === 'function') {
-      setTimeout(() => loadScoreboard(), 50);
-    }
-  }
   
   // Close modal
   closeStylingModal();
