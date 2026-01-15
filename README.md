@@ -17,6 +17,7 @@ A customizable smart home dashboard designed for fixed displays (tablets/TVs) th
 - **Stoplight Widget** - Interactive stoplight with clickable lights (red/amber/green), optional text labels with per-color styling, and state persistence
 - **Blank/Clip Art Widget** - Display emojis, images from Pixabay API, or rich text content with comprehensive styling options and 25+ fun fonts
 - **Whiteboard Widget** - Interactive drawing canvas with per-instance state, title styling, temporary floating header, and immediate background color updates
+- **Agenda Widget** - Single-day calendar view with event cards, date navigation, and clickable event details
 - **Auto-refresh** - Updates every 30-60 seconds
 - **Responsive Design** - Optimized for landscape tablets and TVs
 
@@ -46,6 +47,26 @@ Four different layout options are available for you to choose from:
    - Garage doors and alarm at bottom
 
 ## 📝 Changelog
+
+### Version 0.11.0
+- **New Widget: Agenda** 📋
+  - **Single-Day Calendar View**: Display one day's worth of calendar events in a clean, card-based layout
+  - **Date Navigation**: Navigate to previous/next day with modern arrow controls
+  - **Auto-Refresh**: Automatically resets to today's date at midnight
+  - **Event Cards**: Each event displayed as a styled card with time, title, and location
+  - **Clickable Events**: Click any event card to view full event details in a modal
+  - **All-Day Events**: All-day events displayed at the top, sorted before timed events
+  - **Multiple Instances**: Support for multiple independent agenda widgets across different pages
+  - **Per-Instance Date State**: Each agenda widget maintains its own date independently
+  - **Card Styling**: Comprehensive styling options for event cards in Advanced tab:
+    - Card background color
+    - Card border color and width
+    - Card border radius
+    - Card shadow (enable/disable)
+    - Card hover border color
+  - **Dynamic Text Color**: Text color automatically adjusts (light/dark) based on card background for optimal readability
+  - **Reuses Calendar Data**: Efficiently reuses existing calendar events data - no additional API calls needed
+  - **Full Integration**: Works seamlessly with existing widget management system (cloning, styling, positioning, rotation)
 
 ### Version 2.8
 - **Blank Widget Text Mode** - Major enhancement to Blank widget!
