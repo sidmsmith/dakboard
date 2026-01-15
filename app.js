@@ -4303,7 +4303,7 @@ function loadAgenda() {
   instances.forEach(instance => {
     const widget = instance.element;
     if (!widget || widget.classList.contains('hidden')) {
-      console.log(`[loadAgenda] Skipping hidden widget: ${instance.id}`);
+      console.log(`[loadAgenda] Skipping hidden widget: ${instance.fullId}`);
       return;
     }
     
@@ -4313,10 +4313,10 @@ function loadAgenda() {
       container = document.createElement('div');
       container.className = 'agenda-content';
       widget.appendChild(container);
-      console.log(`[loadAgenda] Created agenda-content container for widget: ${instance.id}`);
+      console.log(`[loadAgenda] Created agenda-content container for widget: ${instance.fullId}`);
     }
     
-    const fullWidgetId = instance.id;
+    const fullWidgetId = instance.fullId; // Use fullId, not id
     console.log(`[loadAgenda] Processing widget: ${fullWidgetId}`);
     
     // Initialize date to today if not set
