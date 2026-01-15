@@ -3506,11 +3506,20 @@ function applyStyles() {
   // Handle scoreboard widget: save config and reload widget
   const parsed = typeof parseWidgetId !== 'undefined' && currentWidgetId ? parseWidgetId(currentWidgetId) : { widgetType: currentWidgetId || '', pageIndex: 0, instanceIndex: 0, isLegacy: true };
   const widgetType = parsed.widgetType;
+  const savedWidgetId = currentWidgetId; // Save widget ID before closing modal
+  
+  // Save scoreboard config before closing modal (if needed)
   if (widgetType === 'scoreboard-widget' && currentStyles.scoreboardConfig) {
-    // Save scoreboard config to localStorage
     const configKey = `dakboard-scoreboard-config-${currentWidgetId}`;
     localStorage.setItem(configKey, JSON.stringify(currentStyles.scoreboardConfig));
-    
+  }
+  
+  // Close modal first (clears currentStyles and currentWidgetId)
+  closeStylingModal();
+  
+  // Then reload widgets that need special handling (after modal is closed)
+  // Use savedWidgetId since currentWidgetId is now null
+  if (widgetType === 'scoreboard-widget') {
     // Reload scoreboard widget
     if (typeof loadScoreboard === 'function') {
       loadScoreboard();
@@ -3518,13 +3527,14 @@ function applyStyles() {
   } else if (widgetType === 'agenda-widget') {
     // Reload agenda widget to apply card styles (same pattern as scoreboard)
     // Load all agenda widgets - each will load its own styles from localStorage
+    // This runs after modal is closed, so renderAgenda will use saved styles
     if (typeof loadAgenda === 'function') {
-      loadAgenda();
+      // Use setTimeout to ensure modal is fully closed and styles are saved to localStorage
+      setTimeout(() => {
+        loadAgenda();
+      }, 50);
     }
   }
-  
-  // Close modal
-  closeStylingModal();
 }
 
 // Update currentStyles from form inputs
