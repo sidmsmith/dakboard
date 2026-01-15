@@ -4388,27 +4388,25 @@ function renderAgenda(widgetId, container) {
   if (sortedEvents.length === 0) {
     agendaHTML += '<div class="agenda-empty">No events scheduled for this day.</div>';
   } else {
-    // Get widget styles for card styling
-    const widget = container.closest('.agenda-widget');
+    // Get widget styles for card styling using the widgetId parameter (correct widget ID)
+    // Use the widgetId parameter directly instead of trying to find it from class list
     let cardStyles = {};
-    if (widget) {
-      const widgetIdClass = Array.from(widget.classList).find(c => c.startsWith('agenda-widget-page-'));
-      if (widgetIdClass) {
-        const savedStyles = localStorage.getItem(`dakboard-widget-styles-${widgetIdClass}`);
-        if (savedStyles) {
-          try {
-            const styles = JSON.parse(savedStyles);
-            cardStyles = {
-              background: styles.agendaCardBackground || '#353535',
-              border: styles.agendaCardBorder || '#404040',
-              borderRadius: styles.agendaCardBorderRadius !== undefined ? styles.agendaCardBorderRadius : 12,
-              borderWidth: styles.agendaCardBorderWidth !== undefined ? styles.agendaCardBorderWidth : 1,
-              shadow: styles.agendaCardShadow !== undefined ? styles.agendaCardShadow : true,
-              hoverBorder: styles.agendaCardHoverBorder || '#4a90e2'
-            };
-          } catch (e) {
-            console.error('Error parsing widget styles for agenda cards:', e);
-          }
+    if (widgetId) {
+      const storageKey = `dakboard-widget-styles-${widgetId}`;
+      const savedStyles = localStorage.getItem(storageKey);
+      if (savedStyles) {
+        try {
+          const styles = JSON.parse(savedStyles);
+          cardStyles = {
+            background: styles.agendaCardBackground || '#353535',
+            border: styles.agendaCardBorder || '#404040',
+            borderRadius: styles.agendaCardBorderRadius !== undefined ? styles.agendaCardBorderRadius : 12,
+            borderWidth: styles.agendaCardBorderWidth !== undefined ? styles.agendaCardBorderWidth : 1,
+            shadow: styles.agendaCardShadow !== undefined ? styles.agendaCardShadow : true,
+            hoverBorder: styles.agendaCardHoverBorder || '#4a90e2'
+          };
+        } catch (e) {
+          console.error(`Error parsing widget styles for agenda cards (widgetId: ${widgetId}):`, e);
         }
       }
     }
