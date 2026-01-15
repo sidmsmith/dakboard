@@ -4470,7 +4470,7 @@ function renderAgenda(widgetId, container) {
       secondaryTextColor = isLight ? '#4a4a4a' : '#aaaaaa'; // Darker gray for light bg, lighter gray for dark bg
     }
     
-    sortedEvents.forEach(event => {
+    sortedEvents.forEach((event, index) => {
       const eventStart = new Date(event.start);
       const eventEnd = new Date(event.end || event.start);
       
@@ -4494,8 +4494,12 @@ function renderAgenda(widgetId, container) {
       
       const eventStyle = `background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; --agenda-card-hover-border: ${cardHoverBorder};`;
       
+      // Create a unique identifier: use index in sortedEvents array (which is specific to this widget and date)
+      // This ensures each event card has a unique identifier even if UID is empty
+      const uniqueEventId = `${widgetId}-${date.getTime()}-${index}`;
+      
       agendaHTML += `
-        <div class="agenda-event" data-event-id="${event.uid || ''}" style="${eventStyle}">
+        <div class="agenda-event" data-event-id="${event.uid || ''}" data-event-index="${index}" data-unique-id="${uniqueEventId}" style="${eventStyle}">
           <div class="agenda-event-time" style="color: ${secondaryTextColor};">${timeStr}</div>
           <div class="agenda-event-content">
             <div class="agenda-event-title" style="color: ${textColor};">${event.title || 'Untitled Event'}</div>
@@ -4514,35 +4518,36 @@ function renderAgenda(widgetId, container) {
     eventEl.addEventListener('click', (e) => {
       e.stopPropagation();
       if (!isEditMode) {
-        const eventId = eventEl.dataset.eventId;
+        const eventIndex = parseInt(eventEl.dataset.eventIndex);
         const widgetDate = agendaDates.get(widgetId);
         
-        // Find event from global calendarEvents array, but filter by date to ensure we get the correct event
-        // This prevents showing events from different days when UIDs might match across days
-        const event = calendarEvents.find(e => {
-          const eventStart = new Date(e.start);
-          const eventDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate());
-          const widgetDateOnly = new Date(widgetDate.getFullYear(), widgetDate.getMonth(), widgetDate.getDate());
-          
-          // Match by UID and date
-          const uidMatch = (e.uid || '') === eventId;
-          const dateMatch = eventDate.getTime() === widgetDateOnly.getTime();
-          
-          console.log(`[Event Click] Looking for event - UID: ${eventId}, Widget Date: ${widgetDateOnly.toISOString()}, Event Date: ${eventDate.toISOString()}, UID Match: ${uidMatch}, Date Match: ${dateMatch}`);
-          
-          return uidMatch && dateMatch;
-        });
-        
-        if (event) {
-          console.log(`[Event Click] Found event: ${event.title}, Date: ${new Date(event.start).toISOString()}`);
+        // Use the event index to get the correct event from sortedEvents
+        // sortedEvents is specific to this widget and date, so the index is unique
+        if (eventIndex !== undefined && eventIndex >= 0 && eventIndex < sortedEvents.length) {
+          const event = sortedEvents[eventIndex];
+          console.log(`[Event Click] Found event by index ${eventIndex}: ${event.title}, Date: ${new Date(event.start).toISOString()}`);
           showEventDetails(event);
         } else {
-          console.error(`[Event Click] ERROR - Event not found! UID: ${eventId}, Widget Date: ${widgetDate ? widgetDate.toISOString() : 'undefined'}`);
-          // Fallback: try without date filter if date match fails
-          const fallbackEvent = calendarEvents.find(e => (e.uid || '') === eventId);
-          if (fallbackEvent) {
-            console.warn(`[Event Click] Using fallback event (date mismatch): ${fallbackEvent.title}, Date: ${new Date(fallbackEvent.start).toISOString()}`);
-            showEventDetails(fallbackEvent);
+          // Fallback: try to find by UID and date if index is not available
+          const eventId = eventEl.dataset.eventId;
+          const widgetDateOnly = new Date(widgetDate.getFullYear(), widgetDate.getMonth(), widgetDate.getDate());
+          
+          const event = calendarEvents.find(e => {
+            const eventStart = new Date(e.start);
+            const eventDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate());
+            
+            // Match by UID and date
+            const uidMatch = (e.uid || '') === eventId;
+            const dateMatch = eventDate.getTime() === widgetDateOnly.getTime();
+            
+            return uidMatch && dateMatch;
+          });
+          
+          if (event) {
+            console.log(`[Event Click] Found event by UID/date fallback: ${event.title}, Date: ${new Date(event.start).toISOString()}`);
+            showEventDetails(event);
+          } else {
+            console.error(`[Event Click] ERROR - Event not found! Index: ${eventIndex}, UID: ${eventId}, Widget Date: ${widgetDate ? widgetDate.toISOString() : 'undefined'}`);
           }
         }
       }
