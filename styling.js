@@ -4652,11 +4652,6 @@ function loadWidgetStyles(fullWidgetId) {
   // Format: dakboard-widget-styles-{widgetType}-page-{pageIndex}-instance-{instanceIndex}
   const storageKey = `dakboard-widget-styles-${fullWidgetId}`;
   
-  // DEBUG: Log for agenda widget to verify correct widget ID is being used
-  if (widgetType === 'agenda-widget') {
-    console.log(`loadWidgetStyles: Loading styles for agenda widget ID: ${fullWidgetId}`);
-    console.log(`loadWidgetStyles: Storage key: ${storageKey}`);
-  }
   
   const saved = localStorage.getItem(storageKey);
   

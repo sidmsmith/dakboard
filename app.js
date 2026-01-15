@@ -4515,11 +4515,35 @@ function renderAgenda(widgetId, container) {
       e.stopPropagation();
       if (!isEditMode) {
         const eventId = eventEl.dataset.eventId;
-        // Find event from global calendarEvents array instead of local sortedEvents
-        // This ensures we get the correct event even if renderAgenda was called multiple times
-        const event = calendarEvents.find(e => (e.uid || '') === eventId);
+        const widgetDate = agendaDates.get(widgetId);
+        
+        // Find event from global calendarEvents array, but filter by date to ensure we get the correct event
+        // This prevents showing events from different days when UIDs might match across days
+        const event = calendarEvents.find(e => {
+          const eventStart = new Date(e.start);
+          const eventDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate());
+          const widgetDateOnly = new Date(widgetDate.getFullYear(), widgetDate.getMonth(), widgetDate.getDate());
+          
+          // Match by UID and date
+          const uidMatch = (e.uid || '') === eventId;
+          const dateMatch = eventDate.getTime() === widgetDateOnly.getTime();
+          
+          console.log(`[Event Click] Looking for event - UID: ${eventId}, Widget Date: ${widgetDateOnly.toISOString()}, Event Date: ${eventDate.toISOString()}, UID Match: ${uidMatch}, Date Match: ${dateMatch}`);
+          
+          return uidMatch && dateMatch;
+        });
+        
         if (event) {
+          console.log(`[Event Click] Found event: ${event.title}, Date: ${new Date(event.start).toISOString()}`);
           showEventDetails(event);
+        } else {
+          console.error(`[Event Click] ERROR - Event not found! UID: ${eventId}, Widget Date: ${widgetDate ? widgetDate.toISOString() : 'undefined'}`);
+          // Fallback: try without date filter if date match fails
+          const fallbackEvent = calendarEvents.find(e => (e.uid || '') === eventId);
+          if (fallbackEvent) {
+            console.warn(`[Event Click] Using fallback event (date mismatch): ${fallbackEvent.title}, Date: ${new Date(fallbackEvent.start).toISOString()}`);
+            showEventDetails(fallbackEvent);
+          }
         }
       }
     });
