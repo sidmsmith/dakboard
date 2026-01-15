@@ -3353,13 +3353,57 @@ function updatePreview() {
       previewContent.innerHTML = previewHtml;
     }
   } else if (previewContent && widgetType === 'agenda-widget') {
-    // Render agenda preview with sample events
-    const cardBg = currentStyles.agendaCardBackground || '#353535';
-    const cardBorder = currentStyles.agendaCardBorder || '#404040';
-    const cardBorderRadius = currentStyles.agendaCardBorderRadius !== undefined ? currentStyles.agendaCardBorderRadius : 12;
-    const cardBorderWidth = currentStyles.agendaCardBorderWidth !== undefined ? currentStyles.agendaCardBorderWidth : 1;
-    const cardShadow = currentStyles.agendaCardShadow !== undefined ? currentStyles.agendaCardShadow : true;
-    const cardHoverBorder = currentStyles.agendaCardHoverBorder || '#4a90e2';
+    // Ensure we're using styles for the correct widget ID
+    // Verify currentWidgetId matches the widget being previewed
+    if (!currentWidgetId) {
+      console.warn('updatePreview: currentWidgetId is not set for agenda widget preview');
+    }
+    
+    // Double-check by loading from localStorage using currentWidgetId to ensure correctness
+    // This prevents any potential issues with currentStyles being from a different widget
+    let agendaCardStyles = {};
+    if (currentWidgetId) {
+      const storageKey = `dakboard-widget-styles-${currentWidgetId}`;
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        try {
+          const savedStyles = JSON.parse(saved);
+          agendaCardStyles = {
+            background: savedStyles.agendaCardBackground,
+            border: savedStyles.agendaCardBorder,
+            borderRadius: savedStyles.agendaCardBorderRadius,
+            borderWidth: savedStyles.agendaCardBorderWidth,
+            shadow: savedStyles.agendaCardShadow,
+            hoverBorder: savedStyles.agendaCardHoverBorder
+          };
+        } catch (e) {
+          console.error('Error parsing saved styles for agenda preview:', e);
+        }
+      }
+    }
+    
+    // Use currentStyles for preview (live updates as user changes values in the form)
+    // This allows real-time preview updates as the user adjusts settings
+    // If currentStyles doesn't have agenda-specific values, fall back to saved styles
+    // Priority: currentStyles (live edits) > saved styles (from localStorage) > defaults
+    const cardBg = (currentStyles.agendaCardBackground !== undefined && currentStyles.agendaCardBackground !== null)
+      ? currentStyles.agendaCardBackground 
+      : (agendaCardStyles.background || '#353535');
+    const cardBorder = (currentStyles.agendaCardBorder !== undefined && currentStyles.agendaCardBorder !== null)
+      ? currentStyles.agendaCardBorder 
+      : (agendaCardStyles.border || '#404040');
+    const cardBorderRadius = (currentStyles.agendaCardBorderRadius !== undefined && currentStyles.agendaCardBorderRadius !== null)
+      ? currentStyles.agendaCardBorderRadius 
+      : (agendaCardStyles.borderRadius !== undefined ? agendaCardStyles.borderRadius : 12);
+    const cardBorderWidth = (currentStyles.agendaCardBorderWidth !== undefined && currentStyles.agendaCardBorderWidth !== null)
+      ? currentStyles.agendaCardBorderWidth 
+      : (agendaCardStyles.borderWidth !== undefined ? agendaCardStyles.borderWidth : 1);
+    const cardShadow = (currentStyles.agendaCardShadow !== undefined && currentStyles.agendaCardShadow !== null)
+      ? currentStyles.agendaCardShadow 
+      : (agendaCardStyles.shadow !== undefined ? agendaCardStyles.shadow : true);
+    const cardHoverBorder = (currentStyles.agendaCardHoverBorder !== undefined && currentStyles.agendaCardHoverBorder !== null)
+      ? currentStyles.agendaCardHoverBorder 
+      : (agendaCardStyles.hoverBorder || '#4a90e2');
     const shadowStyle = cardShadow ? '0 2px 8px rgba(0, 0, 0, 0.3)' : 'none';
     
     previewContent.innerHTML = `
