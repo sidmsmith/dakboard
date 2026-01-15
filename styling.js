@@ -3519,14 +3519,21 @@ function applyStyles() {
     // Reload the specific agenda widget that was edited to apply card styles
     // Use renderAgenda directly for the specific widget instead of reloading all
     if (typeof renderAgenda === 'function' && currentWidgetId) {
-      const pageElement = getPageElement(currentPageIndex);
+      // Get the page element - use getPageElement if available, otherwise query directly
+      const pageElement = (typeof getPageElement === 'function') 
+        ? getPageElement(currentPageIndex) 
+        : document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
+      
       if (pageElement) {
         const widget = pageElement.querySelector(`.${currentWidgetId}`);
         if (widget) {
           let container = widget.querySelector('.agenda-content');
           if (container) {
-            // Render with the newly saved styles
-            renderAgenda(currentWidgetId, container);
+            // Render with the newly saved styles (modal is closing, so use saved styles)
+            // Add a small delay to ensure styles are saved to localStorage first
+            setTimeout(() => {
+              renderAgenda(currentWidgetId, container);
+            }, 10);
           } else {
             // If container doesn't exist, call loadAgenda to initialize it
             if (typeof loadAgenda === 'function') {
@@ -3538,6 +3545,11 @@ function applyStyles() {
           if (typeof loadAgenda === 'function') {
             loadAgenda();
           }
+        }
+      } else {
+        // Page not found, reload all agenda widgets as fallback
+        if (typeof loadAgenda === 'function') {
+          loadAgenda();
         }
       }
     } else {
