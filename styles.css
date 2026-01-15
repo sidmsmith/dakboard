@@ -4798,7 +4798,7 @@ footer a:hover {
 }
 
 .agenda-date-display {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--widget-text-primary, #fff);
   text-align: center;
@@ -4816,6 +4816,12 @@ footer a:hover {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.agenda-content::-webkit-scrollbar {
+  display: none;
 }
 
 
