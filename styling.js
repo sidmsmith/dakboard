@@ -3501,12 +3501,14 @@ function applyStyles() {
   });
 
   // Save styles for current widget
+  console.log(`[applyStyles] About to call saveStyles() for widgetId: ${currentWidgetId}`);
   saveStyles();
   
   // Handle scoreboard widget: save config and reload widget
   const parsed = typeof parseWidgetId !== 'undefined' && currentWidgetId ? parseWidgetId(currentWidgetId) : { widgetType: currentWidgetId || '', pageIndex: 0, instanceIndex: 0, isLegacy: true };
   const widgetType = parsed.widgetType;
   const savedWidgetId = currentWidgetId; // Save widget ID before closing modal
+  console.log(`[applyStyles] Widget type: ${widgetType}, savedWidgetId: ${savedWidgetId}`);
   
   // Save scoreboard config before closing modal (if needed)
   if (widgetType === 'scoreboard-widget' && currentStyles.scoreboardConfig) {
