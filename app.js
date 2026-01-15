@@ -4298,14 +4298,9 @@ function loadAgenda() {
     initializeAgendaMidnightCheck();
   }
   
-  console.log(`[loadAgenda] Found ${instances.length} agenda widget instances on page ${currentPageIndex}`);
-  
   instances.forEach(instance => {
     const widget = instance.element;
-    if (!widget || widget.classList.contains('hidden')) {
-      console.log(`[loadAgenda] Skipping hidden widget: ${instance.fullId}`);
-      return;
-    }
+    if (!widget || widget.classList.contains('hidden')) return;
     
     let container = widget.querySelector('.agenda-content');
     if (!container) {
@@ -4313,40 +4308,29 @@ function loadAgenda() {
       container = document.createElement('div');
       container.className = 'agenda-content';
       widget.appendChild(container);
-      console.log(`[loadAgenda] Created agenda-content container for widget: ${instance.fullId}`);
     }
     
     const fullWidgetId = instance.fullId; // Use fullId, not id
-    console.log(`[loadAgenda] Processing widget: ${fullWidgetId}`);
     
     // Initialize date to today if not set
     if (!agendaDates.has(fullWidgetId)) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       agendaDates.set(fullWidgetId, today);
-      console.log(`[loadAgenda] Initialized date for widget ${fullWidgetId}: ${today}`);
     }
     
     // Set up navigation buttons first (so date is displayed)
     setupAgendaNavigation(fullWidgetId, container);
     
     // Render the agenda (this will reload styles and apply them)
-    console.log(`[loadAgenda] Calling renderAgenda for widget: ${fullWidgetId}`);
     renderAgenda(fullWidgetId, container);
   });
-  
-  console.log(`[loadAgenda] END - Processed ${instances.length} widgets`);
 }
 
 // Render agenda for a specific widget instance
 function renderAgenda(widgetId, container) {
-  console.log(`[renderAgenda] START - widgetId: ${widgetId}`);
   const date = agendaDates.get(widgetId);
-  if (!date) {
-    console.log(`[renderAgenda] ERROR - No date found for widgetId: ${widgetId}`);
-    return;
-  }
-  console.log(`[renderAgenda] Date: ${date}`);
+  if (!date) return;
   
   // Get events for this date (reuse calendarEvents array)
   const dayStart = new Date(date);
@@ -4417,57 +4401,21 @@ function renderAgenda(widgetId, container) {
     
     if (widgetId) {
       const storageKey = `dakboard-widget-styles-${widgetId}`;
-      console.log(`[renderAgenda] Loading styles from localStorage - key: ${storageKey}`);
       const savedStyles = localStorage.getItem(storageKey);
       if (savedStyles) {
         try {
           const styles = JSON.parse(savedStyles);
-          console.log(`[renderAgenda] Parsed styles from localStorage:`, styles);
-          console.log(`[renderAgenda] Agenda card properties:`, {
-            agendaCardBackground: styles.agendaCardBackground,
-            agendaCardBorder: styles.agendaCardBorder,
-            agendaCardBorderRadius: styles.agendaCardBorderRadius,
-            agendaCardBorderWidth: styles.agendaCardBorderWidth,
-            agendaCardShadow: styles.agendaCardShadow,
-            agendaCardHoverBorder: styles.agendaCardHoverBorder
-          });
-          
           // Only override defaults if values exist in saved styles
-          if (styles.agendaCardBackground) {
-            cardStyles.background = styles.agendaCardBackground;
-            console.log(`[renderAgenda] Set cardStyles.background = ${cardStyles.background}`);
-          }
-          if (styles.agendaCardBorder) {
-            cardStyles.border = styles.agendaCardBorder;
-            console.log(`[renderAgenda] Set cardStyles.border = ${cardStyles.border}`);
-          }
-          if (styles.agendaCardBorderRadius !== undefined) {
-            cardStyles.borderRadius = styles.agendaCardBorderRadius;
-            console.log(`[renderAgenda] Set cardStyles.borderRadius = ${cardStyles.borderRadius}`);
-          }
-          if (styles.agendaCardBorderWidth !== undefined) {
-            cardStyles.borderWidth = styles.agendaCardBorderWidth;
-            console.log(`[renderAgenda] Set cardStyles.borderWidth = ${cardStyles.borderWidth}`);
-          }
-          if (styles.agendaCardShadow !== undefined) {
-            cardStyles.shadow = styles.agendaCardShadow;
-            console.log(`[renderAgenda] Set cardStyles.shadow = ${cardStyles.shadow}`);
-          }
-          if (styles.agendaCardHoverBorder) {
-            cardStyles.hoverBorder = styles.agendaCardHoverBorder;
-            console.log(`[renderAgenda] Set cardStyles.hoverBorder = ${cardStyles.hoverBorder}`);
-          }
-          
-          console.log(`[renderAgenda] Final cardStyles after loading:`, cardStyles);
+          if (styles.agendaCardBackground) cardStyles.background = styles.agendaCardBackground;
+          if (styles.agendaCardBorder) cardStyles.border = styles.agendaCardBorder;
+          if (styles.agendaCardBorderRadius !== undefined) cardStyles.borderRadius = styles.agendaCardBorderRadius;
+          if (styles.agendaCardBorderWidth !== undefined) cardStyles.borderWidth = styles.agendaCardBorderWidth;
+          if (styles.agendaCardShadow !== undefined) cardStyles.shadow = styles.agendaCardShadow;
+          if (styles.agendaCardHoverBorder) cardStyles.hoverBorder = styles.agendaCardHoverBorder;
         } catch (e) {
-          console.error(`[renderAgenda] ERROR parsing widget styles for agenda cards (widgetId: ${widgetId}):`, e);
+          console.error(`Error parsing widget styles for agenda cards (widgetId: ${widgetId}):`, e);
         }
-      } else {
-        console.log(`[renderAgenda] WARNING - No saved styles found for widgetId: ${widgetId}, using defaults`);
-        console.log(`[renderAgenda] Default cardStyles:`, cardStyles);
       }
-    } else {
-      console.log(`[renderAgenda] WARNING - widgetId is null/undefined, using defaults`);
     }
     
     // Only use currentStyles for live preview when modal is open and editing this specific widget
@@ -4476,20 +4424,6 @@ function renderAgenda(widgetId, container) {
     const stylingModal = document.getElementById('styling-modal');
     const isModalOpen = stylingModal && stylingModal.classList.contains('active');
     const isThisWidgetBeingEdited = isModalOpen && typeof currentWidgetId !== 'undefined' && currentWidgetId === widgetId && typeof currentStyles !== 'undefined';
-    
-    console.log(`[renderAgenda] Modal check - isModalOpen: ${isModalOpen}, currentWidgetId: ${typeof currentWidgetId !== 'undefined' ? currentWidgetId : 'undefined'}, widgetId: ${widgetId}, isThisWidgetBeingEdited: ${isThisWidgetBeingEdited}`);
-    if (isThisWidgetBeingEdited && typeof currentStyles !== 'undefined') {
-      console.log(`[renderAgenda] Using currentStyles for live preview:`, {
-        agendaCardBackground: currentStyles.agendaCardBackground,
-        agendaCardBorder: currentStyles.agendaCardBorder,
-        agendaCardBorderRadius: currentStyles.agendaCardBorderRadius,
-        agendaCardBorderWidth: currentStyles.agendaCardBorderWidth,
-        agendaCardShadow: currentStyles.agendaCardShadow,
-        agendaCardHoverBorder: currentStyles.agendaCardHoverBorder
-      });
-    } else {
-      console.log(`[renderAgenda] Using saved cardStyles from localStorage:`, cardStyles);
-    }
     
     // Use currentStyles for live preview (when editing), otherwise use saved styles
     const cardBg = (isThisWidgetBeingEdited && currentStyles?.agendaCardBackground) 
@@ -4510,15 +4444,6 @@ function renderAgenda(widgetId, container) {
     const cardHoverBorder = (isThisWidgetBeingEdited && currentStyles?.agendaCardHoverBorder) 
       ? currentStyles.agendaCardHoverBorder 
       : cardStyles.hoverBorder;
-    
-    console.log(`[renderAgenda] Final values being used for rendering:`, {
-      cardBg,
-      cardBorder,
-      cardBorderRadius,
-      cardBorderWidth,
-      cardShadow,
-      cardHoverBorder
-    });
     
     const shadowStyle = cardShadow ? '0 2px 8px rgba(0, 0, 0, 0.3)' : 'none';
     
@@ -4568,7 +4493,6 @@ function renderAgenda(widgetId, container) {
       }
       
       const eventStyle = `background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; --agenda-card-hover-border: ${cardHoverBorder};`;
-      console.log(`[renderAgenda] Event card style: ${eventStyle}`);
       
       agendaHTML += `
         <div class="agenda-event" data-event-id="${event.uid || ''}" style="${eventStyle}">
@@ -4582,9 +4506,7 @@ function renderAgenda(widgetId, container) {
     });
   }
   
-  console.log(`[renderAgenda] Setting innerHTML with ${sortedEvents.length} events`);
   container.innerHTML = agendaHTML;
-  console.log(`[renderAgenda] END - widgetId: ${widgetId}`);
   
   // Add click handlers to events to show details
   container.querySelectorAll('.agenda-event').forEach(eventEl => {
@@ -4593,7 +4515,9 @@ function renderAgenda(widgetId, container) {
       e.stopPropagation();
       if (!isEditMode) {
         const eventId = eventEl.dataset.eventId;
-        const event = sortedEvents.find(e => (e.uid || '') === eventId);
+        // Find event from global calendarEvents array instead of local sortedEvents
+        // This ensures we get the correct event even if renderAgenda was called multiple times
+        const event = calendarEvents.find(e => (e.uid || '') === eventId);
         if (event) {
           showEventDetails(event);
         }
