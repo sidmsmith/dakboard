@@ -3528,13 +3528,20 @@ function applyStyles() {
     // Reload agenda widget to apply card styles (same pattern as scoreboard)
     // Load all agenda widgets - each will load its own styles from localStorage
     // This runs after modal is closed, so renderAgenda will use saved styles
+    console.log(`[applyStyles] AGENDA WIDGET - Scheduling loadAgenda() after modal close`);
+    console.log(`[applyStyles] Saved widgetId was: ${savedWidgetId}`);
     if (typeof loadAgenda === 'function') {
       // Use setTimeout to ensure modal is fully closed and styles are saved to localStorage
       setTimeout(() => {
+        console.log(`[applyStyles] Calling loadAgenda() now (50ms after modal close)`);
         loadAgenda();
       }, 50);
+    } else {
+      console.error(`[applyStyles] ERROR - loadAgenda function not found!`);
     }
   }
+  
+  console.log(`[applyStyles] END`);
 }
 
 // Update currentStyles from form inputs
