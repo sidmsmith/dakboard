@@ -3653,6 +3653,25 @@ function updateCurrentStylesFromForm() {
   const widgetOpacity = document.getElementById('widget-opacity');
   if (widgetOpacity) currentStyles.widgetOpacity = parseInt(widgetOpacity.value);
   
+  // Agenda widget card styles
+  const agendaCardBackground = stylingModal.querySelector('#agenda-card-background');
+  if (agendaCardBackground) currentStyles.agendaCardBackground = agendaCardBackground.value;
+  
+  const agendaCardBorder = stylingModal.querySelector('#agenda-card-border');
+  if (agendaCardBorder) currentStyles.agendaCardBorder = agendaCardBorder.value;
+  
+  const agendaCardBorderWidth = stylingModal.querySelector('#agenda-card-border-width');
+  if (agendaCardBorderWidth) currentStyles.agendaCardBorderWidth = parseInt(agendaCardBorderWidth.value);
+  
+  const agendaCardBorderRadius = stylingModal.querySelector('#agenda-card-border-radius');
+  if (agendaCardBorderRadius) currentStyles.agendaCardBorderRadius = parseInt(agendaCardBorderRadius.value);
+  
+  const agendaCardShadow = stylingModal.querySelector('#agenda-card-shadow');
+  if (agendaCardShadow) currentStyles.agendaCardShadow = agendaCardShadow.checked;
+  
+  const agendaCardHoverBorder = stylingModal.querySelector('#agenda-card-hover-border');
+  if (agendaCardHoverBorder) currentStyles.agendaCardHoverBorder = agendaCardHoverBorder.value;
+  
   // Dice widget colors
   const diceFaceColor = stylingModal.querySelector('#dice-face-color');
   const diceFaceColorText = stylingModal.querySelector('#dice-face-color-text');

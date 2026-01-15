@@ -4390,21 +4390,28 @@ function renderAgenda(widgetId, container) {
   } else {
     // Get widget styles for card styling using the widgetId parameter (correct widget ID)
     // Use the widgetId parameter directly instead of trying to find it from class list
-    let cardStyles = {};
+    let cardStyles = {
+      background: '#353535',
+      border: '#404040',
+      borderRadius: 12,
+      borderWidth: 1,
+      shadow: true,
+      hoverBorder: '#4a90e2'
+    };
+    
     if (widgetId) {
       const storageKey = `dakboard-widget-styles-${widgetId}`;
       const savedStyles = localStorage.getItem(storageKey);
       if (savedStyles) {
         try {
           const styles = JSON.parse(savedStyles);
-          cardStyles = {
-            background: styles.agendaCardBackground || '#353535',
-            border: styles.agendaCardBorder || '#404040',
-            borderRadius: styles.agendaCardBorderRadius !== undefined ? styles.agendaCardBorderRadius : 12,
-            borderWidth: styles.agendaCardBorderWidth !== undefined ? styles.agendaCardBorderWidth : 1,
-            shadow: styles.agendaCardShadow !== undefined ? styles.agendaCardShadow : true,
-            hoverBorder: styles.agendaCardHoverBorder || '#4a90e2'
-          };
+          // Only override defaults if values exist in saved styles
+          if (styles.agendaCardBackground) cardStyles.background = styles.agendaCardBackground;
+          if (styles.agendaCardBorder) cardStyles.border = styles.agendaCardBorder;
+          if (styles.agendaCardBorderRadius !== undefined) cardStyles.borderRadius = styles.agendaCardBorderRadius;
+          if (styles.agendaCardBorderWidth !== undefined) cardStyles.borderWidth = styles.agendaCardBorderWidth;
+          if (styles.agendaCardShadow !== undefined) cardStyles.shadow = styles.agendaCardShadow;
+          if (styles.agendaCardHoverBorder) cardStyles.hoverBorder = styles.agendaCardHoverBorder;
         } catch (e) {
           console.error(`Error parsing widget styles for agenda cards (widgetId: ${widgetId}):`, e);
         }
