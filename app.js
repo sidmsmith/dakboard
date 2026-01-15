@@ -4423,6 +4423,29 @@ function renderAgenda(widgetId, container) {
     
     const shadowStyle = cardShadow ? '0 2px 8px rgba(0, 0, 0, 0.3)' : 'none';
     
+    // Calculate dynamic text color based on card background
+    // Helper function to parse hex color to RGB
+    const hexToRgb = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : null;
+    };
+    
+    // Parse card background color
+    const cardBgRgb = hexToRgb(cardBg);
+    let textColor = '#ffffff'; // Default to white text
+    let secondaryTextColor = '#aaaaaa'; // Default to gray for secondary text
+    
+    if (cardBgRgb) {
+      // Use existing isLightColor function to determine text color
+      const isLight = isLightColor(cardBgRgb.r, cardBgRgb.g, cardBgRgb.b);
+      textColor = isLight ? '#1a1a1a' : '#ffffff'; // Dark text for light bg, white for dark bg
+      secondaryTextColor = isLight ? '#4a4a4a' : '#aaaaaa'; // Darker gray for light bg, lighter gray for dark bg
+    }
+    
     sortedEvents.forEach(event => {
       const eventStart = new Date(event.start);
       const eventEnd = new Date(event.end || event.start);
@@ -4447,10 +4470,10 @@ function renderAgenda(widgetId, container) {
       
       agendaHTML += `
         <div class="agenda-event" data-event-id="${event.uid || ''}" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; --agenda-card-hover-border: ${cardHoverBorder};">
-          <div class="agenda-event-time">${timeStr}</div>
+          <div class="agenda-event-time" style="color: ${secondaryTextColor};">${timeStr}</div>
           <div class="agenda-event-content">
-            <div class="agenda-event-title">${event.title || 'Untitled Event'}</div>
-            ${event.location ? `<div class="agenda-event-location">📍 ${event.location}</div>` : ''}
+            <div class="agenda-event-title" style="color: ${textColor};">${event.title || 'Untitled Event'}</div>
+            ${event.location ? `<div class="agenda-event-location" style="color: ${secondaryTextColor};">📍 ${event.location}</div>` : ''}
           </div>
         </div>
       `;
@@ -4491,14 +4514,17 @@ function setupAgendaNavigation(widgetId, container) {
     year: 'numeric'
   });
   
-  // Find or create navigation container
+  // Find or create navigation container (place it below header, before content)
   let navContainer = widget.querySelector('.agenda-nav');
   if (!navContainer) {
     navContainer = document.createElement('div');
     navContainer.className = 'agenda-nav';
+    // Insert after widget-header if it exists, otherwise before content
     const widgetHeader = widget.querySelector('.widget-header');
-    if (widgetHeader) {
-      widgetHeader.appendChild(navContainer);
+    if (widgetHeader && widgetHeader.nextSibling) {
+      widget.insertBefore(navContainer, widgetHeader.nextSibling);
+    } else if (widgetHeader) {
+      widgetHeader.parentNode.insertBefore(navContainer, widgetHeader.nextSibling);
     } else {
       widget.insertBefore(navContainer, container);
     }
