@@ -4512,6 +4512,14 @@ function renderAgenda(widgetId, container) {
   
   container.innerHTML = agendaHTML;
   
+  // Store sortedEvents in a way accessible to click handlers
+  // Use a Map keyed by widget ID and date to store events for this widget/date combination
+  if (!window.agendaEventsCache) {
+    window.agendaEventsCache = new Map();
+  }
+  const cacheKey = `${widgetId}-${date.getTime()}`;
+  window.agendaEventsCache.set(cacheKey, sortedEvents);
+  
   // Add click handlers to events to show details
   container.querySelectorAll('.agenda-event').forEach(eventEl => {
     eventEl.style.cursor = 'pointer';
@@ -4521,33 +4529,65 @@ function renderAgenda(widgetId, container) {
         const eventIndex = parseInt(eventEl.dataset.eventIndex);
         const widgetDate = agendaDates.get(widgetId);
         
-        // Use the event index to get the correct event from sortedEvents
-        // sortedEvents is specific to this widget and date, so the index is unique
-        if (eventIndex !== undefined && eventIndex >= 0 && eventIndex < sortedEvents.length) {
-          const event = sortedEvents[eventIndex];
+        // Get events from cache using widget ID and date
+        const cacheKey = `${widgetId}-${widgetDate.getTime()}`;
+        const cachedEvents = window.agendaEventsCache ? window.agendaEventsCache.get(cacheKey) : null;
+        
+        if (cachedEvents && eventIndex !== undefined && eventIndex >= 0 && eventIndex < cachedEvents.length) {
+          const event = cachedEvents[eventIndex];
           console.log(`[Event Click] Found event by index ${eventIndex}: ${event.title}, Date: ${new Date(event.start).toISOString()}`);
           showEventDetails(event);
         } else {
-          // Fallback: try to find by UID and date if index is not available
-          const eventId = eventEl.dataset.eventId;
-          const widgetDateOnly = new Date(widgetDate.getFullYear(), widgetDate.getMonth(), widgetDate.getDate());
+          // Fallback: re-filter events for this date and use index
+          const dayStart = new Date(widgetDate);
+          dayStart.setHours(0, 0, 0, 0);
+          const dayEnd = new Date(widgetDate);
+          dayEnd.setHours(23, 59, 59, 999);
           
-          const event = calendarEvents.find(e => {
-            const eventStart = new Date(e.start);
-            const eventDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate());
+          const dayEvents = calendarEvents.filter(event => {
+            const eventStart = new Date(event.start);
+            const eventEnd = new Date(event.end || event.start);
             
-            // Match by UID and date
-            const uidMatch = (e.uid || '') === eventId;
-            const dateMatch = eventDate.getTime() === widgetDateOnly.getTime();
-            
-            return uidMatch && dateMatch;
+            if (event.allDay) {
+              const parseDateString = (dateStr) => {
+                const datePart = dateStr.split('T')[0];
+                const parts = datePart.split('-');
+                return {
+                  year: parseInt(parts[0], 10),
+                  month: parseInt(parts[1], 10) - 1,
+                  day: parseInt(parts[2], 10)
+                };
+              };
+              
+              const eventStartParts = parseDateString(event.start);
+              const eventEndParts = parseDateString(event.end || event.start);
+              const eventEndDateObj = new Date(eventEndParts.year, eventEndParts.month, eventEndParts.day);
+              eventEndDateObj.setDate(eventEndDateObj.getDate() - 1);
+              
+              const currentYear = widgetDate.getFullYear();
+              const currentMonth = widgetDate.getMonth();
+              const currentDay = widgetDate.getDate();
+              const currentDateObj = new Date(currentYear, currentMonth, currentDay);
+              const eventStartDateObj = new Date(eventStartParts.year, eventStartParts.month, eventStartParts.day);
+              
+              return (currentDateObj >= eventStartDateObj && currentDateObj <= eventEndDateObj);
+            } else {
+              return (eventStart <= dayEnd && eventEnd >= dayStart);
+            }
           });
           
-          if (event) {
-            console.log(`[Event Click] Found event by UID/date fallback: ${event.title}, Date: ${new Date(event.start).toISOString()}`);
+          const sortedDayEvents = [...dayEvents].sort((a, b) => {
+            if (a.allDay && !b.allDay) return -1;
+            if (!a.allDay && b.allDay) return 1;
+            return new Date(a.start) - new Date(b.start);
+          });
+          
+          if (eventIndex !== undefined && eventIndex >= 0 && eventIndex < sortedDayEvents.length) {
+            const event = sortedDayEvents[eventIndex];
+            console.log(`[Event Click] Found event by index (fallback): ${event.title}, Date: ${new Date(event.start).toISOString()}`);
             showEventDetails(event);
           } else {
-            console.error(`[Event Click] ERROR - Event not found! Index: ${eventIndex}, UID: ${eventId}, Widget Date: ${widgetDate ? widgetDate.toISOString() : 'undefined'}`);
+            console.error(`[Event Click] ERROR - Event not found! Index: ${eventIndex}, Widget Date: ${widgetDate ? widgetDate.toISOString() : 'undefined'}, Cached events: ${cachedEvents ? cachedEvents.length : 'null'}, Sorted events: ${sortedDayEvents.length}`);
           }
         }
       }
