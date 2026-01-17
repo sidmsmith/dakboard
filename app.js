@@ -9310,7 +9310,7 @@ function performExport(pageIndices) {
     const currentPage = parseInt(localStorage.getItem('dakboard-current-page')) || 0;
     
     const config = {
-      version: '3.0', // Updated version for new export/import functionality
+      version: '3.1', // Updated version for new export/import functionality
       exportDate: new Date().toISOString(),
       metadata: {
         exportedPages: pageIndices.length,

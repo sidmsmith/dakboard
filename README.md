@@ -48,6 +48,27 @@ Four different layout options are available for you to choose from:
 
 ## 📝 Changelog
 
+### Version 0.12.0
+- **Complete Export/Import Rewrite** 🔄
+  - **Export Functionality**:
+    - **Page Selection Dialog**: Choose to export "Current Page" or "All Pages" via modal dialog
+    - **Complete Configuration Export**: Exports 100% of page data including:
+      - Widget visibility (actual DOM state)
+      - Widget positions and layouts (x, y, width, height, z-index, rotation)
+      - All widget styles and configurations (text, titles, labels, colors, fonts, etc.)
+      - Instance-specific data (stopwatch states, scoreboard configs, stoplight states)
+      - Whiteboard drawings and settings
+      - Page backgrounds and settings
+      - **Annotations** (canvas drawings)
+    - **Smart File Naming**: Single page exports use page name in filename (e.g., `dakboard-config-living-room-2024-01-15_14-30.json`)
+  - **Import Functionality**:
+    - **Append Mode**: Imported pages are appended to existing pages (no overwrite)
+    - **Page Renumbering**: Imported pages automatically renumbered to continue from highest existing page index
+    - **Instance ID Remapping**: All widget instance IDs are regenerated to avoid conflicts
+    - **Complete Restoration**: All configurations, styles, positions, and data are restored exactly as exported
+    - **Annotation Support**: Canvas annotations are fully exported and imported
+  - **Backward Compatibility**: Supports both new format (with instance IDs) and legacy format
+
 ### Version 0.11.0
 - **New Widget: Agenda** 📋
   - **Single-Day Calendar View**: Display one day's worth of calendar events in a clean, card-based layout
