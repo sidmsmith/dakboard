@@ -6095,9 +6095,9 @@ function isAreaAlreadyHighlighted(ctx, x, y, radius, highlightColor) {
     const highlightG = parseInt(hex.substring(2, 4), 16);
     const highlightB = parseInt(hex.substring(4, 6), 16);
     
-    // Calculate what the highlight color looks like at 15% opacity on black background
+    // Calculate what the highlight color looks like at selected opacity on black background
     // When you draw color at alpha on black: result = color * alpha
-    const alpha = 0.15;
+    const alpha = annotationState.opacity / 100;
     const expectedR = Math.round(highlightR * alpha);
     const expectedG = Math.round(highlightG * alpha);
     const expectedB = Math.round(highlightB * alpha);
