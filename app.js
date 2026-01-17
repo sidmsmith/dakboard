@@ -9359,6 +9359,10 @@ function addPage() {
   newPage.style.background = '#1a1a1a';
   localStorage.removeItem(`dakboard-page-background-${newPageIndex}`);
   
+  // Set fresh page name (don't inherit from deleted pages)
+  localStorage.removeItem(`dakboard-page-name-${newPageIndex}`);
+  localStorage.setItem(`dakboard-page-name-${newPageIndex}`, `Page ${newPageIndex + 1}`);
+  
   // Mark all widgets as hidden for the new page
   const visibility = {};
   Object.keys(WIDGET_CONFIG).forEach(widgetId => {
