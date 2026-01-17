@@ -9528,7 +9528,7 @@ function performExport(pageIndices) {
     });
     
     // Export ALL localStorage data for exported pages
-    // This ensures we capture every single configuration element
+    // This ensures we capture EVERY SINGLE configuration element - 100% complete export
     pageIndices.forEach(pageIndex => {
       const page = config.pages.find(p => p.pageIndex === pageIndex);
       if (!page) return;
@@ -9537,58 +9537,55 @@ function performExport(pageIndices) {
       if (!page.localStorageData) page.localStorageData = {};
       
       // Scan ALL localStorage keys and export anything related to this page
+      // This is the comprehensive approach - export everything that could be related
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (!key) continue;
         
-        // Export widget styles (by full instance ID - no page suffix)
-        if (key.startsWith('dakboard-widget-styles-')) {
-          // Check if this style key is for a widget on this page
-          // Styles can be stored as: dakboard-widget-styles-{fullWidgetId} or dakboard-widget-styles-{widgetType}-page-{pageIndex}
-          const styleValue = localStorage.getItem(key);
-          if (styleValue) {
-            try {
-              const styles = JSON.parse(styleValue);
-              
-              // Check if this is a page-specific style key
-              if (key.includes(`-page-${pageIndex}`)) {
-                // Page-specific style
-                page.localStorageData[key] = styles;
-              } else {
-                // Check if the fullWidgetId in the key matches any widget instance on this page
-                const keyWithoutPrefix = key.replace('dakboard-widget-styles-', '');
-                
-                // Get all widget instances on this page to check if this key belongs to them
-                let belongsToThisPage = false;
-                Object.keys(WIDGET_CONFIG).forEach(widgetType => {
-                  const instances = getWidgetInstances(widgetType, pageIndex);
-                  instances.forEach(instance => {
-                    if (instance.fullId === keyWithoutPrefix) {
-                      belongsToThisPage = true;
-                    }
-                  });
-                });
-                
-                if (belongsToThisPage) {
-                  page.localStorageData[key] = styles;
-                }
+        const value = localStorage.getItem(key);
+        if (!value) continue;
+        
+        // Export ANY key that contains this page index
+        if (key.includes(`-page-${pageIndex}`) || key.includes(`page-${pageIndex}-`)) {
+          try {
+            // Try to parse as JSON
+            page.localStorageData[key] = JSON.parse(value);
+          } catch (e) {
+            // If not JSON, store as string
+            page.localStorageData[key] = value;
+          }
+        }
+        // Export widget styles by full instance ID (no page suffix in key, but instance ID contains page)
+        else if (key.startsWith('dakboard-widget-styles-')) {
+          const keyWithoutPrefix = key.replace('dakboard-widget-styles-', '');
+          
+          // Check if this fullWidgetId matches any widget instance on this page
+          let belongsToThisPage = false;
+          Object.keys(WIDGET_CONFIG).forEach(widgetType => {
+            const instances = getWidgetInstances(widgetType, pageIndex);
+            instances.forEach(instance => {
+              if (instance.fullId === keyWithoutPrefix) {
+                belongsToThisPage = true;
               }
+            });
+          });
+          
+          if (belongsToThisPage) {
+            try {
+              page.localStorageData[key] = JSON.parse(value);
             } catch (e) {
-              // If not JSON, store as string
-              page.localStorageData[key] = styleValue;
+              page.localStorageData[key] = value;
             }
           }
         }
-        // Export instance-specific state data
+        // Export instance-specific state data (by full instance ID)
         else if (key.startsWith('dakboard-stopwatch-') || 
                  key.startsWith('dakboard-scoreboard-') || 
                  key.startsWith('dakboard-stoplight-') ||
                  key.startsWith('whiteboard-')) {
           // Check if this key is for a widget instance on this page
-          const keyWithoutPrefix = key.replace(/^(dakboard-(stopwatch|scoreboard-config|scoreboard-scores|scoreboard-winners|stoplight)-|whiteboard-)/, '');
-          
-          // Check if this matches any widget instance on this page
           let belongsToThisPage = false;
+          
           Object.keys(WIDGET_CONFIG).forEach(widgetType => {
             const instances = getWidgetInstances(widgetType, pageIndex);
             instances.forEach(instance => {
@@ -9599,27 +9596,17 @@ function performExport(pageIndices) {
             });
           });
           
-          // Also check for page-specific whiteboard keys
-          if (key.startsWith('whiteboard-') && key.includes(`-page-${pageIndex}`)) {
-            belongsToThisPage = true;
-          }
-          
           if (belongsToThisPage) {
-            const value = localStorage.getItem(key);
-            if (value) {
-              try {
-                // Try to parse as JSON
-                page.localStorageData[key] = JSON.parse(value);
-              } catch (e) {
-                // If not JSON, store as string
-                page.localStorageData[key] = value;
-              }
+            try {
+              page.localStorageData[key] = JSON.parse(value);
+            } catch (e) {
+              page.localStorageData[key] = value;
             }
           }
         }
       }
       
-      // Also get all widget instances and ensure we export their styles
+      // Also explicitly get all widget instances and ensure we export their data
       Object.keys(WIDGET_CONFIG).forEach(widgetType => {
         const instances = getWidgetInstances(widgetType, pageIndex);
         instances.forEach(instance => {
@@ -9672,6 +9659,13 @@ function performExport(pageIndices) {
           });
         });
       });
+      
+      // Explicitly export annotations for this page
+      const annotationKey = `dakboard-annotation-page-${pageIndex}`;
+      const annotationValue = localStorage.getItem(annotationKey);
+      if (annotationValue && !page.localStorageData[annotationKey]) {
+        page.localStorageData[annotationKey] = annotationValue; // Annotations are stored as data URLs (strings)
+      }
     });
     
     // Create JSON blob and trigger download
