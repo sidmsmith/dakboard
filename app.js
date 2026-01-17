@@ -5831,6 +5831,8 @@ async function triggerHAWebhook(webhookId) {
 let isAnnotationMode = false;
 let annotationCanvas = null;
 let annotationCtx = null;
+let highlightMaskCanvas = null;
+let highlightMaskCtx = null;
 let annotationState = {
   isDrawing: false,
   lastX: 0,
@@ -5849,10 +5851,20 @@ function initializeAnnotationCanvas() {
   annotationCtx = annotationCanvas.getContext('2d');
   if (!annotationCtx) return;
   
+  // Create separate canvas for highlight mask (tracks only highlights)
+  highlightMaskCanvas = document.createElement('canvas');
+  highlightMaskCanvas.width = window.innerWidth;
+  highlightMaskCanvas.height = window.innerHeight;
+  highlightMaskCtx = highlightMaskCanvas.getContext('2d');
+  
   // Set canvas size to match viewport
   function resizeCanvas() {
     annotationCanvas.width = window.innerWidth;
     annotationCanvas.height = window.innerHeight;
+    if (highlightMaskCanvas) {
+      highlightMaskCanvas.width = window.innerWidth;
+      highlightMaskCanvas.height = window.innerHeight;
+    }
     // Reload saved annotations if visible
     if (annotationState.isVisible) {
       loadAnnotationData();
@@ -6076,11 +6088,44 @@ function drawAnnotationDot(x, y) {
       annotationCtx.globalAlpha = 1.0;
       break;
     case 'highlighter':
-      // Use destination-over to put highlight behind existing content
-      // This prevents accumulation because new highlights go behind previous ones
-      annotationCtx.globalCompositeOperation = 'destination-over';
-      annotationCtx.fillStyle = annotationState.currentColor;
+      // Use mask-based approach: only draw where highlight mask is empty
+      if (!highlightMaskCtx) {
+        // Fallback if mask not initialized
+        annotationCtx.globalCompositeOperation = 'source-over';
+        annotationCtx.fillStyle = annotationState.currentColor;
+        annotationCtx.globalAlpha = 0.15;
+        break;
+      }
+      
+      // Create temp canvas for the new highlight
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = annotationCanvas.width;
+      tempCanvas.height = annotationCanvas.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      
+      // Draw highlight shape to temp at full opacity (we'll apply 15% when compositing)
+      tempCtx.globalCompositeOperation = 'source-over';
+      tempCtx.fillStyle = annotationState.currentColor;
+      tempCtx.globalAlpha = 1.0;
+      tempCtx.beginPath();
+      tempCtx.arc(x, y, annotationState.brushSize / 2, 0, Math.PI * 2);
+      tempCtx.fill();
+      
+      // Use destination-out to erase from temp where highlight mask already has content
+      tempCtx.globalCompositeOperation = 'destination-out';
+      tempCtx.drawImage(highlightMaskCanvas, 0, 0);
+      
+      // Draw the masked highlight to main canvas at 15% opacity
+      annotationCtx.globalCompositeOperation = 'source-over';
       annotationCtx.globalAlpha = 0.15;
+      annotationCtx.drawImage(tempCanvas, 0, 0);
+      
+      // Update highlight mask with the new highlight (at full opacity for tracking)
+      highlightMaskCtx.globalCompositeOperation = 'source-over';
+      highlightMaskCtx.globalAlpha = 1.0;
+      highlightMaskCtx.drawImage(tempCanvas, 0, 0);
+      
+      return; // Skip the normal fill below
       break;
     case 'airbrush':
       annotationCtx.globalCompositeOperation = 'source-over';
@@ -6119,11 +6164,48 @@ function drawAnnotationLine(x1, y1, x2, y2) {
       annotationCtx.globalAlpha = 1.0;
       break;
     case 'highlighter':
-      // Use destination-over to put highlight behind existing content
-      // This prevents accumulation because new highlights go behind previous ones
-      annotationCtx.globalCompositeOperation = 'destination-over';
-      annotationCtx.strokeStyle = annotationState.currentColor;
+      // Use mask-based approach for lines: only draw where highlight mask is empty
+      if (!highlightMaskCtx) {
+        // Fallback if mask not initialized
+        annotationCtx.globalCompositeOperation = 'source-over';
+        annotationCtx.strokeStyle = annotationState.currentColor;
+        annotationCtx.globalAlpha = 0.15;
+        break;
+      }
+      
+      // Create temp canvas for the new highlight line
+      const lineTempCanvas = document.createElement('canvas');
+      lineTempCanvas.width = annotationCanvas.width;
+      lineTempCanvas.height = annotationCanvas.height;
+      const lineTempCtx = lineTempCanvas.getContext('2d');
+      
+      // Draw highlight line to temp at full opacity
+      lineTempCtx.globalCompositeOperation = 'source-over';
+      lineTempCtx.strokeStyle = annotationState.currentColor;
+      lineTempCtx.globalAlpha = 1.0;
+      lineTempCtx.lineCap = 'round';
+      lineTempCtx.lineJoin = 'round';
+      lineTempCtx.lineWidth = annotationState.brushSize;
+      lineTempCtx.beginPath();
+      lineTempCtx.moveTo(x1, y1);
+      lineTempCtx.lineTo(x2, y2);
+      lineTempCtx.stroke();
+      
+      // Use destination-out to erase from temp where highlight mask already has content
+      lineTempCtx.globalCompositeOperation = 'destination-out';
+      lineTempCtx.drawImage(highlightMaskCanvas, 0, 0);
+      
+      // Draw the masked highlight to main canvas at 15% opacity
+      annotationCtx.globalCompositeOperation = 'source-over';
       annotationCtx.globalAlpha = 0.15;
+      annotationCtx.drawImage(lineTempCanvas, 0, 0);
+      
+      // Update highlight mask with the new highlight (at full opacity for tracking)
+      highlightMaskCtx.globalCompositeOperation = 'source-over';
+      highlightMaskCtx.globalAlpha = 1.0;
+      highlightMaskCtx.drawImage(lineTempCanvas, 0, 0);
+      
+      return; // Skip the normal stroke below
       break;
     case 'airbrush':
       annotationCtx.globalCompositeOperation = 'source-over';
