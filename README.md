@@ -48,6 +48,23 @@ Four different layout options are available for you to choose from:
 
 ## 📝 Changelog
 
+### Version 3.3.0
+- **Navigation Improvements** 🧭
+  - **Increased Swipe/Drag Threshold**: Movement requirement increased from 50px to 75px
+    - Reduces accidental page navigation when interacting with widgets
+    - More intentional gestures required for page navigation
+  - **Widget Interaction Exclusion**: Touch and mouse gestures starting within any widget are excluded from page navigation
+    - Prevents page changes when drawing on whiteboard canvas
+    - Prevents page changes when using scoreboard sliders or dragging teams
+    - Prevents page changes when interacting with any interactive widget
+    - Mouse drag already had this protection; now extended to touch swipes
+- **Annotation UI Enhancements** ✏️
+  - **Clear Button State**: Clear annotations (trash icon) button now disabled when annotations are hidden
+    - Visual feedback: Opacity reduced to 0.5 when disabled
+    - Cursor changes to `not-allowed` when disabled
+    - Button automatically enables when annotations are made visible again
+    - Prevents clearing annotations when they're not visible (better UX)
+
 ### Version 3.2.0
 - **Annotation System Major Enhancements** ✏️
   - **Opacity Control**: New opacity slider (0-100%) for all annotation tools
