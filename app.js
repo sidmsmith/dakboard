@@ -5955,6 +5955,8 @@ function removeAnnotationDrawing() {
 // Start drawing
 function startAnnotationDrawing(e) {
   if (!annotationCanvas || !annotationCtx) return;
+  // Prevent drawing if annotations are hidden
+  if (!annotationState.isVisible) return;
   annotationState.isDrawing = true;
   
   const rect = annotationCanvas.getBoundingClientRect();
@@ -6365,6 +6367,12 @@ function saveAnnotationData() {
   const dataURL = annotationCanvas.toDataURL('image/png');
   const key = `dakboard-annotation-page-${currentPageIndex}`;
   localStorage.setItem(key, dataURL);
+  
+  // Also save highlight2Canvas strokes if they exist
+  if (highlightStrokes && highlightStrokes.length > 0) {
+    const highlight2Key = `dakboard-annotation-highlight2-page-${currentPageIndex}`;
+    localStorage.setItem(highlight2Key, JSON.stringify(highlightStrokes));
+  }
 }
 
 // Load annotation data
@@ -6384,6 +6392,24 @@ function loadAnnotationData() {
   } else {
     annotationCtx.clearRect(0, 0, annotationCanvas.width, annotationCanvas.height);
   }
+  
+  // Also load highlight2Canvas strokes if they exist
+  const highlight2Key = `dakboard-annotation-highlight2-page-${currentPageIndex}`;
+  const highlight2Saved = localStorage.getItem(highlight2Key);
+  if (highlight2Saved) {
+    try {
+      highlightStrokes = JSON.parse(highlight2Saved);
+      drawAllHighlightStrokes();
+    } catch (e) {
+      console.error('Error loading highlight2 strokes:', e);
+      highlightStrokes = [];
+    }
+  } else {
+    highlightStrokes = [];
+    if (highlight2Ctx) {
+      highlight2Ctx.clearRect(0, 0, highlight2Canvas.width, highlight2Canvas.height);
+    }
+  }
 }
 
 // Clear annotations
@@ -6402,6 +6428,8 @@ function clearAnnotations() {
   annotationCtx.clearRect(0, 0, annotationCanvas.width, annotationCanvas.height);
   const key = `dakboard-annotation-page-${currentPageIndex}`;
   localStorage.removeItem(key);
+  const highlight2Key = `dakboard-annotation-highlight2-page-${currentPageIndex}`;
+  localStorage.removeItem(highlight2Key);
 }
 
 // Get annotation visibility for current page
@@ -10068,11 +10096,25 @@ function performExport(pageIndices) {
         });
       });
       
-      // Explicitly export annotations for this page
+      // Explicitly export annotations for this page (main canvas)
       const annotationKey = `dakboard-annotation-page-${pageIndex}`;
       const annotationValue = localStorage.getItem(annotationKey);
       if (annotationValue && !page.localStorageData[annotationKey]) {
         page.localStorageData[annotationKey] = annotationValue; // Annotations are stored as data URLs (strings)
+      }
+      
+      // Export highlight2Canvas strokes for this page
+      const highlight2Key = `dakboard-annotation-highlight2-page-${pageIndex}`;
+      const highlight2Value = localStorage.getItem(highlight2Key);
+      if (highlight2Value && !page.localStorageData[highlight2Key]) {
+        page.localStorageData[highlight2Key] = highlight2Value; // Highlight2 strokes are stored as JSON strings
+      }
+      
+      // Export annotation visibility for this page
+      const visibilityKey = `dakboard-annotation-visibility-page-${pageIndex}`;
+      const visibilityValue = localStorage.getItem(visibilityKey);
+      if (visibilityValue !== null && !page.localStorageData[visibilityKey]) {
+        page.localStorageData[visibilityKey] = visibilityValue; // Visibility is stored as 'true' or 'false' string
       }
     });
     
