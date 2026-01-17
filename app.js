@@ -5992,6 +5992,59 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+// Check if an area is already highlighted (to prevent accumulation)
+function isAreaAlreadyHighlighted(ctx, x, y, radius, highlightColor) {
+  if (!ctx) return false;
+  
+  try {
+    // Sample center pixel and a few surrounding pixels
+    const sampleSize = Math.max(3, Math.floor(radius / 2));
+    const imageData = ctx.getImageData(
+      Math.max(0, x - sampleSize), 
+      Math.max(0, y - sampleSize), 
+      sampleSize * 2, 
+      sampleSize * 2
+    );
+    const data = imageData.data;
+    
+    // Parse highlight color
+    const hex = highlightColor.replace('#', '');
+    const targetR = parseInt(hex.substring(0, 2), 16);
+    const targetG = parseInt(hex.substring(2, 4), 16);
+    const targetB = parseInt(hex.substring(4, 6), 16);
+    
+    // Check if any sampled pixels match the highlight color
+    // We check for pixels that have the highlight color mixed in (indicating it's already highlighted)
+    for (let i = 0; i < data.length; i += 4) {
+      const pixelR = data[i];
+      const pixelG = data[i + 1];
+      const pixelB = data[i + 2];
+      const pixelA = data[i + 3];
+      
+      // Check if pixel has significant alpha and color that matches highlight
+      // Allow some tolerance for color mixing
+      if (pixelA > 50) { // Has some opacity
+        // Check if color is close to highlight color (within tolerance)
+        const colorDistance = Math.sqrt(
+          Math.pow(pixelR - targetR, 2) + 
+          Math.pow(pixelG - targetG, 2) + 
+          Math.pow(pixelB - targetB, 2)
+        );
+        
+        // If color is close and has opacity, likely already highlighted
+        if (colorDistance < 100) {
+          return true;
+        }
+      }
+    }
+  } catch (e) {
+    // If we can't check (e.g., outside canvas bounds), allow drawing
+    return false;
+  }
+  
+  return false;
+}
+
 // Draw a dot at a point (for smooth drawing)
 function drawAnnotationDot(x, y) {
   if (!annotationCtx) return;
@@ -6007,9 +6060,14 @@ function drawAnnotationDot(x, y) {
       annotationCtx.globalAlpha = 1.0;
       break;
     case 'highlighter':
-      // Use destination-over to put highlight behind content, preventing accumulation
-      // This creates a true highlighter effect that doesn't darken when overlapping
-      annotationCtx.globalCompositeOperation = 'destination-over';
+      // Check if area is already highlighted to prevent accumulation
+      const radius = annotationState.brushSize / 2;
+      if (isAreaAlreadyHighlighted(annotationCtx, x, y, radius, annotationState.currentColor)) {
+        // Already highlighted, skip drawing to prevent accumulation
+        return;
+      }
+      // Use source-over with 15% opacity for simple highlighting
+      annotationCtx.globalCompositeOperation = 'source-over';
       annotationCtx.fillStyle = annotationState.currentColor;
       annotationCtx.globalAlpha = 0.15;
       break;
@@ -6050,9 +6108,32 @@ function drawAnnotationLine(x1, y1, x2, y2) {
       annotationCtx.globalAlpha = 1.0;
       break;
     case 'highlighter':
-      // Use destination-over to put highlight behind content, preventing accumulation
-      // This creates a true highlighter effect that doesn't darken when overlapping
-      annotationCtx.globalCompositeOperation = 'destination-over';
+      // For lines, we need to check multiple points along the line
+      // Sample a few points along the line to check if already highlighted
+      const lineRadius = annotationState.brushSize / 2;
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const samples = Math.max(3, Math.floor(distance / (lineRadius * 2)));
+      
+      let shouldSkip = false;
+      for (let i = 0; i <= samples; i++) {
+        const t = i / samples;
+        const checkX = x1 + dx * t;
+        const checkY = y1 + dy * t;
+        if (isAreaAlreadyHighlighted(annotationCtx, checkX, checkY, lineRadius, annotationState.currentColor)) {
+          shouldSkip = true;
+          break;
+        }
+      }
+      
+      if (shouldSkip) {
+        // Already highlighted along this line, skip drawing
+        return;
+      }
+      
+      // Use source-over with 15% opacity for simple highlighting
+      annotationCtx.globalCompositeOperation = 'source-over';
       annotationCtx.strokeStyle = annotationState.currentColor;
       annotationCtx.globalAlpha = 0.15;
       break;
