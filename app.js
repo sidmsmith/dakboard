@@ -6076,14 +6076,9 @@ function drawAnnotationDot(x, y) {
       annotationCtx.globalAlpha = 1.0;
       break;
     case 'highlighter':
-      // Check if area is already highlighted to prevent accumulation
-      const radius = annotationState.brushSize / 2;
-      if (isAreaAlreadyHighlighted(annotationCtx, x, y, radius, annotationState.currentColor)) {
-        // Already highlighted, skip drawing to prevent accumulation
-        return;
-      }
-      // Use source-over with 15% opacity for simple highlighting
-      annotationCtx.globalCompositeOperation = 'source-over';
+      // Use destination-over to put highlight behind existing content
+      // This prevents accumulation because new highlights go behind previous ones
+      annotationCtx.globalCompositeOperation = 'destination-over';
       annotationCtx.fillStyle = annotationState.currentColor;
       annotationCtx.globalAlpha = 0.15;
       break;
@@ -6124,32 +6119,9 @@ function drawAnnotationLine(x1, y1, x2, y2) {
       annotationCtx.globalAlpha = 1.0;
       break;
     case 'highlighter':
-      // For lines, we need to check multiple points along the line
-      // Sample a few points along the line to check if already highlighted
-      const lineRadius = annotationState.brushSize / 2;
-      const dx = x2 - x1;
-      const dy = y2 - y1;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      const samples = Math.max(3, Math.floor(distance / (lineRadius * 2)));
-      
-      let shouldSkip = false;
-      for (let i = 0; i <= samples; i++) {
-        const t = i / samples;
-        const checkX = x1 + dx * t;
-        const checkY = y1 + dy * t;
-        if (isAreaAlreadyHighlighted(annotationCtx, checkX, checkY, lineRadius, annotationState.currentColor)) {
-          shouldSkip = true;
-          break;
-        }
-      }
-      
-      if (shouldSkip) {
-        // Already highlighted along this line, skip drawing
-        return;
-      }
-      
-      // Use source-over with 15% opacity for simple highlighting
-      annotationCtx.globalCompositeOperation = 'source-over';
+      // Use destination-over to put highlight behind existing content
+      // This prevents accumulation because new highlights go behind previous ones
+      annotationCtx.globalCompositeOperation = 'destination-over';
       annotationCtx.strokeStyle = annotationState.currentColor;
       annotationCtx.globalAlpha = 0.15;
       break;
