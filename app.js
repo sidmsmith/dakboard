@@ -6111,16 +6111,27 @@ function drawAnnotationDot(x, y) {
       tempCtx.arc(x, y, annotationState.brushSize / 2, 0, Math.PI * 2);
       tempCtx.fill();
       
-      // Use destination-out to erase from temp where highlight mask already has content
-      // This ensures we only draw new highlights, not overlapping ones
-      tempCtx.globalCompositeOperation = 'destination-out';
-      tempCtx.drawImage(highlightMaskCanvas, 0, 0);
+      // Create inverted mask: draw mask to temp, then use source-out to get inverse
+      const invertCanvas = document.createElement('canvas');
+      invertCanvas.width = annotationCanvas.width;
+      invertCanvas.height = annotationCanvas.height;
+      const invertCtx = invertCanvas.getContext('2d');
+      
+      // Copy highlight mask to invert canvas
+      invertCtx.drawImage(highlightMaskCanvas, 0, 0);
+      
+      // Use source-out: draw temp only where invert (mask) is empty
+      // This gives us only the parts of temp that don't overlap with mask
+      tempCtx.globalCompositeOperation = 'source-out';
+      tempCtx.drawImage(invertCanvas, 0, 0);
       
       // Update highlight mask FIRST with the new highlight (at full opacity for tracking)
       // This ensures subsequent draws see the updated mask immediately
       highlightMaskCtx.globalCompositeOperation = 'source-over';
       highlightMaskCtx.globalAlpha = 1.0;
-      highlightMaskCtx.drawImage(tempCanvas, 0, 0);
+      highlightMaskCtx.beginPath();
+      highlightMaskCtx.arc(x, y, annotationState.brushSize / 2, 0, Math.PI * 2);
+      highlightMaskCtx.fill();
       
       // Draw the masked highlight to main canvas at 15% opacity using source-over
       // This ensures consistent opacity without accumulation
@@ -6196,16 +6207,31 @@ function drawAnnotationLine(x1, y1, x2, y2) {
       lineTempCtx.lineTo(x2, y2);
       lineTempCtx.stroke();
       
-      // Use destination-out to erase from temp where highlight mask already has content
-      // This ensures we only draw new highlights, not overlapping ones
-      lineTempCtx.globalCompositeOperation = 'destination-out';
-      lineTempCtx.drawImage(highlightMaskCanvas, 0, 0);
+      // Create inverted mask: draw mask to temp, then use source-out to get inverse
+      const lineInvertCanvas = document.createElement('canvas');
+      lineInvertCanvas.width = annotationCanvas.width;
+      lineInvertCanvas.height = annotationCanvas.height;
+      const lineInvertCtx = lineInvertCanvas.getContext('2d');
+      
+      // Copy highlight mask to invert canvas
+      lineInvertCtx.drawImage(highlightMaskCanvas, 0, 0);
+      
+      // Use source-out: draw temp only where invert (mask) is empty
+      // This gives us only the parts of temp that don't overlap with mask
+      lineTempCtx.globalCompositeOperation = 'source-out';
+      lineTempCtx.drawImage(lineInvertCanvas, 0, 0);
       
       // Update highlight mask FIRST with the new highlight (at full opacity for tracking)
       // This ensures subsequent draws see the updated mask immediately
       highlightMaskCtx.globalCompositeOperation = 'source-over';
       highlightMaskCtx.globalAlpha = 1.0;
-      highlightMaskCtx.drawImage(lineTempCanvas, 0, 0);
+      highlightMaskCtx.lineCap = 'round';
+      highlightMaskCtx.lineJoin = 'round';
+      highlightMaskCtx.lineWidth = annotationState.brushSize;
+      highlightMaskCtx.beginPath();
+      highlightMaskCtx.moveTo(x1, y1);
+      highlightMaskCtx.lineTo(x2, y2);
+      highlightMaskCtx.stroke();
       
       // Draw the masked highlight to main canvas at 15% opacity using source-over
       // This ensures consistent opacity without accumulation
