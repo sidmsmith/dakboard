@@ -6259,6 +6259,10 @@ function loadAnnotationData() {
 
 // Clear annotations
 function clearAnnotations() {
+  // Also clear the highlight mask
+  if (highlightMaskCtx) {
+    highlightMaskCtx.clearRect(0, 0, highlightMaskCanvas.width, highlightMaskCanvas.height);
+  }
   if (!annotationCanvas || !annotationCtx) return;
   annotationCtx.clearRect(0, 0, annotationCanvas.width, annotationCanvas.height);
   const key = `dakboard-annotation-page-${currentPageIndex}`;
