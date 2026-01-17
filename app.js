@@ -6471,6 +6471,14 @@ function updateAnnotationVisibilityUI() {
       svg.style.stroke = isVisible ? '#28a745' : '#dc3545'; // Green when visible, red when hidden
     }
   }
+  
+  // Disable/enable clear button based on visibility
+  const clearBtn = document.getElementById('annotation-clear');
+  if (clearBtn) {
+    clearBtn.disabled = !isVisible;
+    clearBtn.style.opacity = isVisible ? '1' : '0.5';
+    clearBtn.style.cursor = isVisible ? 'pointer' : 'not-allowed';
+  }
 }
 
 // Toggle annotation visibility
