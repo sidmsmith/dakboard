@@ -9082,7 +9082,7 @@ function updatePageList() {
     
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'page-delete-btn';
-    deleteBtn.textContent = '×';
+    deleteBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
     deleteBtn.title = 'Delete Page';
     deleteBtn.disabled = totalPages <= 1; // Disable if only one page
     
@@ -9871,20 +9871,6 @@ function importConfiguration(file) {
             // Styles are stored as: dakboard-widget-styles-${fullWidgetId} (NO page suffix)
             if (widget.styles) {
               // Store for the first instance (instance-0)
-              const newFullId = generateWidgetId(widgetType, newPageIndex, 0);
-              localStorage.setItem(
-                `dakboard-widget-styles-${newFullId}`,
-                JSON.stringify(widget.styles)
-              );
-              importedCount++;
-            }
-          } else {
-            // Widget has no instances and no instance info - set widget type visibility
-            visibility[widgetType] = widget.visible === true;
-            
-            // Import styles if available (legacy format)
-            if (widget.styles) {
-              // Try to find if there's an instance-0 for this widget type, otherwise use widget type
               const newFullId = generateWidgetId(widgetType, newPageIndex, 0);
               localStorage.setItem(
                 `dakboard-widget-styles-${newFullId}`,

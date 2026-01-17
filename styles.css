@@ -4040,7 +4040,7 @@ footer a:hover {
 .page-delete-btn {
   background: transparent;
   border: 1px solid #666;
-  color: #e0e0e0;
+  color: #e74c3c;
   width: 24px;
   height: 24px;
   border-radius: 4px;
@@ -4054,10 +4054,20 @@ footer a:hover {
   padding: 0;
 }
 
+.page-delete-btn svg {
+  stroke: #e74c3c;
+  width: 16px;
+  height: 16px;
+}
+
 .page-delete-btn:hover:not(:disabled) {
   background: #e74c3c;
   border-color: #e74c3c;
   color: #fff;
+}
+
+.page-delete-btn:hover:not(:disabled) svg {
+  stroke: #fff;
 }
 
 .page-delete-btn:disabled {
