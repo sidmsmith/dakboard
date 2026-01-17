@@ -2559,6 +2559,46 @@ footer a:hover {
   text-align: center;
 }
 
+.annotation-opacity-slider {
+  width: 120px;
+  height: 6px;
+  border-radius: 3px;
+  background: #3a3a3a;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.annotation-opacity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4a90e2;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.annotation-opacity-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4a90e2;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.annotation-opacity-value {
+  color: #e0e0e0;
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 40px;
+  text-align: center;
+}
+
 .annotation-actions {
   display: flex;
   gap: 8px;
