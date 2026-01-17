@@ -9354,7 +9354,7 @@ function performExport(pageIndices) {
         }
       }
       
-      // Get widget layout for this page
+      // Get widget layout for this page (stored by full instance ID)
       const layoutKey = `dakboard-widget-layout-page-${pageIndex}`;
       const layoutValue = localStorage.getItem(layoutKey);
       let layout = {};
@@ -9366,31 +9366,119 @@ function performExport(pageIndices) {
         }
       }
       
-      // Organize widgets for this page - include ALL widgets
-      Object.keys(WIDGET_CONFIG).forEach(widgetId => {
-        const widgetInfo = WIDGET_CONFIG[widgetId];
-        const widget = {
-          widgetId: widgetId,
-          name: widgetInfo.name,
-          icon: widgetInfo.icon,
-          visible: visibility.hasOwnProperty(widgetId) ? visibility[widgetId] !== false : true, // Use saved visibility or default to true
-          layout: layout[widgetId] || null,
-          styles: null
-        };
+      // Get the actual page element to check real widget states
+      const pageElement = getPageElement(pageIndex);
+      
+      // Organize widgets for this page - get actual instances from the page
+      Object.keys(WIDGET_CONFIG).forEach(widgetType => {
+        const widgetInfo = WIDGET_CONFIG[widgetType];
         
-        // Get widget styles for this page
-        const stylesKey = `dakboard-widget-styles-${widgetId}-page-${pageIndex}`;
-        const stylesValue = localStorage.getItem(stylesKey);
-        if (stylesValue) {
-          try {
-            widget.styles = JSON.parse(stylesValue);
-          } catch (e) {
-            console.warn(`Error parsing styles for ${widgetId} on page ${pageIndex}:`, e);
+        // Get all instances of this widget type on this page
+        const instances = getWidgetInstances(widgetType, pageIndex);
+        
+        // If no instances exist, still export the widget type with default visibility
+        if (instances.length === 0) {
+          // Check visibility for widget type (legacy format)
+          const isVisible = visibility.hasOwnProperty(widgetType) ? visibility[widgetType] === true : false;
+          
+          const widget = {
+            widgetId: widgetType,
+            name: widgetInfo.name,
+            icon: widgetInfo.icon,
+            visible: isVisible,
+            layout: null, // No layout if widget doesn't exist
+            styles: null,
+            instances: []
+          };
+          
+          // Get widget styles for this page (by widget type)
+          const stylesKey = `dakboard-widget-styles-${widgetType}-page-${pageIndex}`;
+          const stylesValue = localStorage.getItem(stylesKey);
+          if (stylesValue) {
+            try {
+              widget.styles = JSON.parse(stylesValue);
+            } catch (e) {
+              console.warn(`Error parsing styles for ${widgetType} on page ${pageIndex}:`, e);
+            }
           }
+          
+          page.widgets.push(widget);
+        } else {
+          // Export each instance separately
+          instances.forEach(instance => {
+            const fullWidgetId = instance.fullId;
+            const widgetElement = instance.element;
+            
+            // Check actual visibility from DOM (most accurate)
+            let isVisible = true;
+            if (widgetElement) {
+              isVisible = !widgetElement.classList.contains('hidden');
+            } else {
+              // Fallback to visibility storage (check both full ID and widget type)
+              isVisible = visibility[fullWidgetId] === true || 
+                         (visibility[fullWidgetId] === undefined && visibility[widgetType] === true);
+            }
+            
+            // Get layout for this specific instance (by full instance ID)
+            const instanceLayout = layout[fullWidgetId] || null;
+            
+            // If no layout in storage but widget exists, get current position from DOM
+            let finalLayout = instanceLayout;
+            if (!finalLayout && widgetElement) {
+              const styleLeft = widgetElement.style.left;
+              const styleTop = widgetElement.style.top;
+              const styleWidth = widgetElement.style.width;
+              const styleHeight = widgetElement.style.height;
+              
+              if (styleLeft && styleTop && styleWidth && styleHeight) {
+                const rect = widgetElement.getBoundingClientRect();
+                const pageRect = pageElement ? pageElement.getBoundingClientRect() : { left: 0, top: 0 };
+                const zIndex = parseInt(window.getComputedStyle(widgetElement).zIndex) || 1;
+                const rotation = widgetElement.getAttribute('data-rotation') ? parseFloat(widgetElement.getAttribute('data-rotation')) : 0;
+                
+                finalLayout = {
+                  x: parseFloat(styleLeft) || (rect.left - pageRect.left),
+                  y: parseFloat(styleTop) || (rect.top - pageRect.top),
+                  width: parseFloat(styleWidth) || widgetElement.offsetWidth,
+                  height: parseFloat(styleHeight) || widgetElement.offsetHeight,
+                  zIndex: zIndex,
+                  rotation: rotation
+                };
+              }
+            }
+            
+            const widget = {
+              widgetId: widgetType,
+              instanceId: instance.instanceIndex,
+              fullId: fullWidgetId,
+              name: widgetInfo.name,
+              icon: widgetInfo.icon,
+              visible: isVisible,
+              layout: finalLayout,
+              styles: null
+            };
+            
+            // Get widget styles for this specific instance
+            // Try instance-specific styles first, then fall back to widget-type styles
+            const instanceStylesKey = `dakboard-widget-styles-${fullWidgetId}-page-${pageIndex}`;
+            const typeStylesKey = `dakboard-widget-styles-${widgetType}-page-${pageIndex}`;
+            
+            let stylesValue = localStorage.getItem(instanceStylesKey);
+            if (!stylesValue) {
+              stylesValue = localStorage.getItem(typeStylesKey);
+            }
+            
+            if (stylesValue) {
+              try {
+                widget.styles = JSON.parse(stylesValue);
+              } catch (e) {
+                console.warn(`Error parsing styles for ${fullWidgetId} on page ${pageIndex}:`, e);
+              }
+            }
+            
+            page.widgets.push(widget);
+          });
         }
-        
-        // Always include widget in export - this ensures complete configuration
-        page.widgets.push(widget);
       });
       
       // Get whiteboard data for this page
@@ -9617,106 +9705,123 @@ function importConfiguration(file) {
         }
         
         // Build visibility map and create instance ID mappings
+        // Visibility is stored by full instance ID, not just widget type
         const visibility = {};
-        // First, mark all widgets as hidden by default
-        Object.keys(WIDGET_CONFIG).forEach(widgetId => {
-          visibility[widgetId] = false;
-        });
+        const layout = {};
         
         // Process widgets and create instance ID mappings
         page.widgets.forEach(widget => {
           const widgetType = widget.widgetId;
-          visibility[widgetType] = widget.visible === true;
           
-          // Find all instances of this widget type on the old page and create mappings
-          // We need to generate new instance IDs for each instance
-          const oldInstances = [];
-          
-          // Check if there are any instance-specific data for this widget type
-          if (page.instanceData) {
-            // Check stopwatch instances
-            if (page.instanceData.stopwatch) {
-              Object.keys(page.instanceData.stopwatch).forEach(oldFullId => {
-                if (oldFullId.startsWith(`${widgetType}-page-${oldPageIndex}-instance-`)) {
-                  oldInstances.push(oldFullId);
-                }
-              });
-            }
-            // Check scoreboard instances
-            if (page.instanceData.scoreboard && page.instanceData.scoreboard.config) {
-              Object.keys(page.instanceData.scoreboard.config).forEach(oldFullId => {
-                if (oldFullId.startsWith(`${widgetType}-page-${oldPageIndex}-instance-`) && !oldInstances.includes(oldFullId)) {
-                  oldInstances.push(oldFullId);
-                }
-              });
-            }
-            // Check stoplight instances
-            if (page.instanceData.stoplight) {
-              Object.keys(page.instanceData.stoplight).forEach(oldFullId => {
-                if (oldFullId.startsWith(`${widgetType}-page-${oldPageIndex}-instance-`) && !oldInstances.includes(oldFullId)) {
-                  oldInstances.push(oldFullId);
-                }
-              });
-            }
-            // Check whiteboard instances
-            if (page.instanceData.whiteboard) {
-              Object.keys(page.instanceData.whiteboard).forEach(oldFullId => {
-                if (oldFullId.startsWith(`${widgetType}-page-${oldPageIndex}-instance-`) && !oldInstances.includes(oldFullId)) {
-                  oldInstances.push(oldFullId);
-                }
-              });
-            }
-          }
-          
-          // If no instances found, assume at least one instance (instance-0)
-          if (oldInstances.length === 0) {
-            const oldFullId = generateWidgetId(widgetType, oldPageIndex, 0);
-            oldInstances.push(oldFullId);
-          }
-          
-          // Create mappings for each instance
-          oldInstances.forEach((oldFullId, instanceIdx) => {
-            const newFullId = generateWidgetId(widgetType, newPageIndex, instanceIdx);
+          // Handle widgets with instance information (new format)
+          if (widget.fullId !== undefined || widget.instanceId !== undefined) {
+            // This is an instance-specific widget
+            const oldFullId = widget.fullId || generateWidgetId(widgetType, oldPageIndex, widget.instanceId || 0);
+            const instanceIndex = widget.instanceId !== undefined ? widget.instanceId : 0;
+            
+            // Generate new instance ID
+            const newFullId = generateWidgetId(widgetType, newPageIndex, instanceIndex);
             instanceIdMap.set(oldFullId, newFullId);
-          });
+            
+            // Set visibility by full instance ID
+            visibility[newFullId] = widget.visible === true;
+            
+            // Import layout by full instance ID
+            if (widget.layout) {
+              layout[newFullId] = widget.layout;
+            }
+            
+            // Import styles for this instance
+            if (widget.styles) {
+              localStorage.setItem(
+                `dakboard-widget-styles-${newFullId}-page-${newPageIndex}`,
+                JSON.stringify(widget.styles)
+              );
+              importedCount++;
+            }
+          } else {
+            // Legacy format: widget type only (no instances)
+            // Check if there are any instance-specific data for this widget type
+            const oldInstances = [];
+            
+            // Check if there are any instance-specific data for this widget type
+            if (page.instanceData) {
+              // Check stopwatch instances
+              if (page.instanceData.stopwatch) {
+                Object.keys(page.instanceData.stopwatch).forEach(oldFullId => {
+                  if (oldFullId.startsWith(`${widgetType}-page-${oldPageIndex}-instance-`)) {
+                    oldInstances.push(oldFullId);
+                  }
+                });
+              }
+              // Check scoreboard instances
+              if (page.instanceData.scoreboard && page.instanceData.scoreboard.config) {
+                Object.keys(page.instanceData.scoreboard.config).forEach(oldFullId => {
+                  if (oldFullId.startsWith(`${widgetType}-page-${oldPageIndex}-instance-`) && !oldInstances.includes(oldFullId)) {
+                    oldInstances.push(oldFullId);
+                  }
+                });
+              }
+              // Check stoplight instances
+              if (page.instanceData.stoplight) {
+                Object.keys(page.instanceData.stoplight).forEach(oldFullId => {
+                  if (oldFullId.startsWith(`${widgetType}-page-${oldPageIndex}-instance-`) && !oldInstances.includes(oldFullId)) {
+                    oldInstances.push(oldFullId);
+                  }
+                });
+              }
+              // Check whiteboard instances
+              if (page.instanceData.whiteboard) {
+                Object.keys(page.instanceData.whiteboard).forEach(oldFullId => {
+                  if (oldFullId.startsWith(`${widgetType}-page-${oldPageIndex}-instance-`) && !oldInstances.includes(oldFullId)) {
+                    oldInstances.push(oldFullId);
+                  }
+                });
+              }
+            }
+            
+            // If no instances found, assume at least one instance (instance-0)
+            if (oldInstances.length === 0) {
+              const oldFullId = generateWidgetId(widgetType, oldPageIndex, 0);
+              oldInstances.push(oldFullId);
+            }
+            
+            // Create mappings for each instance
+            oldInstances.forEach((oldFullId, instanceIdx) => {
+              const newFullId = generateWidgetId(widgetType, newPageIndex, instanceIdx);
+              instanceIdMap.set(oldFullId, newFullId);
+              
+              // Set visibility for this instance
+              visibility[newFullId] = widget.visible === true;
+              
+              // Import layout if available (check if layout was stored by old full ID)
+              if (widget.layout) {
+                layout[newFullId] = widget.layout;
+              }
+            });
+            
+            // Import styles for widget type (legacy format)
+            if (widget.styles) {
+              // Store for the first instance (instance-0)
+              const newFullId = generateWidgetId(widgetType, newPageIndex, 0);
+              localStorage.setItem(
+                `dakboard-widget-styles-${newFullId}-page-${newPageIndex}`,
+                JSON.stringify(widget.styles)
+              );
+              importedCount++;
+            }
+          }
         });
         
-        // Save visibility
+        // Save visibility (by full instance ID)
         localStorage.setItem(`dakboard-widget-visibility-page-${newPageIndex}`, JSON.stringify(visibility));
         importedCount++;
         
-        // Import widget layouts (remap page indices in layout data if needed)
-        const layout = {};
-        page.widgets.forEach(widget => {
-          if (widget.layout) {
-            layout[widget.widgetId] = widget.layout;
-          }
-        });
+        // Import widget layouts (by full instance ID)
         if (Object.keys(layout).length > 0) {
           localStorage.setItem(`dakboard-widget-layout-page-${newPageIndex}`, JSON.stringify(layout));
           importedCount++;
         }
-        
-        // Import widget styles (remap instance IDs in storage keys)
-        page.widgets.forEach(widget => {
-          if (widget.styles) {
-            // Find the corresponding new instance ID for this widget
-            const widgetType = widget.widgetId;
-            const oldFullId = generateWidgetId(widgetType, oldPageIndex, 0);
-            const newFullId = instanceIdMap.get(oldFullId) || generateWidgetId(widgetType, newPageIndex, 0);
-            
-            // Extract instance index from newFullId
-            const instanceMatch = newFullId.match(/-instance-(\d+)$/);
-            const instanceIndex = instanceMatch ? parseInt(instanceMatch[1]) : 0;
-            
-            // Store styles with new instance ID
-            localStorage.setItem(
-              `dakboard-widget-styles-${widget.widgetId}-page-${newPageIndex}`,
-              JSON.stringify(widget.styles)
-            );
-            importedCount++;
-          }
-        });
         
         // Import whiteboard data (page-level)
         if (page.whiteboard) {
