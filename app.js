@@ -9018,15 +9018,23 @@ function setupSwipeGestures() {
   let touchStartY = 0;
   let touchEndX = 0;
   let touchEndY = 0;
+  let touchStartedOnWidget = false;
   
   pagesContainer.addEventListener('touchstart', (e) => {
     if (isEditMode) return; // Disable swipe in edit mode
+    // Check if touch starts within any widget
+    const touchTarget = e.target;
+    if (touchTarget.closest('.widget') || touchTarget.closest('.page-nav-arrow')) {
+      touchStartedOnWidget = true;
+      return; // Don't track swipe if starting on widget or arrow
+    }
+    touchStartedOnWidget = false;
     touchStartX = e.changedTouches[0].screenX;
     touchStartY = e.changedTouches[0].screenY;
   }, { passive: true });
   
   pagesContainer.addEventListener('touchend', (e) => {
-    if (isEditMode) return; // Disable swipe in edit mode
+    if (isEditMode || touchStartedOnWidget) return; // Disable swipe in edit mode or if started on widget
     touchEndX = e.changedTouches[0].screenX;
     touchEndY = e.changedTouches[0].screenY;
     handleSwipe();
@@ -9039,7 +9047,10 @@ function setupSwipeGestures() {
   
   pagesContainer.addEventListener('mousedown', (e) => {
     if (isEditMode) return; // Disable swipe in edit mode
-    if (e.target.closest('.widget') || e.target.closest('.page-nav-arrow')) return; // Don't swipe if clicking widget or arrow
+    // Check if mouse down starts within any widget
+    if (e.target.closest('.widget') || e.target.closest('.page-nav-arrow')) {
+      return; // Don't swipe if clicking widget or arrow
+    }
     mouseDownX = e.clientX;
     mouseDownY = e.clientY;
     isMouseDown = true;
@@ -9058,7 +9069,8 @@ function setupSwipeGestures() {
     const deltaY = mouseUpY - mouseDownY;
     
     // Only trigger swipe if horizontal movement is greater than vertical (swipe, not scroll)
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+    // Increased threshold from 50px to 75px
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 75) {
       if (deltaX > 0) {
         previousPage();
       } else {
@@ -9074,7 +9086,8 @@ function setupSwipeGestures() {
     const deltaY = touchEndY - touchStartY;
     
     // Only trigger swipe if horizontal movement is greater than vertical (swipe, not scroll)
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+    // Increased threshold from 50px to 75px
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 75) {
       if (deltaX > 0) {
         previousPage();
       } else {
