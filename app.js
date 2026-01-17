@@ -9355,8 +9355,9 @@ function addPage() {
   // Create the new page
   const newPage = createPage(newPageIndex);
   
-  // Set default background
+  // Set default background (ensure no inherited background)
   newPage.style.background = '#1a1a1a';
+  localStorage.removeItem(`dakboard-page-background-${newPageIndex}`);
   
   // Mark all widgets as hidden for the new page
   const visibility = {};
@@ -9366,13 +9367,59 @@ function addPage() {
   const visibilityKey = `dakboard-widget-visibility-page-${newPageIndex}`;
   localStorage.setItem(visibilityKey, JSON.stringify(visibility));
   
+  // Clear any widget layouts for the new page (ensure clean state)
+  localStorage.removeItem(`dakboard-widget-layout-page-${newPageIndex}`);
+  
+  // Clear any widget styles for all widget instances on the new page
+  // Remove styles for base widgets (instance-0) and any potential clones
+  Object.keys(WIDGET_CONFIG).forEach(widgetType => {
+    // Clear base widget styles (instance-0)
+    const baseWidgetId = generateWidgetId(widgetType, newPageIndex, 0);
+    localStorage.removeItem(`dakboard-widget-styles-${baseWidgetId}`);
+    
+    // Clear any cloned widget styles (instance-1, instance-2, etc.)
+    // We'll check up to 10 instances to be safe
+    for (let i = 1; i < 10; i++) {
+      const cloneWidgetId = generateWidgetId(widgetType, newPageIndex, i);
+      localStorage.removeItem(`dakboard-widget-styles-${cloneWidgetId}`);
+    }
+  });
+  
+  // Clear annotations for the new page
+  localStorage.removeItem(`dakboard-annotation-page-${newPageIndex}`);
+  localStorage.removeItem(`dakboard-annotation-highlight2-page-${newPageIndex}`);
+  
+  // Set annotation visibility to visible by default for new pages
+  localStorage.setItem(`dakboard-annotation-visibility-page-${newPageIndex}`, 'true');
+  
+  // Clear edit mode for the new page (start with edit mode off)
+  localStorage.removeItem(`dakboard-edit-mode-page-${newPageIndex}`);
+  
+  // Clear any page-specific data (whiteboard, etc.)
+  const allKeys = Object.keys(localStorage);
+  allKeys.forEach(key => {
+    // Remove any keys that contain the new page index
+    if (key.includes(`-page-${newPageIndex}`) || key.endsWith(`page-${newPageIndex}`)) {
+      // Only remove if it's not the visibility key we just set, or other keys we want to keep
+      if (key !== visibilityKey && 
+          key !== `dakboard-annotation-visibility-page-${newPageIndex}` &&
+          !key.startsWith(`dakboard-page-name-`) &&
+          !key.startsWith(`dakboard-page-background-`) &&
+          !key.startsWith(`dakboard-edit-mode-page-`)) {
+        // Check if it's widget-specific data (stopwatch, scoreboard, stoplight, whiteboard, etc.)
+        // These should be removed for new pages
+        localStorage.removeItem(key);
+      }
+    }
+  });
+  
   // Update page list UI
   updatePageList();
   
   // Update navigation arrows
   updateNavigationArrows();
   
-  // Switch to the new page
+  // Switch to the new page (this will trigger loadCurrentPage which loads visibility and renders widgets)
   showPage(newPageIndex);
   
   return newPageIndex;
