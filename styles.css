@@ -2471,7 +2471,8 @@ footer a:hover {
 }
 
 .annotation-color-controls,
-.annotation-size-controls {
+.annotation-size-controls,
+.annotation-opacity-controls {
   display: flex;
   align-items: center;
   gap: 8px;
