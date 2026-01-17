@@ -2443,6 +2443,27 @@ footer a:hover {
   color: #fff;
 }
 
+.annotation-tool-btn[data-tool="pen"] svg {
+  stroke: #4a90e2;
+}
+
+.annotation-tool-btn[data-tool="highlighter"] svg {
+  stroke: #ffd700;
+}
+
+.annotation-tool-btn[data-tool="paintbrush"] svg {
+  stroke: #ff6b9d;
+}
+
+.annotation-tool-btn[data-tool="eraser"] svg {
+  stroke: #ff4444;
+}
+
+.annotation-tool-btn:hover svg,
+.annotation-tool-btn.active svg {
+  filter: brightness(1.2);
+}
+
 .annotation-separator {
   width: 1px;
   height: 32px;
@@ -3726,6 +3747,12 @@ footer a:hover {
   margin-top: auto;
 }
 
+.edit-annotate-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .widget-control-annotate-mode {
   padding: 20px;
   border-top: 2px solid #3a3a3a;
@@ -3744,7 +3771,7 @@ footer a:hover {
   border: 2px solid #3a3a3a;
   transition: all 0.3s;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  width: 100%;
+  width: fit-content;
   color: #fff;
   font-size: 14px;
   font-weight: 500;
@@ -3763,7 +3790,23 @@ footer a:hover {
 }
 
 .annotate-mode-icon {
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.annotate-mode-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.annotate-mode-toggle-btn.active .annotate-mode-icon svg {
+  stroke: #4a90e2;
+}
+
+.annotate-mode-toggle-btn:hover .annotate-mode-icon svg {
+  stroke: #ff8bb3;
+  filter: brightness(1.2);
 }
 
 .annotate-mode-label {

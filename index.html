@@ -76,17 +76,24 @@
       <!-- Widget controls will be populated by JavaScript -->
     </div>
     <div class="widget-control-edit-mode">
-      <label class="edit-mode-toggle">
-        <input type="checkbox" id="edit-layout-toggle">
-        <span class="edit-mode-switch"></span>
-        <span class="edit-mode-label">Edit Layout</span>
-      </label>
-    </div>
-    <div class="widget-control-annotate-mode">
-      <button id="annotate-mode-toggle" class="annotate-mode-toggle-btn" title="Start Annotating">
-        <span class="annotate-mode-icon">✏️</span>
-        <span class="annotate-mode-label">Annotate</span>
-      </button>
+      <div class="edit-annotate-row">
+        <label class="edit-mode-toggle">
+          <input type="checkbox" id="edit-layout-toggle">
+          <span class="edit-mode-switch"></span>
+          <span class="edit-mode-label">Edit Layout</span>
+        </label>
+        <button id="annotate-mode-toggle" class="annotate-mode-toggle-btn" title="Start Annotating">
+          <span class="annotate-mode-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff6b9d" stroke-width="2.5">
+              <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+              <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+              <path d="M2 2l7.586 7.586"></path>
+              <circle cx="11" cy="11" r="2"></circle>
+            </svg>
+          </span>
+          <span class="annotate-mode-label">Annotate</span>
+        </button>
+      </div>
     </div>
   </div>
   
@@ -98,7 +105,7 @@
     <div class="annotation-toolbar-content">
       <div class="annotation-tools">
         <button class="annotation-tool-btn active" data-tool="pen" title="Pen">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4a90e2" stroke-width="2">
             <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
             <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
             <path d="M2 2l7.586 7.586"></path>
@@ -106,7 +113,7 @@
           </svg>
         </button>
         <button class="annotation-tool-btn" data-tool="highlighter" title="Highlighter">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffd700" stroke-width="2">
             <path d="M3 21h18"></path>
             <path d="M5 21V7l8-4v18"></path>
             <path d="M19 21V11l-6-4"></path>
@@ -115,14 +122,14 @@
           </svg>
         </button>
         <button class="annotation-tool-btn" data-tool="paintbrush" title="Paintbrush">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff6b9d" stroke-width="2">
             <path d="M9.06 2.06A2 2 0 0 1 11 2h2a2 2 0 0 1 2 2v.5M21 15v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3"></path>
             <path d="M12 2v20"></path>
             <path d="M3 15h18"></path>
           </svg>
         </button>
         <button class="annotation-tool-btn" data-tool="eraser" title="Eraser">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff4444" stroke-width="2">
             <path d="M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"></path>
             <path d="M15 9l-6 6"></path>
           </svg>
