@@ -5994,9 +5994,9 @@ function drawAnnotationDot(x, y) {
       annotationCtx.globalAlpha = 1.0;
       break;
     case 'highlighter':
-      annotationCtx.globalCompositeOperation = 'source-over';
+      annotationCtx.globalCompositeOperation = 'screen';
       annotationCtx.fillStyle = annotationState.currentColor;
-      annotationCtx.globalAlpha = 0.15;
+      annotationCtx.globalAlpha = 0.5;
       break;
     case 'airbrush':
       annotationCtx.globalCompositeOperation = 'source-over';
@@ -6035,9 +6035,9 @@ function drawAnnotationLine(x1, y1, x2, y2) {
       annotationCtx.globalAlpha = 1.0;
       break;
     case 'highlighter':
-      annotationCtx.globalCompositeOperation = 'source-over';
+      annotationCtx.globalCompositeOperation = 'screen';
       annotationCtx.strokeStyle = annotationState.currentColor;
-      annotationCtx.globalAlpha = 0.15;
+      annotationCtx.globalAlpha = 0.5;
       break;
     case 'airbrush':
       annotationCtx.globalCompositeOperation = 'source-over';
