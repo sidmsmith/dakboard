@@ -6164,8 +6164,8 @@ function drawAnnotationDot(x, y) {
       // Use mask-based approach: only draw where highlight mask is empty
       if (!highlightMaskCtx) {
         // Fallback if mask not initialized
-        annotationCtx.globalCompositeOperation = 'source-over';
-        annotationCtx.fillStyle = annotationState.currentColor;
+      annotationCtx.globalCompositeOperation = 'source-over';
+      annotationCtx.fillStyle = annotationState.currentColor;
         annotationCtx.globalAlpha = annotationState.opacity / 100;
         break;
       }
@@ -6265,8 +6265,8 @@ function drawAnnotationLine(x1, y1, x2, y2) {
       // Use mask-based approach for lines: only draw where highlight mask is empty
       if (!highlightMaskCtx) {
         // Fallback if mask not initialized
-        annotationCtx.globalCompositeOperation = 'source-over';
-        annotationCtx.strokeStyle = annotationState.currentColor;
+      annotationCtx.globalCompositeOperation = 'source-over';
+      annotationCtx.strokeStyle = annotationState.currentColor;
         annotationCtx.globalAlpha = annotationState.opacity / 100;
         break;
       }
@@ -9451,16 +9451,19 @@ function deletePage(pageIndex) {
   localStorage.removeItem(`dakboard-widget-layout-page-${pageIndex}`);
   localStorage.removeItem(`dakboard-background-page-${pageIndex}`);
   localStorage.removeItem(`dakboard-edit-mode-page-${pageIndex}`);
+  localStorage.removeItem(`dakboard-page-name-${pageIndex}`); // Remove page name
   
   // Renumber pages after the deleted one
   for (let i = pageIndex + 1; i < totalPages; i++) {
     const oldLayoutKey = `dakboard-widget-layout-page-${i}`;
     const oldBgKey = `dakboard-background-page-${i}`;
     const oldEditKey = `dakboard-edit-mode-page-${i}`;
+    const oldNameKey = `dakboard-page-name-${i}`;
     
     const newLayoutKey = `dakboard-widget-layout-page-${i - 1}`;
     const newBgKey = `dakboard-background-page-${i - 1}`;
     const newEditKey = `dakboard-edit-mode-page-${i - 1}`;
+    const newNameKey = `dakboard-page-name-${i - 1}`;
     
     // Move layout data
     const layoutData = localStorage.getItem(oldLayoutKey);
@@ -9481,6 +9484,13 @@ function deletePage(pageIndex) {
     if (editData) {
       localStorage.setItem(newEditKey, editData);
       localStorage.removeItem(oldEditKey);
+    }
+    
+    // Move page name data
+    const nameData = localStorage.getItem(oldNameKey);
+    if (nameData) {
+      localStorage.setItem(newNameKey, nameData);
+      localStorage.removeItem(oldNameKey);
     }
     
     // Update page element data-page-id
@@ -9681,7 +9691,7 @@ function initializeConfigExportImport() {
 
 // Show export dialog and handle export
 function exportConfiguration() {
-  // Get total pages and current page
+    // Get total pages and current page
   const totalPages = parseInt(localStorage.getItem('dakboard-total-pages')) || 1;
   const currentPage = parseInt(localStorage.getItem('dakboard-current-page')) || 0;
   
@@ -9868,10 +9878,10 @@ function performExport(pageIndices) {
           // Check visibility for widget type (legacy format)
           const isVisible = visibility.hasOwnProperty(widgetType) ? visibility[widgetType] === true : false;
           
-          const widget = {
+        const widget = {
             widgetId: widgetType,
-            name: widgetInfo.name,
-            icon: widgetInfo.icon,
+          name: widgetInfo.name,
+          icon: widgetInfo.icon,
             visible: isVisible,
             layout: null, // No layout if widget doesn't exist
             styles: null,
@@ -9880,11 +9890,11 @@ function performExport(pageIndices) {
           
           // Get widget styles for this page (by widget type)
           const stylesKey = `dakboard-widget-styles-${widgetType}-page-${pageIndex}`;
-          const stylesValue = localStorage.getItem(stylesKey);
-          if (stylesValue) {
-            try {
-              widget.styles = JSON.parse(stylesValue);
-            } catch (e) {
+        const stylesValue = localStorage.getItem(stylesKey);
+        if (stylesValue) {
+          try {
+            widget.styles = JSON.parse(stylesValue);
+          } catch (e) {
               console.warn(`Error parsing styles for ${widgetType} on page ${pageIndex}:`, e);
             }
           }
@@ -9964,7 +9974,7 @@ function performExport(pageIndices) {
               }
             }
             
-            page.widgets.push(widget);
+        page.widgets.push(widget);
           });
         }
       });
@@ -10263,7 +10273,7 @@ function importConfiguration(file) {
         
         // Build visibility map and create instance ID mappings
         // Visibility is stored by full instance ID, but we also set widget type for backward compatibility
-        const visibility = {};
+          const visibility = {};
         const layout = {};
         
         // Process widgets and create instance ID mappings
@@ -10289,7 +10299,7 @@ function importConfiguration(file) {
             }
             
             // Import layout by full instance ID
-            if (widget.layout) {
+          if (widget.layout) {
               layout[newFullId] = widget.layout;
             }
             
@@ -10300,8 +10310,8 @@ function importConfiguration(file) {
                 `dakboard-widget-styles-${newFullId}`,
                 JSON.stringify(widget.styles)
               );
-              importedCount++;
-            }
+          importedCount++;
+        }
           } else {
             // Legacy format: widget type only (no instances)
             // Check if there are any instance-specific data for this widget type
@@ -10370,14 +10380,14 @@ function importConfiguration(file) {
             
             // Import styles for widget type (legacy format)
             // Styles are stored as: dakboard-widget-styles-${fullWidgetId} (NO page suffix)
-            if (widget.styles) {
+          if (widget.styles) {
               // Store for the first instance (instance-0)
               const newFullId = generateWidgetId(widgetType, newPageIndex, 0);
-              localStorage.setItem(
+            localStorage.setItem(
                 `dakboard-widget-styles-${newFullId}`,
-                JSON.stringify(widget.styles)
-              );
-              importedCount++;
+              JSON.stringify(widget.styles)
+            );
+            importedCount++;
             }
           }
         });
