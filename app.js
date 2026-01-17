@@ -5998,6 +5998,11 @@ function drawAnnotationDot(x, y) {
       annotationCtx.fillStyle = annotationState.currentColor;
       annotationCtx.globalAlpha = 0.15;
       break;
+    case 'airbrush':
+      annotationCtx.globalCompositeOperation = 'source-over';
+      annotationCtx.fillStyle = annotationState.currentColor;
+      annotationCtx.globalAlpha = 0.15;
+      break;
     case 'paintbrush':
       annotationCtx.globalCompositeOperation = 'source-over';
       annotationCtx.fillStyle = annotationState.currentColor;
@@ -6030,6 +6035,11 @@ function drawAnnotationLine(x1, y1, x2, y2) {
       annotationCtx.globalAlpha = 1.0;
       break;
     case 'highlighter':
+      annotationCtx.globalCompositeOperation = 'source-over';
+      annotationCtx.strokeStyle = annotationState.currentColor;
+      annotationCtx.globalAlpha = 0.15;
+      break;
+    case 'airbrush':
       annotationCtx.globalCompositeOperation = 'source-over';
       annotationCtx.strokeStyle = annotationState.currentColor;
       annotationCtx.globalAlpha = 0.15;
