@@ -6097,13 +6097,13 @@ function drawAnnotationDot(x, y) {
         break;
       }
       
-      // Create temp canvas for the new highlight
+      // Create temp canvas for the new highlight shape
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = annotationCanvas.width;
       tempCanvas.height = annotationCanvas.height;
       const tempCtx = tempCanvas.getContext('2d');
       
-      // Draw highlight shape to temp at full opacity (we'll apply 15% when compositing)
+      // Draw highlight shape to temp at full opacity
       tempCtx.globalCompositeOperation = 'source-over';
       tempCtx.fillStyle = annotationState.currentColor;
       tempCtx.globalAlpha = 1.0;
@@ -6112,15 +6112,20 @@ function drawAnnotationDot(x, y) {
       tempCtx.fill();
       
       // Use destination-out to erase from temp where highlight mask already has content
+      // This ensures we only draw new highlights, not overlapping ones
       tempCtx.globalCompositeOperation = 'destination-out';
       tempCtx.drawImage(highlightMaskCanvas, 0, 0);
       
-      // Draw the masked highlight to main canvas at 15% opacity
+      // Draw the masked highlight to main canvas at 15% opacity using source-over
+      // This ensures consistent opacity without accumulation
+      annotationCtx.save();
       annotationCtx.globalCompositeOperation = 'source-over';
       annotationCtx.globalAlpha = 0.15;
       annotationCtx.drawImage(tempCanvas, 0, 0);
+      annotationCtx.restore();
       
       // Update highlight mask with the new highlight (at full opacity for tracking)
+      // Use source-over so mask accumulates (we want to track all highlighted areas)
       highlightMaskCtx.globalCompositeOperation = 'source-over';
       highlightMaskCtx.globalAlpha = 1.0;
       highlightMaskCtx.drawImage(tempCanvas, 0, 0);
@@ -6192,15 +6197,20 @@ function drawAnnotationLine(x1, y1, x2, y2) {
       lineTempCtx.stroke();
       
       // Use destination-out to erase from temp where highlight mask already has content
+      // This ensures we only draw new highlights, not overlapping ones
       lineTempCtx.globalCompositeOperation = 'destination-out';
       lineTempCtx.drawImage(highlightMaskCanvas, 0, 0);
       
-      // Draw the masked highlight to main canvas at 15% opacity
+      // Draw the masked highlight to main canvas at 15% opacity using source-over
+      // This ensures consistent opacity without accumulation
+      annotationCtx.save();
       annotationCtx.globalCompositeOperation = 'source-over';
       annotationCtx.globalAlpha = 0.15;
       annotationCtx.drawImage(lineTempCanvas, 0, 0);
+      annotationCtx.restore();
       
       // Update highlight mask with the new highlight (at full opacity for tracking)
+      // Use source-over so mask accumulates (we want to track all highlighted areas)
       highlightMaskCtx.globalCompositeOperation = 'source-over';
       highlightMaskCtx.globalAlpha = 1.0;
       highlightMaskCtx.drawImage(lineTempCanvas, 0, 0);
