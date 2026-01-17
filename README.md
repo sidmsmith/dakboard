@@ -48,6 +48,46 @@ Four different layout options are available for you to choose from:
 
 ## 📝 Changelog
 
+### Version 3.2.0
+- **Annotation System Major Enhancements** ✏️
+  - **Opacity Control**: New opacity slider (0-100%) for all annotation tools
+    - Applies to Airbrush and both Highlighter tools
+    - Settings persisted in localStorage across page refreshes
+    - Real-time preview when adjusting opacity
+  - **Airbrush Tool**: New annotation tool with same logic as highlighter but with opacity control
+  - **Highlighter2 Tool**: Second highlighter implementation using stroke-based approach
+    - Prevents opacity accumulation through stroke-based drawing
+    - Separate canvas layer for optimal performance
+  - **Original Highlighter Improvements**: Mask-based approach prevents opacity accumulation
+    - Consistent 15% opacity (now adjustable via slider)
+    - No visible overlapping or circles when drawing
+  - **Eraser Enhancement**: Now works with both main canvas and highlighter2 canvas
+  - **Drawing Prevention**: Cannot draw when annotations are hidden (eye icon off)
+  - **Page-Specific Visibility**: Each page maintains its own annotation visibility state
+    - Color-coded eye icon: Green when visible, Red when hidden
+    - Visibility settings persist per page in localStorage
+  - **Max Brush Size**: Increased from 50px to 75px for all tools
+  - **Icon Updates**: 
+    - Removed paintbrush tool (too similar to pen)
+    - Updated eraser icon to look more like an eraser
+    - Highlighter2 icon updated to distinctive cross/star pattern
+    - All annotation icons made more colorful
+- **Export/Import Enhancements** 📦
+  - **Complete Annotation Export**: Now exports both main canvas and highlighter2Canvas strokes
+  - **Annotation Visibility Export**: Page-specific annotation visibility settings included in exports
+  - **Full Restoration**: All annotation data (main canvas, highlight2, visibility) restored on import
+- **New Page Creation Improvements** 📄
+  - **Clean State**: New pages start completely fresh with no inherited data
+    - No widgets, styles, titles, or annotations
+    - No cloned widgets
+    - Standard widgets only with default names/titles in side panel
+  - **Proper Page Naming**: New pages automatically named "Page X" where X is the page number
+    - No longer inherits names from deleted pages
+    - Page names properly renumbered when pages are deleted
+- **UI/UX Improvements** 🎨
+  - **Button Layout**: Edit Layout and Annotate buttons combined on same row in side panel
+  - **LocalStorage Persistence**: Annotation color, brush size, and opacity settings saved and restored
+
 ### Version 0.12.0
 - **Complete Export/Import Rewrite** 🔄
   - **Export Functionality**:
