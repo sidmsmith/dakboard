@@ -6161,7 +6161,7 @@ function drawAnnotationDot(x, y) {
         // Fallback if mask not initialized
         annotationCtx.globalCompositeOperation = 'source-over';
         annotationCtx.fillStyle = annotationState.currentColor;
-        annotationCtx.globalAlpha = 0.15;
+        annotationCtx.globalAlpha = annotationState.opacity / 100;
         break;
       }
       
@@ -6193,11 +6193,11 @@ function drawAnnotationDot(x, y) {
       highlightMaskCtx.arc(x, y, annotationState.brushSize / 2, 0, Math.PI * 2);
       highlightMaskCtx.fill();
       
-      // Draw the masked highlight to main canvas at 15% opacity using source-over
+      // Draw the masked highlight to main canvas at selected opacity using source-over
       // This ensures consistent opacity without accumulation
       annotationCtx.save();
       annotationCtx.globalCompositeOperation = 'source-over';
-      annotationCtx.globalAlpha = 0.15;
+      annotationCtx.globalAlpha = annotationState.opacity / 100;
       annotationCtx.drawImage(tempCanvas, 0, 0);
       annotationCtx.restore();
       
@@ -6245,7 +6245,7 @@ function drawAnnotationLine(x1, y1, x2, y2) {
         // Fallback if mask not initialized
         annotationCtx.globalCompositeOperation = 'source-over';
         annotationCtx.strokeStyle = annotationState.currentColor;
-        annotationCtx.globalAlpha = 0.15;
+        annotationCtx.globalAlpha = annotationState.opacity / 100;
         break;
       }
       
@@ -6285,11 +6285,11 @@ function drawAnnotationLine(x1, y1, x2, y2) {
       highlightMaskCtx.lineTo(x2, y2);
       highlightMaskCtx.stroke();
       
-      // Draw the masked highlight to main canvas at 15% opacity using source-over
+      // Draw the masked highlight to main canvas at selected opacity using source-over
       // This ensures consistent opacity without accumulation
       annotationCtx.save();
       annotationCtx.globalCompositeOperation = 'source-over';
-      annotationCtx.globalAlpha = 0.15;
+      annotationCtx.globalAlpha = annotationState.opacity / 100;
       annotationCtx.drawImage(lineTempCanvas, 0, 0);
       annotationCtx.restore();
       
