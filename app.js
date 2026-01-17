@@ -6214,15 +6214,32 @@ function drawAnnotationDot(x, y) {
       annotationCtx.globalAlpha = 0.85;
       break;
     case 'eraser':
+      // Erase from main canvas
       annotationCtx.globalCompositeOperation = 'destination-out';
       annotationCtx.fillStyle = 'rgba(0,0,0,1)';
       annotationCtx.globalAlpha = 1.0;
+      // Also erase from highlighter2 canvas if it exists
+      if (highlight2Ctx) {
+        highlight2Ctx.globalCompositeOperation = 'destination-out';
+        highlight2Ctx.fillStyle = 'rgba(0,0,0,1)';
+        highlight2Ctx.globalAlpha = 1.0;
+      }
       break;
   }
   
   annotationCtx.beginPath();
   annotationCtx.arc(x, y, annotationState.brushSize / 2, 0, Math.PI * 2);
   annotationCtx.fill();
+  
+  // Also erase from highlighter2 canvas if erasing
+  if (annotationState.currentTool === 'eraser' && highlight2Ctx) {
+    highlight2Ctx.globalCompositeOperation = 'destination-out';
+    highlight2Ctx.fillStyle = 'rgba(0,0,0,1)';
+    highlight2Ctx.globalAlpha = 1.0;
+    highlight2Ctx.beginPath();
+    highlight2Ctx.arc(x, y, annotationState.brushSize / 2, 0, Math.PI * 2);
+    highlight2Ctx.fill();
+  }
 }
 
 // Draw a line based on current tool
@@ -6306,9 +6323,16 @@ function drawAnnotationLine(x1, y1, x2, y2) {
       annotationCtx.globalAlpha = 0.85;
       break;
     case 'eraser':
+      // Erase from main canvas
       annotationCtx.globalCompositeOperation = 'destination-out';
       annotationCtx.strokeStyle = 'rgba(0,0,0,1)';
       annotationCtx.globalAlpha = 1.0;
+      // Also erase from highlighter2 canvas if it exists
+      if (highlight2Ctx) {
+        highlight2Ctx.globalCompositeOperation = 'destination-out';
+        highlight2Ctx.strokeStyle = 'rgba(0,0,0,1)';
+        highlight2Ctx.globalAlpha = 1.0;
+      }
       break;
   }
   
@@ -6316,6 +6340,20 @@ function drawAnnotationLine(x1, y1, x2, y2) {
   annotationCtx.moveTo(x1, y1);
   annotationCtx.lineTo(x2, y2);
   annotationCtx.stroke();
+  
+  // Also erase from highlighter2 canvas if erasing
+  if (annotationState.currentTool === 'eraser' && highlight2Ctx) {
+    highlight2Ctx.globalCompositeOperation = 'destination-out';
+    highlight2Ctx.strokeStyle = 'rgba(0,0,0,1)';
+    highlight2Ctx.globalAlpha = 1.0;
+    highlight2Ctx.lineCap = 'round';
+    highlight2Ctx.lineJoin = 'round';
+    highlight2Ctx.lineWidth = annotationState.brushSize;
+    highlight2Ctx.beginPath();
+    highlight2Ctx.moveTo(x1, y1);
+    highlight2Ctx.lineTo(x2, y2);
+    highlight2Ctx.stroke();
+  }
 }
 
 // Save annotation data
