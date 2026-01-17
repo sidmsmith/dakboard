@@ -5843,7 +5843,7 @@ let annotationState = {
   currentColor: localStorage.getItem('dakboard-annotation-color') || '#000000',
   brushSize: parseInt(localStorage.getItem('dakboard-annotation-brush-size')) || 3,
   opacity: parseInt(localStorage.getItem('dakboard-annotation-opacity')) || 15,
-  isVisible: true
+  isVisible: true // Will be page-specific, loaded per page
 };
 
 // Stroke-based highlighter storage (for highlighter2 tool)
@@ -5899,6 +5899,9 @@ function initializeAnnotationCanvas() {
   
   // Load saved annotations
   loadAnnotationData();
+  
+  // Load annotation visibility for current page
+  loadAnnotationVisibility();
 }
 
 // Set annotation mode
@@ -6206,7 +6209,7 @@ function drawAnnotationDot(x, y) {
     case 'airbrush':
       annotationCtx.globalCompositeOperation = 'source-over';
       annotationCtx.fillStyle = annotationState.currentColor;
-      annotationCtx.globalAlpha = 0.15;
+      annotationCtx.globalAlpha = annotationState.opacity / 100;
       break;
     case 'paintbrush':
       annotationCtx.globalCompositeOperation = 'source-over';
@@ -6315,7 +6318,7 @@ function drawAnnotationLine(x1, y1, x2, y2) {
     case 'airbrush':
       annotationCtx.globalCompositeOperation = 'source-over';
       annotationCtx.strokeStyle = annotationState.currentColor;
-      annotationCtx.globalAlpha = 0.15;
+      annotationCtx.globalAlpha = annotationState.opacity / 100;
       break;
     case 'paintbrush':
       annotationCtx.globalCompositeOperation = 'source-over';
@@ -6401,16 +6404,52 @@ function clearAnnotations() {
   localStorage.removeItem(key);
 }
 
+// Get annotation visibility for current page
+function getAnnotationVisibility(pageIndex) {
+  const key = `dakboard-annotation-visibility-page-${pageIndex}`;
+  const saved = localStorage.getItem(key);
+  return saved !== null ? saved === 'true' : true; // Default to visible
+}
+
+// Set annotation visibility for current page
+function setAnnotationVisibility(pageIndex, isVisible) {
+  const key = `dakboard-annotation-visibility-page-${pageIndex}`;
+  localStorage.setItem(key, isVisible.toString());
+}
+
+// Load annotation visibility for current page
+function loadAnnotationVisibility() {
+  annotationState.isVisible = getAnnotationVisibility(currentPageIndex);
+  updateAnnotationVisibilityUI();
+}
+
+// Update annotation visibility UI
+function updateAnnotationVisibilityUI() {
+  const isVisible = annotationState.isVisible;
+  
+  // Update canvas visibility
+  if (annotationCanvas) {
+    annotationCanvas.style.opacity = isVisible ? '1' : '0';
+  }
+  if (highlight2Canvas) {
+    highlight2Canvas.style.opacity = isVisible ? '1' : '0';
+  }
+  
+  // Update eye icon color (green when visible, red when hidden)
+  const toggleBtn = document.getElementById('annotation-toggle-visibility');
+  if (toggleBtn) {
+    const svg = toggleBtn.querySelector('svg');
+    if (svg) {
+      svg.style.stroke = isVisible ? '#28a745' : '#dc3545'; // Green when visible, red when hidden
+    }
+  }
+}
+
 // Toggle annotation visibility
 function toggleAnnotationVisibility() {
   annotationState.isVisible = !annotationState.isVisible;
-  if (annotationCanvas) {
-    annotationCanvas.style.opacity = annotationState.isVisible ? '1' : '0';
-  }
-  const toggleBtn = document.getElementById('annotation-toggle-visibility');
-  if (toggleBtn) {
-    toggleBtn.style.opacity = annotationState.isVisible ? '1' : '0.5';
-  }
+  setAnnotationVisibility(currentPageIndex, annotationState.isVisible);
+  updateAnnotationVisibilityUI();
 }
 
 // Draw all highlight strokes (for highlighter2)
@@ -9028,6 +9067,7 @@ function loadCurrentPage() {
   // Load annotations for current page
   if (annotationCanvas && annotationCtx) {
     loadAnnotationData();
+    loadAnnotationVisibility();
   }
   
   // Load page-specific edit mode
