@@ -5997,52 +5997,68 @@ function isAreaAlreadyHighlighted(ctx, x, y, radius, highlightColor) {
   if (!ctx) return false;
   
   try {
-    // Sample center pixel and a few surrounding pixels
-    const sampleSize = Math.max(3, Math.floor(radius / 2));
-    const imageData = ctx.getImageData(
-      Math.max(0, x - sampleSize), 
-      Math.max(0, y - sampleSize), 
-      sampleSize * 2, 
-      sampleSize * 2
-    );
+    // Sample center pixel and surrounding pixels
+    const sampleSize = Math.max(5, Math.floor(radius));
+    const startX = Math.max(0, Math.floor(x - sampleSize));
+    const startY = Math.max(0, Math.floor(y - sampleSize));
+    const width = Math.min(sampleSize * 2, ctx.canvas.width - startX);
+    const height = Math.min(sampleSize * 2, ctx.canvas.height - startY);
+    
+    if (width <= 0 || height <= 0) return false;
+    
+    const imageData = ctx.getImageData(startX, startY, width, height);
     const data = imageData.data;
     
     // Parse highlight color
     const hex = highlightColor.replace('#', '');
-    const targetR = parseInt(hex.substring(0, 2), 16);
-    const targetG = parseInt(hex.substring(2, 4), 16);
-    const targetB = parseInt(hex.substring(4, 6), 16);
+    const highlightR = parseInt(hex.substring(0, 2), 16);
+    const highlightG = parseInt(hex.substring(2, 4), 16);
+    const highlightB = parseInt(hex.substring(4, 6), 16);
     
-    // Check if any sampled pixels match the highlight color
-    // We check for pixels that have the highlight color mixed in (indicating it's already highlighted)
+    // Calculate what the highlight color looks like at 15% opacity on black background
+    // When you draw color at alpha on black: result = color * alpha
+    const alpha = 0.15;
+    const expectedR = Math.round(highlightR * alpha);
+    const expectedG = Math.round(highlightG * alpha);
+    const expectedB = Math.round(highlightB * alpha);
+    
+    // Check if any sampled pixels match the expected highlighted color
+    let highlightedPixels = 0;
+    const totalPixels = (data.length / 4);
+    
     for (let i = 0; i < data.length; i += 4) {
       const pixelR = data[i];
       const pixelG = data[i + 1];
       const pixelB = data[i + 2];
       const pixelA = data[i + 3];
       
-      // Check if pixel has significant alpha and color that matches highlight
-      // Allow some tolerance for color mixing
-      if (pixelA > 50) { // Has some opacity
-        // Check if color is close to highlight color (within tolerance)
-        const colorDistance = Math.sqrt(
-          Math.pow(pixelR - targetR, 2) + 
-          Math.pow(pixelG - targetG, 2) + 
-          Math.pow(pixelB - targetB, 2)
-        );
-        
-        // If color is close and has opacity, likely already highlighted
-        if (colorDistance < 100) {
-          return true;
-        }
+      // Check if pixel matches the expected highlight color (with tolerance)
+      // Account for the fact that highlights might be on different backgrounds
+      const colorDistance = Math.sqrt(
+        Math.pow(pixelR - expectedR, 2) + 
+        Math.pow(pixelG - expectedG, 2) + 
+        Math.pow(pixelB - expectedB, 2)
+      );
+      
+      // Also check if pixel is close to the highlight color (indicating it's highlighted)
+      const highlightDistance = Math.sqrt(
+        Math.pow(pixelR - highlightR, 2) + 
+        Math.pow(pixelG - highlightG, 2) + 
+        Math.pow(pixelB - highlightB, 2)
+      );
+      
+      // If pixel matches expected highlight OR is close to highlight color with some opacity
+      if ((colorDistance < 30) || (highlightDistance < 50 && pixelA > 30)) {
+        highlightedPixels++;
       }
     }
+    
+    // If more than 20% of sampled pixels are highlighted, consider area already highlighted
+    return (highlightedPixels / totalPixels) > 0.2;
   } catch (e) {
     // If we can't check (e.g., outside canvas bounds), allow drawing
     return false;
   }
-  
-  return false;
 }
 
 // Draw a dot at a point (for smooth drawing)
