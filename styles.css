@@ -2451,10 +2451,6 @@ footer a:hover {
   stroke: #ffd700;
 }
 
-.annotation-tool-btn[data-tool="paintbrush"] svg {
-  stroke: #ff6b9d;
-}
-
 .annotation-tool-btn[data-tool="eraser"] svg {
   stroke: #ff4444;
 }
