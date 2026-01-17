@@ -9459,13 +9459,14 @@ function performExport(pageIndices) {
             };
             
             // Get widget styles for this specific instance
-            // Try instance-specific styles first, then fall back to widget-type styles
-            const instanceStylesKey = `dakboard-widget-styles-${fullWidgetId}-page-${pageIndex}`;
-            const typeStylesKey = `dakboard-widget-styles-${widgetType}-page-${pageIndex}`;
+            // Styles are stored as: dakboard-widget-styles-${fullWidgetId} (no page suffix)
+            // Also check legacy format: dakboard-widget-styles-${widgetType}-page-${pageIndex}
+            const instanceStylesKey = `dakboard-widget-styles-${fullWidgetId}`;
+            const legacyStylesKey = `dakboard-widget-styles-${widgetType}-page-${pageIndex}`;
             
             let stylesValue = localStorage.getItem(instanceStylesKey);
             if (!stylesValue) {
-              stylesValue = localStorage.getItem(typeStylesKey);
+              stylesValue = localStorage.getItem(legacyStylesKey);
             }
             
             if (stylesValue) {
@@ -9526,88 +9527,149 @@ function performExport(pageIndices) {
       });
     });
     
-    // Export instance-specific data for widgets that have it
-    // Find all widget instances on exported pages and export their instance data
+    // Export ALL localStorage data for exported pages
+    // This ensures we capture every single configuration element
     pageIndices.forEach(pageIndex => {
       const page = config.pages.find(p => p.pageIndex === pageIndex);
       if (!page) return;
       
-      // Get all widget instances for this page
+      if (!page.instanceData) page.instanceData = {};
+      if (!page.localStorageData) page.localStorageData = {};
+      
+      // Scan ALL localStorage keys and export anything related to this page
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        
+        // Export widget styles (by full instance ID - no page suffix)
+        if (key.startsWith('dakboard-widget-styles-')) {
+          // Check if this style key is for a widget on this page
+          // Styles can be stored as: dakboard-widget-styles-{fullWidgetId} or dakboard-widget-styles-{widgetType}-page-{pageIndex}
+          const styleValue = localStorage.getItem(key);
+          if (styleValue) {
+            try {
+              const styles = JSON.parse(styleValue);
+              
+              // Check if this is a page-specific style key
+              if (key.includes(`-page-${pageIndex}`)) {
+                // Page-specific style
+                page.localStorageData[key] = styles;
+              } else {
+                // Check if the fullWidgetId in the key matches any widget instance on this page
+                const keyWithoutPrefix = key.replace('dakboard-widget-styles-', '');
+                
+                // Get all widget instances on this page to check if this key belongs to them
+                let belongsToThisPage = false;
+                Object.keys(WIDGET_CONFIG).forEach(widgetType => {
+                  const instances = getWidgetInstances(widgetType, pageIndex);
+                  instances.forEach(instance => {
+                    if (instance.fullId === keyWithoutPrefix) {
+                      belongsToThisPage = true;
+                    }
+                  });
+                });
+                
+                if (belongsToThisPage) {
+                  page.localStorageData[key] = styles;
+                }
+              }
+            } catch (e) {
+              // If not JSON, store as string
+              page.localStorageData[key] = styleValue;
+            }
+          }
+        }
+        // Export instance-specific state data
+        else if (key.startsWith('dakboard-stopwatch-') || 
+                 key.startsWith('dakboard-scoreboard-') || 
+                 key.startsWith('dakboard-stoplight-') ||
+                 key.startsWith('whiteboard-')) {
+          // Check if this key is for a widget instance on this page
+          const keyWithoutPrefix = key.replace(/^(dakboard-(stopwatch|scoreboard-config|scoreboard-scores|scoreboard-winners|stoplight)-|whiteboard-)/, '');
+          
+          // Check if this matches any widget instance on this page
+          let belongsToThisPage = false;
+          Object.keys(WIDGET_CONFIG).forEach(widgetType => {
+            const instances = getWidgetInstances(widgetType, pageIndex);
+            instances.forEach(instance => {
+              // Check if key contains the full instance ID
+              if (key.includes(instance.fullId)) {
+                belongsToThisPage = true;
+              }
+            });
+          });
+          
+          // Also check for page-specific whiteboard keys
+          if (key.startsWith('whiteboard-') && key.includes(`-page-${pageIndex}`)) {
+            belongsToThisPage = true;
+          }
+          
+          if (belongsToThisPage) {
+            const value = localStorage.getItem(key);
+            if (value) {
+              try {
+                // Try to parse as JSON
+                page.localStorageData[key] = JSON.parse(value);
+              } catch (e) {
+                // If not JSON, store as string
+                page.localStorageData[key] = value;
+              }
+            }
+          }
+        }
+      }
+      
+      // Also get all widget instances and ensure we export their styles
       Object.keys(WIDGET_CONFIG).forEach(widgetType => {
         const instances = getWidgetInstances(widgetType, pageIndex);
         instances.forEach(instance => {
           const fullWidgetId = instance.fullId;
           
-          // Export stopwatch state
-          const stopwatchKey = `dakboard-stopwatch-${fullWidgetId}`;
-          const stopwatchData = localStorage.getItem(stopwatchKey);
-          if (stopwatchData) {
-            if (!page.instanceData) page.instanceData = {};
-            if (!page.instanceData.stopwatch) page.instanceData.stopwatch = {};
-            page.instanceData.stopwatch[fullWidgetId] = JSON.parse(stopwatchData);
+          // Export styles by full instance ID (without page suffix - this is the actual storage format)
+          const stylesKey = `dakboard-widget-styles-${fullWidgetId}`;
+          const stylesValue = localStorage.getItem(stylesKey);
+          if (stylesValue && !page.localStorageData[stylesKey]) {
+            try {
+              page.localStorageData[stylesKey] = JSON.parse(stylesValue);
+            } catch (e) {
+              page.localStorageData[stylesKey] = stylesValue;
+            }
           }
           
-          // Export scoreboard config
-          const scoreboardConfigKey = `dakboard-scoreboard-config-${fullWidgetId}`;
-          const scoreboardConfig = localStorage.getItem(scoreboardConfigKey);
-          if (scoreboardConfig) {
-            if (!page.instanceData) page.instanceData = {};
-            if (!page.instanceData.scoreboard) page.instanceData.scoreboard = {};
-            if (!page.instanceData.scoreboard.config) page.instanceData.scoreboard.config = {};
-            page.instanceData.scoreboard.config[fullWidgetId] = JSON.parse(scoreboardConfig);
+          // Also check for page-specific style key (legacy format)
+          const pageStylesKey = `dakboard-widget-styles-${widgetType}-page-${pageIndex}`;
+          const pageStylesValue = localStorage.getItem(pageStylesKey);
+          if (pageStylesValue && !page.localStorageData[pageStylesKey]) {
+            try {
+              page.localStorageData[pageStylesKey] = JSON.parse(pageStylesValue);
+            } catch (e) {
+              page.localStorageData[pageStylesKey] = pageStylesValue;
+            }
           }
           
-          // Export scoreboard scores
-          const scoreboardScoresKey = `dakboard-scoreboard-scores-${fullWidgetId}`;
-          const scoreboardScores = localStorage.getItem(scoreboardScoresKey);
-          if (scoreboardScores) {
-            if (!page.instanceData) page.instanceData = {};
-            if (!page.instanceData.scoreboard) page.instanceData.scoreboard = {};
-            if (!page.instanceData.scoreboard.scores) page.instanceData.scoreboard.scores = {};
-            page.instanceData.scoreboard.scores[fullWidgetId] = JSON.parse(scoreboardScores);
-          }
-          
-          // Export scoreboard winners
-          const scoreboardWinnersKey = `dakboard-scoreboard-winners-${fullWidgetId}`;
-          const scoreboardWinners = localStorage.getItem(scoreboardWinnersKey);
-          if (scoreboardWinners) {
-            if (!page.instanceData) page.instanceData = {};
-            if (!page.instanceData.scoreboard) page.instanceData.scoreboard = {};
-            if (!page.instanceData.scoreboard.winners) page.instanceData.scoreboard.winners = {};
-            page.instanceData.scoreboard.winners[fullWidgetId] = JSON.parse(scoreboardWinners);
-          }
-          
-          // Export stoplight state
-          const stoplightKey = `dakboard-stoplight-${fullWidgetId}`;
-          const stoplightData = localStorage.getItem(stoplightKey);
-          if (stoplightData) {
-            if (!page.instanceData) page.instanceData = {};
-            if (!page.instanceData.stoplight) page.instanceData.stoplight = {};
-            page.instanceData.stoplight[fullWidgetId] = stoplightData;
-          }
-          
-          // Export instance-specific whiteboard data
-          const whiteboardInstanceKeys = [
+          // Export all instance-specific state data
+          const instanceDataKeys = [
+            `dakboard-stopwatch-${fullWidgetId}`,
+            `dakboard-scoreboard-config-${fullWidgetId}`,
+            `dakboard-scoreboard-scores-${fullWidgetId}`,
+            `dakboard-scoreboard-winners-${fullWidgetId}`,
+            `dakboard-stoplight-${fullWidgetId}`,
             `whiteboard-drawing-${fullWidgetId}`,
             `whiteboard-bg-color-${fullWidgetId}`,
             `whiteboard-ink-color-${fullWidgetId}`,
             `whiteboard-brush-size-${fullWidgetId}`
           ];
-          const whiteboardInstanceData = {};
-          let hasInstanceWhiteboardData = false;
-          whiteboardInstanceKeys.forEach(key => {
-            const value = localStorage.getItem(key);
-            if (value) {
-              const propName = key.replace(`whiteboard-`, '').replace(`-${fullWidgetId}`, '');
-              whiteboardInstanceData[propName] = value;
-              hasInstanceWhiteboardData = true;
+          
+          instanceDataKeys.forEach(dataKey => {
+            const value = localStorage.getItem(dataKey);
+            if (value && !page.localStorageData[dataKey]) {
+              try {
+                page.localStorageData[dataKey] = JSON.parse(value);
+              } catch (e) {
+                page.localStorageData[dataKey] = value;
+              }
             }
           });
-          if (hasInstanceWhiteboardData) {
-            if (!page.instanceData) page.instanceData = {};
-            if (!page.instanceData.whiteboard) page.instanceData.whiteboard = {};
-            page.instanceData.whiteboard[fullWidgetId] = whiteboardInstanceData;
-          }
         });
       });
     });
@@ -9832,7 +9894,37 @@ function importConfiguration(file) {
           });
         }
         
-        // Import instance-specific data with remapped IDs
+        // Import ALL localStorage data (new comprehensive format)
+        if (page.localStorageData) {
+          Object.keys(page.localStorageData).forEach(oldKey => {
+            const value = page.localStorageData[oldKey];
+            
+            // Remap keys that contain old instance IDs to new instance IDs
+            let newKey = oldKey;
+            
+            // Check if this key contains any old full instance IDs that need remapping
+            instanceIdMap.forEach((newFullId, oldFullId) => {
+              if (oldKey.includes(oldFullId)) {
+                newKey = oldKey.replace(oldFullId, newFullId);
+              }
+            });
+            
+            // Also remap page indices in keys
+            if (newKey.includes(`-page-${oldPageIndex}`)) {
+              newKey = newKey.replace(`-page-${oldPageIndex}`, `-page-${newPageIndex}`);
+            }
+            
+            // Store the value
+            if (typeof value === 'object') {
+              localStorage.setItem(newKey, JSON.stringify(value));
+            } else {
+              localStorage.setItem(newKey, value);
+            }
+            importedCount++;
+          });
+        }
+        
+        // Import legacy instance-specific data format (for backward compatibility)
         if (page.instanceData) {
           // Import stopwatch states
           if (page.instanceData.stopwatch) {
