@@ -9761,7 +9761,7 @@ function importConfiguration(file) {
         }
         
         // Build visibility map and create instance ID mappings
-        // Visibility is stored by full instance ID, not just widget type
+        // Visibility is stored by full instance ID, but we also set widget type for backward compatibility
         const visibility = {};
         const layout = {};
         
@@ -9779,8 +9779,13 @@ function importConfiguration(file) {
             const newFullId = generateWidgetId(widgetType, newPageIndex, instanceIndex);
             instanceIdMap.set(oldFullId, newFullId);
             
-            // Set visibility by full instance ID
+            // Set visibility by full instance ID (primary)
             visibility[newFullId] = widget.visible === true;
+            
+            // Also set widget type visibility if this is the first instance (for backward compatibility)
+            if (instanceIndex === 0 && !visibility.hasOwnProperty(widgetType)) {
+              visibility[widgetType] = widget.visible === true;
+            }
             
             // Import layout by full instance ID
             if (widget.layout) {
@@ -9788,9 +9793,10 @@ function importConfiguration(file) {
             }
             
             // Import styles for this instance
+            // Styles are stored as: dakboard-widget-styles-${fullWidgetId} (NO page suffix)
             if (widget.styles) {
               localStorage.setItem(
-                `dakboard-widget-styles-${newFullId}-page-${newPageIndex}`,
+                `dakboard-widget-styles-${newFullId}`,
                 JSON.stringify(widget.styles)
               );
               importedCount++;
@@ -9850,6 +9856,11 @@ function importConfiguration(file) {
               // Set visibility for this instance
               visibility[newFullId] = widget.visible === true;
               
+              // Also set widget type visibility if this is the first instance (for backward compatibility)
+              if (instanceIdx === 0 && !visibility.hasOwnProperty(widgetType)) {
+                visibility[widgetType] = widget.visible === true;
+              }
+              
               // Import layout if available (check if layout was stored by old full ID)
               if (widget.layout) {
                 layout[newFullId] = widget.layout;
@@ -9857,11 +9868,26 @@ function importConfiguration(file) {
             });
             
             // Import styles for widget type (legacy format)
+            // Styles are stored as: dakboard-widget-styles-${fullWidgetId} (NO page suffix)
             if (widget.styles) {
               // Store for the first instance (instance-0)
               const newFullId = generateWidgetId(widgetType, newPageIndex, 0);
               localStorage.setItem(
-                `dakboard-widget-styles-${newFullId}-page-${newPageIndex}`,
+                `dakboard-widget-styles-${newFullId}`,
+                JSON.stringify(widget.styles)
+              );
+              importedCount++;
+            }
+          } else {
+            // Widget has no instances and no instance info - set widget type visibility
+            visibility[widgetType] = widget.visible === true;
+            
+            // Import styles if available (legacy format)
+            if (widget.styles) {
+              // Try to find if there's an instance-0 for this widget type, otherwise use widget type
+              const newFullId = generateWidgetId(widgetType, newPageIndex, 0);
+              localStorage.setItem(
+                `dakboard-widget-styles-${newFullId}`,
                 JSON.stringify(widget.styles)
               );
               importedCount++;
@@ -9889,6 +9915,8 @@ function importConfiguration(file) {
         }
         
         // Import ALL localStorage data (new comprehensive format)
+        // This must happen AFTER we've set visibility, layout, and styles above
+        // to avoid overwriting them, but we check if keys already exist
         if (page.localStorageData) {
           Object.keys(page.localStorageData).forEach(oldKey => {
             const value = page.localStorageData[oldKey];
@@ -9903,18 +9931,41 @@ function importConfiguration(file) {
               }
             });
             
-            // Also remap page indices in keys
-            if (newKey.includes(`-page-${oldPageIndex}`)) {
-              newKey = newKey.replace(`-page-${oldPageIndex}`, `-page-${newPageIndex}`);
+            // Handle widget styles specially - they should NOT have page suffix
+            // Format: dakboard-widget-styles-${fullWidgetId} (no -page- suffix)
+            if (newKey.startsWith('dakboard-widget-styles-')) {
+              // Remove any -page- suffix from widget styles keys
+              newKey = newKey.replace(/-page-\d+$/, '');
+              // Also remap instance IDs in the key
+              instanceIdMap.forEach((newFullId, oldFullId) => {
+                if (newKey.includes(oldFullId)) {
+                  newKey = newKey.replace(oldFullId, newFullId);
+                }
+              });
+            } else {
+              // For other keys, remap page indices
+              if (newKey.includes(`-page-${oldPageIndex}`)) {
+                newKey = newKey.replace(`-page-${oldPageIndex}`, `-page-${newPageIndex}`);
+              }
             }
             
-            // Store the value
-            if (typeof value === 'object') {
-              localStorage.setItem(newKey, JSON.stringify(value));
-            } else {
-              localStorage.setItem(newKey, value);
+            // Skip if we've already set this key above (visibility, layout, styles from widget objects)
+            // This prevents overwriting what we just imported, but we still want to import styles from localStorageData
+            // because they might have additional data not in widget.styles
+            const alreadySet = 
+              newKey === `dakboard-widget-visibility-page-${newPageIndex}` ||
+              newKey === `dakboard-widget-layout-page-${newPageIndex}`;
+            
+            // For styles, we want to merge/overwrite from localStorageData since it might have more complete data
+            if (!alreadySet) {
+              // Store the value
+              if (typeof value === 'object') {
+                localStorage.setItem(newKey, JSON.stringify(value));
+              } else {
+                localStorage.setItem(newKey, value);
+              }
+              importedCount++;
             }
-            importedCount++;
           });
         }
         
