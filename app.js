@@ -5979,6 +5979,19 @@ function drawAnnotationTouch(e) {
   annotationState.lastY = currentY;
 }
 
+// Convert hex color to rgba string
+function hexToRgba(hex, alpha) {
+  // Remove # if present
+  hex = hex.replace('#', '');
+  
+  // Parse RGB values
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 // Draw a dot at a point (for smooth drawing)
 function drawAnnotationDot(x, y) {
   if (!annotationCtx) return;
@@ -5994,9 +6007,11 @@ function drawAnnotationDot(x, y) {
       annotationCtx.globalAlpha = 1.0;
       break;
     case 'highlighter':
-      annotationCtx.globalCompositeOperation = 'screen';
-      annotationCtx.fillStyle = annotationState.currentColor;
-      annotationCtx.globalAlpha = 0.5;
+      annotationCtx.globalCompositeOperation = 'source-over';
+      // Convert hex color to rgba with 15% opacity to prevent accumulation
+      const highlighterColor = hexToRgba(annotationState.currentColor, 0.15);
+      annotationCtx.fillStyle = highlighterColor;
+      annotationCtx.globalAlpha = 1.0;
       break;
     case 'airbrush':
       annotationCtx.globalCompositeOperation = 'source-over';
@@ -6035,9 +6050,11 @@ function drawAnnotationLine(x1, y1, x2, y2) {
       annotationCtx.globalAlpha = 1.0;
       break;
     case 'highlighter':
-      annotationCtx.globalCompositeOperation = 'screen';
-      annotationCtx.strokeStyle = annotationState.currentColor;
-      annotationCtx.globalAlpha = 0.5;
+      annotationCtx.globalCompositeOperation = 'source-over';
+      // Convert hex color to rgba with 15% opacity to prevent accumulation
+      const highlighterStrokeColor = hexToRgba(annotationState.currentColor, 0.15);
+      annotationCtx.strokeStyle = highlighterStrokeColor;
+      annotationCtx.globalAlpha = 1.0;
       break;
     case 'airbrush':
       annotationCtx.globalCompositeOperation = 'source-over';
