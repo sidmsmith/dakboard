@@ -6116,6 +6116,12 @@ function drawAnnotationDot(x, y) {
       tempCtx.globalCompositeOperation = 'destination-out';
       tempCtx.drawImage(highlightMaskCanvas, 0, 0);
       
+      // Update highlight mask FIRST with the new highlight (at full opacity for tracking)
+      // This ensures subsequent draws see the updated mask immediately
+      highlightMaskCtx.globalCompositeOperation = 'source-over';
+      highlightMaskCtx.globalAlpha = 1.0;
+      highlightMaskCtx.drawImage(tempCanvas, 0, 0);
+      
       // Draw the masked highlight to main canvas at 15% opacity using source-over
       // This ensures consistent opacity without accumulation
       annotationCtx.save();
@@ -6123,12 +6129,6 @@ function drawAnnotationDot(x, y) {
       annotationCtx.globalAlpha = 0.15;
       annotationCtx.drawImage(tempCanvas, 0, 0);
       annotationCtx.restore();
-      
-      // Update highlight mask with the new highlight (at full opacity for tracking)
-      // Use source-over so mask accumulates (we want to track all highlighted areas)
-      highlightMaskCtx.globalCompositeOperation = 'source-over';
-      highlightMaskCtx.globalAlpha = 1.0;
-      highlightMaskCtx.drawImage(tempCanvas, 0, 0);
       
       return; // Skip the normal fill below
       break;
@@ -6201,6 +6201,12 @@ function drawAnnotationLine(x1, y1, x2, y2) {
       lineTempCtx.globalCompositeOperation = 'destination-out';
       lineTempCtx.drawImage(highlightMaskCanvas, 0, 0);
       
+      // Update highlight mask FIRST with the new highlight (at full opacity for tracking)
+      // This ensures subsequent draws see the updated mask immediately
+      highlightMaskCtx.globalCompositeOperation = 'source-over';
+      highlightMaskCtx.globalAlpha = 1.0;
+      highlightMaskCtx.drawImage(lineTempCanvas, 0, 0);
+      
       // Draw the masked highlight to main canvas at 15% opacity using source-over
       // This ensures consistent opacity without accumulation
       annotationCtx.save();
@@ -6208,12 +6214,6 @@ function drawAnnotationLine(x1, y1, x2, y2) {
       annotationCtx.globalAlpha = 0.15;
       annotationCtx.drawImage(lineTempCanvas, 0, 0);
       annotationCtx.restore();
-      
-      // Update highlight mask with the new highlight (at full opacity for tracking)
-      // Use source-over so mask accumulates (we want to track all highlighted areas)
-      highlightMaskCtx.globalCompositeOperation = 'source-over';
-      highlightMaskCtx.globalAlpha = 1.0;
-      highlightMaskCtx.drawImage(lineTempCanvas, 0, 0);
       
       return; // Skip the normal stroke below
       break;
