@@ -5833,6 +5833,8 @@ let annotationCanvas = null;
 let annotationCtx = null;
 let highlightMaskCanvas = null;
 let highlightMaskCtx = null;
+let highlight2Canvas = null;
+let highlight2Ctx = null;
 let annotationState = {
   isDrawing: false,
   lastX: 0,
@@ -5840,8 +5842,13 @@ let annotationState = {
   currentTool: 'pen',
   currentColor: localStorage.getItem('dakboard-annotation-color') || '#000000',
   brushSize: parseInt(localStorage.getItem('dakboard-annotation-brush-size')) || 3,
+  opacity: parseInt(localStorage.getItem('dakboard-annotation-opacity')) || 15,
   isVisible: true
 };
+
+// Stroke-based highlighter storage (for highlighter2 tool)
+let highlightStrokes = [];
+let currentHighlightStroke = null;
 
 // Initialize annotation canvas
 function initializeAnnotationCanvas() {
@@ -5857,6 +5864,18 @@ function initializeAnnotationCanvas() {
   highlightMaskCanvas.height = window.innerHeight;
   highlightMaskCtx = highlightMaskCanvas.getContext('2d');
   
+  // Create separate canvas for highlighter2 (stroke-based)
+  highlight2Canvas = document.createElement('canvas');
+  highlight2Canvas.width = window.innerWidth;
+  highlight2Canvas.height = window.innerHeight;
+  highlight2Ctx = highlight2Canvas.getContext('2d');
+  highlight2Canvas.style.position = 'absolute';
+  highlight2Canvas.style.top = '0';
+  highlight2Canvas.style.left = '0';
+  highlight2Canvas.style.pointerEvents = 'none';
+  highlight2Canvas.style.zIndex = '9998';
+  document.body.appendChild(highlight2Canvas);
+  
   // Set canvas size to match viewport
   function resizeCanvas() {
     annotationCanvas.width = window.innerWidth;
@@ -5864,6 +5883,10 @@ function initializeAnnotationCanvas() {
     if (highlightMaskCanvas) {
       highlightMaskCanvas.width = window.innerWidth;
       highlightMaskCanvas.height = window.innerHeight;
+    }
+    if (highlight2Canvas) {
+      highlight2Canvas.width = window.innerWidth;
+      highlight2Canvas.height = window.innerHeight;
     }
     // Reload saved annotations if visible
     if (annotationState.isVisible) {
@@ -5935,6 +5958,18 @@ function startAnnotationDrawing(e) {
   annotationState.lastX = e.clientX - rect.left;
   annotationState.lastY = e.clientY - rect.top;
   
+  // For highlighter2, use stroke-based approach
+  if (annotationState.currentTool === 'highlighter2') {
+    currentHighlightStroke = {
+      points: [{ x: annotationState.lastX, y: annotationState.lastY }],
+      color: annotationState.currentColor,
+      opacity: annotationState.opacity
+    };
+    highlightStrokes.push(currentHighlightStroke);
+    drawAllHighlightStrokes();
+    return;
+  }
+  
   // Draw a dot at the start point to ensure coverage when drawing slowly
   drawAnnotationDot(annotationState.lastX, annotationState.lastY);
 }
@@ -5947,6 +5982,15 @@ function drawAnnotation(e) {
   const currentX = e.clientX - rect.left;
   const currentY = e.clientY - rect.top;
   
+  // For highlighter2, use stroke-based approach
+  if (annotationState.currentTool === 'highlighter2' && currentHighlightStroke) {
+    currentHighlightStroke.points.push({ x: currentX, y: currentY });
+    drawAllHighlightStrokes();
+    annotationState.lastX = currentX;
+    annotationState.lastY = currentY;
+    return;
+  }
+  
   drawAnnotationLine(annotationState.lastX, annotationState.lastY, currentX, currentY);
   
   annotationState.lastX = currentX;
@@ -5957,6 +6001,9 @@ function drawAnnotation(e) {
 function stopAnnotationDrawing() {
   if (annotationState.isDrawing) {
     annotationState.isDrawing = false;
+    if (annotationState.currentTool === 'highlighter2') {
+      currentHighlightStroke = null;
+    }
     saveAnnotationData();
   }
 }
@@ -5972,6 +6019,18 @@ function startAnnotationDrawingTouch(e) {
   annotationState.lastX = touch.clientX - rect.left;
   annotationState.lastY = touch.clientY - rect.top;
   
+  // For highlighter2, use stroke-based approach
+  if (annotationState.currentTool === 'highlighter2') {
+    currentHighlightStroke = {
+      points: [{ x: annotationState.lastX, y: annotationState.lastY }],
+      color: annotationState.currentColor,
+      opacity: annotationState.opacity
+    };
+    highlightStrokes.push(currentHighlightStroke);
+    drawAllHighlightStrokes();
+    return;
+  }
+  
   // Draw a dot at the start point to ensure coverage when drawing slowly
   drawAnnotationDot(annotationState.lastX, annotationState.lastY);
 }
@@ -5984,6 +6043,15 @@ function drawAnnotationTouch(e) {
   const rect = annotationCanvas.getBoundingClientRect();
   const currentX = touch.clientX - rect.left;
   const currentY = touch.clientY - rect.top;
+  
+  // For highlighter2, use stroke-based approach
+  if (annotationState.currentTool === 'highlighter2' && currentHighlightStroke) {
+    currentHighlightStroke.points.push({ x: currentX, y: currentY });
+    drawAllHighlightStrokes();
+    annotationState.lastX = currentX;
+    annotationState.lastY = currentY;
+    return;
+  }
   
   drawAnnotationLine(annotationState.lastX, annotationState.lastY, currentX, currentY);
   
@@ -6283,6 +6351,12 @@ function clearAnnotations() {
   if (highlightMaskCtx) {
     highlightMaskCtx.clearRect(0, 0, highlightMaskCanvas.width, highlightMaskCanvas.height);
   }
+  // Clear stroke-based highlights
+  highlightStrokes = [];
+  currentHighlightStroke = null;
+  if (highlight2Ctx) {
+    highlight2Ctx.clearRect(0, 0, highlight2Canvas.width, highlight2Canvas.height);
+  }
   if (!annotationCanvas || !annotationCtx) return;
   annotationCtx.clearRect(0, 0, annotationCanvas.width, annotationCanvas.height);
   const key = `dakboard-annotation-page-${currentPageIndex}`;
@@ -6298,6 +6372,36 @@ function toggleAnnotationVisibility() {
   const toggleBtn = document.getElementById('annotation-toggle-visibility');
   if (toggleBtn) {
     toggleBtn.style.opacity = annotationState.isVisible ? '1' : '0.5';
+  }
+}
+
+// Draw all highlight strokes (for highlighter2)
+function drawAllHighlightStrokes() {
+  if (!highlight2Ctx) return;
+  
+  // Clear only the highlighter2 canvas
+  highlight2Ctx.clearRect(0, 0, highlight2Canvas.width, highlight2Canvas.height);
+  
+  highlight2Ctx.lineCap = 'round';
+  highlight2Ctx.lineJoin = 'round';
+  highlight2Ctx.lineWidth = annotationState.brushSize;
+  highlight2Ctx.globalCompositeOperation = 'source-over';
+  
+  for (const stroke of highlightStrokes) {
+    if (stroke.points.length < 2) continue;
+    
+    // Convert opacity percentage to hex alpha
+    const alphaHex = Math.round((stroke.opacity / 100) * 255).toString(16).padStart(2, '0');
+    highlight2Ctx.strokeStyle = `${stroke.color}${alphaHex}`;
+    
+    highlight2Ctx.beginPath();
+    highlight2Ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+    
+    for (let i = 1; i < stroke.points.length; i++) {
+      highlight2Ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+    }
+    
+    highlight2Ctx.stroke();
   }
 }
 
@@ -6319,6 +6423,12 @@ function updateAnnotationToolbar() {
   const brushSizeValue = document.getElementById('annotation-brush-size-value');
   if (brushSize) brushSize.value = annotationState.brushSize;
   if (brushSizeValue) brushSizeValue.textContent = annotationState.brushSize + 'px';
+  
+  // Update opacity
+  const opacitySlider = document.getElementById('annotation-opacity');
+  const opacityValue = document.getElementById('annotation-opacity-value');
+  if (opacitySlider) opacitySlider.value = annotationState.opacity;
+  if (opacityValue) opacityValue.textContent = annotationState.opacity + '%';
 }
 
 // Initialize annotation event listeners
@@ -6371,6 +6481,18 @@ function initializeAnnotationListeners() {
       if (brushSizeValue) brushSizeValue.textContent = annotationState.brushSize + 'px';
       // Save to localStorage
       localStorage.setItem('dakboard-annotation-brush-size', annotationState.brushSize.toString());
+    });
+  }
+  
+  // Opacity slider
+  const opacitySlider = document.getElementById('annotation-opacity');
+  const opacityValue = document.getElementById('annotation-opacity-value');
+  if (opacitySlider) {
+    opacitySlider.addEventListener('input', (e) => {
+      annotationState.opacity = parseInt(e.target.value);
+      if (opacityValue) opacityValue.textContent = annotationState.opacity + '%';
+      // Save to localStorage
+      localStorage.setItem('dakboard-annotation-opacity', annotationState.opacity.toString());
     });
   }
   
