@@ -5061,10 +5061,15 @@ footer a:hover {
 .task-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  border-color: var(--tasks-card-hover-border, #4a90e2) !important;
 }
 
 .task-card.completed {
   opacity: 0.5;
+}
+
+.task-card.completed .task-name {
+  text-decoration: line-through;
 }
 
 .task-name {

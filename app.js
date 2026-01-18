@@ -4921,6 +4921,10 @@ function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
   taskName.textContent = item.summary || 'Untitled';
   taskName.style.wordWrap = 'break-word';
   taskName.style.whiteSpace = 'normal';
+  // Add strikethrough for completed tasks
+  if (isCompleted) {
+    taskName.style.textDecoration = 'line-through';
+  }
   card.appendChild(taskName);
   
   // Add click handler to toggle completion

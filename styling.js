@@ -3651,19 +3651,22 @@ function updatePreview() {
     const cardShadow = (currentStyles.tasksCardShadow !== undefined && currentStyles.tasksCardShadow !== null)
       ? currentStyles.tasksCardShadow 
       : (tasksCardStyles.shadow !== undefined ? tasksCardStyles.shadow : true);
+    const cardHoverBorder = (currentStyles.tasksCardHoverBorder !== undefined && currentStyles.tasksCardHoverBorder !== null)
+      ? currentStyles.tasksCardHoverBorder 
+      : (tasksCardStyles.hoverBorder || '#4a90e2');
     const shadowStyle = cardShadow ? '0 2px 8px rgba(0, 0, 0, 0.3)' : 'none';
     
     // Show dummy task cards for preview (always show 2-3 cards regardless of selected list)
     previewContent.innerHTML = `
       <div style="width: 100%; padding: 12px; display: flex; flex-direction: column; gap: 12px;">
-        <div class="task-card" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; padding: 18px; transition: transform 0.2s, box-shadow 0.2s;">
+        <div class="task-card" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; padding: 18px; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; --tasks-card-hover-border: ${cardHoverBorder};">
           <div class="task-name" style="font-size: 17px; font-weight: 600; color: #fff; line-height: 1.4; word-wrap: break-word; white-space: normal;">Sample Task One</div>
         </div>
-        <div class="task-card" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; padding: 18px; transition: transform 0.2s, box-shadow 0.2s;">
+        <div class="task-card" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; padding: 18px; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; --tasks-card-hover-border: ${cardHoverBorder};">
           <div class="task-name" style="font-size: 17px; font-weight: 600; color: #fff; line-height: 1.4; word-wrap: break-word; white-space: normal;">Another Sample Task</div>
         </div>
-        <div class="task-card completed" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; padding: 18px; transition: transform 0.2s, box-shadow 0.2s; opacity: 0.5;">
-          <div class="task-name" style="font-size: 17px; font-weight: 600; color: #fff; line-height: 1.4; word-wrap: break-word; white-space: normal;">Completed Task</div>
+        <div class="task-card completed" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; padding: 18px; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; opacity: 0.5; --tasks-card-hover-border: ${cardHoverBorder};">
+          <div class="task-name" style="font-size: 17px; font-weight: 600; color: #fff; line-height: 1.4; word-wrap: break-word; white-space: normal; text-decoration: line-through;">Completed Task</div>
         </div>
       </div>
     `;
