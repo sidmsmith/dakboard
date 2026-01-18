@@ -3609,45 +3609,14 @@ function updatePreview() {
       </div>
     `;
   } else if (previewContent && widgetType === 'tasks-widget') {
-    // Load saved styles if currentStyles doesn't have tasks card styles yet
-    let tasksCardStyles = {};
-    if (currentWidgetId) {
-      const storageKey = `dakboard-widget-styles-${currentWidgetId}`;
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        try {
-          const savedStyles = JSON.parse(saved);
-          tasksCardStyles = {
-            background: savedStyles.tasksCardBackground,
-            border: savedStyles.tasksCardBorder,
-            borderRadius: savedStyles.tasksCardBorderRadius,
-            borderWidth: savedStyles.tasksCardBorderWidth,
-            shadow: savedStyles.tasksCardShadow,
-            hoverBorder: savedStyles.tasksCardHoverBorder
-          };
-        } catch (e) {
-          console.error('Error parsing saved styles for tasks preview:', e);
-        }
-      }
-    }
-    
     // Use currentStyles for preview (live updates as user changes values in the form)
-    // Priority: currentStyles (live edits) > saved styles (from localStorage) > defaults
-    const cardBg = (currentStyles.tasksCardBackground !== undefined && currentStyles.tasksCardBackground !== null)
-      ? currentStyles.tasksCardBackground 
-      : (tasksCardStyles.background || '#353535');
-    const cardBorder = (currentStyles.tasksCardBorder !== undefined && currentStyles.tasksCardBorder !== null)
-      ? currentStyles.tasksCardBorder 
-      : (tasksCardStyles.border || '#404040');
-    const cardBorderRadius = (currentStyles.tasksCardBorderRadius !== undefined && currentStyles.tasksCardBorderRadius !== null)
-      ? currentStyles.tasksCardBorderRadius 
-      : (tasksCardStyles.borderRadius !== undefined ? tasksCardStyles.borderRadius : 12);
-    const cardBorderWidth = (currentStyles.tasksCardBorderWidth !== undefined && currentStyles.tasksCardBorderWidth !== null)
-      ? currentStyles.tasksCardBorderWidth 
-      : (tasksCardStyles.borderWidth !== undefined ? tasksCardStyles.borderWidth : 1);
-    const cardShadow = (currentStyles.tasksCardShadow !== undefined && currentStyles.tasksCardShadow !== null)
-      ? currentStyles.tasksCardShadow 
-      : (tasksCardStyles.shadow !== undefined ? tasksCardStyles.shadow : true);
+    // Priority: currentStyles (live edits) > defaults
+    // Note: currentStyles is already loaded from localStorage when modal opens via loadWidgetStyles()
+    const cardBg = currentStyles.tasksCardBackground || '#353535';
+    const cardBorder = currentStyles.tasksCardBorder || '#404040';
+    const cardBorderRadius = currentStyles.tasksCardBorderRadius !== undefined ? currentStyles.tasksCardBorderRadius : 12;
+    const cardBorderWidth = currentStyles.tasksCardBorderWidth !== undefined ? currentStyles.tasksCardBorderWidth : 1;
+    const cardShadow = currentStyles.tasksCardShadow !== false;
     const shadowStyle = cardShadow ? '0 2px 8px rgba(0, 0, 0, 0.3)' : 'none';
     
     // Show dummy task cards for preview (always show 2-3 cards regardless of selected list)
