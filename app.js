@@ -9914,7 +9914,21 @@ function setupSwipeGestures() {
     touchStartedOnWidget = false;
     touchStartX = e.changedTouches[0].screenX;
     touchStartY = e.changedTouches[0].screenY;
-  }, { passive: true });
+  }, { passive: false });
+  
+  // Prevent Chrome's back navigation on left swipe
+  pagesContainer.addEventListener('touchmove', (e) => {
+    // Only prevent default for horizontal swipes to avoid blocking vertical scrolling
+    const touch = e.changedTouches[0];
+    const deltaX = Math.abs(touch.screenX - touchStartX);
+    const deltaY = Math.abs(touch.screenY - touchStartY);
+    
+    // If horizontal movement is greater than vertical (likely a swipe, not scroll)
+    // and not starting on a widget, prevent default to block browser back gesture
+    if (!touchStartedOnWidget && deltaX > deltaY && deltaX > 10) {
+      e.preventDefault();
+    }
+  }, { passive: false });
   
   pagesContainer.addEventListener('touchend', (e) => {
     if (isEditMode || touchStartedOnWidget) return; // Disable swipe in edit mode or if started on widget
@@ -10564,6 +10578,7 @@ function initializeConfigExportImport() {
   const exportBtn = document.getElementById('export-config-btn');
   const importBtn = document.getElementById('import-config-btn');
   const importFileInput = document.getElementById('import-config-file');
+  const refreshBtn = document.getElementById('refresh-btn');
   
   if (exportBtn) {
     exportBtn.addEventListener('click', exportConfiguration);
@@ -10581,6 +10596,12 @@ function initializeConfigExportImport() {
       }
       // Reset input so same file can be selected again
       e.target.value = '';
+    });
+  }
+  
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
+      window.location.reload();
     });
   }
 }
