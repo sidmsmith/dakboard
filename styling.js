@@ -720,6 +720,7 @@ function generateAdvancedTab() {
   const isBlankWidget = widgetType === 'blank-widget';
   const isStoplightWidget = widgetType === 'stoplight-widget';
   const isAgendaWidget = widgetType === 'agenda-widget';
+  const isTasksWidget = widgetType === 'tasks-widget';
   const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
   const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
   
@@ -1089,6 +1090,73 @@ function generateAdvancedTab() {
           <div class="styling-form-control">
             <input type="color" id="agenda-card-hover-border" value="${currentStyles.agendaCardHoverBorder || '#4a90e2'}">
             <input type="text" id="agenda-card-hover-border-text" value="${currentStyles.agendaCardHoverBorder || '#4a90e2'}" placeholder="#4a90e2">
+          </div>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+    ${isTasksWidget ? `
+    <div class="styling-form-section">
+      <div class="styling-section-title">List Selection</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Todo List</label>
+          <div class="styling-form-control">
+            <select id="tasks-selected-list" class="styling-select" style="width: 100%;">
+              <option value="none" ${(!currentStyles.tasksSelectedList || currentStyles.tasksSelectedList === 'none') ? 'selected' : ''}>None</option>
+              ${(typeof todoLists !== 'undefined' && Array.isArray(todoLists) ? todoLists : []).map(list => `
+                <option value="${list.entityId}" ${currentStyles.tasksSelectedList === list.entityId ? 'selected' : ''}>${list.name || list.entityId}</option>
+              `).join('')}
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="styling-form-section">
+      <div class="styling-section-title">Tasks Card Styling</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Card Background Color</label>
+          <div class="styling-form-control">
+            <input type="color" id="tasks-card-background" value="${currentStyles.tasksCardBackground || '#353535'}">
+            <input type="text" id="tasks-card-background-text" value="${currentStyles.tasksCardBackground || '#353535'}" placeholder="#353535">
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Card Border Color</label>
+          <div class="styling-form-control">
+            <input type="color" id="tasks-card-border" value="${currentStyles.tasksCardBorder || '#404040'}">
+            <input type="text" id="tasks-card-border-text" value="${currentStyles.tasksCardBorder || '#404040'}" placeholder="#404040">
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Card Border Width</label>
+          <div class="styling-form-control">
+            <input type="range" id="tasks-card-border-width" min="0" max="5" value="${currentStyles.tasksCardBorderWidth !== undefined ? currentStyles.tasksCardBorderWidth : 1}">
+            <span class="styling-range-value" id="tasks-card-border-width-value">${currentStyles.tasksCardBorderWidth !== undefined ? currentStyles.tasksCardBorderWidth : 1}px</span>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Card Border Radius</label>
+          <div class="styling-form-control">
+            <input type="range" id="tasks-card-border-radius" min="0" max="20" value="${currentStyles.tasksCardBorderRadius !== undefined ? currentStyles.tasksCardBorderRadius : 12}">
+            <span class="styling-range-value" id="tasks-card-border-radius-value">${currentStyles.tasksCardBorderRadius !== undefined ? currentStyles.tasksCardBorderRadius : 12}px</span>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Card Shadow</label>
+          <div class="styling-form-control">
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="tasks-card-shadow" ${currentStyles.tasksCardShadow !== false ? 'checked' : ''}>
+              <span>Enable shadow</span>
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Card Hover Border Color</label>
+          <div class="styling-form-control">
+            <input type="color" id="tasks-card-hover-border" value="${currentStyles.tasksCardHoverBorder || '#4a90e2'}">
+            <input type="text" id="tasks-card-hover-border-text" value="${currentStyles.tasksCardHoverBorder || '#4a90e2'}" placeholder="#4a90e2">
           </div>
         </div>
       </div>
@@ -1849,6 +1917,120 @@ function attachTabEventListeners(tabName) {
               updatePreview();
             }
           });
+        }
+        
+        // Tasks widget configuration
+        if (widgetType === 'tasks-widget') {
+          // Selected list dropdown
+          const tasksSelectedList = stylingModal.querySelector('#tasks-selected-list');
+          if (tasksSelectedList) {
+            tasksSelectedList.addEventListener('change', (e) => {
+              currentStyles.tasksSelectedList = e.target.value;
+              updatePreview();
+            });
+          }
+          
+          // Tasks card background color
+          const tasksCardBackground = stylingModal.querySelector('#tasks-card-background');
+          const tasksCardBackgroundText = stylingModal.querySelector('#tasks-card-background-text');
+          if (tasksCardBackground && tasksCardBackgroundText) {
+            tasksCardBackground.addEventListener('input', (e) => {
+              tasksCardBackgroundText.value = e.target.value;
+              currentStyles.tasksCardBackground = e.target.value;
+              updatePreview();
+            });
+            tasksCardBackground.addEventListener('change', (e) => {
+              tasksCardBackgroundText.value = e.target.value;
+              currentStyles.tasksCardBackground = e.target.value;
+              updatePreview();
+            });
+            tasksCardBackgroundText.addEventListener('input', (e) => {
+              if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+                tasksCardBackground.value = e.target.value;
+                currentStyles.tasksCardBackground = e.target.value;
+                updatePreview();
+              }
+            });
+          }
+          
+          // Tasks card border color
+          const tasksCardBorder = stylingModal.querySelector('#tasks-card-border');
+          const tasksCardBorderText = stylingModal.querySelector('#tasks-card-border-text');
+          if (tasksCardBorder && tasksCardBorderText) {
+            tasksCardBorder.addEventListener('input', (e) => {
+              tasksCardBorderText.value = e.target.value;
+              currentStyles.tasksCardBorder = e.target.value;
+              updatePreview();
+            });
+            tasksCardBorder.addEventListener('change', (e) => {
+              tasksCardBorderText.value = e.target.value;
+              currentStyles.tasksCardBorder = e.target.value;
+              updatePreview();
+            });
+            tasksCardBorderText.addEventListener('input', (e) => {
+              if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+                tasksCardBorder.value = e.target.value;
+                currentStyles.tasksCardBorder = e.target.value;
+                updatePreview();
+              }
+            });
+          }
+          
+          // Tasks card border width
+          const tasksCardBorderWidth = stylingModal.querySelector('#tasks-card-border-width');
+          const tasksCardBorderWidthValue = stylingModal.querySelector('#tasks-card-border-width-value');
+          if (tasksCardBorderWidth && tasksCardBorderWidthValue) {
+            tasksCardBorderWidth.addEventListener('input', (e) => {
+              const val = e.target.value;
+              tasksCardBorderWidthValue.textContent = val + 'px';
+              currentStyles.tasksCardBorderWidth = parseInt(val);
+              updatePreview();
+            });
+          }
+          
+          // Tasks card border radius
+          const tasksCardBorderRadius = stylingModal.querySelector('#tasks-card-border-radius');
+          const tasksCardBorderRadiusValue = stylingModal.querySelector('#tasks-card-border-radius-value');
+          if (tasksCardBorderRadius && tasksCardBorderRadiusValue) {
+            tasksCardBorderRadius.addEventListener('input', (e) => {
+              const val = e.target.value;
+              tasksCardBorderRadiusValue.textContent = val + 'px';
+              currentStyles.tasksCardBorderRadius = parseInt(val);
+              updatePreview();
+            });
+          }
+          
+          // Tasks card shadow
+          const tasksCardShadow = stylingModal.querySelector('#tasks-card-shadow');
+          if (tasksCardShadow) {
+            tasksCardShadow.addEventListener('change', (e) => {
+              currentStyles.tasksCardShadow = e.target.checked;
+              updatePreview();
+            });
+          }
+          
+          // Tasks card hover border color
+          const tasksCardHoverBorder = stylingModal.querySelector('#tasks-card-hover-border');
+          const tasksCardHoverBorderText = stylingModal.querySelector('#tasks-card-hover-border-text');
+          if (tasksCardHoverBorder && tasksCardHoverBorderText) {
+            tasksCardHoverBorder.addEventListener('input', (e) => {
+              tasksCardHoverBorderText.value = e.target.value;
+              currentStyles.tasksCardHoverBorder = e.target.value;
+              updatePreview();
+            });
+            tasksCardHoverBorder.addEventListener('change', (e) => {
+              tasksCardHoverBorderText.value = e.target.value;
+              currentStyles.tasksCardHoverBorder = e.target.value;
+              updatePreview();
+            });
+            tasksCardHoverBorderText.addEventListener('input', (e) => {
+              if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+                tasksCardHoverBorder.value = e.target.value;
+                currentStyles.tasksCardHoverBorder = e.target.value;
+                updatePreview();
+              }
+            });
+          }
         }
       }
       
@@ -3532,6 +3714,12 @@ function applyStyles() {
       // Use setTimeout to ensure modal is fully closed and styles are saved to localStorage
       setTimeout(() => {
         loadAgenda();
+      }, 50);
+    }
+    if (typeof loadTasks === 'function') {
+      // Use setTimeout to ensure modal is fully closed and styles are saved to localStorage
+      setTimeout(() => {
+        loadTasks();
       }, 50);
     }
   }

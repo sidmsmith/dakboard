@@ -1476,6 +1476,8 @@ async function loadAllData() {
     ]).then(() => {
       // Load agenda after calendar events are loaded
       loadAgenda();
+      // Load tasks widget (after todos for list discovery)
+      loadTasks();
     });
   } catch (error) {
     console.error('Error loading dashboard data:', error);
@@ -4696,6 +4698,373 @@ function setupAgendaNavigation(widgetId, container) {
   navContainer.appendChild(nextBtn);
 }
 
+// Load and initialize tasks widgets
+async function loadTasks() {
+  // Get all tasks widget instances on the current page
+  const pageElement = getPageElement(currentPageIndex);
+  if (!pageElement) return;
+  
+  const instances = getWidgetInstances('tasks-widget', currentPageIndex);
+  
+  if (instances.length === 0) return;
+  
+  // Ensure todoLists is populated (reuse from todo widget discovery)
+  if (todoLists.length === 0) {
+    try {
+      const allStates = await fetchAllHAStates();
+      if (allStates) {
+        todoLists = allStates
+          .filter(e => e.entity_id.startsWith('todo.'))
+          .map(e => ({
+            entityId: e.entity_id,
+            name: e.attributes?.friendly_name || 
+                  e.attributes?.name || 
+                  e.entity_id.replace(/^todo\./, '').replace(/_/g, ' ').replace(/^./, str => str.toUpperCase()),
+            entity: e
+          }));
+      }
+    } catch (error) {
+      console.error('Error discovering todo lists for tasks:', error);
+    }
+  }
+  
+  instances.forEach(instance => {
+    const widget = instance.element;
+    if (!widget || widget.classList.contains('hidden')) return;
+    
+    let container = widget.querySelector('.tasks-content');
+    if (!container) {
+      // Create container if it doesn't exist
+      container = document.createElement('div');
+      container.className = 'tasks-content';
+      widget.appendChild(container);
+    }
+    
+    const fullWidgetId = instance.fullId;
+    
+    // Render the tasks (this will check for selected list and load items)
+    renderTasks(fullWidgetId, container);
+  });
+}
+
+// Render tasks for a specific widget instance
+async function renderTasks(widgetId, container) {
+  // Get selected list for this widget instance from styles
+  const stylesKey = `dakboard-widget-styles-${widgetId}`;
+  const savedStyles = localStorage.getItem(stylesKey);
+  let selectedList = null;
+  if (savedStyles) {
+    try {
+      const styles = JSON.parse(savedStyles);
+      selectedList = styles.tasksSelectedList || null;
+    } catch (e) {
+      console.error('Error parsing saved styles:', e);
+    }
+  }
+  
+  if (!selectedList || selectedList === 'none' || !todoLists || todoLists.length === 0) {
+    // Show empty state - no list selected
+    container.innerHTML = '<div class="tasks-empty">No tasks - please select a list in Advanced settings</div>';
+    return;
+  }
+  
+  // Find the selected list entity
+  const listEntity = todoLists.find(list => list.entityId === selectedList);
+  if (!listEntity) {
+    container.innerHTML = '<div class="tasks-empty">Selected list not found</div>';
+    return;
+  }
+  
+  // Load items for the selected list
+  try {
+    const response = await fetch('/api/ha-todo-action', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: 'list_items',
+        entity_id: selectedList
+      })
+    });
+    
+    let items = [];
+    if (response.ok) {
+      const data = await response.json();
+      items = data.items || [];
+    } else {
+      container.innerHTML = '<div class="tasks-empty">Error loading tasks</div>';
+      return;
+    }
+    
+    // Separate completed and incomplete items
+    const incomplete = items.filter(item => {
+      return !item.status || item.status === 'needs_action' || item.status === 'incomplete';
+    });
+    const completed = items.filter(item => {
+      return item.status === 'completed';
+    });
+    
+    // Clear container
+    container.innerHTML = '';
+    
+    // Create add task button container (in header area or top of content)
+    let addTaskBtn = container.querySelector('.tasks-add-btn');
+    if (!addTaskBtn) {
+      // Try to find or create header area
+      const widget = container.closest('.tasks-widget');
+      let headerArea = widget.querySelector('.tasks-header-actions');
+      if (!headerArea) {
+        const widgetHeader = widget.querySelector('.widget-header');
+        if (widgetHeader) {
+          headerArea = document.createElement('div');
+          headerArea.className = 'tasks-header-actions';
+          widgetHeader.appendChild(headerArea);
+        }
+      }
+      
+      if (headerArea) {
+        addTaskBtn = document.createElement('button');
+        addTaskBtn.className = 'tasks-add-btn';
+        addTaskBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+        addTaskBtn.title = 'Add Task';
+        addTaskBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!isEditMode) {
+            showAddTaskModal(widgetId, selectedList, container);
+          }
+        });
+        headerArea.appendChild(addTaskBtn);
+      }
+    }
+    
+    // Load styles for this widget
+    const stylesKey = `dakboard-widget-styles-${widgetId}`;
+    const savedStyles = localStorage.getItem(stylesKey);
+    let currentStyles = {};
+    if (savedStyles) {
+      try {
+        currentStyles = JSON.parse(savedStyles);
+      } catch (e) {
+        console.error('Error parsing saved styles:', e);
+      }
+    }
+    
+    // Apply card styles
+    const cardStyles = {
+      background: currentStyles.tasksCardBackground || '#353535',
+      border: currentStyles.tasksCardBorder || '#404040',
+      borderRadius: currentStyles.tasksCardBorderRadius !== undefined ? currentStyles.tasksCardBorderRadius : 12,
+      borderWidth: currentStyles.tasksCardBorderWidth !== undefined ? currentStyles.tasksCardBorderWidth : 1,
+      shadow: currentStyles.tasksCardShadow !== false,
+      hoverBorder: currentStyles.tasksCardHoverBorder || '#4a90e2'
+    };
+    
+    // Show incomplete tasks first
+    if (incomplete.length === 0 && completed.length === 0) {
+      container.innerHTML = '<div class="tasks-empty">No tasks</div>';
+      return;
+    }
+    
+    incomplete.forEach(item => {
+      const card = createTaskCard(item, selectedList, widgetId, false, cardStyles);
+      container.appendChild(card);
+    });
+    
+    // Show completed tasks at bottom (greyed out)
+    completed.forEach(item => {
+      const card = createTaskCard(item, selectedList, widgetId, true, cardStyles);
+      container.appendChild(card);
+    });
+    
+    // Apply hover styles dynamically
+    container.querySelectorAll('.task-card').forEach(card => {
+      if (cardStyles.hoverBorder) {
+        card.addEventListener('mouseenter', () => {
+          card.style.borderColor = cardStyles.hoverBorder;
+        });
+        card.addEventListener('mouseleave', () => {
+          card.style.borderColor = cardStyles.border;
+        });
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error rendering tasks:', error);
+    container.innerHTML = '<div class="tasks-empty">Error loading tasks</div>';
+  }
+}
+
+// Create a task card element
+function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
+  const card = document.createElement('div');
+  card.className = 'task-card';
+  if (isCompleted) {
+    card.classList.add('completed');
+  }
+  
+  // Apply card styles
+  card.style.backgroundColor = cardStyles.background;
+  card.style.borderColor = cardStyles.border;
+  card.style.borderWidth = `${cardStyles.borderWidth}px`;
+  card.style.borderRadius = `${cardStyles.borderRadius}px`;
+  card.style.borderStyle = 'solid';
+  if (cardStyles.shadow) {
+    card.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
+  }
+  
+  // Apply opacity for completed tasks (0.5 = 50%)
+  if (isCompleted) {
+    card.style.opacity = '0.5';
+  }
+  
+  // Task name (wrap to multiple lines)
+  const taskName = document.createElement('div');
+  taskName.className = 'task-name';
+  taskName.textContent = item.summary || 'Untitled';
+  taskName.style.wordWrap = 'break-word';
+  taskName.style.whiteSpace = 'normal';
+  card.appendChild(taskName);
+  
+  // Add click handler to toggle completion
+  card.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!isEditMode) {
+      toggleTodoItem(entityId, item.uid, !isCompleted);
+      // Reload tasks after a short delay
+      setTimeout(() => {
+        const container = card.closest('.tasks-content');
+        if (container) {
+          renderTasks(widgetId, container);
+        }
+      }, 300);
+    }
+  });
+  
+  return card;
+}
+
+// Show add task modal
+function showAddTaskModal(widgetId, entityId, container) {
+  // Create modal overlay
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay tasks-add-modal';
+  modal.style.display = 'flex';
+  
+  // Create modal content
+  const modalContent = document.createElement('div');
+  modalContent.className = 'modal-content';
+  modalContent.style.maxWidth = '400px';
+  
+  const modalHeader = document.createElement('div');
+  modalHeader.className = 'modal-header';
+  modalHeader.innerHTML = '<h2>Add Task</h2><button class="modal-close tasks-modal-close">&times;</button>';
+  
+  const modalBody = document.createElement('div');
+  modalBody.style.padding = '20px';
+  
+  const inputGroup = document.createElement('div');
+  inputGroup.style.marginBottom = '15px';
+  
+  const label = document.createElement('label');
+  label.textContent = 'Task Name:';
+  label.style.display = 'block';
+  label.style.marginBottom = '8px';
+  label.style.color = '#e0e0e0';
+  
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Enter task name...';
+  input.style.width = '100%';
+  input.style.padding = '10px';
+  input.style.borderRadius = '4px';
+  input.style.border = '1px solid #4a4a4a';
+  input.style.background = '#2a2a2a';
+  input.style.color = '#e0e0e0';
+  input.style.fontSize = '14px';
+  
+  const buttonGroup = document.createElement('div');
+  buttonGroup.style.display = 'flex';
+  buttonGroup.style.gap = '10px';
+  buttonGroup.style.justifyContent = 'flex-end';
+  
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.className = 'styling-btn-secondary';
+  cancelBtn.style.padding = '10px 20px';
+  
+  const addBtn = document.createElement('button');
+  addBtn.textContent = 'Add';
+  addBtn.className = 'styling-btn-primary';
+  addBtn.style.padding = '10px 20px';
+  
+  inputGroup.appendChild(label);
+  inputGroup.appendChild(input);
+  
+  buttonGroup.appendChild(cancelBtn);
+  buttonGroup.appendChild(addBtn);
+  
+  modalBody.appendChild(inputGroup);
+  modalBody.appendChild(buttonGroup);
+  
+  modalContent.appendChild(modalHeader);
+  modalContent.appendChild(modalBody);
+  modal.appendChild(modalContent);
+  
+  document.body.appendChild(modal);
+  
+  // Focus input
+  setTimeout(() => input.focus(), 100);
+  
+  // Close handlers
+  const closeModal = () => {
+    modal.remove();
+  };
+  
+  modal.querySelector('.tasks-modal-close').addEventListener('click', closeModal);
+  cancelBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+  
+  // Add task handler
+  const handleAdd = async () => {
+    const taskName = input.value.trim();
+    if (!taskName) return;
+    
+    try {
+      await fetch('/api/ha-todo-action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'add',
+          entity_id: entityId,
+          item: taskName
+        })
+      });
+      
+      closeModal();
+      
+      // Reload tasks after a short delay
+      setTimeout(() => {
+        renderTasks(widgetId, container);
+      }, 300);
+    } catch (error) {
+      console.error('Error adding task:', error);
+      alert('Error adding task. Please try again.');
+    }
+  };
+  
+  addBtn.addEventListener('click', handleAdd);
+  input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      handleAdd();
+    }
+  });
+}
+
 // Initialize midnight check for agenda widgets
 function initializeAgendaMidnightCheck() {
   // Check every minute for midnight
@@ -6658,7 +7027,8 @@ const WIDGET_CONFIG = {
   'thermostat-widget': { name: 'Thermostat', icon: '🌡️' },
   'news-widget': { name: 'News', icon: '📰' },
   'whiteboard-widget': { name: 'Whiteboard', icon: '🖊️' },
-  'stoplight-widget': { name: 'Stoplight', icon: '🚦' }
+  'stoplight-widget': { name: 'Stoplight', icon: '🚦' },
+  'tasks-widget': { name: 'Tasks', icon: '✅' }
 };
 
 // Widget Instance Management Functions

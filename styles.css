@@ -4974,3 +4974,145 @@ footer a:hover {
   line-height: 1.4;
   margin-top: 4px;
 }
+
+/* Tasks Widget */
+.tasks-widget {
+  top: 20px;
+  left: 20px;
+  width: 500px;
+  height: 600px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.tasks-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.tasks-add-btn {
+  background: var(--widget-bg-overlay, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--widget-border-color, rgba(255, 255, 255, 0.2));
+  color: var(--widget-text-primary, #fff);
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  width: 32px;
+  height: 32px;
+}
+
+.tasks-add-btn:hover {
+  background: var(--widget-hover-bg, rgba(255, 255, 255, 0.15));
+  border-color: var(--widget-hover-border, rgba(255, 255, 255, 0.3));
+  transform: scale(1.05);
+}
+
+.tasks-add-btn:active {
+  transform: scale(0.95);
+}
+
+.tasks-add-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+}
+
+.tasks-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tasks-content::-webkit-scrollbar {
+  display: none;
+}
+
+.tasks-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #888;
+  font-size: 16px;
+}
+
+.task-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px;
+  margin-bottom: 0;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, opacity 0.2s;
+  cursor: pointer;
+  position: relative;
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+.task-card.completed {
+  opacity: 0.5;
+}
+
+.task-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.4;
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+/* Tasks Add Modal */
+.tasks-add-modal .modal-content {
+  background: #2a2a2a;
+  border: 1px solid #4a4a4a;
+  border-radius: 8px;
+}
+
+.tasks-add-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #4a4a4a;
+}
+
+.tasks-add-modal .modal-header h2 {
+  margin: 0;
+  color: #e0e0e0;
+  font-size: 20px;
+}
+
+.tasks-add-modal .modal-close {
+  background: none;
+  border: none;
+  color: #e0e0e0;
+  font-size: 28px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.tasks-add-modal .modal-close:hover {
+  background: #3a3a3a;
+}
