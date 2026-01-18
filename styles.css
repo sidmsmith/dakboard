@@ -5121,8 +5121,14 @@ footer a:hover {
 
 /* Add task card styling - green dashed border */
 .task-card-add-new {
-  border: 3px dashed #27ae60 !important;
+  border: 6px dashed #27ae60 !important;
   box-sizing: border-box;
+}
+
+/* Prevent hover from changing border on add task card */
+.task-card-add-new:hover {
+  border: 6px dashed #27ae60 !important;
+  border-color: #27ae60 !important;
 }
 
 .task-name {
