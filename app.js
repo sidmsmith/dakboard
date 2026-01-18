@@ -5237,9 +5237,9 @@ function showAddTaskInline(container, widgetId, entityId, cardStyles) {
   }
   
   // Hide the add button
-  const addBtn = container.querySelector('.tasks-add-btn-bottom');
-  if (addBtn) {
-    addBtn.style.display = 'none';
+  const addBtnBottom = container.querySelector('.tasks-add-btn-bottom');
+  if (addBtnBottom) {
+    addBtnBottom.style.display = 'none';
   }
   
   // Create add card
