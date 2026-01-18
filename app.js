@@ -4998,17 +4998,21 @@ function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
       return; // Checkbox handles its own change
     }
     
-    // If we just ended a long press, don't treat as click
-    const cardId = `${widgetId}-${item.uid}`;
-    if (tasksLongPressCards.get(cardId) === card) {
-      setTimeout(() => {
-        tasksLongPressCards.delete(cardId);
-      }, 100);
-      return;
-    }
-    
     const container = card.closest('.tasks-content');
     const isSelectionMode = container && container.classList.contains('selection-mode-active');
+    
+    // If we just ended a long press and we're NOT in selection mode yet, don't treat as click
+    // (This prevents the normal click action from firing right after long press)
+    if (!isSelectionMode) {
+      const cardId = `${widgetId}-${item.uid}`;
+      if (tasksLongPressCards.get(cardId) === card) {
+        // Clear the reference after a delay
+        setTimeout(() => {
+          tasksLongPressCards.delete(cardId);
+        }, 100);
+        return;
+      }
+    }
     
     if (isSelectionMode) {
       // In selection mode, toggle selection
