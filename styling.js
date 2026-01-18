@@ -3608,7 +3608,30 @@ function updatePreview() {
         </div>
       </div>
     `;
-  } else if (previewContent && widgetType !== 'dice-widget' && widgetType !== 'blank-widget' && widgetType !== 'scoreboard-widget' && widgetType !== 'stoplight-widget') {
+  } else if (previewContent && widgetType === 'tasks-widget') {
+    // Use currentStyles for preview (live updates as user changes values in the form)
+    const cardBg = currentStyles.tasksCardBackground || '#353535';
+    const cardBorder = currentStyles.tasksCardBorder || '#404040';
+    const cardBorderRadius = currentStyles.tasksCardBorderRadius !== undefined ? currentStyles.tasksCardBorderRadius : 12;
+    const cardBorderWidth = currentStyles.tasksCardBorderWidth !== undefined ? currentStyles.tasksCardBorderWidth : 1;
+    const cardShadow = currentStyles.tasksCardShadow !== false;
+    const shadowStyle = cardShadow ? '0 2px 8px rgba(0, 0, 0, 0.3)' : 'none';
+    
+    // Show dummy task cards for preview (always show 2-3 cards regardless of selected list)
+    previewContent.innerHTML = `
+      <div style="width: 100%; padding: 12px; display: flex; flex-direction: column; gap: 12px;">
+        <div class="task-card" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; padding: 18px; transition: transform 0.2s, box-shadow 0.2s;">
+          <div class="task-name" style="font-size: 17px; font-weight: 600; color: #fff; line-height: 1.4; word-wrap: break-word; white-space: normal;">Sample Task One</div>
+        </div>
+        <div class="task-card" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; padding: 18px; transition: transform 0.2s, box-shadow 0.2s;">
+          <div class="task-name" style="font-size: 17px; font-weight: 600; color: #fff; line-height: 1.4; word-wrap: break-word; white-space: normal;">Another Sample Task</div>
+        </div>
+        <div class="task-card completed" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; padding: 18px; transition: transform 0.2s, box-shadow 0.2s; opacity: 0.5;">
+          <div class="task-name" style="font-size: 17px; font-weight: 600; color: #fff; line-height: 1.4; word-wrap: break-word; white-space: normal;">Completed Task</div>
+        </div>
+      </div>
+    `;
+  } else if (previewContent && widgetType !== 'dice-widget' && widgetType !== 'blank-widget' && widgetType !== 'scoreboard-widget' && widgetType !== 'stoplight-widget' && widgetType !== 'agenda-widget' && widgetType !== 'tasks-widget') {
     // Reset to default text for other widgets
     previewContent.innerHTML = 'Preview updates in real-time as you adjust settings';
   }
