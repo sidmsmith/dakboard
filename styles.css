@@ -5058,13 +5058,6 @@ footer a:hover {
   position: relative;
 }
 
-/* Task card with checkbox layout (for selection mode) */
-.task-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .task-card-wrapper {
   display: flex;
   align-items: center;
