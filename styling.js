@@ -3716,6 +3716,8 @@ function applyStyles() {
         loadAgenda();
       }, 50);
     }
+  } else if (widgetType === 'tasks-widget') {
+    // Reload tasks widget to apply selected list and card styles
     if (typeof loadTasks === 'function') {
       // Use setTimeout to ensure modal is fully closed and styles are saved to localStorage
       setTimeout(() => {
@@ -3870,6 +3872,29 @@ function updateCurrentStylesFromForm() {
   
   const agendaCardHoverBorder = stylingModal.querySelector('#agenda-card-hover-border');
   if (agendaCardHoverBorder) currentStyles.agendaCardHoverBorder = agendaCardHoverBorder.value;
+  
+  // Tasks widget selected list
+  const tasksSelectedList = stylingModal.querySelector('#tasks-selected-list');
+  if (tasksSelectedList) currentStyles.tasksSelectedList = tasksSelectedList.value;
+  
+  // Tasks widget card styles
+  const tasksCardBackground = stylingModal.querySelector('#tasks-card-background');
+  if (tasksCardBackground) currentStyles.tasksCardBackground = tasksCardBackground.value;
+  
+  const tasksCardBorder = stylingModal.querySelector('#tasks-card-border');
+  if (tasksCardBorder) currentStyles.tasksCardBorder = tasksCardBorder.value;
+  
+  const tasksCardBorderWidth = stylingModal.querySelector('#tasks-card-border-width');
+  if (tasksCardBorderWidth) currentStyles.tasksCardBorderWidth = parseInt(tasksCardBorderWidth.value);
+  
+  const tasksCardBorderRadius = stylingModal.querySelector('#tasks-card-border-radius');
+  if (tasksCardBorderRadius) currentStyles.tasksCardBorderRadius = parseInt(tasksCardBorderRadius.value);
+  
+  const tasksCardShadow = stylingModal.querySelector('#tasks-card-shadow');
+  if (tasksCardShadow) currentStyles.tasksCardShadow = tasksCardShadow.checked;
+  
+  const tasksCardHoverBorder = stylingModal.querySelector('#tasks-card-hover-border');
+  if (tasksCardHoverBorder) currentStyles.tasksCardHoverBorder = tasksCardHoverBorder.value;
   
   // Dice widget colors
   const diceFaceColor = stylingModal.querySelector('#dice-face-color');
