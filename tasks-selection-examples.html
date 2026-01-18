@@ -186,9 +186,19 @@
             position: relative;
         }
 
+        /* Hover only shows blue border when in selection mode, otherwise use configured hover border */
         .task-card-combined:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Default hover uses configured hover border color (from Advanced tab) */
+        .task-card-combined:hover:not(.selected) {
+            border-color: var(--tasks-card-hover-border, #4a90e2);
+        }
+
+        /* In selection mode, hover shows blue border */
+        .selection-mode-active .task-card-combined:hover:not(.selected) {
             border-color: #4a90e2;
         }
 
@@ -476,19 +486,32 @@
         }
 
         // Example 4: Combined Long Press + Checkbox + Border
+        let longPressTimerCombined = null;
+        let longPressCard = null;
+
         function handleLongPressStartCombined(card, event) {
-            // Prevent default to avoid text selection
-            event.preventDefault();
-            longPressTimer = setTimeout(() => {
+            // Store reference to card
+            longPressCard = card;
+            
+            // Clear any existing timer
+            if (longPressTimerCombined) {
+                clearTimeout(longPressTimerCombined);
+            }
+            
+            // Start new timer
+            longPressTimerCombined = setTimeout(() => {
                 enterSelectionModeCombined(card);
-                longPressTimer = null;
+                longPressTimerCombined = null;
+                longPressCard = null;
             }, 500); // 500ms long press
         }
 
         function handleLongPressEndCombined(card, event) {
-            if (longPressTimer) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
+            // Only clear if this is the card we started pressing
+            if (longPressCard === card && longPressTimerCombined) {
+                clearTimeout(longPressTimerCombined);
+                longPressTimerCombined = null;
+                longPressCard = null;
             }
         }
 
@@ -514,6 +537,14 @@
         function handleCardClickCombined(card, event) {
             // If checkbox was clicked, let it handle the change
             if (event.target.type === 'checkbox') {
+                return;
+            }
+
+            // If we just ended a long press (within 100ms), don't treat as click
+            if (longPressCard === card) {
+                setTimeout(() => {
+                    longPressCard = null;
+                }, 100);
                 return;
             }
 
