@@ -10703,7 +10703,7 @@ function performExport(pageIndices) {
     const currentPage = parseInt(localStorage.getItem('dakboard-current-page')) || 0;
     
     const config = {
-      version: '3.3', // Updated version for navigation improvements and annotation UI enhancements
+      version: '3.4', // Added Tasks widget with Home Assistant integration, multi-select deletion, and inline task creation
       exportDate: new Date().toISOString(),
       metadata: {
         exportedPages: pageIndices.length,
