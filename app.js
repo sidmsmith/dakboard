@@ -4968,59 +4968,64 @@ function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
     }
   };
   
-  card.addEventListener('touchstart', handleLongPressStart, { passive: true });
-  card.addEventListener('touchend', handleLongPressEnd);
-  card.addEventListener('mousedown', handleLongPressStart);
-  card.addEventListener('mouseup', handleLongPressEnd);
-  card.addEventListener('mouseleave', handleLongPressEnd);
+  // Only attach interaction handlers if not in edit mode (similar to stoplight widget)
+  if (!isEditMode) {
+    card.addEventListener('touchstart', handleLongPressStart, { passive: true });
+    card.addEventListener('touchend', handleLongPressEnd);
+    card.addEventListener('mousedown', handleLongPressStart);
+    card.addEventListener('mouseup', handleLongPressEnd);
+    card.addEventListener('mouseleave', handleLongPressEnd);
+  }
   
-  // Click handler
-  card.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (e.target.type === 'checkbox') {
-      return; // Checkbox handles its own change
-    }
-    
-    const container = card.closest('.tasks-content');
-    const isSelectionMode = container && container.classList.contains('selection-mode-active');
-    const cardId = `${widgetId}-${item.uid}`;
-    
-    // If we just entered selection mode from this card, ignore the click
-    // (This prevents the click from toggling off the auto-selected card)
-    if (tasksJustEnteredSelection.get(cardId) === card) {
-      // Clear the flag after a delay
-      setTimeout(() => {
-        tasksJustEnteredSelection.delete(cardId);
-      }, 200);
-      return;
-    }
-    
-    // If we just ended a long press and we're NOT in selection mode yet, don't treat as click
-    // (This prevents the normal click action from firing right after long press)
-    if (!isSelectionMode) {
-      if (tasksLongPressCards.get(cardId) === card) {
-        // Clear the reference after a delay
+  // Click handler (only in normal mode, not edit mode)
+  if (!isEditMode) {
+    card.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (e.target.type === 'checkbox') {
+        return; // Checkbox handles its own change
+      }
+      
+      const container = card.closest('.tasks-content');
+      const isSelectionMode = container && container.classList.contains('selection-mode-active');
+      const cardId = `${widgetId}-${item.uid}`;
+      
+      // If we just entered selection mode from this card, ignore the click
+      // (This prevents the click from toggling off the auto-selected card)
+      if (tasksJustEnteredSelection.get(cardId) === card) {
+        // Clear the flag after a delay
         setTimeout(() => {
-          tasksLongPressCards.delete(cardId);
-        }, 100);
+          tasksJustEnteredSelection.delete(cardId);
+        }, 200);
         return;
       }
-    }
-    
-    if (isSelectionMode) {
-      // In selection mode, toggle selection
-      checkbox.checked = !checkbox.checked;
-      handleTaskCheckboxChange(card);
-    } else if (!isEditMode) {
-      // Normal mode: toggle completion
-      toggleTodoItem(entityId, item.uid, !isCompleted);
-      setTimeout(() => {
-        if (container) {
-          renderTasks(widgetId, container);
+      
+      // If we just ended a long press and we're NOT in selection mode yet, don't treat as click
+      // (This prevents the normal click action from firing right after long press)
+      if (!isSelectionMode) {
+        if (tasksLongPressCards.get(cardId) === card) {
+          // Clear the reference after a delay
+          setTimeout(() => {
+            tasksLongPressCards.delete(cardId);
+          }, 100);
+          return;
         }
-      }, 300);
-    }
-  });
+      }
+      
+      if (isSelectionMode) {
+        // In selection mode, toggle selection
+        checkbox.checked = !checkbox.checked;
+        handleTaskCheckboxChange(card);
+      } else {
+        // Normal mode: toggle completion
+        toggleTodoItem(entityId, item.uid, !isCompleted);
+        setTimeout(() => {
+          if (container) {
+            renderTasks(widgetId, container);
+          }
+        }, 300);
+      }
+    });
+  }
   
   return card;
 }
