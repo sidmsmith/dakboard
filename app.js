@@ -5204,7 +5204,223 @@ function exitTasksSelectionMode(widgetId) {
   }
 }
 
-// Show add task modal
+// Create add task button at bottom of task list
+function createAddTaskButton(container, widgetId, entityId, cardStyles, isEmptyState) {
+  // Remove existing button if present
+  const existingBtn = container.querySelector('.tasks-add-btn-bottom');
+  if (existingBtn) {
+    existingBtn.remove();
+  }
+  
+  // Don't show if in edit mode or if add card is already visible
+  if (isEditMode || container.querySelector('.task-card-add-new')) {
+    return;
+  }
+  
+  const addBtn = document.createElement('button');
+  addBtn.className = 'tasks-add-btn-bottom';
+  addBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+  addBtn.title = 'Add Task';
+  addBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showAddTaskInline(container, widgetId, entityId, cardStyles);
+  });
+  container.appendChild(addBtn);
+}
+
+// Show inline add task card
+function showAddTaskInline(container, widgetId, entityId, cardStyles) {
+  // Remove existing add card if present
+  const existingAddCard = container.querySelector('.task-card-add-new');
+  if (existingAddCard) {
+    existingAddCard.remove();
+  }
+  
+  // Hide the add button
+  const addBtn = container.querySelector('.tasks-add-btn-bottom');
+  if (addBtn) {
+    addBtn.style.display = 'none';
+  }
+  
+  // Create add card
+  const addCard = document.createElement('div');
+  addCard.className = 'task-card task-card-add-new';
+  
+  // Apply card styles
+  addCard.style.backgroundColor = cardStyles.background;
+  addCard.style.borderColor = cardStyles.border;
+  addCard.style.borderWidth = `${cardStyles.borderWidth}px`;
+  addCard.style.borderRadius = `${cardStyles.borderRadius}px`;
+  addCard.style.borderStyle = 'solid';
+  if (cardStyles.shadow) {
+    addCard.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
+  }
+  
+  // Create wrapper for content
+  const wrapper = document.createElement('div');
+  wrapper.className = 'task-card-wrapper';
+  wrapper.style.width = '100%';
+  wrapper.style.display = 'flex';
+  wrapper.style.flexDirection = 'column';
+  wrapper.style.gap = '12px';
+  
+  // Create input container
+  const inputContainer = document.createElement('div');
+  inputContainer.style.display = 'flex';
+  inputContainer.style.flexDirection = 'column';
+  inputContainer.style.gap = '12px';
+  inputContainer.style.width = '100%';
+  
+  // Create input field
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Enter task name...';
+  input.className = 'task-add-input';
+  input.style.width = '100%';
+  input.style.padding = '12px';
+  input.style.borderRadius = '6px';
+  input.style.border = '2px solid #4a90e2';
+  input.style.background = '#2a2a2a';
+  input.style.color = '#e0e0e0';
+  input.style.fontSize = '16px';
+  input.style.fontWeight = '500';
+  input.style.outline = 'none';
+  
+  // Create button group
+  const buttonGroup = document.createElement('div');
+  buttonGroup.style.display = 'flex';
+  buttonGroup.style.gap = '8px';
+  buttonGroup.style.justifyContent = 'flex-end';
+  
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.className = 'task-add-cancel-btn';
+  cancelBtn.style.padding = '8px 16px';
+  cancelBtn.style.borderRadius = '6px';
+  cancelBtn.style.border = '1px solid #4a4a4a';
+  cancelBtn.style.background = '#3a3a3a';
+  cancelBtn.style.color = '#e0e0e0';
+  cancelBtn.style.cursor = 'pointer';
+  cancelBtn.style.fontSize = '14px';
+  cancelBtn.style.fontWeight = '500';
+  
+  const addBtn = document.createElement('button');
+  addBtn.textContent = 'Add';
+  addBtn.className = 'task-add-submit-btn';
+  addBtn.style.padding = '8px 16px';
+  addBtn.style.borderRadius = '6px';
+  addBtn.style.border = 'none';
+  addBtn.style.background = '#4a90e2';
+  addBtn.style.color = '#fff';
+  addBtn.style.cursor = 'pointer';
+  addBtn.style.fontSize = '14px';
+  addBtn.style.fontWeight = '600';
+  
+  buttonGroup.appendChild(cancelBtn);
+  buttonGroup.appendChild(addBtn);
+  
+  inputContainer.appendChild(input);
+  inputContainer.appendChild(buttonGroup);
+  
+  wrapper.appendChild(inputContainer);
+  addCard.appendChild(wrapper);
+  
+  // Insert at the end (before the add button if it exists)
+  container.appendChild(addCard);
+  
+  // Focus input
+  setTimeout(() => input.focus(), 50);
+  
+  // Close handler
+  const closeAddCard = () => {
+    addCard.remove();
+    // Show the add button again
+    const addBtnBottom = container.querySelector('.tasks-add-btn-bottom');
+    if (addBtnBottom) {
+      addBtnBottom.style.display = 'flex';
+    }
+  };
+  
+  // Cancel button handler
+  cancelBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeAddCard();
+  });
+  
+  // Click outside handler (on document for better coverage)
+  const handleOutsideClick = (e) => {
+    if (!addCard.contains(e.target)) {
+      closeAddCard();
+      document.removeEventListener('click', handleOutsideClick);
+    }
+  };
+  // Use a timeout to avoid immediate firing from the button click
+  setTimeout(() => {
+    document.addEventListener('click', handleOutsideClick);
+  }, 100);
+  
+  // Add task handler
+  const handleAdd = async () => {
+    const taskName = input.value.trim();
+    if (!taskName) {
+      input.focus();
+      return;
+    }
+    
+    // Remove outside click listener before adding
+    document.removeEventListener('click', handleOutsideClick);
+    
+    try {
+      await fetch('/api/ha-todo-action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'add',
+          entity_id: entityId,
+          item: taskName
+        })
+      });
+      
+      closeAddCard();
+      
+      // Reload tasks after a short delay
+      setTimeout(() => {
+        renderTasks(widgetId, container);
+      }, 300);
+    } catch (error) {
+      console.error('Error adding task:', error);
+      alert('Error adding task. Please try again.');
+      // Re-add listener if there was an error
+      setTimeout(() => {
+        document.addEventListener('click', handleOutsideClick);
+      }, 100);
+    }
+  };
+  
+  addBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    handleAdd();
+  });
+  
+  input.addEventListener('keypress', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') {
+      handleAdd();
+    } else if (e.key === 'Escape') {
+      document.removeEventListener('click', handleOutsideClick);
+      closeAddCard();
+    }
+  });
+  
+  // Prevent clicks inside the card from closing it
+  addCard.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+}
+
+// Show add task modal (legacy - keeping for now but not used)
 function showAddTaskModal(widgetId, entityId, container) {
   // Create modal overlay
   const modal = document.createElement('div');
