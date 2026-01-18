@@ -4808,34 +4808,31 @@ async function renderTasks(widgetId, container) {
     // Clear container
     container.innerHTML = '';
     
-    // Create add task button container (in header area or top of content)
-    let addTaskBtn = container.querySelector('.tasks-add-btn');
-    if (!addTaskBtn) {
-      // Try to find or create header area
-      const widget = container.closest('.tasks-widget');
-      let headerArea = widget.querySelector('.tasks-header-actions');
-      if (!headerArea) {
-        const widgetHeader = widget.querySelector('.widget-header');
-        if (widgetHeader) {
-          headerArea = document.createElement('div');
-          headerArea.className = 'tasks-header-actions';
-          widgetHeader.appendChild(headerArea);
+    // Create add task button container (in header area) - only create once
+    const widget = container.closest('.tasks-widget');
+    let headerArea = widget.querySelector('.tasks-header-actions');
+    if (!headerArea) {
+      const widgetHeader = widget.querySelector('.widget-header');
+      if (widgetHeader) {
+        headerArea = document.createElement('div');
+        headerArea.className = 'tasks-header-actions';
+        widgetHeader.appendChild(headerArea);
+      }
+    }
+    
+    // Only create button if it doesn't already exist
+    if (headerArea && !headerArea.querySelector('.tasks-add-btn')) {
+      const addTaskBtn = document.createElement('button');
+      addTaskBtn.className = 'tasks-add-btn';
+      addTaskBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+      addTaskBtn.title = 'Add Task';
+      addTaskBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!isEditMode) {
+          showAddTaskModal(widgetId, selectedList, container);
         }
-      }
-      
-      if (headerArea) {
-        addTaskBtn = document.createElement('button');
-        addTaskBtn.className = 'tasks-add-btn';
-        addTaskBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
-        addTaskBtn.title = 'Add Task';
-        addTaskBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (!isEditMode) {
-            showAddTaskModal(widgetId, selectedList, container);
-          }
-        });
-        headerArea.appendChild(addTaskBtn);
-      }
+      });
+      headerArea.appendChild(addTaskBtn);
     }
     
     // Load styles for this widget
@@ -4950,6 +4947,15 @@ function showAddTaskModal(widgetId, entityId, container) {
   const modal = document.createElement('div');
   modal.className = 'modal-overlay tasks-add-modal';
   modal.style.display = 'flex';
+  modal.style.position = 'fixed';
+  modal.style.top = '0';
+  modal.style.left = '0';
+  modal.style.width = '100%';
+  modal.style.height = '100%';
+  modal.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+  modal.style.zIndex = '10000';
+  modal.style.alignItems = 'center';
+  modal.style.justifyContent = 'center';
   
   // Create modal content
   const modalContent = document.createElement('div');
