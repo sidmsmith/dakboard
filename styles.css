@@ -5058,6 +5058,51 @@ footer a:hover {
   position: relative;
 }
 
+/* Task card with checkbox layout (for selection mode) */
+.task-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-card-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.task-card .task-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #4a90e2;
+  flex-shrink: 0;
+  display: none;
+}
+
+/* Show checkboxes in selection mode */
+.tasks-content.selection-mode-active .task-card .task-checkbox {
+  display: block;
+}
+
+/* Selection mode: highlight cards */
+.tasks-content.selection-mode-active .task-card {
+  border-color: #4a90e2;
+  border-width: 2px;
+  background: rgba(74, 144, 226, 0.1);
+}
+
+/* Selected state: red border */
+.task-card.selected {
+  border-color: #e74c3c !important;
+  border-width: 3px !important;
+  background: rgba(231, 76, 60, 0.15) !important;
+}
+
+.task-card.selected .task-checkbox {
+  accent-color: #e74c3c;
+}
+
 .task-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
@@ -5143,4 +5188,65 @@ footer a:hover {
 
 .tasks-add-modal .modal-close:hover {
   background: #3a3a3a;
+}
+
+/* Tasks Selection Toolbar */
+.tasks-selection-toolbar {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2a2a2a;
+  padding: 16px 24px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  gap: 16px;
+  align-items: center;
+  z-index: 9999;
+  border: 1px solid #4a4a4a;
+}
+
+.tasks-selection-toolbar.active {
+  display: flex;
+}
+
+.tasks-selection-count {
+  color: #fff;
+  font-weight: 600;
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+.tasks-btn-delete {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #e74c3c;
+  color: #fff;
+}
+
+.tasks-btn-delete:hover {
+  background: #c0392b;
+  transform: scale(1.05);
+}
+
+.tasks-btn-cancel {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #555;
+  color: #fff;
+}
+
+.tasks-btn-cancel:hover {
+  background: #666;
 }

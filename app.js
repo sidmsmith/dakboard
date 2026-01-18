@@ -4874,6 +4874,9 @@ async function renderTasks(widgetId, container) {
       container.appendChild(card);
     });
     
+    // Exit selection mode if it was active (cards were re-rendered)
+    container.classList.remove('selection-mode-active');
+    
     // Set CSS variable for hover border color (only if not in selection mode)
     // This allows CSS to handle hover styling without inline style conflicts
     container.querySelectorAll('.task-card').forEach(card => {
@@ -4888,10 +4891,17 @@ async function renderTasks(widgetId, container) {
   }
 }
 
+// Long press tracking (per widget instance)
+const tasksLongPressTimers = new Map();
+const tasksLongPressCards = new Map();
+
 // Create a task card element
 function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
   const card = document.createElement('div');
   card.className = 'task-card';
+  card.dataset.taskUid = item.uid;
+  card.dataset.entityId = entityId;
+  card.dataset.widgetId = widgetId;
   if (isCompleted) {
     card.classList.add('completed');
   }
@@ -4911,6 +4921,24 @@ function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
     card.style.opacity = '0.5';
   }
   
+  // Create wrapper for checkbox + content
+  const wrapper = document.createElement('div');
+  wrapper.className = 'task-card-wrapper';
+  
+  // Checkbox (hidden by default, shown in selection mode)
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.className = 'task-checkbox';
+  checkbox.addEventListener('change', (e) => {
+    e.stopPropagation();
+    handleTaskCheckboxChange(card);
+  });
+  wrapper.appendChild(checkbox);
+  
+  // Task content
+  const taskContent = document.createElement('div');
+  taskContent.style.flex = '1';
+  
   // Task name (wrap to multiple lines)
   const taskName = document.createElement('div');
   taskName.className = 'task-name';
@@ -4921,16 +4949,67 @@ function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
   if (isCompleted) {
     taskName.style.textDecoration = 'line-through';
   }
-  card.appendChild(taskName);
+  taskContent.appendChild(taskName);
   
-  // Add click handler to toggle completion
+  wrapper.appendChild(taskContent);
+  card.appendChild(wrapper);
+  
+  // Long press handlers
+  const handleLongPressStart = (e) => {
+    const timerKey = `${widgetId}-${entityId}`;
+    tasksLongPressCards.set(timerKey, card);
+    
+    const timer = setTimeout(() => {
+      enterTasksSelectionMode(card, widgetId, entityId);
+      tasksLongPressTimers.delete(timerKey);
+      tasksLongPressCards.delete(timerKey);
+    }, 500); // 500ms long press
+    
+    tasksLongPressTimers.set(timerKey, timer);
+  };
+  
+  const handleLongPressEnd = (e) => {
+    const timerKey = `${widgetId}-${entityId}`;
+    if (tasksLongPressCards.get(timerKey) === card && tasksLongPressTimers.has(timerKey)) {
+      clearTimeout(tasksLongPressTimers.get(timerKey));
+      tasksLongPressTimers.delete(timerKey);
+      tasksLongPressCards.delete(timerKey);
+    }
+  };
+  
+  card.addEventListener('touchstart', handleLongPressStart, { passive: true });
+  card.addEventListener('touchend', handleLongPressEnd);
+  card.addEventListener('mousedown', handleLongPressStart);
+  card.addEventListener('mouseup', handleLongPressEnd);
+  card.addEventListener('mouseleave', handleLongPressEnd);
+  
+  // Click handler
   card.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (!isEditMode) {
-      toggleTodoItem(entityId, item.uid, !isCompleted);
-      // Reload tasks after a short delay
+    if (e.target.type === 'checkbox') {
+      return; // Checkbox handles its own change
+    }
+    
+    // If we just ended a long press, don't treat as click
+    const timerKey = `${widgetId}-${entityId}`;
+    if (tasksLongPressCards.get(timerKey) === card) {
       setTimeout(() => {
-        const container = card.closest('.tasks-content');
+        tasksLongPressCards.delete(timerKey);
+      }, 100);
+      return;
+    }
+    
+    const container = card.closest('.tasks-content');
+    const isSelectionMode = container && container.classList.contains('selection-mode-active');
+    
+    if (isSelectionMode) {
+      // In selection mode, toggle selection
+      checkbox.checked = !checkbox.checked;
+      handleTaskCheckboxChange(card);
+    } else if (!isEditMode) {
+      // Normal mode: toggle completion
+      toggleTodoItem(entityId, item.uid, !isCompleted);
+      setTimeout(() => {
         if (container) {
           renderTasks(widgetId, container);
         }
