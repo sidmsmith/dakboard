@@ -1918,119 +1918,119 @@ function attachTabEventListeners(tabName) {
             }
           });
         }
+      }
+      
+      // Tasks widget configuration
+      if (widgetType === 'tasks-widget') {
+        // Selected list dropdown
+        const tasksSelectedList = stylingModal.querySelector('#tasks-selected-list');
+        if (tasksSelectedList) {
+          tasksSelectedList.addEventListener('change', (e) => {
+            currentStyles.tasksSelectedList = e.target.value;
+            updatePreview();
+          });
+        }
         
-        // Tasks widget configuration
-        if (widgetType === 'tasks-widget') {
-          // Selected list dropdown
-          const tasksSelectedList = stylingModal.querySelector('#tasks-selected-list');
-          if (tasksSelectedList) {
-            tasksSelectedList.addEventListener('change', (e) => {
-              currentStyles.tasksSelectedList = e.target.value;
-              updatePreview();
-            });
-          }
-          
-          // Tasks card background color
-          const tasksCardBackground = stylingModal.querySelector('#tasks-card-background');
-          const tasksCardBackgroundText = stylingModal.querySelector('#tasks-card-background-text');
-          if (tasksCardBackground && tasksCardBackgroundText) {
-            tasksCardBackground.addEventListener('input', (e) => {
-              tasksCardBackgroundText.value = e.target.value;
+        // Tasks card background color
+        const tasksCardBackground = stylingModal.querySelector('#tasks-card-background');
+        const tasksCardBackgroundText = stylingModal.querySelector('#tasks-card-background-text');
+        if (tasksCardBackground && tasksCardBackgroundText) {
+          tasksCardBackground.addEventListener('input', (e) => {
+            tasksCardBackgroundText.value = e.target.value;
+            currentStyles.tasksCardBackground = e.target.value;
+            updatePreview();
+          });
+          tasksCardBackground.addEventListener('change', (e) => {
+            tasksCardBackgroundText.value = e.target.value;
+            currentStyles.tasksCardBackground = e.target.value;
+            updatePreview();
+          });
+          tasksCardBackgroundText.addEventListener('input', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+              tasksCardBackground.value = e.target.value;
               currentStyles.tasksCardBackground = e.target.value;
               updatePreview();
-            });
-            tasksCardBackground.addEventListener('change', (e) => {
-              tasksCardBackgroundText.value = e.target.value;
-              currentStyles.tasksCardBackground = e.target.value;
-              updatePreview();
-            });
-            tasksCardBackgroundText.addEventListener('input', (e) => {
-              if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
-                tasksCardBackground.value = e.target.value;
-                currentStyles.tasksCardBackground = e.target.value;
-                updatePreview();
-              }
-            });
-          }
-          
-          // Tasks card border color
-          const tasksCardBorder = stylingModal.querySelector('#tasks-card-border');
-          const tasksCardBorderText = stylingModal.querySelector('#tasks-card-border-text');
-          if (tasksCardBorder && tasksCardBorderText) {
-            tasksCardBorder.addEventListener('input', (e) => {
-              tasksCardBorderText.value = e.target.value;
+            }
+          });
+        }
+        
+        // Tasks card border color
+        const tasksCardBorder = stylingModal.querySelector('#tasks-card-border');
+        const tasksCardBorderText = stylingModal.querySelector('#tasks-card-border-text');
+        if (tasksCardBorder && tasksCardBorderText) {
+          tasksCardBorder.addEventListener('input', (e) => {
+            tasksCardBorderText.value = e.target.value;
+            currentStyles.tasksCardBorder = e.target.value;
+            updatePreview();
+          });
+          tasksCardBorder.addEventListener('change', (e) => {
+            tasksCardBorderText.value = e.target.value;
+            currentStyles.tasksCardBorder = e.target.value;
+            updatePreview();
+          });
+          tasksCardBorderText.addEventListener('input', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+              tasksCardBorder.value = e.target.value;
               currentStyles.tasksCardBorder = e.target.value;
               updatePreview();
-            });
-            tasksCardBorder.addEventListener('change', (e) => {
-              tasksCardBorderText.value = e.target.value;
-              currentStyles.tasksCardBorder = e.target.value;
-              updatePreview();
-            });
-            tasksCardBorderText.addEventListener('input', (e) => {
-              if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
-                tasksCardBorder.value = e.target.value;
-                currentStyles.tasksCardBorder = e.target.value;
-                updatePreview();
-              }
-            });
-          }
-          
-          // Tasks card border width
-          const tasksCardBorderWidth = stylingModal.querySelector('#tasks-card-border-width');
-          const tasksCardBorderWidthValue = stylingModal.querySelector('#tasks-card-border-width-value');
-          if (tasksCardBorderWidth && tasksCardBorderWidthValue) {
-            tasksCardBorderWidth.addEventListener('input', (e) => {
-              const val = e.target.value;
-              tasksCardBorderWidthValue.textContent = val + 'px';
-              currentStyles.tasksCardBorderWidth = parseInt(val);
-              updatePreview();
-            });
-          }
-          
-          // Tasks card border radius
-          const tasksCardBorderRadius = stylingModal.querySelector('#tasks-card-border-radius');
-          const tasksCardBorderRadiusValue = stylingModal.querySelector('#tasks-card-border-radius-value');
-          if (tasksCardBorderRadius && tasksCardBorderRadiusValue) {
-            tasksCardBorderRadius.addEventListener('input', (e) => {
-              const val = e.target.value;
-              tasksCardBorderRadiusValue.textContent = val + 'px';
-              currentStyles.tasksCardBorderRadius = parseInt(val);
-              updatePreview();
-            });
-          }
-          
-          // Tasks card shadow
-          const tasksCardShadow = stylingModal.querySelector('#tasks-card-shadow');
-          if (tasksCardShadow) {
-            tasksCardShadow.addEventListener('change', (e) => {
-              currentStyles.tasksCardShadow = e.target.checked;
-              updatePreview();
-            });
-          }
-          
-          // Tasks card hover border color
-          const tasksCardHoverBorder = stylingModal.querySelector('#tasks-card-hover-border');
-          const tasksCardHoverBorderText = stylingModal.querySelector('#tasks-card-hover-border-text');
-          if (tasksCardHoverBorder && tasksCardHoverBorderText) {
-            tasksCardHoverBorder.addEventListener('input', (e) => {
-              tasksCardHoverBorderText.value = e.target.value;
+            }
+          });
+        }
+        
+        // Tasks card border width
+        const tasksCardBorderWidth = stylingModal.querySelector('#tasks-card-border-width');
+        const tasksCardBorderWidthValue = stylingModal.querySelector('#tasks-card-border-width-value');
+        if (tasksCardBorderWidth && tasksCardBorderWidthValue) {
+          tasksCardBorderWidth.addEventListener('input', (e) => {
+            const val = e.target.value;
+            tasksCardBorderWidthValue.textContent = val + 'px';
+            currentStyles.tasksCardBorderWidth = parseInt(val);
+            updatePreview();
+          });
+        }
+        
+        // Tasks card border radius
+        const tasksCardBorderRadius = stylingModal.querySelector('#tasks-card-border-radius');
+        const tasksCardBorderRadiusValue = stylingModal.querySelector('#tasks-card-border-radius-value');
+        if (tasksCardBorderRadius && tasksCardBorderRadiusValue) {
+          tasksCardBorderRadius.addEventListener('input', (e) => {
+            const val = e.target.value;
+            tasksCardBorderRadiusValue.textContent = val + 'px';
+            currentStyles.tasksCardBorderRadius = parseInt(val);
+            updatePreview();
+          });
+        }
+        
+        // Tasks card shadow
+        const tasksCardShadow = stylingModal.querySelector('#tasks-card-shadow');
+        if (tasksCardShadow) {
+          tasksCardShadow.addEventListener('change', (e) => {
+            currentStyles.tasksCardShadow = e.target.checked;
+            updatePreview();
+          });
+        }
+        
+        // Tasks card hover border color
+        const tasksCardHoverBorder = stylingModal.querySelector('#tasks-card-hover-border');
+        const tasksCardHoverBorderText = stylingModal.querySelector('#tasks-card-hover-border-text');
+        if (tasksCardHoverBorder && tasksCardHoverBorderText) {
+          tasksCardHoverBorder.addEventListener('input', (e) => {
+            tasksCardHoverBorderText.value = e.target.value;
+            currentStyles.tasksCardHoverBorder = e.target.value;
+            updatePreview();
+          });
+          tasksCardHoverBorder.addEventListener('change', (e) => {
+            tasksCardHoverBorderText.value = e.target.value;
+            currentStyles.tasksCardHoverBorder = e.target.value;
+            updatePreview();
+          });
+          tasksCardHoverBorderText.addEventListener('input', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+              tasksCardHoverBorder.value = e.target.value;
               currentStyles.tasksCardHoverBorder = e.target.value;
               updatePreview();
-            });
-            tasksCardHoverBorder.addEventListener('change', (e) => {
-              tasksCardHoverBorderText.value = e.target.value;
-              currentStyles.tasksCardHoverBorder = e.target.value;
-              updatePreview();
-            });
-            tasksCardHoverBorderText.addEventListener('input', (e) => {
-              if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
-                tasksCardHoverBorder.value = e.target.value;
-                currentStyles.tasksCardHoverBorder = e.target.value;
-                updatePreview();
-              }
-            });
-          }
+            }
+          });
         }
       }
       
