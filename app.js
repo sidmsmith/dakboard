@@ -5053,14 +5053,13 @@ function enterTasksSelectionMode(initialCard, widgetId, entityId) {
   }
   toolbar.classList.add('active');
   
-  // Select the initial card
+  // Auto-select the initial card that was long-pressed
   const checkbox = initialCard.querySelector('.task-checkbox');
   if (checkbox) {
     checkbox.checked = true;
-    handleTaskCheckboxChange(initialCard);
+    initialCard.classList.add('selected');
+    updateTasksSelectionCount(widgetId);
   }
-  
-  updateTasksSelectionCount(widgetId);
 }
 
 // Handle checkbox change for task selection

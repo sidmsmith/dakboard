@@ -140,8 +140,20 @@ export default async function (req, res) {
       
       // Log the request for debugging
       console.log('Calling todo.update_item with (flattened format):', JSON.stringify(body, null, 2));
+    } else if (action === 'delete') {
+      if (!uid) {
+        return res.status(400).json({ error: 'Missing required field: uid' });
+      }
+      // Use todo.remove_item service
+      serviceEndpoint = 'remove_item';
+      body = {
+        entity_id: entity_id,
+        item: uid
+      };
+      
+      console.log('Calling todo.remove_item with:', JSON.stringify(body, null, 2));
     } else {
-      return res.status(400).json({ error: 'Invalid action. Must be: add, complete, or uncomplete' });
+      return res.status(400).json({ error: 'Invalid action. Must be: add, complete, uncomplete, or delete' });
     }
 
     // Call HA API
