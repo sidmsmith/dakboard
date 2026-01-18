@@ -5102,12 +5102,12 @@ footer a:hover {
 }
 
 /* Default hover uses configured hover border color (from Advanced tab) */
-.task-card:hover:not(.selected) {
+.task-card:hover:not(.selected):not(.task-card-add-new) {
   border-color: var(--tasks-card-hover-border, #4a90e2) !important;
 }
 
 /* In selection mode, hover shows blue border instead */
-.tasks-content.selection-mode-active .task-card:hover:not(.selected) {
+.tasks-content.selection-mode-active .task-card:hover:not(.selected):not(.task-card-add-new) {
   border-color: #4a90e2 !important;
 }
 
@@ -5120,15 +5120,13 @@ footer a:hover {
 }
 
 /* Add task card styling - green dashed border */
-.task-card-add-new {
-  border: 6px dashed #27ae60 !important;
-  box-sizing: border-box;
-}
-
-/* Prevent hover from changing border on add task card */
+.task-card-add-new,
 .task-card-add-new:hover {
   border: 6px dashed #27ae60 !important;
   border-color: #27ae60 !important;
+  border-width: 6px !important;
+  border-style: dashed !important;
+  box-sizing: border-box;
 }
 
 .task-name {
