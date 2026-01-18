@@ -4805,34 +4805,11 @@ async function renderTasks(widgetId, container) {
       return item.status === 'completed';
     });
     
-    // Clear container
+    // Clear container (but preserve any existing add-task-card)
+    const existingAddCard = container.querySelector('.task-card-add-new');
     container.innerHTML = '';
-    
-    // Create add task button container (in header area) - only create once
-    const widget = container.closest('.tasks-widget');
-    let headerArea = widget.querySelector('.tasks-header-actions');
-    if (!headerArea) {
-      const widgetHeader = widget.querySelector('.widget-header');
-      if (widgetHeader) {
-        headerArea = document.createElement('div');
-        headerArea.className = 'tasks-header-actions';
-        widgetHeader.appendChild(headerArea);
-      }
-    }
-    
-    // Only create button if it doesn't already exist
-    if (headerArea && !headerArea.querySelector('.tasks-add-btn')) {
-      const addTaskBtn = document.createElement('button');
-      addTaskBtn.className = 'tasks-add-btn';
-      addTaskBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
-      addTaskBtn.title = 'Add Task';
-      addTaskBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (!isEditMode) {
-          showAddTaskModal(widgetId, selectedList, container);
-        }
-      });
-      headerArea.appendChild(addTaskBtn);
+    if (existingAddCard) {
+      container.appendChild(existingAddCard);
     }
     
     // Load styles for this widget
@@ -4860,6 +4837,8 @@ async function renderTasks(widgetId, container) {
     // Show incomplete tasks first
     if (incomplete.length === 0 && completed.length === 0) {
       container.innerHTML = '<div class="tasks-empty">No tasks</div>';
+      // Add the add button even when empty
+      createAddTaskButton(container, widgetId, selectedList, cardStyles, true);
       return;
     }
     
@@ -4874,12 +4853,15 @@ async function renderTasks(widgetId, container) {
       container.appendChild(card);
     });
     
+    // Add the "+" button below all cards
+    createAddTaskButton(container, widgetId, selectedList, cardStyles, false);
+    
     // Exit selection mode if it was active (cards were re-rendered)
     container.classList.remove('selection-mode-active');
     
     // Set CSS variable for hover border color (only if not in selection mode)
     // This allows CSS to handle hover styling without inline style conflicts
-    container.querySelectorAll('.task-card').forEach(card => {
+    container.querySelectorAll('.task-card:not(.task-card-add-new)').forEach(card => {
       if (cardStyles.hoverBorder) {
         card.style.setProperty('--tasks-card-hover-border', cardStyles.hoverBorder);
       }

@@ -5183,6 +5183,53 @@ footer a:hover {
   background: #3a3a3a;
 }
 
+/* Tasks Add Button (Bottom) */
+.tasks-add-btn-bottom {
+  background: var(--widget-bg-overlay, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--widget-border-color, rgba(255, 255, 255, 0.2));
+  color: var(--widget-text-primary, #fff);
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  width: 100%;
+  margin-top: 12px;
+  flex-shrink: 0;
+}
+
+.tasks-add-btn-bottom svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+}
+
+.tasks-add-btn-bottom:hover {
+  background: var(--widget-hover-bg, rgba(255, 255, 255, 0.15));
+  border-color: var(--widget-hover-border, rgba(255, 255, 255, 0.3));
+  transform: scale(1.02);
+}
+
+.tasks-add-btn-bottom:active {
+  transform: scale(0.98);
+}
+
+/* Task Add Input */
+.task-add-input:focus {
+  border-color: #4a90e2 !important;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+}
+
+.task-add-cancel-btn:hover {
+  background: #4a4a4a !important;
+}
+
+.task-add-submit-btn:hover {
+  background: #3a7bc8 !important;
+}
+
 /* Tasks Selection Toolbar */
 .tasks-selection-toolbar {
   display: none;
