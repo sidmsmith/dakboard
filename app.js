@@ -4874,15 +4874,11 @@ async function renderTasks(widgetId, container) {
       container.appendChild(card);
     });
     
-    // Apply hover styles dynamically
+    // Set CSS variable for hover border color (only if not in selection mode)
+    // This allows CSS to handle hover styling without inline style conflicts
     container.querySelectorAll('.task-card').forEach(card => {
       if (cardStyles.hoverBorder) {
-        card.addEventListener('mouseenter', () => {
-          card.style.borderColor = cardStyles.hoverBorder;
-        });
-        card.addEventListener('mouseleave', () => {
-          card.style.borderColor = cardStyles.border;
-        });
+        card.style.setProperty('--tasks-card-hover-border', cardStyles.hoverBorder);
       }
     });
     
