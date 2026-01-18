@@ -4954,26 +4954,34 @@ function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
   wrapper.appendChild(taskContent);
   card.appendChild(wrapper);
   
-  // Long press handlers
+  // Long press handlers - use unique key per card
+  const cardId = `${widgetId}-${item.uid}`;
+  
   const handleLongPressStart = (e) => {
-    const timerKey = `${widgetId}-${entityId}`;
-    tasksLongPressCards.set(timerKey, card);
+    // Prevent default to avoid text selection
+    e.preventDefault();
+    
+    // Clear any existing timer for this card
+    if (tasksLongPressTimers.has(cardId)) {
+      clearTimeout(tasksLongPressTimers.get(cardId));
+    }
+    
+    tasksLongPressCards.set(cardId, card);
     
     const timer = setTimeout(() => {
       enterTasksSelectionMode(card, widgetId, entityId);
-      tasksLongPressTimers.delete(timerKey);
-      tasksLongPressCards.delete(timerKey);
+      tasksLongPressTimers.delete(cardId);
+      tasksLongPressCards.delete(cardId);
     }, 500); // 500ms long press
     
-    tasksLongPressTimers.set(timerKey, timer);
+    tasksLongPressTimers.set(cardId, timer);
   };
   
   const handleLongPressEnd = (e) => {
-    const timerKey = `${widgetId}-${entityId}`;
-    if (tasksLongPressCards.get(timerKey) === card && tasksLongPressTimers.has(timerKey)) {
-      clearTimeout(tasksLongPressTimers.get(timerKey));
-      tasksLongPressTimers.delete(timerKey);
-      tasksLongPressCards.delete(timerKey);
+    if (tasksLongPressCards.get(cardId) === card && tasksLongPressTimers.has(cardId)) {
+      clearTimeout(tasksLongPressTimers.get(cardId));
+      tasksLongPressTimers.delete(cardId);
+      tasksLongPressCards.delete(cardId);
     }
   };
   
@@ -4991,10 +4999,10 @@ function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
     }
     
     // If we just ended a long press, don't treat as click
-    const timerKey = `${widgetId}-${entityId}`;
-    if (tasksLongPressCards.get(timerKey) === card) {
+    const cardId = `${widgetId}-${item.uid}`;
+    if (tasksLongPressCards.get(cardId) === card) {
       setTimeout(() => {
-        tasksLongPressCards.delete(timerKey);
+        tasksLongPressCards.delete(cardId);
       }, 100);
       return;
     }
@@ -5018,6 +5026,181 @@ function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
   });
   
   return card;
+}
+
+// Enter selection mode for tasks
+function enterTasksSelectionMode(initialCard, widgetId, entityId) {
+  const container = initialCard.closest('.tasks-content');
+  if (!container || container.classList.contains('selection-mode-active')) {
+    return;
+  }
+  
+  // Add selection mode class
+  container.classList.add('selection-mode-active');
+  
+  // Create or show toolbar
+  let toolbar = document.getElementById(`tasks-toolbar-${widgetId}`);
+  if (!toolbar) {
+    toolbar = document.createElement('div');
+    toolbar.id = `tasks-toolbar-${widgetId}`;
+    toolbar.className = 'tasks-selection-toolbar';
+    toolbar.innerHTML = `
+      <span class="tasks-selection-count" id="tasks-count-${widgetId}">0 selected</span>
+      <button class="tasks-btn-delete" onclick="deleteSelectedTasks('${widgetId}')">Delete Selected</button>
+      <button class="tasks-btn-cancel" onclick="exitTasksSelectionMode('${widgetId}')">Cancel</button>
+    `;
+    document.body.appendChild(toolbar);
+  }
+  toolbar.classList.add('active');
+  
+  // Select the initial card
+  const checkbox = initialCard.querySelector('.task-checkbox');
+  if (checkbox) {
+    checkbox.checked = true;
+    handleTaskCheckboxChange(initialCard);
+  }
+  
+  updateTasksSelectionCount(widgetId);
+}
+
+// Handle checkbox change for task selection
+function handleTaskCheckboxChange(card) {
+  const checkbox = card.querySelector('.task-checkbox');
+  if (!checkbox) return;
+  
+  const isSelected = checkbox.checked;
+  
+  if (isSelected) {
+    card.classList.add('selected');
+  } else {
+    card.classList.remove('selected');
+  }
+  
+  const widgetId = card.dataset.widgetId;
+  if (widgetId) {
+    updateTasksSelectionCount(widgetId);
+  }
+}
+
+// Update selection count in toolbar
+function updateTasksSelectionCount(widgetId) {
+  const container = document.querySelector(`[data-widget-id="${widgetId}"]`)?.closest('.tasks-content');
+  if (!container) {
+    // Try finding by widget class
+    const widget = document.querySelector(`.${widgetId}`);
+    if (widget) {
+      container = widget.querySelector('.tasks-content');
+    }
+  }
+  
+  if (!container) return;
+  
+  const count = container.querySelectorAll('.task-card.selected').length;
+  const countEl = document.getElementById(`tasks-count-${widgetId}`);
+  if (countEl) {
+    countEl.textContent = `${count} selected`;
+  }
+}
+
+// Delete selected tasks
+async function deleteSelectedTasks(widgetId) {
+  // Find container by widget
+  const widget = document.querySelector(`.${widgetId}`);
+  if (!widget) return;
+  
+  const container = widget.querySelector('.tasks-content');
+  if (!container) return;
+  
+  const selectedCards = container.querySelectorAll('.task-card.selected');
+  if (selectedCards.length === 0) {
+    alert('No tasks selected');
+    return;
+  }
+  
+  const confirmed = confirm(`Delete ${selectedCards.length} task${selectedCards.length > 1 ? 's' : ''}?`);
+  if (!confirmed) return;
+  
+  // Collect all task UIDs and entity IDs
+  const deletePromises = [];
+  selectedCards.forEach(card => {
+    const uid = card.dataset.taskUid;
+    const entityId = card.dataset.entityId;
+    if (uid && entityId) {
+      deletePromises.push(deleteTaskItem(entityId, uid, card));
+    }
+  });
+  
+  // Delete all tasks
+  await Promise.all(deletePromises);
+  
+  // Exit selection mode
+  exitTasksSelectionMode(widgetId);
+  
+  // Reload tasks
+  setTimeout(() => {
+    if (container) {
+      renderTasks(widgetId, container);
+    }
+  }, 300);
+}
+
+// Delete a single task item
+async function deleteTaskItem(entityId, itemUid, cardElement) {
+  try {
+    const response = await fetch('/api/ha-todo-action', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: 'delete',
+        entity_id: entityId,
+        uid: itemUid
+      })
+    });
+    
+    if (!response.ok) {
+      console.error('Failed to delete task:', response.status);
+      return;
+    }
+    
+    // Animate card removal
+    if (cardElement) {
+      cardElement.style.transition = 'opacity 0.3s, transform 0.3s';
+      cardElement.style.opacity = '0';
+      cardElement.style.transform = 'translateX(-100px)';
+    }
+  } catch (error) {
+    console.error('Error deleting task:', error);
+  }
+}
+
+// Exit selection mode
+function exitTasksSelectionMode(widgetId) {
+  // Find container by widget
+  const widget = document.querySelector(`.${widgetId}`);
+  if (!widget) return;
+  
+  const container = widget.querySelector('.tasks-content');
+  if (container) {
+    container.classList.remove('selection-mode-active');
+    
+    // Uncheck all checkboxes and remove selected class
+    const cards = container.querySelectorAll('.task-card');
+    cards.forEach(card => {
+      card.classList.remove('selected');
+      const checkbox = card.querySelector('.task-checkbox');
+      if (checkbox) {
+        checkbox.checked = false;
+      }
+    });
+  }
+  
+  // Hide toolbar
+  const toolbar = document.getElementById(`tasks-toolbar-${widgetId}`);
+  if (toolbar) {
+    toolbar.classList.remove('active');
+  }
 }
 
 // Show add task modal
