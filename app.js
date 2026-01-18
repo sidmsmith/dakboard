@@ -4894,6 +4894,7 @@ async function renderTasks(widgetId, container) {
 // Long press tracking (per widget instance)
 const tasksLongPressTimers = new Map();
 const tasksLongPressCards = new Map();
+const tasksJustEnteredSelection = new Map(); // Track cards that just entered selection mode
 
 // Create a task card element
 function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
@@ -5000,11 +5001,21 @@ function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
     
     const container = card.closest('.tasks-content');
     const isSelectionMode = container && container.classList.contains('selection-mode-active');
+    const cardId = `${widgetId}-${item.uid}`;
+    
+    // If we just entered selection mode from this card, ignore the click
+    // (This prevents the click from toggling off the auto-selected card)
+    if (tasksJustEnteredSelection.get(cardId) === card) {
+      // Clear the flag after a delay
+      setTimeout(() => {
+        tasksJustEnteredSelection.delete(cardId);
+      }, 200);
+      return;
+    }
     
     // If we just ended a long press and we're NOT in selection mode yet, don't treat as click
     // (This prevents the normal click action from firing right after long press)
     if (!isSelectionMode) {
-      const cardId = `${widgetId}-${item.uid}`;
       if (tasksLongPressCards.get(cardId) === card) {
         // Clear the reference after a delay
         setTimeout(() => {
@@ -5062,6 +5073,11 @@ function enterTasksSelectionMode(initialCard, widgetId, entityId) {
   if (checkbox) {
     checkbox.checked = true;
     initialCard.classList.add('selected');
+    
+    // Mark this card as just entered selection mode to prevent click from toggling it off
+    const cardId = `${widgetId}-${initialCard.dataset.taskUid}`;
+    tasksJustEnteredSelection.set(cardId, initialCard);
+    
     updateTasksSelectionCount(widgetId);
   }
 }
