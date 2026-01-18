@@ -5235,6 +5235,9 @@ function createAddTaskButton(container, widgetId, entityId, cardStyles, isEmptyS
 
 // Show inline add task card
 function showAddTaskInline(container, widgetId, entityId, cardStyles) {
+  // Don't allow adding tasks in edit mode
+  if (isEditMode) return;
+  
   // Remove existing add card if present
   const existingAddCard = container.querySelector('.task-card-add-new');
   if (existingAddCard) {
