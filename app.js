@@ -5328,8 +5328,13 @@ function showAddTaskInline(container, widgetId, entityId, cardStyles) {
   // Insert at the end (before the add button if it exists)
   container.appendChild(addCard);
   
+  // Auto-scroll to bottom to show the new card
+  setTimeout(() => {
+    container.scrollTop = container.scrollHeight;
+  }, 100);
+  
   // Focus input
-  setTimeout(() => input.focus(), 50);
+  setTimeout(() => input.focus(), 150);
   
   // Close handler
   const closeAddCard = () => {
@@ -5386,8 +5391,15 @@ function showAddTaskInline(container, widgetId, entityId, cardStyles) {
       closeAddCard();
       
       // Reload tasks after a short delay
-      setTimeout(() => {
-        renderTasks(widgetId, container);
+      setTimeout(async () => {
+        await renderTasks(widgetId, container);
+        // Auto-scroll to bottom to show the "+" button again
+        // Use requestAnimationFrame to ensure DOM is fully updated
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            container.scrollTop = container.scrollHeight;
+          });
+        });
       }, 300);
     } catch (error) {
       console.error('Error adding task:', error);
