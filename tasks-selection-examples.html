@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Card Selection Examples</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .section {
+            margin-bottom: 60px;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 12px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #4a90e2;
+        }
+
+        .section-description {
+            color: #aaa;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .tasks-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 500px;
+        }
+
+        /* Example 1: Checkbox on Left */
+        .task-card-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 18px;
+            background: #353535;
+            border: 1px solid #404040;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .task-card-checkbox:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            border-color: #4a90e2;
+        }
+
+        .task-card-checkbox.selected {
+            background: rgba(74, 144, 226, 0.15);
+            border-color: #4a90e2;
+            border-width: 2px;
+        }
+
+        .task-card-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #4a90e2;
+        }
+
+        .task-content-checkbox {
+            flex: 1;
+        }
+
+        .task-name-checkbox {
+            font-size: 17px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        /* Example 2: Border Highlight Only */
+        .task-card-border {
+            padding: 18px;
+            background: #353535;
+            border: 2px solid #404040;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .task-card-border:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .task-card-border.selected {
+            border-color: #e74c3c;
+            border-width: 3px;
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        .task-name-border {
+            font-size: 17px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        /* Example 3: Overlay Checkbox */
+        .task-card-overlay {
+            padding: 18px;
+            background: #353535;
+            border: 1px solid #404040;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .task-card-overlay:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            border-color: #4a90e2;
+        }
+
+        .task-card-overlay.selected {
+            border-color: #4a90e2;
+            border-width: 2px;
+        }
+
+        .checkbox-overlay {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #fff;
+            border-radius: 4px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .task-card-overlay.selected .checkbox-overlay {
+            display: flex;
+            background: #4a90e2;
+        }
+
+        .checkbox-overlay::after {
+            content: '✓';
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .task-name-overlay {
+            font-size: 17px;
+            font-weight: 600;
+            color: #fff;
+            padding-right: 30px;
+        }
+
+        /* Example 4: Combined Long Press + Checkbox + Border */
+        .task-card-combined {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 18px;
+            background: #353535;
+            border: 1px solid #404040;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+            -webkit-user-select: none;
+            position: relative;
+        }
+
+        .task-card-combined:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            border-color: #4a90e2;
+        }
+
+        .task-card-combined .task-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #4a90e2;
+            flex-shrink: 0;
+        }
+
+        .task-content-combined {
+            flex: 1;
+        }
+
+        .task-name-combined {
+            font-size: 17px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        /* Selection mode: show checkboxes */
+        .selection-mode-active .task-card-combined .task-checkbox {
+            display: block !important;
+        }
+
+        /* Selection mode: highlight cards */
+        .selection-mode-active .task-card-combined {
+            border-color: #4a90e2;
+            border-width: 2px;
+            background: rgba(74, 144, 226, 0.1);
+        }
+
+        /* Selected state: red border */
+        .task-card-combined.selected {
+            border-color: #e74c3c;
+            border-width: 3px;
+            background: rgba(231, 76, 60, 0.15);
+        }
+
+        .task-card-combined.selected .task-checkbox {
+            accent-color: #e74c3c;
+        }
+
+        /* Toolbar/Actions */
+        .selection-toolbar {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2a2a2a;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            gap: 16px;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .selection-toolbar.active {
+            display: flex;
+        }
+
+        .selection-count {
+            color: #fff;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-delete {
+            background: #e74c3c;
+            color: #fff;
+        }
+
+        .btn-delete:hover {
+            background: #c0392b;
+            transform: scale(1.05);
+        }
+
+        .btn-cancel {
+            background: #555;
+            color: #fff;
+        }
+
+        .btn-cancel:hover {
+            background: #666;
+        }
+
+        .example-status {
+            margin-top: 16px;
+            padding: 12px;
+            background: rgba(74, 144, 226, 0.1);
+            border-left: 3px solid #4a90e2;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .completed {
+            opacity: 0.5;
+        }
+
+        .completed .task-name-checkbox,
+        .completed .task-name-border,
+        .completed .task-name-overlay,
+        .completed .task-name-longpress {
+            text-decoration: line-through;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="margin-bottom: 30px; color: #4a90e2;">Task Card Selection UI Examples</h1>
+
+    <!-- Example 1: Checkbox on Left -->
+    <div class="section">
+        <h2 class="section-title">Example 1: Checkbox on Left</h2>
+        <p class="section-description">Traditional checkbox approach. Checkboxes always visible when in selection mode. Clean and familiar.</p>
+        <div class="tasks-container" id="container1">
+            <label class="task-card-checkbox">
+                <input type="checkbox" onchange="toggleSelection(this, 'container1')">
+                <div class="task-content-checkbox">
+                    <div class="task-name-checkbox">Sample Task One</div>
+                </div>
+            </label>
+            <label class="task-card-checkbox">
+                <input type="checkbox" onchange="toggleSelection(this, 'container1')">
+                <div class="task-content-checkbox">
+                    <div class="task-name-checkbox">Another Task</div>
+                </div>
+            </label>
+            <label class="task-card-checkbox completed">
+                <input type="checkbox" onchange="toggleSelection(this, 'container1')">
+                <div class="task-content-checkbox">
+                    <div class="task-name-checkbox">Completed Task</div>
+                </div>
+            </label>
+        </div>
+        <div class="example-status" id="status1">No tasks selected</div>
+    </div>
+
+    <!-- Example 2: Border Highlight Only -->
+    <div class="section">
+        <h2 class="section-title">Example 2: Border Highlight Only</h2>
+        <p class="section-description">Minimal approach. Click cards to select. Red border indicates selection. No checkboxes needed.</p>
+        <div class="tasks-container" id="container2">
+            <div class="task-card-border" onclick="toggleCardSelection(this, 'container2')">
+                <div class="task-name-border">Sample Task One</div>
+            </div>
+            <div class="task-card-border" onclick="toggleCardSelection(this, 'container2')">
+                <div class="task-name-border">Another Task</div>
+            </div>
+            <div class="task-card-border completed" onclick="toggleCardSelection(this, 'container2')">
+                <div class="task-name-border">Completed Task</div>
+            </div>
+        </div>
+        <div class="example-status" id="status2">No tasks selected. Click cards to select.</div>
+    </div>
+
+    <!-- Example 3: Overlay Checkbox -->
+    <div class="section">
+        <h2 class="section-title">Example 3: Overlay Checkbox</h2>
+        <p class="section-description">Checkmark appears in top-right corner when selected. Cleaner look when not in selection mode.</p>
+        <div class="tasks-container" id="container3">
+            <div class="task-card-overlay" onclick="toggleOverlaySelection(this, 'container3')">
+                <div class="checkbox-overlay"></div>
+                <div class="task-name-overlay">Sample Task One</div>
+            </div>
+            <div class="task-card-overlay" onclick="toggleOverlaySelection(this, 'container3')">
+                <div class="checkbox-overlay"></div>
+                <div class="task-name-overlay">Another Task</div>
+            </div>
+            <div class="task-card-overlay completed" onclick="toggleOverlaySelection(this, 'container3')">
+                <div class="checkbox-overlay"></div>
+                <div class="task-name-overlay">Completed Task</div>
+            </div>
+        </div>
+        <div class="example-status" id="status3">No tasks selected. Click cards to select.</div>
+    </div>
+
+    <!-- Example 4: Long Press with Checkbox and Border Highlight (COMBINED) -->
+    <div class="section">
+        <h2 class="section-title">Example 4: Long Press + Checkbox + Border Highlight (Combined)</h2>
+        <p class="section-description">Long press any card to enter selection mode. Checkboxes appear on left, selected cards get red border. Click cards or checkboxes to select/deselect.</p>
+        <div class="tasks-container" id="container4">
+            <div class="task-card-combined" 
+                 data-task-id="1"
+                 ontouchstart="handleLongPressStartCombined(this, event)" 
+                 ontouchend="handleLongPressEndCombined(this, event)"
+                 onmousedown="handleLongPressStartCombined(this, event)"
+                 onmouseup="handleLongPressEndCombined(this, event)"
+                 onmouseleave="handleLongPressEndCombined(this, event)"
+                 onclick="handleCardClickCombined(this, event)">
+                <input type="checkbox" class="task-checkbox" onchange="handleCheckboxChange(this)" style="display: none;">
+                <div class="task-content-combined">
+                    <div class="task-name-combined">Sample Task One</div>
+                </div>
+            </div>
+            <div class="task-card-combined"
+                 data-task-id="2"
+                 ontouchstart="handleLongPressStartCombined(this, event)"
+                 ontouchend="handleLongPressEndCombined(this, event)"
+                 onmousedown="handleLongPressStartCombined(this, event)"
+                 onmouseup="handleLongPressEndCombined(this, event)"
+                 onmouseleave="handleLongPressEndCombined(this, event)"
+                 onclick="handleCardClickCombined(this, event)">
+                <input type="checkbox" class="task-checkbox" onchange="handleCheckboxChange(this)" style="display: none;">
+                <div class="task-content-combined">
+                    <div class="task-name-combined">Another Task</div>
+                </div>
+            </div>
+            <div class="task-card-combined completed"
+                 data-task-id="3"
+                 ontouchstart="handleLongPressStartCombined(this, event)"
+                 ontouchend="handleLongPressEndCombined(this, event)"
+                 onmousedown="handleLongPressStartCombined(this, event)"
+                 onmouseup="handleLongPressEndCombined(this, event)"
+                 onmouseleave="handleLongPressEndCombined(this, event)"
+                 onclick="handleCardClickCombined(this, event)">
+                <input type="checkbox" class="task-checkbox" onchange="handleCheckboxChange(this)" style="display: none;">
+                <div class="task-content-combined">
+                    <div class="task-name-combined">Completed Task</div>
+                </div>
+            </div>
+        </div>
+        <div class="example-status" id="status4">No tasks selected. Long press a card to enter selection mode.</div>
+    </div>
+
+    <!-- Selection Toolbar -->
+    <div class="selection-toolbar" id="toolbar">
+        <span class="selection-count" id="selectedCount">0 selected</span>
+        <button class="btn btn-delete" onclick="deleteSelected()">Delete Selected</button>
+        <button class="btn btn-cancel" onclick="exitSelectionMode()">Cancel</button>
+    </div>
+
+    <script>
+        let longPressTimer = null;
+        let isSelectionMode = false;
+        let selectedTasks = new Set();
+
+        // Example 1: Checkbox selection
+        function toggleSelection(checkbox, containerId) {
+            const card = checkbox.closest('.task-card-checkbox');
+            if (checkbox.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+            updateStatus(containerId);
+        }
+
+        function updateStatus(containerId) {
+            const container = document.getElementById(containerId);
+            const selected = container.querySelectorAll('.selected, .task-card-border.selected, .task-card-overlay.selected, .task-card-longpress.selected').length;
+            const statusEl = document.getElementById(`status${containerId.replace('container', '')}`);
+            if (selected > 0) {
+                statusEl.textContent = `${selected} task${selected > 1 ? 's' : ''} selected`;
+                statusEl.style.borderLeftColor = '#e74c3c';
+            } else {
+                statusEl.textContent = 'No tasks selected';
+                statusEl.style.borderLeftColor = '#4a90e2';
+            }
+        }
+
+        // Example 2: Border selection
+        function toggleCardSelection(card, containerId) {
+            card.classList.toggle('selected');
+            updateStatus(containerId);
+        }
+
+        // Example 3: Overlay selection
+        function toggleOverlaySelection(card, containerId) {
+            card.classList.toggle('selected');
+            updateStatus(containerId);
+        }
+
+        // Example 4: Combined Long Press + Checkbox + Border
+        function handleLongPressStartCombined(card, event) {
+            // Prevent default to avoid text selection
+            event.preventDefault();
+            longPressTimer = setTimeout(() => {
+                enterSelectionModeCombined(card);
+                longPressTimer = null;
+            }, 500); // 500ms long press
+        }
+
+        function handleLongPressEndCombined(card, event) {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        }
+
+        function enterSelectionModeCombined(initialCard) {
+            if (isSelectionMode) return;
+            isSelectionMode = true;
+            
+            // Add selection mode class to container (shows checkboxes)
+            const container = document.getElementById('container4');
+            container.classList.add('selection-mode-active');
+
+            // Show toolbar
+            document.getElementById('toolbar').classList.add('active');
+            
+            // Select the initial card if provided
+            if (initialCard) {
+                toggleTaskSelectionCombined(initialCard);
+            }
+
+            updateSelectionCountCombined();
+        }
+
+        function handleCardClickCombined(card, event) {
+            // If checkbox was clicked, let it handle the change
+            if (event.target.type === 'checkbox') {
+                return;
+            }
+
+            if (!isSelectionMode) {
+                // Normal click behavior (e.g., toggle completion)
+                return;
+            }
+            
+            // In selection mode, toggle selection
+            const checkbox = card.querySelector('.task-checkbox');
+            checkbox.checked = !checkbox.checked;
+            toggleTaskSelectionCombined(card);
+        }
+
+        function handleCheckboxChange(checkbox) {
+            const card = checkbox.closest('.task-card-combined');
+            toggleTaskSelectionCombined(card);
+        }
+
+        function toggleTaskSelectionCombined(card) {
+            const checkbox = card.querySelector('.task-checkbox');
+            const isSelected = checkbox.checked;
+            
+            if (isSelected) {
+                card.classList.add('selected');
+                selectedTasks.add(card);
+            } else {
+                card.classList.remove('selected');
+                selectedTasks.delete(card);
+            }
+            
+            updateSelectionCountCombined();
+        }
+
+        function updateSelectionCountCombined() {
+            const count = document.querySelectorAll('#container4 .task-card-combined.selected').length;
+            document.getElementById('selectedCount').textContent = `${count} selected`;
+            
+            // Update status
+            const statusEl = document.getElementById('status4');
+            if (count > 0) {
+                statusEl.textContent = `${count} task${count > 1 ? 's' : ''} selected. Click cards or checkboxes to select/deselect.`;
+                statusEl.style.borderLeftColor = '#e74c3c';
+            } else {
+                statusEl.textContent = 'Selection mode active. Click cards or checkboxes to select.';
+                statusEl.style.borderLeftColor = '#4a90e2';
+            }
+        }
+
+        function deleteSelected() {
+            const selected = document.querySelectorAll('#container4 .task-card-combined.selected');
+            if (selected.length === 0) {
+                alert('No tasks selected');
+                return;
+            }
+            
+            if (confirm(`Delete ${selected.length} task${selected.length > 1 ? 's' : ''}?`)) {
+                // Simulate deletion with animation
+                selected.forEach(card => {
+                    card.style.transition = 'opacity 0.3s, transform 0.3s';
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(-100px)';
+                    setTimeout(() => card.remove(), 300);
+                });
+                
+                setTimeout(() => {
+                    exitSelectionModeCombined();
+                }, 350);
+            }
+        }
+
+        function exitSelectionModeCombined() {
+            isSelectionMode = false;
+            selectedTasks.clear();
+            
+            // Remove selection mode class (hides checkboxes)
+            const container = document.getElementById('container4');
+            container.classList.remove('selection-mode-active');
+            
+            // Remove all selection classes and uncheck checkboxes
+            const cards = document.querySelectorAll('#container4 .task-card-combined');
+            cards.forEach(card => {
+                card.classList.remove('selected');
+                const checkbox = card.querySelector('.task-checkbox');
+                checkbox.checked = false;
+            });
+            
+            // Hide toolbar
+            document.getElementById('toolbar').classList.remove('active');
+            
+            // Update status
+            const statusEl = document.getElementById('status4');
+            statusEl.textContent = 'No tasks selected. Long press a card to enter selection mode.';
+            statusEl.style.borderLeftColor = '#4a90e2';
+        }
+    </script>
+</body>
+</html>
