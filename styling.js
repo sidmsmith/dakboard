@@ -1278,8 +1278,8 @@ function generateAdvancedTab() {
         <div class="styling-form-row">
           <label class="styling-form-label">Other Days Color</label>
           <div class="styling-form-control">
-            <input type="color" id="calendar-day-color" value="${currentStyles.calendarDayColor || '#333'}">
-            <input type="text" id="calendar-day-color-text" value="${currentStyles.calendarDayColor || '#333'}" placeholder="#333">
+            <input type="color" id="calendar-day-color" value="${(currentStyles.calendarDayColor || '#333333').replace(/^#([0-9A-F])([0-9A-F])([0-9A-F])$/i, '#$1$1$2$2$3$3').toUpperCase()}">
+            <input type="text" id="calendar-day-color-text" value="${(currentStyles.calendarDayColor || '#333333').replace(/^#([0-9A-F])([0-9A-F])([0-9A-F])$/i, '#$1$1$2$2$3$3')}" placeholder="#333333">
           </div>
         </div>
       </div>
@@ -2094,9 +2094,15 @@ function attachTabEventListeners(tabName) {
             updatePreview();
           });
           calendarDayColorText.addEventListener('input', (e) => {
-            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
-              calendarDayColor.value = e.target.value;
-              currentStyles.calendarDayColor = e.target.value;
+            let colorValue = e.target.value.trim();
+            // Expand 3-digit hex to 6-digit if needed
+            if (/^#[0-9A-F]{3}$/i.test(colorValue)) {
+              colorValue = '#' + colorValue[1] + colorValue[1] + colorValue[2] + colorValue[2] + colorValue[3] + colorValue[3];
+            }
+            if (/^#[0-9A-F]{6}$/i.test(colorValue)) {
+              calendarDayColor.value = colorValue;
+              calendarDayColorText.value = colorValue;
+              currentStyles.calendarDayColor = colorValue;
               updatePreview();
             }
           });

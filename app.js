@@ -528,8 +528,14 @@ function renderCalendar() {
     if (savedStyles) {
       try {
         const styles = JSON.parse(savedStyles);
-        if (styles.calendarTodayColor) calendarTodayColor = styles.calendarTodayColor;
-        if (styles.calendarDayColor) calendarDayColor = styles.calendarDayColor;
+        if (styles.calendarTodayColor) {
+          // Normalize 3-digit hex to 6-digit
+          calendarTodayColor = styles.calendarTodayColor.replace(/^#([0-9A-F])([0-9A-F])([0-9A-F])$/i, '#$1$1$2$2$3$3');
+        }
+        if (styles.calendarDayColor) {
+          // Normalize 3-digit hex to 6-digit
+          calendarDayColor = styles.calendarDayColor.replace(/^#([0-9A-F])([0-9A-F])([0-9A-F])$/i, '#$1$1$2$2$3$3');
+        }
       } catch (e) {
         console.error('Error parsing calendar styles:', e);
       }
