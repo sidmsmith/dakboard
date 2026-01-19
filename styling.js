@@ -579,13 +579,6 @@ function generateTitleTab() {
     <div class="styling-form-section">
       <div class="styling-section-title">Title Styling</div>
       <div class="styling-form-group">
-        ${isCalendarWidget ? `
-        <div class="styling-form-row" style="background: rgba(74, 144, 226, 0.1); padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 3px solid #4a90e2;">
-          <div style="font-size: 12px; color: #aaa; line-height: 1.4;">
-            <strong style="color: #4a90e2;">Note:</strong> Calendar widget has a custom header with month-view button and calendar icon. Title visibility, text editing, and alignment are not available for this widget to preserve its functional elements.
-          </div>
-        </div>
-        ` : ''}
         ${isWhiteboardWidget ? `
         <div class="styling-form-row" style="background: rgba(74, 144, 226, 0.1); padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 3px solid #4a90e2;">
           <div style="font-size: 12px; color: #aaa; line-height: 1.4;">
@@ -597,7 +590,7 @@ function generateTitleTab() {
           <label class="styling-form-label">Visible</label>
           <div class="styling-form-control">
             <label class="styling-apply-all-checkbox">
-              <input type="checkbox" id="title-visible" ${titleVisible ? 'checked' : ''} ${isCalendarWidget ? 'disabled' : ''}> Show title
+              <input type="checkbox" id="title-visible" ${titleVisible ? 'checked' : ''}> Show title
             </label>
             <label class="styling-apply-all-checkbox">
               <input type="checkbox" id="title-visible-apply-all" ${applyToAllFlags.titleVisible ? 'checked' : ''}> Apply to all
@@ -608,7 +601,7 @@ function generateTitleTab() {
           <label class="styling-form-label">Show Icon</label>
           <div class="styling-form-control">
             <label class="styling-apply-all-checkbox">
-              <input type="checkbox" id="title-icon-visible" ${titleIconVisible ? 'checked' : ''} ${isCalendarWidget ? 'disabled' : ''}> Show icon
+              <input type="checkbox" id="title-icon-visible" ${titleIconVisible ? 'checked' : ''}> Show icon
             </label>
             <label class="styling-apply-all-checkbox">
               <input type="checkbox" id="title-icon-visible-apply-all" ${applyToAllFlags.titleIconVisible ? 'checked' : ''}> Apply to all
@@ -618,7 +611,7 @@ function generateTitleTab() {
         <div class="styling-form-row">
           <label class="styling-form-label">Title Text</label>
           <div class="styling-form-control">
-            <input type="text" id="title-text" value="${titleText}" placeholder="${defaultTitle}" ${isCalendarWidget ? 'disabled' : ''}>
+            <input type="text" id="title-text" value="${titleText}" placeholder="${defaultTitle}">
             <label class="styling-apply-all-checkbox">
               <input type="checkbox" id="title-text-apply-all" ${applyToAllFlags.titleText ? 'checked' : ''}> Apply to all
             </label>

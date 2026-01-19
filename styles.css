@@ -162,28 +162,27 @@ body {
 .month-view-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13.5px; /* 75% of 18px */
-  font-weight: 600;
-  color: #fff;
-  background: transparent;
-  border: none;
-  padding: 0;
+  justify-content: center;
+  background: var(--widget-bg-overlay, rgba(255, 255, 255, 0.15));
+  border: 1px solid var(--widget-border-color, rgba(255, 255, 255, 0.3));
+  color: var(--widget-text-primary, #fff);
+  padding: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.3s, border-color 0.3s;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  flex-shrink: 0;
 }
 
-.month-view-btn:hover {
-  opacity: 0.8;
+.month-view-btn:hover:not(:disabled) {
+  background: var(--widget-hover-bg, rgba(255, 255, 255, 0.25));
+  border-color: var(--widget-hover-border, rgba(255, 255, 255, 0.4));
 }
 
 .month-icon {
   color: #4a90e2;
   flex-shrink: 0;
-}
-
-.month-text {
-  color: #fff;
 }
 
 /* Blank Widget - Clip Art Display */
@@ -388,11 +387,6 @@ body {
 }
 
 /* Calendar - Default position and size */
-/* SPECIAL CASE: Calendar widget has custom header layout with:
-   - Calendar icon SVG inside widget-title
-   - Month-view button in widget-header (opens month modal)
-   Title styling system (visibility, alignment, editable text) is disabled for this widget
-   to preserve these functional elements. See styling.js for implementation details. */
 .calendar-widget {
   top: 20px;
   left: 20px;
@@ -408,6 +402,7 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  gap: 12px;
 }
 
 .calendar-nav button {
