@@ -511,13 +511,29 @@ function renderCalendar() {
     if (!widget || widget.classList.contains('hidden')) return;
     const grid = widget.querySelector('#calendar-grid');
     const weekRange = widget.querySelector('#week-range');
-    if (grid) calendarWidgets.push({ grid, weekRange });
+    const fullWidgetId = instance.fullWidgetId;
+    if (grid) calendarWidgets.push({ grid, weekRange, fullWidgetId });
   });
   
   if (calendarWidgets.length === 0) return;
   
   // Update each calendar widget instance
-  calendarWidgets.forEach(({ grid, weekRange }) => {
+  calendarWidgets.forEach(({ grid, weekRange, fullWidgetId }) => {
+    // Load calendar day colors from styles
+    const stylesKey = `dakboard-widget-styles-${fullWidgetId}`;
+    const savedStyles = localStorage.getItem(stylesKey);
+    let calendarTodayColor = '#4a90e2'; // Default blue
+    let calendarDayColor = '#333'; // Default dark gray
+    
+    if (savedStyles) {
+      try {
+        const styles = JSON.parse(savedStyles);
+        if (styles.calendarTodayColor) calendarTodayColor = styles.calendarTodayColor;
+        if (styles.calendarDayColor) calendarDayColor = styles.calendarDayColor;
+      } catch (e) {
+        console.error('Error parsing calendar styles:', e);
+      }
+    }
   
   // Clear existing days (keep headers)
   const headers = Array.from(grid.querySelectorAll('.calendar-day-header'));
@@ -551,6 +567,10 @@ function renderCalendar() {
     dateForCompare.setHours(0, 0, 0, 0);
     if (dateForCompare.getTime() === today.getTime()) {
       dayDiv.classList.add('today');
+      dayDiv.style.backgroundColor = calendarTodayColor;
+      dayDiv.style.color = '#fff'; // White text for today
+    } else {
+      dayDiv.style.backgroundColor = calendarDayColor;
     }
     
     const dayNumber = document.createElement('div');

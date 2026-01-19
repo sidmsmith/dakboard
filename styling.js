@@ -721,6 +721,7 @@ function generateAdvancedTab() {
   const isStoplightWidget = widgetType === 'stoplight-widget';
   const isAgendaWidget = widgetType === 'agenda-widget';
   const isTasksWidget = widgetType === 'tasks-widget';
+  const isCalendarWidget = widgetType === 'calendar-widget';
   const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
   const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
   
@@ -1258,6 +1259,27 @@ function generateAdvancedTab() {
                 <option value="600" ${currentStyles.stoplightGreenFontWeight === '600' ? 'selected' : ''}>Semi-bold</option>
               </select>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+    ${isCalendarWidget ? `
+    <div class="styling-form-section">
+      <div class="styling-section-title">Calendar Day Colors</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Current Day Color</label>
+          <div class="styling-form-control">
+            <input type="color" id="calendar-today-color" value="${currentStyles.calendarTodayColor || '#4a90e2'}">
+            <input type="text" id="calendar-today-color-text" value="${currentStyles.calendarTodayColor || '#4a90e2'}" placeholder="#4a90e2">
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Other Days Color</label>
+          <div class="styling-form-control">
+            <input type="color" id="calendar-day-color" value="${currentStyles.calendarDayColor || '#333'}">
+            <input type="text" id="calendar-day-color-text" value="${currentStyles.calendarDayColor || '#333'}" placeholder="#333">
           </div>
         </div>
       </div>
@@ -2028,6 +2050,53 @@ function attachTabEventListeners(tabName) {
             if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
               tasksCardHoverBorder.value = e.target.value;
               currentStyles.tasksCardHoverBorder = e.target.value;
+              updatePreview();
+            }
+          });
+        }
+      }
+      
+      // Calendar widget color pickers
+      if (widgetType === 'calendar-widget') {
+        const calendarTodayColor = stylingModal.querySelector('#calendar-today-color');
+        const calendarTodayColorText = stylingModal.querySelector('#calendar-today-color-text');
+        if (calendarTodayColor && calendarTodayColorText) {
+          calendarTodayColor.addEventListener('input', (e) => {
+            calendarTodayColorText.value = e.target.value;
+            currentStyles.calendarTodayColor = e.target.value;
+            updatePreview();
+          });
+          calendarTodayColor.addEventListener('change', (e) => {
+            calendarTodayColorText.value = e.target.value;
+            currentStyles.calendarTodayColor = e.target.value;
+            updatePreview();
+          });
+          calendarTodayColorText.addEventListener('input', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+              calendarTodayColor.value = e.target.value;
+              currentStyles.calendarTodayColor = e.target.value;
+              updatePreview();
+            }
+          });
+        }
+        
+        const calendarDayColor = stylingModal.querySelector('#calendar-day-color');
+        const calendarDayColorText = stylingModal.querySelector('#calendar-day-color-text');
+        if (calendarDayColor && calendarDayColorText) {
+          calendarDayColor.addEventListener('input', (e) => {
+            calendarDayColorText.value = e.target.value;
+            currentStyles.calendarDayColor = e.target.value;
+            updatePreview();
+          });
+          calendarDayColor.addEventListener('change', (e) => {
+            calendarDayColorText.value = e.target.value;
+            currentStyles.calendarDayColor = e.target.value;
+            updatePreview();
+          });
+          calendarDayColorText.addEventListener('input', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+              calendarDayColor.value = e.target.value;
+              currentStyles.calendarDayColor = e.target.value;
               updatePreview();
             }
           });
@@ -3786,6 +3855,14 @@ function applyStyles() {
         loadTasks();
       }, 50);
     }
+  } else if (widgetType === 'calendar-widget') {
+    // Reload calendar widget to apply day colors
+    if (typeof renderCalendar === 'function') {
+      // Use setTimeout to ensure modal is fully closed and styles are saved to localStorage
+      setTimeout(() => {
+        renderCalendar();
+      }, 50);
+    }
   }
 }
 
@@ -3957,6 +4034,19 @@ function updateCurrentStylesFromForm() {
   
   const tasksCardHoverBorder = stylingModal.querySelector('#tasks-card-hover-border');
   if (tasksCardHoverBorder) currentStyles.tasksCardHoverBorder = tasksCardHoverBorder.value;
+  
+  // Calendar widget colors
+  const calendarTodayColor = stylingModal.querySelector('#calendar-today-color');
+  const calendarTodayColorText = stylingModal.querySelector('#calendar-today-color-text');
+  if (calendarTodayColor && calendarTodayColorText) {
+    currentStyles.calendarTodayColor = calendarTodayColor.value;
+  }
+  
+  const calendarDayColor = stylingModal.querySelector('#calendar-day-color');
+  const calendarDayColorText = stylingModal.querySelector('#calendar-day-color-text');
+  if (calendarDayColor && calendarDayColorText) {
+    currentStyles.calendarDayColor = calendarDayColor.value;
+  }
   
   // Dice widget colors
   const diceFaceColor = stylingModal.querySelector('#dice-face-color');
