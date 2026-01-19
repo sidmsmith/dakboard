@@ -5527,11 +5527,9 @@ function loadStylesToWidget(widget, styles) {
   
   const widgetHeader = widget.querySelector('.widget-header');
   if (widgetHeader) {
-    // Title visibility - allow for whiteboard, skip for calendar
-    if (isWhiteboardWidget || !isCalendarWidget) {
-      const titleVisible = styles.titleVisible !== undefined ? styles.titleVisible : true;
-      widgetHeader.style.display = titleVisible ? '' : 'none';
-    }
+    // Title visibility
+    const titleVisible = styles.titleVisible !== undefined ? styles.titleVisible : true;
+    widgetHeader.style.display = titleVisible ? '' : 'none';
     
     // Title alignment - skip for calendar and whiteboard (they have custom layouts)
     if (!isCalendarWidget && !isWhiteboardWidget) {

@@ -163,22 +163,19 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--widget-bg-overlay, rgba(255, 255, 255, 0.15));
-  border: 1px solid var(--widget-border-color, rgba(255, 255, 255, 0.3));
+  background: transparent;
+  border: none;
   color: var(--widget-text-primary, #fff);
   padding: 8px;
-  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.3s, border-color 0.3s;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
   flex-shrink: 0;
   box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .month-view-btn:hover:not(:disabled) {
-  background: var(--widget-hover-bg, rgba(255, 255, 255, 0.25));
-  border-color: var(--widget-hover-border, rgba(255, 255, 255, 0.4));
+  opacity: 0.8;
 }
 
 .month-icon {
@@ -412,6 +409,7 @@ body {
 .calendar-nav #week-range {
   flex: 1;
   text-align: center;
+  color: var(--widget-text-primary, #fff);
 }
 
 .calendar-nav #next-week-btn {
