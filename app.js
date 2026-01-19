@@ -523,7 +523,7 @@ function renderCalendar() {
     const stylesKey = `dakboard-widget-styles-${fullWidgetId}`;
     const savedStyles = localStorage.getItem(stylesKey);
     let calendarTodayColor = '#4a90e2'; // Default blue
-    let calendarDayColor = '#333'; // Default dark gray
+    let calendarDayColor = '#333333'; // Default dark gray
     
     if (savedStyles) {
       try {
