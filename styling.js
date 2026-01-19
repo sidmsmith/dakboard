@@ -4365,12 +4365,10 @@ function applyCurrentStylesToWidget(widget) {
   });
   
   if (widgetHeader) {
-    // Title visibility - allow for whiteboard, skip for calendar (has functional button)
+    // Title visibility
     if (currentStyles.titleVisible !== undefined) {
       if (!isApplyingToAll || applyToAllFlags.titleVisible) {
-        if (isWhiteboardWidget || !isCalendarWidget) {
-          widgetHeader.style.display = currentStyles.titleVisible ? '' : 'none';
-        }
+        widgetHeader.style.display = currentStyles.titleVisible ? '' : 'none';
       }
     }
     

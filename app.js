@@ -359,14 +359,16 @@ function initializeEventListeners() {
     }
   });
   
-  // Monthly view modal - single instance, safe to use getElementById
-  const monthViewBtn = document.getElementById('month-view-btn');
-  if (monthViewBtn && !monthViewBtn.dataset.listenerAttached) {
-    monthViewBtn.dataset.listenerAttached = 'true';
-    monthViewBtn.addEventListener('click', () => {
-    showMonthModal();
+  // Monthly view modal - use querySelectorAll for multi-instance support
+  const monthViewBtns = document.querySelectorAll('#month-view-btn');
+  monthViewBtns.forEach(btn => {
+    if (!btn.dataset.listenerAttached) {
+      btn.dataset.listenerAttached = 'true';
+      btn.addEventListener('click', () => {
+        showMonthModal();
+      });
+    }
   });
-  }
   
   // Todo add item - use querySelectorAll for multi-page support
   const todoInputs = document.querySelectorAll('#todo-input');

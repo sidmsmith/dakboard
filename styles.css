@@ -173,6 +173,7 @@ body {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   flex-shrink: 0;
+  box-shadow: none;
 }
 
 .month-view-btn:hover:not(:disabled) {
