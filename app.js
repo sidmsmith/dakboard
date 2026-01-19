@@ -511,7 +511,8 @@ function renderCalendar() {
     if (!widget || widget.classList.contains('hidden')) return;
     const grid = widget.querySelector('#calendar-grid');
     const weekRange = widget.querySelector('#week-range');
-    const fullWidgetId = instance.fullWidgetId;
+    // Use fullId (not fullWidgetId) - getWidgetInstances returns fullId
+    const fullWidgetId = instance.fullId || instance.fullWidgetId;
     if (grid) calendarWidgets.push({ grid, weekRange, fullWidgetId });
   });
   
@@ -573,10 +574,10 @@ function renderCalendar() {
     dateForCompare.setHours(0, 0, 0, 0);
     if (dateForCompare.getTime() === today.getTime()) {
       dayDiv.classList.add('today');
-      dayDiv.style.backgroundColor = calendarTodayColor;
-      dayDiv.style.color = '#fff'; // White text for today
+      dayDiv.style.setProperty('background-color', calendarTodayColor, 'important');
+      dayDiv.style.setProperty('color', '#fff', 'important'); // White text for today
     } else {
-      dayDiv.style.backgroundColor = calendarDayColor;
+      dayDiv.style.setProperty('background-color', calendarDayColor, 'important');
     }
     
     const dayNumber = document.createElement('div');
