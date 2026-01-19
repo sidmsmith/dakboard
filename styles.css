@@ -399,10 +399,22 @@ body {
 
 .calendar-nav {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
   gap: 12px;
+}
+
+.calendar-nav #prev-week-btn {
+  margin-right: auto;
+}
+
+.calendar-nav #week-range {
+  flex: 1;
+  text-align: center;
+}
+
+.calendar-nav #next-week-btn {
+  margin-left: auto;
 }
 
 .calendar-nav button {
