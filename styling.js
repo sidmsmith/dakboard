@@ -3866,7 +3866,6 @@ function applyStyles() {
     if (typeof renderCalendar === 'function') {
       // Use setTimeout to ensure modal is fully closed and styles are saved to localStorage
       setTimeout(() => {
-        console.log('[applyStyles] Reloading calendar widget after style apply');
         renderCalendar();
       }, 100);
     } else {

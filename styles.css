@@ -436,8 +436,7 @@ body {
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0;
-  row-gap: 4px;
+  gap: 8px;
   flex: 1;
   align-content: start;
 }
@@ -460,6 +459,8 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
 }
 
 .calendar-day-number {

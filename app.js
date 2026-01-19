@@ -526,12 +526,9 @@ function renderCalendar() {
     let calendarTodayColor = '#4a90e2'; // Default blue
     let calendarDayColor = '#333333'; // Default dark gray
     
-    console.log('[renderCalendar] Widget ID:', fullWidgetId, 'Styles key:', stylesKey);
-    
     if (savedStyles) {
       try {
         const styles = JSON.parse(savedStyles);
-        console.log('[renderCalendar] Loaded styles:', styles);
         if (styles.calendarTodayColor) {
           // Normalize 3-digit hex to 6-digit
           calendarTodayColor = styles.calendarTodayColor.replace(/^#([0-9A-F])([0-9A-F])([0-9A-F])$/i, '#$1$1$2$2$3$3');
@@ -540,12 +537,9 @@ function renderCalendar() {
           // Normalize 3-digit hex to 6-digit
           calendarDayColor = styles.calendarDayColor.replace(/^#([0-9A-F])([0-9A-F])([0-9A-F])$/i, '#$1$1$2$2$3$3');
         }
-        console.log('[renderCalendar] Using colors - today:', calendarTodayColor, 'other:', calendarDayColor);
       } catch (e) {
         console.error('Error parsing calendar styles:', e);
       }
-    } else {
-      console.log('[renderCalendar] No saved styles found, using defaults');
     }
   
   // Clear existing days (keep headers)
