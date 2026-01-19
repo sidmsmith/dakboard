@@ -6220,7 +6220,9 @@ function loadBackgroundSettings() {
     }
     const typeSelect = document.getElementById('bg-type-select');
     if (typeSelect) {
-      showBackgroundSection('solid');
+      // Get the current value of the select (may default to 'image' or other type)
+      const currentType = typeSelect.value || 'solid';
+      showBackgroundSection(currentType);
     }
   }
 }
