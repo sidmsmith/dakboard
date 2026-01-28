@@ -4281,6 +4281,12 @@ footer a:hover {
   color: #fff;
 }
 
+.widget-control-style-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .widget-control-clone-btn,
 .widget-control-remove-btn,
 .widget-control-move-btn {
@@ -4303,6 +4309,14 @@ footer a:hover {
 .widget-control-clone-btn:hover {
   background: rgba(74, 144, 226, 0.3);
   border-color: #4a90e2;
+}
+
+.widget-control-clone-btn:disabled,
+.widget-control-remove-btn:disabled,
+.widget-control-move-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .widget-control-remove-btn {

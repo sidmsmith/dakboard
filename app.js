@@ -8189,6 +8189,11 @@ function setEditMode(enabled) {
   } else {
     console.error('initializeDragAndResize function not found!');
   }
+  
+  // Update widget control panel to reflect button states
+  if (typeof updateWidgetControlPanel === 'function') {
+    updateWidgetControlPanel();
+  }
 }
 
 // Update widget control panel with current widget states
@@ -8214,6 +8219,10 @@ function updateWidgetControlPanel() {
   
   list.innerHTML = '';
   
+  // Get page element and check if Edit Mode is active (needed for button states)
+  const pageElement = getPageElement(currentPageIndex);
+  const inEditMode = pageElement ? pageElement.classList.contains('edit-mode') : false;
+  
   // Add Dashboard Background at the top
   const bgItem = document.createElement('div');
   bgItem.className = 'widget-control-item dashboard-bg-item';
@@ -8221,8 +8230,10 @@ function updateWidgetControlPanel() {
   bgStyleBtn.className = 'widget-control-style-btn';
   bgStyleBtn.innerHTML = '🎨';
   bgStyleBtn.title = 'Configure dashboard background';
+  bgStyleBtn.disabled = inEditMode;
   bgStyleBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    if (inEditMode) return; // Prevent action in Edit Mode
     // Call the background modal function - it should be available globally from styling.js
     if (typeof window.openBackgroundModal === 'function') {
       window.openBackgroundModal();
@@ -8247,7 +8258,6 @@ function updateWidgetControlPanel() {
   list.appendChild(separator);
 
   // Get all widget instances for each widget type on current page
-  const pageElement = getPageElement(currentPageIndex);
   if (!pageElement) return;
   
   // Collect all widget instances
@@ -8319,8 +8329,10 @@ function updateWidgetControlPanel() {
     styleBtn.className = 'widget-control-style-btn';
     styleBtn.innerHTML = '🎨';
     styleBtn.title = 'Style widget';
+    styleBtn.disabled = inEditMode;
     styleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (inEditMode) return; // Prevent action in Edit Mode
       if (typeof openStylingModal === 'function') {
         openStylingModal(instance.fullId);
       }
@@ -8331,9 +8343,11 @@ function updateWidgetControlPanel() {
     cloneBtn.className = 'widget-control-clone-btn';
     cloneBtn.innerHTML = '📋';
     cloneBtn.title = 'Clone widget';
+    cloneBtn.disabled = inEditMode;
     cloneBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       e.preventDefault();
+      if (inEditMode) return; // Prevent action in Edit Mode
       cloneWidget(instance.fullId);
     });
     
@@ -8344,8 +8358,10 @@ function updateWidgetControlPanel() {
       removeBtn.className = 'widget-control-remove-btn';
       removeBtn.innerHTML = '🗑️';
       removeBtn.title = 'Remove widget';
+      removeBtn.disabled = inEditMode;
       removeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (inEditMode) return; // Prevent action in Edit Mode
         removeWidgetInstance(instance.fullId);
       });
     }
@@ -8358,6 +8374,7 @@ function updateWidgetControlPanel() {
       moveBtn.className = 'widget-control-move-btn';
       moveBtn.innerHTML = '➡️';
       moveBtn.title = 'Move to page';
+      moveBtn.disabled = inEditMode;
       
       // Create dropdown for page selection
       moveDropdown = document.createElement('div');
@@ -8375,6 +8392,7 @@ function updateWidgetControlPanel() {
           pageOption.textContent = `Page ${i + 1}: ${pageName}`;
           pageOption.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (inEditMode) return; // Prevent action in Edit Mode
             moveWidgetToPage(instance.fullId, i);
             moveDropdown.style.display = 'none';
           });
@@ -8384,6 +8402,7 @@ function updateWidgetControlPanel() {
       
       moveBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (inEditMode) return; // Prevent action in Edit Mode
         const isVisible = moveDropdown.style.display === 'block';
         // Hide all other dropdowns
         document.querySelectorAll('.widget-control-move-dropdown').forEach(dd => {
