@@ -9287,7 +9287,18 @@ function moveWidgetToPage(fullWidgetId, targetPageIndex) {
   }
   
   // Get next available instance index on target page
-  const newInstanceIndex = getNextInstanceIndex(widgetType, targetPageIndex);
+  // ALWAYS create a new clone (never reuse instance-0) so we don't overwrite the base template
+  // Check if target page has any instances, and if so, get next index; otherwise start at instance-1
+  const targetInstances = getWidgetInstances(widgetType, targetPageIndex);
+  let newInstanceIndex;
+  if (targetInstances.length === 0) {
+    // Target page has no widgets of this type - start at instance-1 to preserve base template (instance-0)
+    newInstanceIndex = 1;
+  } else {
+    // Target page has widgets - get next available index
+    const maxIndex = Math.max(...targetInstances.map(i => i.instanceIndex));
+    newInstanceIndex = maxIndex + 1;
+  }
   const newFullId = generateWidgetId(widgetType, targetPageIndex, newInstanceIndex);
   
   // Copy configuration to new page
