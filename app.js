@@ -3081,35 +3081,50 @@ function loadStopwatch() {
       widget.classList.add(fullWidgetId);
     }
     
-    // Get saved state from localStorage
-    const stateKey = `dakboard-stopwatch-${fullWidgetId}`;
-    const savedState = localStorage.getItem(stateKey);
-    let state = {
-      elapsed: 0, // milliseconds
-      startTime: null,
-      isRunning: false
-    };
+    // Check if state already exists in Map (e.g., after reindexing)
+    // If it does, use it instead of loading from localStorage to preserve accurate timing
+    let state = stopwatchStates.get(fullWidgetId);
     
-    if (savedState) {
-      try {
-        const parsed = JSON.parse(savedState);
-        state.elapsed = parsed.elapsed || 0;
-        state.isRunning = parsed.isRunning || false;
-        // If it was running, calculate elapsed time since last save
-        if (state.isRunning && parsed.lastUpdate) {
-          const now = Date.now();
-          const timeSinceUpdate = now - parsed.lastUpdate;
-          state.elapsed += timeSinceUpdate;
-          state.startTime = now - state.elapsed;
-        } else {
-          state.startTime = null;
+    if (!state) {
+      // State doesn't exist in Map, load from localStorage
+      const stateKey = `dakboard-stopwatch-${fullWidgetId}`;
+      const savedState = localStorage.getItem(stateKey);
+      state = {
+        elapsed: 0, // milliseconds
+        startTime: null,
+        isRunning: false
+      };
+      
+      if (savedState) {
+        try {
+          const parsed = JSON.parse(savedState);
+          state.elapsed = parsed.elapsed || 0;
+          state.isRunning = parsed.isRunning || false;
+          // If it was running, calculate elapsed time since last save
+          if (state.isRunning && parsed.lastUpdate) {
+            const now = Date.now();
+            const timeSinceUpdate = now - parsed.lastUpdate;
+            state.elapsed += timeSinceUpdate;
+            state.startTime = now - state.elapsed;
+          } else {
+            state.startTime = null;
+          }
+        } catch (e) {
+          console.error('Error parsing stopwatch state:', e);
         }
-      } catch (e) {
-        console.error('Error parsing stopwatch state:', e);
+      }
+      
+      stopwatchStates.set(fullWidgetId, state);
+    } else {
+      // State exists in Map (from reindexing), just update startTime if running
+      // to account for any time that passed during the reindexing process
+      if (state.isRunning && state.startTime) {
+        // Recalculate startTime to ensure accurate timing continues
+        const now = Date.now();
+        const currentElapsed = state.elapsed + (now - state.startTime);
+        state.startTime = now - currentElapsed;
       }
     }
-    
-    stopwatchStates.set(fullWidgetId, state);
     
     // Get widget-specific colors from saved styles or use defaults
     // Storage key: fullWidgetId already includes page index, so don't add it again
