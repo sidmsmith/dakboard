@@ -8327,16 +8327,17 @@ function updateWidgetControlPanel() {
   const savedVisibility = localStorage.getItem(visibilityKey);
   const visibility = savedVisibility ? JSON.parse(savedVisibility) : {};
   
-  // Filter out placeholders that shouldn't be shown
-  // Only show widgets that exist on the page OR have visibility=true in localStorage
+  // Filter instances: show existing widgets AND base widget placeholders (instance-0)
+  // Base widgets (instance-0 placeholders) should always be shown so users can enable them
+  // Cloned widgets (instance > 0) that don't exist shouldn't be shown
   const filteredInstances = allInstances.filter(instance => {
-    // If it's a placeholder (no element), only show if visibility is explicitly true
-    if (instance.isPlaceholder) {
-      const fullWidgetId = instance.fullId;
-      return visibility[fullWidgetId] === true;
-    }
     // If widget exists, always show it (visibility state is handled by eye icon)
-    return true;
+    if (!instance.isPlaceholder) {
+      return true;
+    }
+    // For placeholders: only show base widgets (instance-0) so users can enable them
+    // Don't show placeholders for clones (instance > 0) that don't exist
+    return instance.instanceIndex === 0;
   });
   
   // Create control panel items for each instance
