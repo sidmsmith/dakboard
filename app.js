@@ -8142,9 +8142,8 @@ function initializeWidgetControlPanel() {
     editModeToggle.addEventListener('change', (e) => {
       setEditMode(e.target.checked);
     });
-    // Load saved edit mode state for current page
-    const editModeKey = `dakboard-edit-mode-page-${currentPageIndex}`;
-    const savedEditMode = localStorage.getItem(editModeKey) === 'true';
+    // Load saved global edit mode state
+    const savedEditMode = localStorage.getItem('dakboard-edit-mode') === 'true';
     editModeToggle.checked = savedEditMode;
     setEditMode(savedEditMode);
   }
@@ -8176,23 +8175,22 @@ function initializeWidgetControlPanel() {
   }
 }
 
-// Set edit mode on/off (page-specific)
+// Set edit mode on/off (global - applies to all pages)
 function setEditMode(enabled) {
   isEditMode = enabled;
   
-  // Store edit mode per page
-  const editModeKey = `dakboard-edit-mode-page-${currentPageIndex}`;
-  localStorage.setItem(editModeKey, enabled ? 'true' : 'false');
+  // Store edit mode globally (not per page)
+  localStorage.setItem('dakboard-edit-mode', enabled ? 'true' : 'false');
   
-  // Apply to current page only
-  const currentPage = getPageElement(currentPageIndex);
-  if (currentPage) {
+  // Apply to ALL pages
+  const allPages = document.querySelectorAll('.dashboard.page');
+  allPages.forEach(page => {
     if (enabled) {
-      currentPage.classList.add('edit-mode');
+      page.classList.add('edit-mode');
     } else {
-      currentPage.classList.remove('edit-mode');
+      page.classList.remove('edit-mode');
     }
-  }
+  });
   
   // Disable scrolling in edit mode (only allow drag and resize)
   if (enabled) {
@@ -10344,15 +10342,20 @@ function loadCurrentPage() {
     loadAnnotationVisibility();
   }
   
-  // Load page-specific edit mode
-  const editModeKey = `dakboard-edit-mode-page-${currentPageIndex}`;
-  const savedEditMode = localStorage.getItem(editModeKey);
+  // Load global edit mode (applies to all pages)
+  const savedEditMode = localStorage.getItem('dakboard-edit-mode');
   if (savedEditMode === 'true') {
     isEditMode = true;
-    pageElement.classList.add('edit-mode');
+    // Apply to all pages, not just current
+    document.querySelectorAll('.dashboard.page').forEach(page => {
+      page.classList.add('edit-mode');
+    });
   } else {
     isEditMode = false;
-    pageElement.classList.remove('edit-mode');
+    // Remove from all pages
+    document.querySelectorAll('.dashboard.page').forEach(page => {
+      page.classList.remove('edit-mode');
+    });
   }
   
   // Update edit mode toggle
@@ -10642,10 +10645,8 @@ function addPage() {
   // Set annotation visibility to visible by default for new pages
   localStorage.setItem(`dakboard-annotation-visibility-page-${newPageIndex}`, 'true');
   
-  // Clear edit mode for the new page (start with edit mode off)
-  localStorage.removeItem(`dakboard-edit-mode-page-${newPageIndex}`);
-  
   // Clear any page-specific data (whiteboard, etc.)
+  // Note: Edit mode is now global, not per-page
   const allKeys = Object.keys(localStorage);
   allKeys.forEach(key => {
     // Remove any keys that contain the new page index
@@ -10654,8 +10655,7 @@ function addPage() {
       if (key !== visibilityKey && 
           key !== `dakboard-annotation-visibility-page-${newPageIndex}` &&
           !key.startsWith(`dakboard-page-name-`) &&
-          !key.startsWith(`dakboard-page-background-`) &&
-          !key.startsWith(`dakboard-edit-mode-page-`)) {
+          !key.startsWith(`dakboard-page-background-`)) {
         // Check if it's widget-specific data (stopwatch, scoreboard, stoplight, whiteboard, etc.)
         // These should be removed for new pages
         localStorage.removeItem(key);
@@ -10696,19 +10696,17 @@ function deletePage(pageIndex) {
   // Delete page data from localStorage
   localStorage.removeItem(`dakboard-widget-layout-page-${pageIndex}`);
   localStorage.removeItem(`dakboard-background-page-${pageIndex}`);
-  localStorage.removeItem(`dakboard-edit-mode-page-${pageIndex}`);
+  // Note: Edit mode is now global, not per-page, so we don't delete it here
   localStorage.removeItem(`dakboard-page-name-${pageIndex}`); // Remove page name
   
   // Renumber pages after the deleted one
   for (let i = pageIndex + 1; i < totalPages; i++) {
     const oldLayoutKey = `dakboard-widget-layout-page-${i}`;
     const oldBgKey = `dakboard-background-page-${i}`;
-    const oldEditKey = `dakboard-edit-mode-page-${i}`;
     const oldNameKey = `dakboard-page-name-${i}`;
     
     const newLayoutKey = `dakboard-widget-layout-page-${i - 1}`;
     const newBgKey = `dakboard-background-page-${i - 1}`;
-    const newEditKey = `dakboard-edit-mode-page-${i - 1}`;
     const newNameKey = `dakboard-page-name-${i - 1}`;
     
     // Move layout data
@@ -10725,12 +10723,7 @@ function deletePage(pageIndex) {
       localStorage.removeItem(oldBgKey);
     }
     
-    // Move edit mode data
-    const editData = localStorage.getItem(oldEditKey);
-    if (editData) {
-      localStorage.setItem(newEditKey, editData);
-      localStorage.removeItem(oldEditKey);
-    }
+    // Note: Edit mode is now global, not per-page, so we don't move it here
     
     // Move page name data
     const nameData = localStorage.getItem(oldNameKey);
@@ -11077,7 +11070,8 @@ function performExport(pageIndices) {
         pageIndex: pageIndex,
         name: localStorage.getItem(`dakboard-page-name-${pageIndex}`) || `Page ${pageIndex + 1}`,
         background: null,
-        editMode: localStorage.getItem(`dakboard-edit-mode-page-${pageIndex}`) === 'true',
+        // Edit mode is now global, export it once (from first page or global key)
+        editMode: pageIndex === 0 ? (localStorage.getItem('dakboard-edit-mode') === 'true') : undefined,
         widgets: []
       };
       
@@ -11518,9 +11512,11 @@ function importConfiguration(file) {
           importedCount++;
         }
         
-        // Import edit mode
-        if (page.editMode !== undefined) {
-          localStorage.setItem(`dakboard-edit-mode-page-${newPageIndex}`, page.editMode.toString());
+        // Import edit mode (global, only import once from first page)
+        if (page.editMode !== undefined && newPageIndex === 0) {
+          localStorage.setItem('dakboard-edit-mode', page.editMode.toString());
+          // Apply to all pages
+          setEditMode(page.editMode);
           importedCount++;
         }
         
