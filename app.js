@@ -9035,6 +9035,40 @@ function removeWidgetInstance(fullWidgetId) {
         inst.element.className = `widget ${widgetType} ${newId}`;
       }
       
+      // Update in-memory Maps for widgets that use them (stopwatch, scoreboard, etc.)
+      // This must happen BEFORE localStorage keys are renamed, so load functions can find the data
+      if (widgetType === 'stopwatch-widget') {
+        // Update stopwatchStates Map
+        if (stopwatchStates.has(oldId)) {
+          const state = stopwatchStates.get(oldId);
+          stopwatchStates.set(newId, state);
+          stopwatchStates.delete(oldId);
+        }
+        // Update stopwatchIntervals Map (stop old interval, will be restarted by loadStopwatch)
+        if (stopwatchIntervals.has(oldId)) {
+          const interval = stopwatchIntervals.get(oldId);
+          clearInterval(interval);
+          stopwatchIntervals.delete(oldId);
+        }
+      } else if (widgetType === 'scoreboard-widget') {
+        // Update scoreboard Maps
+        if (scoreboardConfigs.has(oldId)) {
+          const config = scoreboardConfigs.get(oldId);
+          scoreboardConfigs.set(newId, config);
+          scoreboardConfigs.delete(oldId);
+        }
+        if (scoreboardScores.has(oldId)) {
+          const scores = scoreboardScores.get(oldId);
+          scoreboardScores.set(newId, scores);
+          scoreboardScores.delete(oldId);
+        }
+        if (scoreboardWinners.has(oldId)) {
+          const winners = scoreboardWinners.get(oldId);
+          scoreboardWinners.set(newId, winners);
+          scoreboardWinners.delete(oldId);
+        }
+      }
+      
       // Rename localStorage keys
       // Keys now use format: dakboard-{type}-{fullWidgetId} where fullWidgetId already includes page and instance
       for (let i = 0; i < localStorage.length; i++) {
