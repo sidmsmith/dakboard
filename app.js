@@ -7970,44 +7970,66 @@ function toggleWidgetVisibility(fullWidgetId) {
       // Load widget-specific data and styles first
       loadWidgetStyles(fullWidgetId);
       
+      // Load layout for the widget if it exists (position, size, rotation)
+      if (typeof loadWidgetLayout === 'function') {
+        loadWidgetLayout();
+      }
+      
       // Initialize widget instance (this also calls load functions with delay)
       initializeWidgetInstance(fullWidgetId, widget);
       
-      // Also call load functions directly with a delay to ensure they run
-      // This is a backup in case initializeWidgetInstance's delayed call doesn't catch it
-      setTimeout(() => {
-        if (widgetType === 'dice-widget' && typeof loadDice === 'function') {
-          loadDice();
-        } else if (widgetType === 'stopwatch-widget' && typeof loadStopwatch === 'function') {
-          loadStopwatch();
-        } else if (widgetType === 'scoreboard-widget' && typeof loadScoreboard === 'function') {
-          loadScoreboard();
-        } else if (widgetType === 'clip-art-widget' && typeof loadClipArt === 'function') {
-          loadClipArt();
-        } else if (widgetType === 'stoplight-widget' && typeof loadStoplight === 'function') {
-          loadStoplight();
-        } else if (widgetType === 'weather-widget' && typeof loadWeather === 'function') {
-          loadWeather();
-        } else if (widgetType === 'todos-widget' && typeof loadTodos === 'function') {
-          loadTodos();
-        } else if (widgetType === 'garage-doors-widget' && typeof loadGarageDoors === 'function') {
-          loadGarageDoors();
-        } else if (widgetType === 'alarm-widget' && typeof loadAlarm === 'function') {
-          loadAlarm();
-        } else if (widgetType === 'thermostat-widget' && typeof loadThermostat === 'function') {
-          loadThermostat();
-        } else if (widgetType === 'compressor-widget' && typeof loadCompressor === 'function') {
-          loadCompressor();
-        } else if (widgetType === 'news-widget' && typeof loadNews === 'function') {
-          loadNews();
-        } else if (widgetType === 'calendar-widget' && typeof loadCalendarEvents === 'function') {
-          loadCalendarEvents();
-        } else if (widgetType === 'agenda-widget' && typeof loadAgenda === 'function') {
-          loadAgenda();
-        } else if (widgetType === 'blank-widget') {
-          // Blank widget doesn't need special loading
+      // For Dice and Stopwatch, ensure they're initialized properly
+      // These widgets need their container elements to exist and be ready
+      if (widgetType === 'dice-widget' || widgetType === 'stopwatch-widget') {
+        // Force a reflow to ensure DOM is ready
+        void widget.offsetHeight;
+        
+        // Call load function with multiple retries to ensure it finds the widget
+        const loadFunction = widgetType === 'dice-widget' ? loadDice : loadStopwatch;
+        if (typeof loadFunction === 'function') {
+          // Immediate attempt
+          loadFunction();
+          // Retry after short delay
+          setTimeout(() => {
+            loadFunction();
+          }, 50);
+          // Final retry
+          setTimeout(() => {
+            loadFunction();
+          }, 200);
         }
-      }, 150); // Delay to ensure widget is fully in DOM and visible
+      } else {
+        // For other widgets, use the standard delayed call
+        setTimeout(() => {
+          if (widgetType === 'scoreboard-widget' && typeof loadScoreboard === 'function') {
+            loadScoreboard();
+          } else if (widgetType === 'clip-art-widget' && typeof loadClipArt === 'function') {
+            loadClipArt();
+          } else if (widgetType === 'stoplight-widget' && typeof loadStoplight === 'function') {
+            loadStoplight();
+          } else if (widgetType === 'weather-widget' && typeof loadWeather === 'function') {
+            loadWeather();
+          } else if (widgetType === 'todos-widget' && typeof loadTodos === 'function') {
+            loadTodos();
+          } else if (widgetType === 'garage-doors-widget' && typeof loadGarageDoors === 'function') {
+            loadGarageDoors();
+          } else if (widgetType === 'alarm-widget' && typeof loadAlarm === 'function') {
+            loadAlarm();
+          } else if (widgetType === 'thermostat-widget' && typeof loadThermostat === 'function') {
+            loadThermostat();
+          } else if (widgetType === 'compressor-widget' && typeof loadCompressor === 'function') {
+            loadCompressor();
+          } else if (widgetType === 'news-widget' && typeof loadNews === 'function') {
+            loadNews();
+          } else if (widgetType === 'calendar-widget' && typeof loadCalendarEvents === 'function') {
+            loadCalendarEvents();
+          } else if (widgetType === 'agenda-widget' && typeof loadAgenda === 'function') {
+            loadAgenda();
+          } else if (widgetType === 'blank-widget') {
+            // Blank widget doesn't need special loading
+          }
+        }, 150);
+      }
     } else {
       widget.classList.add('hidden');
       
