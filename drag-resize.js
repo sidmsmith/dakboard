@@ -185,16 +185,40 @@ function initializeDragAndResize() {
   // Process widgets immediately, but also retry after a short delay to catch any widgets that are added later
   const processWidgets = () => {
     // Get all widgets on the current page (including hidden ones, we'll filter below)
+    // Also check for widgets that might have widgetType class but missing .widget class
     const allWidgets = currentPage.querySelectorAll('.widget');
     
-    if (allWidgets.length === 0) {
+    // Also find widgets by type that might be missing .widget class (defensive)
+    const widgetTypes = ['scoreboard-widget', 'stopwatch-widget', 'stoplight-widget', 'dice-widget', 
+                         'blank-widget', 'whiteboard-widget', 'compressor-widget', 'thermostat-widget',
+                         'weather-widget', 'todo-widget', 'calendar-widget', 'agenda-widget', 'tasks-widget'];
+    const widgetsByType = new Set();
+    widgetTypes.forEach(type => {
+      currentPage.querySelectorAll(`.${type}`).forEach(w => {
+        if (!w.classList.contains('hidden')) {
+          widgetsByType.add(w);
+        }
+      });
+    });
+    
+    // Combine both sets to ensure we catch all widgets
+    const allWidgetsSet = new Set(Array.from(allWidgets));
+    widgetsByType.forEach(w => allWidgetsSet.add(w));
+    const widgetsToProcess = Array.from(allWidgetsSet);
+    
+    if (widgetsToProcess.length === 0) {
       return;
     }
     
-    allWidgets.forEach((widget, index) => {
+    widgetsToProcess.forEach((widget, index) => {
       // Skip hidden widgets
       if (widget.classList.contains('hidden')) {
         return;
+      }
+      
+      // Ensure widget has .widget class (defensive fix for reindexed widgets)
+      if (!widget.classList.contains('widget')) {
+        widget.classList.add('widget');
       }
       
       // Remove existing resize handles first (in case we're re-initializing)

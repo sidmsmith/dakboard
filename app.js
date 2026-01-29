@@ -1507,6 +1507,20 @@ async function loadAllData() {
       loadAgenda();
       // Load tasks widget (after todos for list discovery)
       loadTasks();
+      
+      // Update widget control panel after all widgets are loaded
+      // This ensures side panel shows accurate state after page refresh
+      // Only update if panel is open to avoid unnecessary work
+      if (typeof updateWidgetControlPanel === 'function') {
+        const panel = document.getElementById('widget-control-panel');
+        if (panel && panel.classList.contains('open')) {
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              updateWidgetControlPanel();
+            }, 200);
+          });
+        }
+      }
     });
   } catch (error) {
     console.error('Error loading dashboard data:', error);
@@ -8165,8 +8179,8 @@ function setEditMode(enabled) {
   // Reinitialize drag/resize when toggling edit mode
   if (typeof initializeDragAndResize === 'function') {
     if (enabled) {
-      // When entering edit mode, initialize immediately and also after a short delay
-      // This ensures handles appear even if DOM isn't fully ready
+      // When entering edit mode, initialize immediately and also after delays
+      // This ensures handles appear even if DOM isn't fully ready, including reindexed widgets
       initializeDragAndResize();
       setTimeout(() => {
         initializeDragAndResize();
@@ -8174,6 +8188,10 @@ function setEditMode(enabled) {
       setTimeout(() => {
         initializeDragAndResize();
       }, 300);
+      // Additional retry for reindexed widgets that might need more time
+      setTimeout(() => {
+        initializeDragAndResize();
+      }, 500);
     } else {
       // When exiting edit mode, remove all handles immediately
       const pageElement = getPageElement(currentPageIndex);
@@ -8193,6 +8211,12 @@ function setEditMode(enabled) {
   // Update widget control panel to reflect button states
   if (typeof updateWidgetControlPanel === 'function') {
     updateWidgetControlPanel();
+  }
+  
+  // Keep Edit Layout checkbox in sync with actual edit mode state
+  const editToggle = document.getElementById('edit-layout-toggle');
+  if (editToggle) {
+    editToggle.checked = enabled;
   }
 }
 
@@ -8298,11 +8322,37 @@ function updateWidgetControlPanel() {
     return a.instanceIndex - b.instanceIndex;
   });
   
+  // Get visibility state from localStorage to ensure accurate display
+  const visibilityKey = `dakboard-widget-visibility-page-${currentPageIndex}`;
+  const savedVisibility = localStorage.getItem(visibilityKey);
+  const visibility = savedVisibility ? JSON.parse(savedVisibility) : {};
+  
+  // Filter out placeholders that shouldn't be shown
+  // Only show widgets that exist on the page OR have visibility=true in localStorage
+  const filteredInstances = allInstances.filter(instance => {
+    // If it's a placeholder (no element), only show if visibility is explicitly true
+    if (instance.isPlaceholder) {
+      const fullWidgetId = instance.fullId;
+      return visibility[fullWidgetId] === true;
+    }
+    // If widget exists, always show it (visibility state is handled by eye icon)
+    return true;
+  });
+  
   // Create control panel items for each instance
-  allInstances.forEach(instance => {
+  filteredInstances.forEach(instance => {
     const config = WIDGET_CONFIG[instance.widgetType];
     const widget = instance.element;
-    const isHidden = !widget || widget.classList.contains('hidden');
+    
+    // Check visibility from both DOM and localStorage for accuracy
+    // localStorage is the source of truth, but DOM state is also checked
+    const visibilityFromStorage = visibility[instance.fullId];
+    const isHiddenFromDOM = !widget || widget.classList.contains('hidden');
+    // If visibility is explicitly set in storage, use that; otherwise use DOM state
+    const isHidden = visibilityFromStorage !== undefined 
+      ? visibilityFromStorage === false 
+      : isHiddenFromDOM;
+    
     const isClone = instance.instanceIndex > 0;
     
     // Get widget title (configured title or default name)
@@ -8474,8 +8524,11 @@ function cloneWidget(fullWidgetId) {
   
   if (!sourceWidget) {
     console.error(`Could not find source widget with ID: ${fullWidgetId}. Available instances:`, instances.map(i => i.fullId));
-    // If original doesn't exist, create it first
-    const templateWidget = document.querySelector(`.${widgetType}`);
+    // If original doesn't exist, create it first. Prefer same-page template so we clone from correct layout context.
+    let templateWidget = pageElement.querySelector(`.${widgetType}`);
+    if (!templateWidget) {
+      templateWidget = document.querySelector(`.${widgetType}`);
+    }
     if (!templateWidget) {
       console.error(`Widget template ${widgetType} not found`);
       return;
@@ -8910,9 +8963,9 @@ function removeWidgetInstance(fullWidgetId) {
       const newInstanceIndex = inst.instanceIndex - 1;
       const newId = generateWidgetId(widgetType, pageIndex, newInstanceIndex);
       
-      // Update widget element class
+      // Update widget element class (preserve 'widget' class)
       if (inst.element) {
-        inst.element.className = `${widgetType} ${newId}`;
+        inst.element.className = `widget ${widgetType} ${newId}`;
       }
       
       // Rename localStorage keys
@@ -8966,14 +9019,60 @@ function removeWidgetInstance(fullWidgetId) {
     }
   });
   
-  // Update control panel
-  updateWidgetControlPanel();
+  // Refresh in-memory state for this widget type so Maps match reindexed IDs
+  // (Reindexing only updated DOM and localStorage; load functions rebuild from localStorage.)
+  // After widget load completes, reinitialize drag/resize to ensure resize handles are added
+  const reinitializeAfterLoad = () => {
+    // Update control panel
+    updateWidgetControlPanel();
+    
+    // Reinitialize drag/resize after widget state is refreshed
+    // This ensures resize handles are added to reindexed widgets
+    // Use multiple retries to ensure reindexed widgets get handles
+    if (typeof initializeDragAndResize === 'function') {
+      // Immediate attempt
+      requestAnimationFrame(() => {
+        initializeDragAndResize();
+      });
+      // Retry after DOM updates
+      setTimeout(() => {
+        initializeDragAndResize();
+      }, 150);
+      // Final retry for widgets that need more time
+      setTimeout(() => {
+        initializeDragAndResize();
+      }, 400);
+    }
+  };
   
-  // Reinitialize drag/resize
-  if (typeof initializeDragAndResize === 'function') {
-    setTimeout(() => {
-      initializeDragAndResize();
-    }, 100);
+  if (widgetType === 'scoreboard-widget' && typeof loadScoreboard === 'function') {
+    loadScoreboard();
+    reinitializeAfterLoad();
+  } else if (widgetType === 'stopwatch-widget' && typeof loadStopwatch === 'function') {
+    loadStopwatch();
+    reinitializeAfterLoad();
+  } else if (widgetType === 'stoplight-widget' && typeof loadStoplight === 'function') {
+    loadStoplight();
+    reinitializeAfterLoad();
+  } else if (widgetType === 'whiteboard-widget' && typeof initializeWhiteboard === 'function') {
+    initializeWhiteboard();
+    reinitializeAfterLoad();
+  } else if (widgetType === 'dice-widget' && typeof loadDice === 'function') {
+    loadDice();
+    reinitializeAfterLoad();
+  } else if (widgetType === 'compressor-widget' && typeof loadCompressor === 'function') {
+    loadCompressor();
+    reinitializeAfterLoad();
+  } else if (widgetType === 'thermostat-widget' && typeof loadThermostat === 'function') {
+    loadThermostat();
+    reinitializeAfterLoad();
+  } else if (widgetType === 'blank-widget' && typeof loadClipArt === 'function') {
+    loadClipArt();
+    reinitializeAfterLoad();
+  } else {
+    // Other widget types (weather, todo, calendar, etc.) don't use instance-scoped in-memory Maps that need refresh.
+    // But still need to reinitialize drag/resize for resize handles
+    reinitializeAfterLoad();
   }
 }
 
@@ -8994,8 +9093,11 @@ function moveWidgetToPage(fullWidgetId, targetPageIndex) {
   // Find the widget on source page
   const widget = sourcePageElement.querySelector(`.${fullWidgetId}`);
   if (!widget) {
-    // Widget might be hidden/not exist, check if we need to create it
-    const templateWidget = document.querySelector(`.${widgetType}`);
+    // Widget might be hidden/not exist; create from template. Prefer source page so we use correct instance.
+    let templateWidget = sourcePageElement.querySelector(`.${widgetType}`);
+    if (!templateWidget) {
+      templateWidget = document.querySelector(`.${widgetType}`);
+    }
     if (!templateWidget) {
       console.error(`Widget template ${widgetType} not found`);
       return;
@@ -9034,8 +9136,11 @@ function moveWidgetToPage(fullWidgetId, targetPageIndex) {
     currentPageIndex = tempPageIndex;
     window.currentPageIndex = tempPageIndex;
   } else {
-    // Create from template if widget doesn't exist
-    const templateWidget = document.querySelector(`.${widgetType}`);
+    // Create from template if widget doesn't exist. Prefer source page template.
+    let templateWidget = sourcePageElement.querySelector(`.${widgetType}`);
+    if (!templateWidget) {
+      templateWidget = document.querySelector(`.${widgetType}`);
+    }
     if (templateWidget) {
       const cloned = templateWidget.cloneNode(true);
       cloned.className = `widget ${widgetType} ${newFullId}`;
@@ -9151,6 +9256,13 @@ function copyWidgetConfiguration(sourceFullId, targetFullId, targetPageIndex, so
     const sourceScores = localStorage.getItem(sourceScoresKey);
     if (sourceScores) {
       localStorage.setItem(targetScoresKey, sourceScores);
+    }
+    
+    const sourceWinnersKey = `dakboard-scoreboard-winners-${sourceFullId}`;
+    const targetWinnersKey = `dakboard-scoreboard-winners-${targetFullId}`;
+    const sourceWinners = localStorage.getItem(sourceWinnersKey);
+    if (sourceWinners) {
+      localStorage.setItem(targetWinnersKey, sourceWinners);
     }
   }
   
@@ -9870,14 +9982,23 @@ function showPage(pageIndex, direction = null) {
     updatePageList();
   }
   
-  // Refresh widget control panel to show correct visibility for current page
-  if (typeof updateWidgetControlPanel === 'function') {
-    updateWidgetControlPanel();
-  }
-  
   // Reinitialize drag and resize for current page
   if (typeof initializeDragAndResize === 'function') {
     initializeDragAndResize();
+  }
+  
+  // Refresh widget control panel AFTER widgets are loaded and drag/resize is initialized
+  // This ensures side panel shows accurate state (visibility, enabled state, etc.)
+  // CRITICAL: Wait for loadWidgetVisibility to complete (it's called in loadCurrentPage)
+  // Use a single, well-timed update after all initialization completes
+  if (typeof updateWidgetControlPanel === 'function') {
+    // Wait for loadWidgetVisibility and all widget initialization to complete
+    // Use requestAnimationFrame to ensure DOM is ready, then setTimeout for async operations
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        updateWidgetControlPanel();
+      }, 300); // Single update after sufficient delay for all operations
+    });
   }
   
   // Reinitialize whiteboard for current page
