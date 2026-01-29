@@ -4188,6 +4188,11 @@ footer a:hover {
   opacity: 0.5;
 }
 
+/* When move dropdown is open, show full opacity so "choose page" is readable */
+.widget-control-item.hidden.move-dropdown-open {
+  opacity: 1;
+}
+
 .widget-control-item-info {
   display: flex;
   align-items: center;

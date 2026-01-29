@@ -8314,6 +8314,8 @@ function updateWidgetControlPanel() {
       if (!e.target.closest('.widget-control-move-btn') && !e.target.closest('.widget-control-move-dropdown')) {
         document.querySelectorAll('.widget-control-move-dropdown').forEach(dd => {
           dd.style.display = 'none';
+          const parentItem = dd.closest('.widget-control-item');
+          if (parentItem) parentItem.classList.remove('move-dropdown-open');
         });
       }
     });
@@ -8525,6 +8527,7 @@ function updateWidgetControlPanel() {
             if (inEditMode) return; // Prevent action in Edit Mode
             moveWidgetToPage(instance.fullId, i);
             moveDropdown.style.display = 'none';
+            item.classList.remove('move-dropdown-open');
           });
           moveDropdown.appendChild(pageOption);
         }
@@ -8534,11 +8537,19 @@ function updateWidgetControlPanel() {
         e.stopPropagation();
         if (inEditMode) return; // Prevent action in Edit Mode
         const isVisible = moveDropdown.style.display === 'block';
-        // Hide all other dropdowns
+        // Hide all other dropdowns and remove their open state
         document.querySelectorAll('.widget-control-move-dropdown').forEach(dd => {
           dd.style.display = 'none';
+          const parentItem = dd.closest('.widget-control-item');
+          if (parentItem) parentItem.classList.remove('move-dropdown-open');
         });
         moveDropdown.style.display = isVisible ? 'none' : 'block';
+        // When opening, add class so row is full opacity (dropdown readable when widget is hidden)
+        if (!isVisible) {
+          item.classList.add('move-dropdown-open');
+        } else {
+          item.classList.remove('move-dropdown-open');
+        }
       });
     }
     
