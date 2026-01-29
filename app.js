@@ -7967,44 +7967,47 @@ function toggleWidgetVisibility(fullWidgetId) {
       }), 1);
       widget.style.zIndex = (maxZIndex + 1).toString();
       
-      // Initialize widget instance
-      initializeWidgetInstance(fullWidgetId, widget);
-      
-      // Load widget-specific data and styles
+      // Load widget-specific data and styles first
       loadWidgetStyles(fullWidgetId);
       
-      // Load widget-specific functionality based on type
-      if (widgetType === 'dice-widget') {
-        loadDice();
-      } else if (widgetType === 'stopwatch-widget') {
-        loadStopwatch();
-      } else if (widgetType === 'scoreboard-widget') {
-        loadScoreboard();
-      } else if (widgetType === 'clip-art-widget') {
-        loadClipArt();
-      } else if (widgetType === 'stoplight-widget') {
-        loadStoplight();
-      } else if (widgetType === 'weather-widget') {
-        loadWeather();
-      } else if (widgetType === 'todos-widget') {
-        loadTodos();
-      } else if (widgetType === 'garage-doors-widget') {
-        loadGarageDoors();
-      } else if (widgetType === 'alarm-widget') {
-        loadAlarm();
-      } else if (widgetType === 'thermostat-widget') {
-        loadThermostat();
-      } else if (widgetType === 'compressor-widget') {
-        loadCompressor();
-      } else if (widgetType === 'news-widget') {
-        loadNews();
-      } else if (widgetType === 'calendar-widget') {
-        loadCalendarEvents();
-      } else if (widgetType === 'agenda-widget') {
-        loadAgenda();
-      } else if (widgetType === 'blank-widget') {
-        // Blank widget doesn't need special loading
-      }
+      // Initialize widget instance (this also calls load functions with delay)
+      initializeWidgetInstance(fullWidgetId, widget);
+      
+      // Also call load functions directly with a delay to ensure they run
+      // This is a backup in case initializeWidgetInstance's delayed call doesn't catch it
+      setTimeout(() => {
+        if (widgetType === 'dice-widget' && typeof loadDice === 'function') {
+          loadDice();
+        } else if (widgetType === 'stopwatch-widget' && typeof loadStopwatch === 'function') {
+          loadStopwatch();
+        } else if (widgetType === 'scoreboard-widget' && typeof loadScoreboard === 'function') {
+          loadScoreboard();
+        } else if (widgetType === 'clip-art-widget' && typeof loadClipArt === 'function') {
+          loadClipArt();
+        } else if (widgetType === 'stoplight-widget' && typeof loadStoplight === 'function') {
+          loadStoplight();
+        } else if (widgetType === 'weather-widget' && typeof loadWeather === 'function') {
+          loadWeather();
+        } else if (widgetType === 'todos-widget' && typeof loadTodos === 'function') {
+          loadTodos();
+        } else if (widgetType === 'garage-doors-widget' && typeof loadGarageDoors === 'function') {
+          loadGarageDoors();
+        } else if (widgetType === 'alarm-widget' && typeof loadAlarm === 'function') {
+          loadAlarm();
+        } else if (widgetType === 'thermostat-widget' && typeof loadThermostat === 'function') {
+          loadThermostat();
+        } else if (widgetType === 'compressor-widget' && typeof loadCompressor === 'function') {
+          loadCompressor();
+        } else if (widgetType === 'news-widget' && typeof loadNews === 'function') {
+          loadNews();
+        } else if (widgetType === 'calendar-widget' && typeof loadCalendarEvents === 'function') {
+          loadCalendarEvents();
+        } else if (widgetType === 'agenda-widget' && typeof loadAgenda === 'function') {
+          loadAgenda();
+        } else if (widgetType === 'blank-widget') {
+          // Blank widget doesn't need special loading
+        }
+      }, 150); // Delay to ensure widget is fully in DOM and visible
     } else {
       widget.classList.add('hidden');
       
