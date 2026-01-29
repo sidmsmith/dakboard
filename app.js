@@ -9035,7 +9035,7 @@ function removeWidgetInstance(fullWidgetId) {
         inst.element.className = `widget ${widgetType} ${newId}`;
       }
       
-      // Update in-memory Maps for widgets that use them (stopwatch, scoreboard, etc.)
+      // Update in-memory Maps for widgets that use them (stopwatch, scoreboard, stoplight, agenda, whiteboard, etc.)
       // This must happen BEFORE localStorage keys are renamed, so load functions can find the data
       if (widgetType === 'stopwatch-widget') {
         // Update stopwatchStates Map
@@ -9067,6 +9067,57 @@ function removeWidgetInstance(fullWidgetId) {
           scoreboardWinners.set(newId, winners);
           scoreboardWinners.delete(oldId);
         }
+      } else if (widgetType === 'stoplight-widget') {
+        // Update stoplightStates Map
+        if (stoplightStates.has(oldId)) {
+          const state = stoplightStates.get(oldId);
+          stoplightStates.set(newId, state);
+          stoplightStates.delete(oldId);
+        }
+      } else if (widgetType === 'agenda-widget') {
+        // Update agendaDates Map
+        if (agendaDates.has(oldId)) {
+          const date = agendaDates.get(oldId);
+          agendaDates.set(newId, date);
+          agendaDates.delete(oldId);
+        }
+      } else if (widgetType === 'whiteboard-widget') {
+        // Update whiteboardStates Map
+        if (whiteboardStates.has(oldId)) {
+          const state = whiteboardStates.get(oldId);
+          whiteboardStates.set(newId, state);
+          whiteboardStates.delete(oldId);
+        }
+      } else if (widgetType === 'tasks-widget') {
+        // Update tasks Maps - these use cardId which includes widgetId, so we need to update all entries
+        // cardId format: `${widgetId}-${item.uid}`
+        const tasksKeysToUpdate = [];
+        tasksLongPressTimers.forEach((timer, cardId) => {
+          if (cardId.startsWith(oldId + '-')) {
+            tasksKeysToUpdate.push(cardId);
+          }
+        });
+        tasksKeysToUpdate.forEach(oldCardId => {
+          const newCardId = oldCardId.replace(oldId, newId);
+          // Update timers
+          if (tasksLongPressTimers.has(oldCardId)) {
+            const timer = tasksLongPressTimers.get(oldCardId);
+            tasksLongPressTimers.set(newCardId, timer);
+            tasksLongPressTimers.delete(oldCardId);
+          }
+          // Update cards
+          if (tasksLongPressCards.has(oldCardId)) {
+            const card = tasksLongPressCards.get(oldCardId);
+            tasksLongPressCards.set(newCardId, card);
+            tasksLongPressCards.delete(oldCardId);
+          }
+          // Update selection state
+          if (tasksJustEnteredSelection.has(oldCardId)) {
+            const card = tasksJustEnteredSelection.get(oldCardId);
+            tasksJustEnteredSelection.set(newCardId, card);
+            tasksJustEnteredSelection.delete(oldCardId);
+          }
+        });
       }
       
       // Rename localStorage keys
