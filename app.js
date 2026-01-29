@@ -7917,6 +7917,47 @@ function toggleWidgetVisibility(fullWidgetId) {
       // Mark as hidden initially so it will be shown below
       widget.classList.add('hidden');
       widgetJustCreated = true;
+      
+      // Set default position if widget doesn't have one (required for position: absolute)
+      // Check if layout exists in localStorage first
+      const layoutKey = `dakboard-widget-layout-page-${pageIndex}`;
+      const savedLayout = localStorage.getItem(layoutKey);
+      let hasLayout = false;
+      if (savedLayout) {
+        try {
+          const layout = JSON.parse(savedLayout);
+          if (layout[fullWidgetId]) {
+            hasLayout = true;
+          }
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+      
+      // If no saved layout, set default position (center of screen with offset for multiple widgets)
+      if (!hasLayout) {
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        // Default size based on widget type
+        let defaultWidth = 300;
+        let defaultHeight = 200;
+        if (widgetType === 'calendar-widget') {
+          defaultWidth = 800;
+          defaultHeight = 500;
+        } else if (widgetType === 'weather-widget') {
+          defaultWidth = 500;
+          defaultHeight = 400;
+        }
+        // Center with slight offset to avoid overlapping with other new widgets
+        const defaultLeft = Math.max(50, (viewportWidth - defaultWidth) / 2);
+        const defaultTop = Math.max(50, (viewportHeight - defaultHeight) / 2);
+        widget.style.left = `${defaultLeft}px`;
+        widget.style.top = `${defaultTop}px`;
+        widget.style.width = `${defaultWidth}px`;
+        widget.style.height = `${defaultHeight}px`;
+        widget.style.position = 'absolute';
+      }
+      
       pageElement.appendChild(widget);
       
       // Set initial z-index to bring new widget to front
