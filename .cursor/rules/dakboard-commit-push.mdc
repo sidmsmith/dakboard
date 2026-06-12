@@ -1,0 +1,23 @@
+---
+description: Always commit and push dakboard changes after every update
+globs: "**/*"
+alwaysApply: true
+---
+
+# Dakboard: Commit and push after every update
+
+When you make changes in this **dakboard** repo, always commit and push to `main` when the updates are done—unless the user explicitly says not to.
+
+## Remote
+
+- **Repository:** https://github.com/sidmsmith/dakboard
+- **Branch:** `main`
+
+## Steps (final step after completing edits)
+
+1. `cd` to the dakboard repo root (this directory).
+2. `git status` and `git diff` — stage only files related to your changes (not unrelated build artifacts or secrets like `config.js`).
+3. `git commit -m "..."` with a clear message focused on **why**.
+4. `git push origin main`.
+
+Do this after every update batch, not only when the user asks.

@@ -11,6 +11,13 @@ const CONFIG = {
   HA_GARAGE_DOOR_3: 'binary_sensor.z_wave_garage_door_sensor_sensor_state_any_3',
   HA_ALARM_ENTITY: 'alarm_control_panel.dev_ttyusb0_alarm_panel', // Update with your alarm entity ID
   HA_COMPRESSOR_ENTITY: 'switch.z_wave_outdoor_smart_plug', // Air Compressor switch
+
+  // Sprinkler Configuration
+  HA_SPRINKLER_FORCE_ENTITY: 'input_select.sprinkler_force_mode',
+  HA_SPRINKLER_STRIP_ENTITY: 'switch.smart_strip_3',
+  HA_SPRINKLER_SUMMARY_ENTITY: 'sensor.sprinkler_weather_rain_summary',
+  HA_SPRINKLER_MAY_RUN_ENTITY: 'binary_sensor.sprinkler_may_run_today',
+  HA_SPRINKLER_MASTER_ENTITY: 'input_boolean.sprinkler_master_enabled',
   
   // Thermostat Configuration
   HA_THERMOSTAT_1: 'climate.trane_z_wave_programmable_thermostat', // Basement
@@ -1493,6 +1500,7 @@ async function loadAllData() {
       loadGarageDoors(),
       loadAlarm(),
       loadCompressor(), // Load air compressor
+      loadSprinkler(), // Load sprinklers
       loadDice(), // Load dice widget
       loadStopwatch(), // Load stopwatch widget
       loadScoreboard(), // Load scoreboard widget
@@ -2846,6 +2854,295 @@ async function toggleCompressor() {
         if (icon) icon.classList.remove('loading');
       });
     }
+  }
+}
+
+const SPRINKLER_FORCE_MODES = ['None', 'Force ON', 'Force OFF'];
+let sprinklerOptimisticForceMode = null;
+let sprinklerOptimisticStripOn = null;
+
+function nextSprinklerForceMode(current) {
+  const idx = SPRINKLER_FORCE_MODES.indexOf(current);
+  if (idx === -1) return 'None';
+  return SPRINKLER_FORCE_MODES[(idx + 1) % SPRINKLER_FORCE_MODES.length];
+}
+
+function getSprinklerForceDisplay(mode, masterEnabled) {
+  if (!masterEnabled) {
+    return { label: 'MASTER OFF', color: '#6c757d', cssClass: 'master-off', iconName: 'sprinkler-variant-off' };
+  }
+  switch (mode) {
+    case 'Force ON':
+      return { label: 'FORCE ON', color: '#28a745', cssClass: 'force-on', iconName: 'sprinkler' };
+    case 'Force OFF':
+      return { label: 'FORCE OFF', color: '#dc3545', cssClass: 'force-off', iconName: 'sprinkler-off' };
+    default:
+      return { label: 'AUTO', color: '#4a90e2', cssClass: 'auto', iconName: 'sprinkler' };
+  }
+}
+
+function renderSprinklerIconSvg(iconSvg, color) {
+  if (!iconSvg) return null;
+  let svg = iconSvg.replace(/fill="[^"]*"/g, '');
+  svg = svg.replace('<svg', `<svg style="fill: ${color}; width: 100%; height: 100%;"`);
+  return svg;
+}
+
+function updateSprinklerWidgetInstance(widget, data, icons) {
+  if (!widget || widget.classList.contains('hidden')) return;
+
+  const masterBanner = widget.querySelector('.sprinkler-master-banner');
+  const forceIcon = widget.querySelector('.sprinkler-force-icon');
+  const forceLabel = widget.querySelector('.sprinkler-force-state-label');
+  const stripIcon = widget.querySelector('.sprinkler-strip-icon');
+  const stripLabel = widget.querySelector('.sprinkler-strip-state-label');
+  const summaryEl = widget.querySelector('.sprinkler-summary');
+  const mayRunEl = widget.querySelector('.sprinkler-may-run');
+
+  widget.classList.toggle('sprinkler-master-disabled', !data.masterEnabled);
+
+  if (masterBanner) {
+    masterBanner.classList.toggle('hidden', data.masterEnabled);
+  }
+
+  if (forceIcon && forceLabel) {
+    const display = getSprinklerForceDisplay(data.forceMode, data.masterEnabled);
+    forceIcon.className = `sprinkler-control-icon sprinkler-force-icon ${display.cssClass}`;
+    forceIcon.classList.toggle('disabled', !data.masterEnabled);
+    forceLabel.textContent = display.label;
+
+    const iconSvg = icons[display.iconName] || icons.sprinkler;
+    const rendered = renderSprinklerIconSvg(iconSvg, display.color);
+    forceIcon.innerHTML = rendered || `<div style="font-size: 48px; color: ${display.color};">💧</div>`;
+
+    forceIcon.style.cursor = (!isEditMode && data.masterEnabled) ? 'pointer' : 'default';
+    forceIcon.onclick = () => {
+      if (!isEditMode && data.masterEnabled) {
+        cycleSprinklerForceMode();
+      }
+    };
+  }
+
+  if (stripIcon && stripLabel) {
+    const isOn = data.stripOn;
+    const isUnavailable = data.stripUnavailable;
+    stripIcon.classList.remove('on', 'off', 'unavailable');
+    if (isUnavailable) {
+      stripIcon.classList.add('unavailable');
+      stripLabel.textContent = 'N/A';
+      stripIcon.innerHTML = '<div style="font-size: 48px; color: #6c757d;">⚡</div>';
+    } else {
+      stripIcon.classList.add(isOn ? 'on' : 'off');
+      stripLabel.textContent = isOn ? 'ON' : 'OFF';
+      const stripColor = isOn ? '#28a745' : '#dc3545';
+      const rendered = renderSprinklerIconSvg(icons.power, stripColor);
+      stripIcon.innerHTML = rendered || `<div style="font-size: 48px; color: ${stripColor};">⚡</div>`;
+    }
+
+    stripIcon.style.cursor = (!isEditMode && !isUnavailable) ? 'pointer' : 'default';
+    stripIcon.onclick = () => {
+      if (!isEditMode && !isUnavailable) {
+        toggleSprinklerStrip();
+      }
+    };
+  }
+
+  if (summaryEl) {
+    summaryEl.textContent = data.summary || 'No rain summary available';
+  }
+
+  if (mayRunEl && data.updateMayRun !== false) {
+    if (data.mayRunState === 'on' || data.mayRunState === 'off') {
+      const dotColor = data.mayRunState === 'on' ? '#28a745' : '#dc3545';
+      const statusText = data.mayRunState === 'on' ? 'ON' : 'OFF';
+      let mayRunHtml = `<span class="sprinkler-may-run-dot" style="color: ${dotColor};">●</span> May run today: <strong>${statusText}</strong>`;
+      if (data.mayRunReason) {
+        mayRunHtml += ` <span class="sprinkler-may-run-reason">— ${data.mayRunReason}</span>`;
+      }
+      mayRunEl.innerHTML = mayRunHtml;
+      mayRunEl.classList.remove('hidden');
+    } else if (data.mayRunState !== undefined) {
+      mayRunEl.textContent = '';
+      mayRunEl.classList.add('hidden');
+    }
+  }
+}
+
+async function loadSprinkler() {
+  try {
+    const [forceEntity, stripEntity, summaryEntity, mayRunEntity, masterEntity] = await Promise.all([
+      fetchHAEntity(CONFIG.HA_SPRINKLER_FORCE_ENTITY).catch(() => null),
+      fetchHAEntity(CONFIG.HA_SPRINKLER_STRIP_ENTITY).catch(() => null),
+      fetchHAEntity(CONFIG.HA_SPRINKLER_SUMMARY_ENTITY).catch(() => null),
+      fetchHAEntity(CONFIG.HA_SPRINKLER_MAY_RUN_ENTITY).catch(() => null),
+      fetchHAEntity(CONFIG.HA_SPRINKLER_MASTER_ENTITY).catch(() => null)
+    ]);
+
+    const instances = getWidgetInstances('sprinkler-widget', currentPageIndex);
+    if (instances.length === 0) return;
+
+    const actualForceMode = forceEntity?.state || 'None';
+    const forceMode = sprinklerOptimisticForceMode ?? actualForceMode;
+    const stripUnavailable = !stripEntity || ['unavailable', 'unknown'].includes(stripEntity.state);
+    const actualStripOn = stripEntity?.state === 'on';
+    const stripOn = sprinklerOptimisticStripOn ?? actualStripOn;
+    const masterEnabled = masterEntity?.state === 'on';
+    const summary = summaryEntity?.state && !['unavailable', 'unknown', 'none'].includes(summaryEntity.state)
+      ? summaryEntity.state
+      : '';
+    const mayRunState = mayRunEntity?.state;
+    const mayRunReason = mayRunEntity?.attributes?.reason || '';
+
+    const icons = {};
+    const iconNames = ['sprinkler', 'sprinkler-off', 'sprinkler-variant-off', 'power'];
+    await Promise.all(iconNames.map(async (name) => {
+      icons[name] = await fetchMDIIcon(name);
+    }));
+
+    const widgetData = {
+      forceMode,
+      stripOn,
+      stripUnavailable,
+      masterEnabled,
+      summary,
+      mayRunState,
+      mayRunReason
+    };
+
+    instances.forEach(instance => {
+      updateSprinklerWidgetInstance(instance.element, widgetData, icons);
+    });
+  } catch (error) {
+    console.error('Error loading sprinklers:', error);
+    const instances = getWidgetInstances('sprinkler-widget', currentPageIndex);
+    instances.forEach(instance => {
+      const widget = instance.element;
+      if (!widget || widget.classList.contains('hidden')) return;
+      const summaryEl = widget.querySelector('.sprinkler-summary');
+      if (summaryEl) summaryEl.textContent = 'Error loading sprinkler data';
+    });
+  }
+}
+
+async function cycleSprinklerForceMode() {
+  if (isEditMode) return;
+
+  const instances = getWidgetInstances('sprinkler-widget', currentPageIndex);
+  instances.forEach(instance => {
+    const icon = instance.element?.querySelector('.sprinkler-force-icon');
+    if (icon) icon.classList.add('loading');
+  });
+
+  try {
+    const forceEntity = await fetchHAEntity(CONFIG.HA_SPRINKLER_FORCE_ENTITY).catch(() => null);
+    const masterEntity = await fetchHAEntity(CONFIG.HA_SPRINKLER_MASTER_ENTITY).catch(() => null);
+    if (masterEntity?.state !== 'on') return;
+
+    const currentMode = sprinklerOptimisticForceMode ?? forceEntity?.state ?? 'None';
+    const nextMode = nextSprinklerForceMode(currentMode);
+    sprinklerOptimisticForceMode = nextMode;
+
+    const icons = {
+      sprinkler: mdiIconCache.sprinkler || await fetchMDIIcon('sprinkler'),
+      'sprinkler-off': mdiIconCache['sprinkler-off'] || await fetchMDIIcon('sprinkler-off'),
+      'sprinkler-variant-off': mdiIconCache['sprinkler-variant-off'] || await fetchMDIIcon('sprinkler-variant-off'),
+      power: mdiIconCache.power || await fetchMDIIcon('power')
+    };
+
+    const stripEntity = await fetchHAEntity(CONFIG.HA_SPRINKLER_STRIP_ENTITY).catch(() => null);
+    const optimisticData = {
+      forceMode: nextMode,
+      stripOn: sprinklerOptimisticStripOn ?? stripEntity?.state === 'on',
+      stripUnavailable: !stripEntity || ['unavailable', 'unknown'].includes(stripEntity.state),
+      masterEnabled: true,
+      summary: (await fetchHAEntity(CONFIG.HA_SPRINKLER_SUMMARY_ENTITY).catch(() => null))?.state || '',
+      updateMayRun: false
+    };
+
+    instances.forEach(instance => {
+      updateSprinklerWidgetInstance(instance.element, optimisticData, icons);
+    });
+
+    showToast(`Force mode: ${getSprinklerForceDisplay(nextMode, true).label}`, 1500);
+
+    await callHAService('input_select', 'select_option', {
+      entity_id: CONFIG.HA_SPRINKLER_FORCE_ENTITY,
+      option: nextMode
+    });
+
+    sprinklerOptimisticForceMode = null;
+    setTimeout(() => loadSprinkler(), 800);
+    setTimeout(() => loadAllData(), 2500);
+  } catch (error) {
+    console.error('Error cycling sprinkler force mode:', error);
+    sprinklerOptimisticForceMode = null;
+    showToast('Error setting force mode', 2000);
+    loadSprinkler();
+  } finally {
+    instances.forEach(instance => {
+      const icon = instance.element?.querySelector('.sprinkler-force-icon');
+      if (icon) icon.classList.remove('loading');
+    });
+  }
+}
+
+async function toggleSprinklerStrip() {
+  if (isEditMode) return;
+
+  const instances = getWidgetInstances('sprinkler-widget', currentPageIndex);
+  instances.forEach(instance => {
+    const icon = instance.element?.querySelector('.sprinkler-strip-icon');
+    if (icon) icon.classList.add('loading');
+  });
+
+  try {
+    const stripEntity = await fetchHAEntity(CONFIG.HA_SPRINKLER_STRIP_ENTITY).catch(() => null);
+    if (!stripEntity || ['unavailable', 'unknown'].includes(stripEntity.state)) return;
+
+    const currentOn = sprinklerOptimisticStripOn ?? stripEntity.state === 'on';
+    sprinklerOptimisticStripOn = !currentOn;
+
+    const icons = {
+      sprinkler: mdiIconCache.sprinkler || await fetchMDIIcon('sprinkler'),
+      'sprinkler-off': mdiIconCache['sprinkler-off'] || await fetchMDIIcon('sprinkler-off'),
+      'sprinkler-variant-off': mdiIconCache['sprinkler-variant-off'] || await fetchMDIIcon('sprinkler-variant-off'),
+      power: mdiIconCache.power || await fetchMDIIcon('power')
+    };
+
+    const forceEntity = await fetchHAEntity(CONFIG.HA_SPRINKLER_FORCE_ENTITY).catch(() => null);
+    const masterEntity = await fetchHAEntity(CONFIG.HA_SPRINKLER_MASTER_ENTITY).catch(() => null);
+    const optimisticData = {
+      forceMode: sprinklerOptimisticForceMode ?? forceEntity?.state ?? 'None',
+      stripOn: !currentOn,
+      stripUnavailable: false,
+      masterEnabled: masterEntity?.state === 'on',
+      summary: (await fetchHAEntity(CONFIG.HA_SPRINKLER_SUMMARY_ENTITY).catch(() => null))?.state || '',
+      updateMayRun: false
+    };
+
+    instances.forEach(instance => {
+      updateSprinklerWidgetInstance(instance.element, optimisticData, icons);
+    });
+
+    showToast(`Strip power: ${!currentOn ? 'ON' : 'OFF'}`, 1500);
+
+    await callHAService('switch', 'toggle', {
+      entity_id: CONFIG.HA_SPRINKLER_STRIP_ENTITY
+    });
+
+    sprinklerOptimisticStripOn = null;
+    setTimeout(() => loadSprinkler(), 800);
+    setTimeout(() => loadAllData(), 2500);
+  } catch (error) {
+    console.error('Error toggling sprinkler strip:', error);
+    sprinklerOptimisticStripOn = null;
+    showToast('Error toggling strip power', 2000);
+    loadSprinkler();
+  } finally {
+    instances.forEach(instance => {
+      const icon = instance.element?.querySelector('.sprinkler-strip-icon');
+      if (icon) icon.classList.remove('loading');
+    });
   }
 }
 
@@ -6681,6 +6978,46 @@ function saveWhiteboardInstance(widgetId) {
   }
 }
 
+// Call HA service via API (works both locally and in production)
+async function callHAService(domain, service, data) {
+  if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
+    const response = await fetch(`${window.CONFIG.HA_URL}/api/services/${domain}/${service}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${window.CONFIG.HA_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    try {
+      return await response.json();
+    } catch {
+      return { success: true };
+    }
+  }
+
+  const response = await fetch('/api/ha-call-service', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ domain, service, ...data })
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  try {
+    return await response.json();
+  } catch {
+    return { success: true };
+  }
+}
+
 // Fetch HA entity via API (works both locally and in production)
 async function fetchHAEntity(entityId) {
   try {
@@ -7582,6 +7919,7 @@ const WIDGET_CONFIG = {
   'garage-widget': { name: 'Garage Doors', icon: '🚗' },
   'alarm-widget': { name: 'Alarm Panel', icon: '🔒' },
   'compressor-widget': { name: 'Air Compressor', icon: '🌬️' },
+  'sprinkler-widget': { name: 'Sprinklers', icon: '💧' },
   'dice-widget': { name: 'Dice', icon: '🎲' },
   'stopwatch-widget': { name: 'Stopwatch', icon: '⏱️' },
   'scoreboard-widget': { name: 'Scoreboard', icon: '🏆' },
@@ -8075,6 +8413,8 @@ function toggleWidgetVisibility(fullWidgetId) {
             loadThermostat();
           } else if (widgetType === 'compressor-widget' && typeof loadCompressor === 'function') {
             loadCompressor();
+          } else if (widgetType === 'sprinkler-widget' && typeof loadSprinkler === 'function') {
+            loadSprinkler();
           } else if (widgetType === 'news-widget' && typeof loadNews === 'function') {
             loadNews();
           } else if (widgetType === 'calendar-widget' && typeof loadCalendarEvents === 'function') {
@@ -9239,6 +9579,9 @@ function removeWidgetInstance(fullWidgetId) {
   } else if (widgetType === 'compressor-widget' && typeof loadCompressor === 'function') {
     loadCompressor();
     reinitializeAfterLoad();
+  } else if (widgetType === 'sprinkler-widget' && typeof loadSprinkler === 'function') {
+    loadSprinkler();
+    reinitializeAfterLoad();
   } else if (widgetType === 'thermostat-widget' && typeof loadThermostat === 'function') {
     loadThermostat();
     reinitializeAfterLoad();
@@ -9504,6 +9847,8 @@ function initializeWidgetInstance(fullWidgetId, widgetElement) {
     setTimeout(() => loadScoreboard(), 50);
   } else if (widgetType === 'compressor-widget' && typeof loadCompressor === 'function') {
     setTimeout(() => loadCompressor(), 50);
+  } else if (widgetType === 'sprinkler-widget' && typeof loadSprinkler === 'function') {
+    setTimeout(() => loadSprinkler(), 50);
   } else if (widgetType === 'alarm-widget' && typeof loadAlarm === 'function') {
     setTimeout(() => loadAlarm(), 50);
   } else if (widgetType === 'garage-widget' && typeof loadGarageDoors === 'function') {

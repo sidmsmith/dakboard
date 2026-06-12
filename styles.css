@@ -1402,6 +1402,123 @@ body {
   animation: none; /* Stop spinning during loading */
 }
 
+/* Sprinklers Widget */
+.sprinkler-widget {
+  top: 960px;
+  left: 20px;
+  width: 420px;
+  height: 280px;
+}
+
+.sprinkler-content {
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--scale-factor, 1));
+  flex: 1;
+  min-height: 0;
+  padding: calc(4px * var(--scale-factor, 1)) 0;
+}
+
+.sprinkler-master-banner {
+  background: rgba(108, 117, 125, 0.25);
+  border: 1px solid rgba(108, 117, 125, 0.5);
+  border-radius: calc(6px * var(--scale-factor, 1));
+  color: #adb5bd;
+  font-size: calc(12px * var(--scale-factor, 1));
+  padding: calc(4px * var(--scale-factor, 1)) calc(8px * var(--scale-factor, 1));
+  text-align: center;
+}
+
+.sprinkler-master-banner.hidden {
+  display: none;
+}
+
+.sprinkler-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(12px * var(--scale-factor, 1));
+}
+
+.sprinkler-control {
+  background: #333;
+  border-radius: calc(10px * var(--scale-factor, 1));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc(10px * var(--scale-factor, 1));
+  gap: calc(4px * var(--scale-factor, 1));
+  min-width: 0;
+}
+
+.sprinkler-control-label {
+  color: #aaa;
+  font-size: calc(11px * var(--scale-factor, 1));
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sprinkler-control-icon {
+  width: calc(64px * var(--scale-factor, 1));
+  height: calc(64px * var(--scale-factor, 1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s, opacity 0.3s;
+}
+
+.sprinkler-control-icon svg {
+  width: 100%;
+  height: 100%;
+  transition: fill 0.3s;
+}
+
+.sprinkler-control-icon:hover:not(.disabled):not(.loading) {
+  transform: scale(1.08);
+  opacity: 0.85;
+}
+
+.sprinkler-control-icon.loading {
+  opacity: 0.6;
+  cursor: wait !important;
+}
+
+.sprinkler-control-icon.disabled {
+  opacity: 0.55;
+  cursor: default !important;
+}
+
+.sprinkler-force-state-label,
+.sprinkler-strip-state-label {
+  font-size: calc(12px * var(--scale-factor, 1));
+  font-weight: 600;
+}
+
+.sprinkler-summary {
+  color: #ccc;
+  font-size: calc(12px * var(--scale-factor, 1));
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.sprinkler-may-run {
+  color: #bbb;
+  font-size: calc(11px * var(--scale-factor, 1));
+  line-height: 1.3;
+}
+
+.sprinkler-may-run.hidden {
+  display: none;
+}
+
+.sprinkler-may-run-reason {
+  color: #999;
+}
+
 /* Dice Widget */
 .dice-widget {
   top: 760px;

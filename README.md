@@ -11,6 +11,7 @@ A customizable smart home dashboard designed for fixed displays (tablets/TVs) th
 - **Garage Door Controls** - 3 garage doors with open/closed status and click-to-toggle
 - **Alarm Panel** - Current status display with click-to-toggle functionality
 - **Air Compressor** - Monitor and control air compressor status
+- **Sprinklers** - Force mode cycle, strip power toggle, rain summary, and may-run-today status (Home Assistant)
 - **Dice Widget** - Interactive 3D dice with customizable colors and animations
 - **Stopwatch Widget** - Full-featured stopwatch with start/pause/reset and customizable colors
 - **Scoreboard Widget** - Team-based scoring with customizable icons, colors, confetti animations, and drag-and-drop team reordering
@@ -383,6 +384,16 @@ dakboard/
 - High contrast for visibility
 - Smooth transitions and hover effects
 - Responsive grid layouts
+
+## 🤖 Agent workflow (commit & push)
+
+When making changes in this repo (including via Cursor), **commit and push to `main` after every update batch** unless explicitly told not to.
+
+- **Remote:** https://github.com/sidmsmith/dakboard (`origin`, branch `main`)
+- Stage only relevant files; never commit `config.js` or other secrets
+- Use clear commit messages focused on *why*
+
+Persistent Cursor rule: `.cursor/rules/dakboard-commit-push.mdc`
 
 ## 📄 License
 
