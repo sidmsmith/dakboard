@@ -2468,21 +2468,21 @@ body {
   background: #4a90e2;
   border-radius: 2px;
   pointer-events: none;
-  animation: widget-header-press-fill 1.7s linear forwards;
+  animation: widget-header-press-fill 0.55s linear forwards;
 }
 
 .widget-header-press-progress.threshold-move {
   background: #5ba0f2;
-  animation: widget-header-press-fill-resize 0.75s linear forwards;
+  animation: widget-header-press-fill-resize 1.95s linear forwards;
 }
 
 @keyframes widget-header-press-fill {
   from { width: 0; }
-  to { width: 58%; }
+  to { width: 22%; }
 }
 
 @keyframes widget-header-press-fill-resize {
-  from { width: 58%; }
+  from { width: 22%; }
   to { width: 100%; }
 }
 

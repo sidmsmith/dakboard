@@ -1,11 +1,11 @@
-// Per-widget tablet edit: 1s header hold = one-shot move, 2.5s = single-widget resize
+// Per-widget tablet edit: ~0.55s header hold then drag in one motion; 2.5s = single-widget resize
 (function () {
-  const MOVE_THRESHOLD_MS = 1000;
+  const MOVE_THRESHOLD_MS = 550;
   const RESIZE_THRESHOLD_MS = 2500;
   const HEADER_FALLBACK_PX = 40;
-  const PROGRESS_START_MS = 800;
+  const PROGRESS_START_MS = 350;
+  const PRE_MOVE_CANCEL_PX = 24;
 
-  let moveArmedWidget = null;
   let resizeWidget = null;
   let activePress = null;
 
@@ -15,17 +15,13 @@
   }
 
   function isLayoutEditActive() {
-    return isGlobalEditMode() || Boolean(resizeWidget) || Boolean(moveArmedWidget);
+    return isGlobalEditMode()
+      || Boolean(resizeWidget)
+      || Boolean(activePress && activePress.moveReady);
   }
 
   function vibrate(ms) {
     if (navigator.vibrate) navigator.vibrate(ms);
-  }
-
-  function toast(message) {
-    if (typeof showToast === 'function') {
-      showToast(message, 1800);
-    }
   }
 
   function getPointerCoords(e) {
@@ -80,16 +76,6 @@
     }
   }
 
-  function clearMoveArm() {
-    if (moveArmedWidget) {
-      moveArmedWidget.classList.remove('widget-move-armed');
-      moveArmedWidget = null;
-    }
-    if (!resizeWidget) {
-      applyInteractionLock(false);
-    }
-  }
-
   function clearResizeMode() {
     if (resizeWidget) {
       resizeWidget.classList.remove('widget-edit-focus');
@@ -100,8 +86,10 @@
   }
 
   function clearSingleWidgetEdit() {
+    if (activePress && activePress.dragStarted && window.dakboardDragResize?.endActiveGesture) {
+      window.dakboardDragResize.endActiveGesture();
+    }
     cancelActivePress();
-    clearMoveArm();
     clearResizeMode();
   }
 
@@ -111,16 +99,30 @@
     clearTimeout(moveTimer);
     clearTimeout(resizeTimer);
     clearTimeout(progressTimer);
-    widget.classList.remove('widget-header-pressing', 'widget-header-move-ready');
+    widget.classList.remove('widget-header-pressing', 'widget-header-move-ready', 'widget-move-armed');
     if (progressEl && progressEl.parentNode) {
       progressEl.remove();
     }
     activePress = null;
+    if (!resizeWidget) {
+      applyInteractionLock(false);
+    }
+  }
+
+  function markMoveReady(widget, progressEl) {
+    if (!activePress || activePress.widget !== widget) return;
+    activePress.moveReady = true;
+    widget.classList.add('widget-header-move-ready', 'widget-move-armed');
+    progressEl.classList.add('threshold-move');
+    applyInteractionLock(true);
+    vibrate(40);
   }
 
   function enterResizeMode(widget) {
+    if (activePress?.dragStarted && window.dakboardDragResize?.endActiveGesture) {
+      window.dakboardDragResize.endActiveGesture();
+    }
     cancelActivePress();
-    clearMoveArm();
 
     if (resizeWidget && resizeWidget !== widget) {
       clearResizeMode();
@@ -135,23 +137,37 @@
     }
 
     vibrate(80);
-    toast('Drag handles to resize');
+    if (typeof showToast === 'function') {
+      showToast('Drag handles to resize', 1800);
+    }
   }
 
-  function armMoveOneShot(widget) {
+  function tryStartMoveDrag(e) {
+    if (!activePress || !activePress.moveReady || activePress.dragStarted) return;
     if (resizeWidget) return;
 
-    clearMoveArm();
-    moveArmedWidget = widget;
+    const widget = activePress.widget;
+    activePress.dragStarted = true;
     widget.classList.add('widget-move-armed');
     applyInteractionLock(true);
-    vibrate(50);
-    toast('Drag once to move');
+
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+
+    if (window.dakboardDragResize && typeof window.dakboardDragResize.startDrag === 'function') {
+      window.dakboardDragResize.startDrag(widget, e);
+    }
   }
 
   function onDragComplete(widget) {
-    if (moveArmedWidget === widget) {
-      clearMoveArm();
+    if (activePress?.widget === widget) {
+      cancelActivePress();
+    } else {
+      widget.classList.remove('widget-move-armed');
+      if (!resizeWidget) {
+        applyInteractionLock(false);
+      }
     }
   }
 
@@ -167,14 +183,9 @@
     if (!isHeaderOrFallbackTouch(widget, x, y)) return;
 
     if (resizeWidget === widget) return;
-    if (moveArmedWidget === widget) return;
 
     if (resizeWidget && resizeWidget !== widget) {
       clearSingleWidgetEdit();
-    }
-
-    if (moveArmedWidget && moveArmedWidget !== widget) {
-      clearMoveArm();
     }
 
     cancelActivePress();
@@ -185,16 +196,11 @@
     header.style.position = header.style.position || 'relative';
     header.appendChild(progressEl);
 
-    const pressStart = Date.now();
     const moveTimer = setTimeout(() => {
-      if (!activePress || activePress.widget !== widget) return;
-      widget.classList.add('widget-header-move-ready');
-      progressEl.classList.add('threshold-move');
-      vibrate(40);
+      markMoveReady(widget, progressEl);
     }, MOVE_THRESHOLD_MS);
 
     const resizeTimer = setTimeout(() => {
-      if (!activePress || activePress.widget !== widget) return;
       enterResizeMode(widget);
     }, RESIZE_THRESHOLD_MS);
 
@@ -203,31 +209,52 @@
       widget.classList.add('widget-header-pressing');
     }, PROGRESS_START_MS);
 
-    activePress = { widget, pressStart, startX: x, startY: y, moveTimer, resizeTimer, progressTimer, progressEl };
+    activePress = {
+      widget,
+      pressStart: Date.now(),
+      startX: x,
+      startY: y,
+      moveTimer,
+      resizeTimer,
+      progressTimer,
+      progressEl,
+      moveReady: false,
+      dragStarted: false
+    };
   }
 
   function handlePressMove(e) {
     if (!activePress) return;
-    const { x, y } = getPointerCoords(e);
-    if (Math.hypot(x - activePress.startX, y - activePress.startY) > 12) {
-      handlePressCancel();
+
+    const { x, y, widget, moveReady } = activePress;
+
+    if (!moveReady) {
+      if (Math.hypot(x - activePress.startX, y - activePress.startY) > PRE_MOVE_CANCEL_PX) {
+        handlePressCancel();
+      }
+      return;
     }
-  }
-
-  function handlePressEnd(e) {
-    if (!activePress) return;
-
-    const { widget, pressStart, moveTimer, resizeTimer } = activePress;
-    const heldMs = Date.now() - pressStart;
-
-    clearTimeout(moveTimer);
-    clearTimeout(resizeTimer);
-    cancelActivePress();
 
     if (resizeWidget === widget) return;
-    if (heldMs >= MOVE_THRESHOLD_MS && heldMs < RESIZE_THRESHOLD_MS) {
-      armMoveOneShot(widget);
+    tryStartMoveDrag(e);
+  }
+
+  function handlePressEnd() {
+    if (!activePress) return;
+
+    const { widget, dragStarted } = activePress;
+
+    if (resizeWidget === widget) {
+      cancelActivePress();
+      return;
     }
+
+    if (dragStarted) {
+      cancelActivePress();
+      return;
+    }
+
+    cancelActivePress();
   }
 
   function handlePressCancel() {
@@ -235,7 +262,7 @@
   }
 
   function onTapOutside(e) {
-    if (!moveArmedWidget && !resizeWidget) return;
+    if (!activePress?.moveReady && !resizeWidget) return;
     if (isGlobalEditMode()) return;
 
     const target = e.target;
@@ -245,7 +272,8 @@
     }
 
     if (resizeWidget && resizeWidget.contains(target)) return;
-    if (moveArmedWidget && moveArmedWidget.contains(target)) return;
+    if (activePress?.dragStarted && activePress.widget.contains(target)) return;
+    if (activePress?.moveReady && activePress.widget.contains(target)) return;
 
     const otherWidget = target.closest('.widget');
     if (otherWidget) {
@@ -262,10 +290,11 @@
     container.dataset.widgetTouchEditBound = 'true';
 
     container.addEventListener('touchstart', handlePressStart, { passive: false, capture: true });
-    container.addEventListener('touchmove', handlePressMove, { passive: true, capture: true });
+    container.addEventListener('touchmove', handlePressMove, { passive: false, capture: true });
     container.addEventListener('touchend', handlePressEnd, { capture: true });
     container.addEventListener('touchcancel', handlePressCancel, { capture: true });
     container.addEventListener('mousedown', handlePressStart, { capture: true });
+    container.addEventListener('mousemove', handlePressMove, { capture: true });
     container.addEventListener('mouseup', handlePressEnd, { capture: true });
     container.addEventListener('mouseleave', handlePressCancel, { capture: true });
 
@@ -274,7 +303,12 @@
 
   window.widgetTouchEdit = {
     isMoveArmed(widget) {
-      return moveArmedWidget === widget;
+      return Boolean(
+        activePress
+        && activePress.widget === widget
+        && activePress.moveReady
+        && !resizeWidget
+      );
     },
     isResizeActive(widget) {
       return resizeWidget === widget;

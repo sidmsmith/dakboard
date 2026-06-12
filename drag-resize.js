@@ -432,7 +432,8 @@ if (typeof window !== 'undefined') {
   window.initializeWidgetDragAndResize = initializeWidgetDragAndResize;
   window.dakboardDragResize = {
     startDrag,
-    enableSingleWidgetHandles
+    enableSingleWidgetHandles,
+    endActiveGesture: handleMouseUp
   };
 }
 
