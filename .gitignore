@@ -6,6 +6,11 @@ node_modules/
 config.js
 # Local development config (contains sensitive tokens)
 
+# Local-only migration/config backups (not needed in repo)
+migrate-config.cjs
+config-imports/
+TEST_SCENARIOS_EDIT_MODE_AND_CLONING.md
+
 
 # Python bytecode and virtual environments
 __pycache__/
