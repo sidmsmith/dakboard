@@ -1419,20 +1419,6 @@ body {
   padding: calc(4px * var(--scale-factor, 1)) 0;
 }
 
-.sprinkler-master-banner {
-  background: rgba(108, 117, 125, 0.25);
-  border: 1px solid rgba(108, 117, 125, 0.5);
-  border-radius: calc(6px * var(--scale-factor, 1));
-  color: #adb5bd;
-  font-size: calc(12px * var(--scale-factor, 1));
-  padding: calc(4px * var(--scale-factor, 1)) calc(8px * var(--scale-factor, 1));
-  text-align: center;
-}
-
-.sprinkler-master-banner.hidden {
-  display: none;
-}
-
 .sprinkler-controls {
   display: grid;
   grid-template-columns: 1fr 1fr;

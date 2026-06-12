@@ -2891,7 +2891,6 @@ function renderSprinklerIconSvg(iconSvg, color) {
 function updateSprinklerWidgetInstance(widget, data, icons) {
   if (!widget || widget.classList.contains('hidden')) return;
 
-  const masterBanner = widget.querySelector('.sprinkler-master-banner');
   const forceIcon = widget.querySelector('.sprinkler-force-icon');
   const forceLabel = widget.querySelector('.sprinkler-force-state-label');
   const stripIcon = widget.querySelector('.sprinkler-strip-icon');
@@ -2900,10 +2899,6 @@ function updateSprinklerWidgetInstance(widget, data, icons) {
   const mayRunEl = widget.querySelector('.sprinkler-may-run');
 
   widget.classList.toggle('sprinkler-master-disabled', !data.masterEnabled);
-
-  if (masterBanner) {
-    masterBanner.classList.toggle('hidden', data.masterEnabled);
-  }
 
   if (forceIcon && forceLabel) {
     const display = getSprinklerForceDisplay(data.forceMode, data.masterEnabled);
