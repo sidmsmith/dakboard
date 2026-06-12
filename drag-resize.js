@@ -138,6 +138,9 @@ function updateWidgetScale(widget) {
   } else if (widget.classList.contains('compressor-widget')) {
     defaultWidth = 300;
     defaultHeight = 200;
+  } else if (widget.classList.contains('sprinkler-widget')) {
+    defaultWidth = 420;
+    defaultHeight = 280;
   } else if (widget.classList.contains('dice-widget')) {
     defaultWidth = 300;
     defaultHeight = 200;
@@ -190,8 +193,9 @@ function initializeDragAndResize() {
     
     // Also find widgets by type that might be missing .widget class (defensive)
     const widgetTypes = ['scoreboard-widget', 'stopwatch-widget', 'stoplight-widget', 'dice-widget', 
-                         'blank-widget', 'whiteboard-widget', 'compressor-widget', 'thermostat-widget',
-                         'weather-widget', 'todo-widget', 'calendar-widget', 'agenda-widget', 'tasks-widget'];
+                         'blank-widget', 'whiteboard-widget', 'compressor-widget', 'sprinkler-widget',
+                         'thermostat-widget', 'weather-widget', 'todo-widget', 'calendar-widget',
+                         'agenda-widget', 'tasks-widget', 'garage-widget', 'alarm-widget', 'news-widget'];
     const widgetsByType = new Set();
     widgetTypes.forEach(type => {
       currentPage.querySelectorAll(`.${type}`).forEach(w => {

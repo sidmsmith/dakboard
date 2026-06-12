@@ -8114,6 +8114,9 @@ function loadWidgetVisibility() {
           widget.className = `widget ${widgetType} ${fullWidgetId}`;
           widget.classList.remove('hidden');
           pageElement.appendChild(widget);
+
+          applyDefaultWidgetLayoutIfNeeded(widget, widgetType, fullWidgetId, currentPageIndex);
+          initializeWidgetInstance(fullWidgetId, widget);
           
           // Initialize widget-specific functionality if needed
           if (typeof initializeDragAndResize === 'function') {
@@ -8140,6 +8143,8 @@ function loadWidgetVisibility() {
               widget.className = `widget ${widgetType} ${fullWidgetId}`;
               widget.classList.remove('hidden');
               pageElement.appendChild(widget);
+
+              applyDefaultWidgetLayoutIfNeeded(widget, widgetType, fullWidgetId, currentPageIndex);
               
               // Initialize widget
               initializeWidgetInstance(fullWidgetId, widget);
@@ -8187,6 +8192,78 @@ function saveWidgetVisibility() {
     localStorage.setItem(visibilityKey, JSON.stringify(visibility));
   } catch (error) {
     console.error('Error saving widget visibility:', error);
+  }
+}
+
+// Default dimensions for widget types (used when first shown or cloned)
+function getDefaultWidgetSize(widgetType) {
+  const sizes = {
+    'calendar-widget': { width: 800, height: 500 },
+    'weather-widget': { width: 500, height: 400 },
+    'todo-widget': { width: 500, height: 300 },
+    'garage-widget': { width: 800, height: 200 },
+    'alarm-widget': { width: 500, height: 200 },
+    'compressor-widget': { width: 300, height: 200 },
+    'sprinkler-widget': { width: 420, height: 280 },
+    'thermostat-widget': { width: 400, height: 350 },
+    'dice-widget': { width: 300, height: 200 },
+    'stopwatch-widget': { width: 300, height: 200 },
+    'scoreboard-widget': { width: 500, height: 300 },
+    'news-widget': { width: 400, height: 400 },
+    'agenda-widget': { width: 400, height: 500 },
+    'tasks-widget': { width: 400, height: 500 }
+  };
+  return sizes[widgetType] || { width: 300, height: 200 };
+}
+
+function widgetHasSavedLayout(fullWidgetId, pageIndex) {
+  const layoutKey = `dakboard-widget-layout-page-${pageIndex}`;
+  const savedLayout = localStorage.getItem(layoutKey);
+  if (!savedLayout) return false;
+  try {
+    const layout = JSON.parse(savedLayout);
+    return !!(layout && layout[fullWidgetId]);
+  } catch {
+    return false;
+  }
+}
+
+// Place widget on screen when it has no saved layout (or is clipped below viewport)
+function applyDefaultWidgetLayoutIfNeeded(widget, widgetType, fullWidgetId, pageIndex) {
+  if (!widget) return;
+
+  const { width: defaultWidth, height: defaultHeight } = getDefaultWidgetSize(widgetType);
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  if (!widgetHasSavedLayout(fullWidgetId, pageIndex)) {
+    const defaultLeft = Math.max(50, (viewportWidth - defaultWidth) / 2);
+    const defaultTop = Math.max(50, (viewportHeight - defaultHeight) / 2);
+    widget.style.position = 'absolute';
+    widget.style.left = `${defaultLeft}px`;
+    widget.style.top = `${defaultTop}px`;
+    widget.style.width = `${defaultWidth}px`;
+    widget.style.height = `${defaultHeight}px`;
+    if (typeof saveCurrentPageLayout === 'function') {
+      saveCurrentPageLayout();
+    }
+    return;
+  }
+
+  // Saved layout exists but widget may still be off-screen (e.g. CSS default top: 960px)
+  const top = parseFloat(widget.style.top);
+  const height = parseFloat(widget.style.height) || widget.offsetHeight || defaultHeight;
+  if (!isNaN(top) && top + height > viewportHeight - 20) {
+    const defaultLeft = Math.max(50, parseFloat(widget.style.left) || (viewportWidth - defaultWidth) / 2);
+    const defaultTop = Math.max(50, (viewportHeight - defaultHeight) / 2);
+    widget.style.position = 'absolute';
+    widget.style.left = `${defaultLeft}px`;
+    widget.style.top = `${defaultTop}px`;
+    widget.style.width = `${parseFloat(widget.style.width) || defaultWidth}px`;
+    widget.style.height = `${height}px`;
+    if (typeof saveCurrentPageLayout === 'function') {
+      saveCurrentPageLayout();
+    }
   }
 }
 
@@ -8287,31 +8364,11 @@ function toggleWidgetVisibility(fullWidgetId) {
         }
       }
       
-      // If no saved layout, set default position (center of screen with offset for multiple widgets)
-      if (!hasLayout) {
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        // Default size based on widget type
-        let defaultWidth = 300;
-        let defaultHeight = 200;
-        if (widgetType === 'calendar-widget') {
-          defaultWidth = 800;
-          defaultHeight = 500;
-        } else if (widgetType === 'weather-widget') {
-          defaultWidth = 500;
-          defaultHeight = 400;
-        }
-        // Center with slight offset to avoid overlapping with other new widgets
-        const defaultLeft = Math.max(50, (viewportWidth - defaultWidth) / 2);
-        const defaultTop = Math.max(50, (viewportHeight - defaultHeight) / 2);
-        widget.style.left = `${defaultLeft}px`;
-        widget.style.top = `${defaultTop}px`;
-        widget.style.width = `${defaultWidth}px`;
-        widget.style.height = `${defaultHeight}px`;
-        widget.style.position = 'absolute';
-      }
-      
       pageElement.appendChild(widget);
+
+      if (!hasLayout) {
+        applyDefaultWidgetLayoutIfNeeded(widget, widgetType, fullWidgetId, pageIndex);
+      }
       
       // Set initial z-index to bring new widget to front
       const maxZIndex = Math.max(...Array.from(document.querySelectorAll('.widget:not(.hidden)')).map(w => {
@@ -8350,6 +8407,9 @@ function toggleWidgetVisibility(fullWidgetId) {
     
     if (isCurrentlyHidden) {
       widget.classList.remove('hidden');
+
+      // Ensure first-time visible widgets are on-screen (CSS defaults can be below viewport)
+      applyDefaultWidgetLayoutIfNeeded(widget, widgetType, fullWidgetId, pageIndex);
       
       // Save visibility state IMMEDIATELY to prevent loadWidgetVisibility from hiding it again
       saveWidgetVisibility();
