@@ -7147,6 +7147,7 @@ async function triggerHAWebhook(webhookId) {
 
 // Annotation System
 let isAnnotationMode = false;
+window.isAnnotationMode = false;
 let annotationCanvas = null;
 let annotationCtx = null;
 let highlightMaskCanvas = null;
@@ -7224,7 +7225,12 @@ function initializeAnnotationCanvas() {
 
 // Set annotation mode
 function setAnnotationMode(enabled) {
+  if (enabled && window.widgetTouchEdit && window.widgetTouchEdit.isLayoutEditActive()) {
+    return;
+  }
+
   isAnnotationMode = enabled;
+  window.isAnnotationMode = enabled;
   document.body.classList.toggle('annotation-mode', enabled);
   
   if (enabled) {
@@ -8553,6 +8559,7 @@ function toggleWidgetVisibility(fullWidgetId) {
 
 // Edit mode state
 let isEditMode = false;
+window.isEditMode = false;
 
 // Initialize widget control panel
 function initializeWidgetControlPanel() {
@@ -8626,7 +8633,12 @@ function initializeWidgetControlPanel() {
 
 // Set edit mode on/off (global - applies to all pages)
 function setEditMode(enabled) {
+  if (window.widgetTouchEdit && typeof window.widgetTouchEdit.clearSingleWidgetEdit === 'function') {
+    window.widgetTouchEdit.clearSingleWidgetEdit();
+  }
+
   isEditMode = enabled;
+  window.isEditMode = enabled;
   
   // Store edit mode globally (not per page)
   localStorage.setItem('dakboard-edit-mode', enabled ? 'true' : 'false');
@@ -10741,7 +10753,8 @@ function setupSwipeGestures() {
   }, { passive: false });
   
   pagesContainer.addEventListener('touchend', (e) => {
-    if (isEditMode || touchStartedOnWidget) return; // Disable swipe in edit mode or if started on widget
+    if (isEditMode || touchStartedOnWidget) return;
+    if (window.widgetTouchEdit && window.widgetTouchEdit.isLayoutEditActive()) return;
     touchEndX = e.changedTouches[0].screenX;
     touchEndY = e.changedTouches[0].screenY;
     handleSwipe();

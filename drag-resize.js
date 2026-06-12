@@ -177,12 +177,10 @@ function initializeDragAndResize() {
   
   // Check if edit mode is enabled for this page
   const inEditMode = currentPage.classList.contains('edit-mode');
-  
-  // Only add handles if in edit mode
+
+  // Only add handles if in edit mode (single-widget resize handles are managed separately)
   if (!inEditMode) {
-    // Remove all handles if not in edit mode
-    currentPage.querySelectorAll('.resize-handle, .rotate-handle').forEach(h => h.remove());
-    return;
+    currentPage.querySelectorAll('.widget:not(.widget-edit-focus) .resize-handle, .widget:not(.widget-edit-focus) .rotate-handle').forEach((h) => h.remove());
   }
   
   // Process widgets immediately, but also retry after a short delay to catch any widgets that are added later
@@ -225,56 +223,20 @@ function initializeDragAndResize() {
         widget.classList.add('widget');
       }
       
-      // Remove existing resize handles first (in case we're re-initializing)
-      widget.querySelectorAll('.resize-handle').forEach(h => h.remove());
-      
-      // Remove existing rotate handles
-      widget.querySelectorAll('.rotate-handle').forEach(h => h.remove());
-      
-      // Check if widget already has drag listener (using a more specific check)
-      // We'll use event delegation or check if the widget has the listener
-      // For now, just re-add everything - the handles will be removed above
-      
-      // Add resize handles
-      addResizeHandles(widget);
-      
-      // Add rotate handle for blank widget and stoplight widget
-      if (widget.classList.contains('blank-widget') || widget.classList.contains('stoplight-widget')) {
-        addRotateHandle(widget);
+      // Remove existing handles unless this widget is in single-widget resize mode
+      if (!widget.classList.contains('widget-edit-focus')) {
+        widget.querySelectorAll('.resize-handle, .rotate-handle').forEach((h) => h.remove());
       }
-      
-      // Add z-index controls to widget header (if function exists)
-      if (typeof addZIndexControls === 'function') {
-        addZIndexControls(widget);
-      }
-      
-      // Remove any existing drag listener by checking if we need to
-      // Since we can't easily remove specific listeners, we'll use a flag
-      // But actually, having multiple listeners isn't the issue - the issue is
-      // that the handles might not be getting the right widget reference
-      
-      // Make widget draggable (only in edit mode)
-      // In edit mode, entire widget is draggable; in normal mode, no dragging
-      // Support both mouse and touch events for desktop and tablet
-      
-      // Remove existing drag listeners to prevent duplicates
-      const existingDragHandler = widget.dataset.dragHandler;
-      if (existingDragHandler) {
-        // We can't easily remove the handler, so we'll use a flag to prevent duplicates
-        // Instead, we'll check if the widget already has the edit-mode-active class
-        // and only add listeners if they don't exist
-      }
-      
+
       const handleDragStart = (e) => {
-        // Check if edit mode is active on the current page
         const dashboard = widget.closest('.dashboard.page');
         const inEditMode = dashboard && dashboard.classList.contains('edit-mode');
-        
-        if (!inEditMode) {
-          return; // Don't allow dragging in normal mode
+        const moveArmed = window.widgetTouchEdit && window.widgetTouchEdit.isMoveArmed(widget);
+
+        if (!inEditMode && !moveArmed) {
+          return;
         }
-        
-        // Don't drag if clicking on resize handles or rotate handle
+
         const target = e.target || (e.touches && e.touches[0] ? document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY) : null);
         if (target && (target.classList.contains('resize-handle') || target.closest('.resize-handle'))) {
           return;
@@ -282,20 +244,15 @@ function initializeDragAndResize() {
         if (target && (target.classList.contains('rotate-handle') || target.closest('.rotate-handle'))) {
           return;
         }
-        
-        // Don't drag if clicking on buttons or interactive elements
-        // BUT allow dragging on canvas and textarea in edit mode (for whiteboard and blank widgets)
+
         if (target) {
-          // In edit mode, explicitly allow dragging on canvas or textarea
-          // These elements normally block events, but we want to allow dragging in edit mode
           if (inEditMode && (target.tagName === 'CANVAS' || target.tagName === 'TEXTAREA')) {
             startDrag(widget, e);
             return;
           }
-          
-          // Don't drag if clicking on buttons or other interactive elements
-          if (target.tagName === 'BUTTON' || 
-              target.tagName === 'INPUT' || 
+
+          if (target.tagName === 'BUTTON' ||
+              target.tagName === 'INPUT' ||
               target.tagName === 'SELECT' ||
               target.closest('button') ||
               target.closest('input') ||
@@ -303,28 +260,41 @@ function initializeDragAndResize() {
             return;
           }
         }
-        
+
         startDrag(widget, e);
       };
-      
-      // Only add listeners if widget is in edit mode and doesn't already have them
+
       if (!widget.dataset.dragListenerAdded) {
         widget.addEventListener('mousedown', handleDragStart);
         widget.addEventListener('touchstart', handleDragStart, { passive: false });
         widget.dataset.dragListenerAdded = 'true';
       }
-      
-      // Update scale on initial load
+
+      if (!inEditMode) {
+        updateWidgetScale(widget);
+        return;
+      }
+
+      addResizeHandles(widget);
+
+      if (widget.classList.contains('blank-widget') || widget.classList.contains('stoplight-widget')) {
+        addRotateHandle(widget);
+      }
+
+      if (typeof addZIndexControls === 'function') {
+        addZIndexControls(widget);
+      }
+
       updateWidgetScale(widget);
     });
   };
-  
+
   // Process immediately
   processWidgets();
-  
+
   // Also process after a short delay to catch any widgets added later
   setTimeout(processWidgets, 100);
-  
+
   // Global mouse and touch events
   document.addEventListener('mousemove', handleMouseMove);
   document.addEventListener('mouseup', handleMouseUp);
@@ -355,13 +325,13 @@ function addResizeHandles(widget) {
     handleEl.className = `resize-handle ${handle.class}`;
     handleEl.style.cursor = handle.cursor;
     const handleResizeStart = (e) => {
-      // Only allow resize in edit mode - check the widget's parent dashboard
       const dashboard = widget.closest('.dashboard.page');
       const inEditMode = dashboard && dashboard.classList.contains('edit-mode');
-      if (!inEditMode) {
+      const inSingleResize = window.widgetTouchEdit && window.widgetTouchEdit.isResizeActive(widget);
+      if (!inEditMode && !inSingleResize) {
         return;
       }
-      
+
       e.stopPropagation();
       startResize(widget, handle.class, e);
     };
@@ -392,13 +362,13 @@ function addRotateHandle(widget) {
   `;
   
   const handleRotateStart = (e) => {
-    // Only allow rotate in edit mode
     const dashboard = widget.closest('.dashboard.page');
     const inEditMode = dashboard && dashboard.classList.contains('edit-mode');
-    if (!inEditMode) {
+    const inSingleResize = window.widgetTouchEdit && window.widgetTouchEdit.isResizeActive(widget);
+    if (!inEditMode && !inSingleResize) {
       return;
     }
-    
+
     e.stopPropagation();
     startRotate(widget, e);
   };
@@ -410,93 +380,60 @@ function addRotateHandle(widget) {
 
 // Initialize drag and resize for a specific widget (helper function)
 function initializeWidgetDragAndResize(widget) {
-  if (!widget) return;
-  
-  // Check if edit mode is enabled
+  if (!widget || widget.classList.contains('hidden')) return;
+
   const dashboard = widget.closest('.dashboard.page');
   if (!dashboard) return;
-  
+
   const inEditMode = dashboard.classList.contains('edit-mode');
-  if (!inEditMode) {
-    // Remove handles if not in edit mode
-    widget.querySelectorAll('.resize-handle, .rotate-handle').forEach(h => h.remove());
-    return;
+  const inSingleResize = widget.classList.contains('widget-edit-focus');
+
+  if (!inEditMode && !inSingleResize) {
+    widget.querySelectorAll('.resize-handle, .rotate-handle').forEach((h) => h.remove());
+  } else {
+    widget.querySelectorAll('.resize-handle, .rotate-handle').forEach((h) => h.remove());
+    addResizeHandles(widget);
+    if (widget.classList.contains('blank-widget') || widget.classList.contains('stoplight-widget')) {
+      addRotateHandle(widget);
+    }
+    if (typeof addZIndexControls === 'function') {
+      addZIndexControls(widget);
+    }
   }
-  
-  // Skip hidden widgets
-  if (widget.classList.contains('hidden')) {
-    return;
-  }
-  
-  // Remove existing resize handles first
-  widget.querySelectorAll('.resize-handle').forEach(h => h.remove());
-  
-  // Remove existing rotate handles
-  widget.querySelectorAll('.rotate-handle').forEach(h => h.remove());
-  
-  // Add resize handles
-  addResizeHandles(widget);
-  
-  // Add rotate handle for blank widget and stoplight widget
-  if (widget.classList.contains('blank-widget') || widget.classList.contains('stoplight-widget')) {
-    addRotateHandle(widget);
-  }
-  
-  // Add z-index controls to widget header (if function exists)
-  if (typeof addZIndexControls === 'function') {
-    addZIndexControls(widget);
-  }
-  
-  // Create drag handler for this specific widget
+
   const handleDragStart = (e) => {
-    // Check if edit mode is active on the current page
-    const dashboard = widget.closest('.dashboard.page');
-    const inEditMode = dashboard && dashboard.classList.contains('edit-mode');
-    
-    if (!inEditMode) {
-      return; // Don't allow dragging in normal mode
-    }
-    
-    // Don't drag if clicking on resize handles or rotate handle
+    const page = widget.closest('.dashboard.page');
+    const pageEdit = page && page.classList.contains('edit-mode');
+    const moveArmed = window.widgetTouchEdit && window.widgetTouchEdit.isMoveArmed(widget);
+    if (!pageEdit && !moveArmed) return;
+
     const target = e.target || (e.touches && e.touches[0] ? document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY) : null);
-    if (target && (target.classList.contains('resize-handle') || target.closest('.resize-handle'))) {
+    if (target && (target.classList.contains('resize-handle') || target.closest('.resize-handle'))) return;
+    if (target && (target.classList.contains('rotate-handle') || target.closest('.rotate-handle'))) return;
+    if (target && (target.tagName === 'BUTTON' || target.tagName === 'INPUT' || target.tagName === 'SELECT' ||
+        target.closest('button') || target.closest('input') || target.closest('select'))) {
       return;
     }
-    if (target && (target.classList.contains('rotate-handle') || target.closest('.rotate-handle'))) {
-      return;
-    }
-    
-    // Don't drag if clicking on buttons or interactive elements
-    if (target && (target.tagName === 'BUTTON' || 
-        target.tagName === 'INPUT' || 
-        target.tagName === 'SELECT' ||
-        target.closest('button') ||
-        target.closest('input') ||
-        target.closest('select'))) {
-      return;
-    }
-    
+
     startDrag(widget, e);
   };
-  
-  // Remove existing drag listeners by cloning the widget's event listeners won't work
-  // Instead, clear the flag and re-add listeners
-  delete widget.dataset.dragListenerAdded;
-  
-  // Add drag listeners if not already added
+
   if (!widget.dataset.dragListenerAdded) {
     widget.addEventListener('mousedown', handleDragStart);
     widget.addEventListener('touchstart', handleDragStart, { passive: false });
     widget.dataset.dragListenerAdded = 'true';
   }
-  
-  // Update scale on initial load
+
   updateWidgetScale(widget);
 }
 
-// Expose function globally so it can be called from app.js
+// Expose helpers for single-widget tablet edit and per-widget init
 if (typeof window !== 'undefined') {
   window.initializeWidgetDragAndResize = initializeWidgetDragAndResize;
+  window.dakboardDragResize = {
+    startDrag,
+    enableSingleWidgetHandles
+  };
 }
 
 // Start rotating widget
@@ -821,13 +758,27 @@ function handleTouchEnd(e) {
   }
 }
 
+function enableSingleWidgetHandles(widget) {
+  if (!widget) return;
+  addResizeHandles(widget);
+  if (widget.classList.contains('blank-widget') || widget.classList.contains('stoplight-widget')) {
+    addRotateHandle(widget);
+  }
+}
+
 // Handle mouse up - end drag/resize/rotate
 function handleMouseUp() {
+  const completedDragWidget = draggedWidget;
+
   if (draggedWidget) {
     draggedWidget.classList.remove('dragging', 'snapping');
     updateWidgetScale(draggedWidget);
     saveWidgetLayout();
     draggedWidget = null;
+  }
+
+  if (completedDragWidget && window.widgetTouchEdit && typeof window.widgetTouchEdit.onDragComplete === 'function') {
+    window.widgetTouchEdit.onDragComplete(completedDragWidget);
   }
   
   if (resizeWidget) {

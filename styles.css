@@ -2439,6 +2439,58 @@ body {
   display: none;
 }
 
+/* Single-widget resize mode (tablet long-press) */
+.dashboard:not(.edit-mode) .widget.widget-edit-focus .resize-handle,
+.dashboard:not(.edit-mode) .widget.widget-edit-focus .rotate-handle {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.widget.widget-edit-focus {
+  outline: 2px solid #5ba0f2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.25);
+  z-index: 50;
+}
+
+.widget.widget-move-armed .widget-header,
+.widget.widget-header-move-ready .widget-header {
+  background: rgba(74, 144, 226, 0.18);
+  outline: 1px solid rgba(74, 144, 226, 0.65);
+}
+
+.widget-header-press-progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 0;
+  background: #4a90e2;
+  border-radius: 2px;
+  pointer-events: none;
+  animation: widget-header-press-fill 1.7s linear forwards;
+}
+
+.widget-header-press-progress.threshold-move {
+  background: #5ba0f2;
+  animation: widget-header-press-fill-resize 0.75s linear forwards;
+}
+
+@keyframes widget-header-press-fill {
+  from { width: 0; }
+  to { width: 58%; }
+}
+
+@keyframes widget-header-press-fill-resize {
+  from { width: 58%; }
+  to { width: 100%; }
+}
+
+body.widget-single-edit-lock #annotation-canvas,
+body.widget-single-edit-lock .annotation-toolbar {
+  pointer-events: none !important;
+}
+
 /* Only show move cursor in edit mode */
 .dashboard.edit-mode .widget {
   cursor: move;
