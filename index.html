@@ -59,7 +59,9 @@
       <div class="config-controls">
         <button id="export-config-btn" class="config-btn" title="Export Configuration">💾</button>
         <button id="import-config-btn" class="config-btn" title="Import Configuration">📥</button>
+        <button id="import-cloud-btn" class="config-btn" title="Import from Cloud">☁️</button>
         <input type="file" id="import-config-file" accept=".json" style="display: none;">
+        <button id="reset-device-btn" class="config-btn" title="Reset This Device">🗑️</button>
         <button id="refresh-btn" class="config-btn" title="Refresh Page">🔄</button>
       </div>
       <button id="close-widget-panel" class="close-panel-btn">&times;</button>
@@ -938,6 +940,7 @@
   </div>
 
 
+  <script src="cloud-profiles.js" defer></script>
   <script src="app.js"></script>
   <script src="styling.js"></script>
 </body>

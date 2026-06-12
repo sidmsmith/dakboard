@@ -64,8 +64,11 @@ let isInitialLoad = true; // Track if this is the initial page load
 let clockInterval = null;
 
 // Initialize dashboard
-document.addEventListener('DOMContentLoaded', () => {
-  
+document.addEventListener('DOMContentLoaded', async () => {
+  if (typeof window.resolveCloudStartup === 'function') {
+    await window.resolveCloudStartup();
+  }
+
   // Check if drag-resize functions are available
   if (typeof initializeDragAndResize === 'function') {
   } else {
@@ -11453,6 +11456,28 @@ function exportConfiguration() {
         font-size: 1rem;
         font-weight: 600;
       ">All Pages (${totalPages})</button>
+      ${window.cloudProfiles && window.cloudProfiles.isEnabled() ? `
+      <button id="export-cloud-current" class="export-option-btn" style="
+        padding: 1rem;
+        background: #2d6a4f;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 600;
+      ">Save current page to cloud</button>
+      <button id="export-cloud-all" class="export-option-btn" style="
+        padding: 1rem;
+        background: #2d6a4f;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 600;
+      ">Save all pages to cloud</button>
+      ` : ''}
       <button id="export-cancel" class="export-option-btn" style="
         padding: 1rem;
         background: var(--input-bg, #2d2d2d);
@@ -11494,6 +11519,23 @@ function exportConfiguration() {
     const allPages = Array.from({ length: totalPages }, (_, i) => i);
     performExport(allPages);
   });
+
+  const cloudCurrentBtn = dialogContent.querySelector('#export-cloud-current');
+  if (cloudCurrentBtn && window.cloudProfiles) {
+    cloudCurrentBtn.addEventListener('click', () => {
+      document.body.removeChild(dialog);
+      window.cloudProfiles.promptSaveToCloud([currentPage]);
+    });
+  }
+
+  const cloudAllBtn = dialogContent.querySelector('#export-cloud-all');
+  if (cloudAllBtn && window.cloudProfiles) {
+    cloudAllBtn.addEventListener('click', () => {
+      document.body.removeChild(dialog);
+      const allPages = Array.from({ length: totalPages }, (_, i) => i);
+      window.cloudProfiles.promptSaveToCloud(allPages);
+    });
+  }
   
   dialogContent.querySelector('#export-cancel').addEventListener('click', () => {
     document.body.removeChild(dialog);
@@ -11507,9 +11549,8 @@ function exportConfiguration() {
   });
 }
 
-// Perform the actual export for selected pages
-function performExport(pageIndices) {
-  try {
+// Build export configuration object for selected pages (no file download)
+function buildExportConfig(pageIndices) {
     const totalPages = parseInt(localStorage.getItem('dakboard-total-pages')) || 1;
     const currentPage = parseInt(localStorage.getItem('dakboard-current-page')) || 0;
     
@@ -11887,7 +11928,13 @@ function performExport(pageIndices) {
       }
     });
     
-    // Create JSON blob and trigger download
+    return config;
+}
+
+// Perform the actual export for selected pages (download JSON file)
+function performExport(pageIndices) {
+  try {
+    const config = buildExportConfig(pageIndices);
     const jsonStr = JSON.stringify(config, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -11897,18 +11944,15 @@ function performExport(pageIndices) {
     const dateStr = now.toISOString().split('T')[0];
     const timeStr = now.toTimeString().split(' ')[0].substring(0, 5).replace(':', '-');
     
-    // Generate page label for filename
     let pageLabel;
     if (pageIndices.length === 1) {
-      // For single page export, use page name instead of number
       const pageIndex = pageIndices[0];
       const pageName = localStorage.getItem(`dakboard-page-name-${pageIndex}`) || `Page ${pageIndex + 1}`;
-      // Sanitize page name for filename: remove invalid characters, replace spaces with hyphens
       const sanitizedName = pageName
-        .replace(/[^a-zA-Z0-9\s-_]/g, '') // Remove invalid filename characters
-        .replace(/\s+/g, '-') // Replace spaces with hyphens
-        .toLowerCase() // Convert to lowercase
-        .substring(0, 50); // Limit length
+        .replace(/[^a-zA-Z0-9\s-_]/g, '')
+        .replace(/\s+/g, '-')
+        .toLowerCase()
+        .substring(0, 50);
       pageLabel = sanitizedName || `page-${pageIndex}`;
     } else {
       pageLabel = 'all-pages';
@@ -11919,44 +11963,66 @@ function performExport(pageIndices) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
   } catch (error) {
     console.error('Error exporting configuration:', error);
     alert('Error exporting configuration. Please check the console for details.');
   }
 }
 
-// Import configuration from JSON file
-function importConfiguration(file) {
-  const reader = new FileReader();
-  
-  reader.onload = (e) => {
-    try {
-      const config = JSON.parse(e.target.result);
-      
-      // Validate format
-      if (!config.pages || !Array.isArray(config.pages)) {
-        throw new Error('Invalid configuration format. Expected "pages" array.');
+window.buildExportConfig = buildExportConfig;
+window.performExport = performExport;
+
+function initializeFreshDashboard() {
+  if (window.cloudProfiles && typeof window.cloudProfiles.clearDakboardLocalConfig === 'function') {
+    window.cloudProfiles.clearDakboardLocalConfig();
+  } else {
+    const preserve = new Set(['dakboard-device-id', 'dakboard-device-label', 'dakboard-last-auto-backup-attempt', 'dakboard-last-current-sync']);
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+      if ((key.startsWith('dakboard-') && !preserve.has(key)) || key.startsWith('whiteboard-')) {
+        keysToRemove.push(key);
       }
-      
-      if (config.pages.length === 0) {
-        alert('No pages found in the import file.');
-        return;
-      }
-      
-      // Get current total pages to determine starting index for imported pages
-      const currentTotalPages = parseInt(localStorage.getItem('dakboard-total-pages')) || 1;
-      let newTotalPages = currentTotalPages;
-      let importedCount = 0;
-      
-      // Create instance ID mapping: oldFullWidgetId -> newFullWidgetId
-      const instanceIdMap = new Map();
-      
-      // Import each page - renumber them to append after existing pages
-      config.pages.forEach((page, importIndex) => {
-        const oldPageIndex = page.pageIndex;
-        const newPageIndex = currentTotalPages + importIndex;
-        newTotalPages = Math.max(newTotalPages, newPageIndex + 1);
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+  }
+  localStorage.setItem('dakboard-total-pages', '1');
+  localStorage.setItem('dakboard-current-page', '0');
+}
+
+window.initializeFreshDashboard = initializeFreshDashboard;
+
+// Apply imported configuration (append after existing pages or replace all local data)
+function applyImportedConfig(config, options = {}) {
+  const mode = options.mode || 'append';
+  const shouldReload = options.reload !== false;
+
+  if (!config.pages || !Array.isArray(config.pages)) {
+    throw new Error('Invalid configuration format. Expected "pages" array.');
+  }
+
+  if (config.pages.length === 0) {
+    throw new Error('No pages found in the import file.');
+  }
+
+  if (mode === 'replace') {
+    if (window.cloudProfiles && typeof window.cloudProfiles.clearDakboardLocalConfig === 'function') {
+      window.cloudProfiles.clearDakboardLocalConfig();
+    }
+  }
+
+  const currentTotalPages = mode === 'replace'
+    ? 0
+    : (parseInt(localStorage.getItem('dakboard-total-pages')) || 1);
+  let newTotalPages = currentTotalPages;
+  let importedCount = 0;
+  const instanceIdMap = new Map();
+
+  config.pages.forEach((page, importIndex) => {
+    const oldPageIndex = page.pageIndex;
+    const newPageIndex = mode === 'replace' ? importIndex : (currentTotalPages + importIndex);
+    newTotalPages = Math.max(newTotalPages, newPageIndex + 1);
         
         // Import page name (keep original name)
         if (page.name) {
@@ -12254,27 +12320,51 @@ function importConfiguration(file) {
           }
         }
       });
-      
-      // Update total pages
-      localStorage.setItem('dakboard-total-pages', newTotalPages.toString());
-      
-      // Keep current page (don't change it)
-      // Reload the page to apply the new configuration
+
+  localStorage.setItem('dakboard-total-pages', newTotalPages.toString());
+
+  if (mode === 'replace') {
+    localStorage.setItem('dakboard-current-page', '0');
+  }
+
+  if (shouldReload) {
+    if (mode === 'append') {
       alert(`Successfully imported ${config.pages.length} page(s)! The page will reload to apply changes.`);
-      window.location.reload();
-      
-    } catch (error) {
-      console.error('Error importing configuration:', error);
-      alert('Error importing configuration. Please ensure the file is a valid JSON configuration file.\n\nError: ' + error.message);
     }
-  };
-  
-  reader.onerror = () => {
-    alert('Error reading file. Please try again.');
-  };
-  
-  reader.readAsText(file);
+    window.location.reload();
+  }
+
+  return { importedPages: config.pages.length, importedCount };
 }
+
+window.applyImportedConfig = applyImportedConfig;
+
+function importConfiguration(file, options = {}) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const config = JSON.parse(e.target.result);
+        applyImportedConfig(config, { mode: options.mode || 'append', reload: true });
+        resolve();
+      } catch (error) {
+        console.error('Error importing configuration:', error);
+        alert('Error importing configuration. Please ensure the file is a valid JSON configuration file.\n\nError: ' + error.message);
+        reject(error);
+      }
+    };
+
+    reader.onerror = () => {
+      alert('Error reading file. Please try again.');
+      reject(new Error('Error reading file'));
+    };
+
+    reader.readAsText(file);
+  });
+}
+
+window.importConfiguration = importConfiguration;
 
 // Setup page management event listeners
 function setupPageManagement() {

@@ -4115,6 +4115,100 @@ footer a:hover {
   color: #fff;
 }
 
+.cloud-setup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20000;
+  padding: 1.5rem;
+}
+
+.cloud-setup-dialog {
+  background: var(--card-bg, #1e1e1e);
+  border: 1px solid var(--border, #333);
+  border-radius: 14px;
+  padding: 2rem;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+}
+
+.cloud-setup-dialog h2 {
+  margin: 0 0 0.75rem;
+  color: var(--text, #e0e0e0);
+  font-size: 1.35rem;
+}
+
+.cloud-setup-subtitle {
+  margin: 0 0 1.25rem;
+  color: var(--text-secondary, #bbbbbb);
+  line-height: 1.4;
+}
+
+.cloud-setup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cloud-setup-btn {
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border, #444);
+  background: var(--input-bg, #2d2d2d);
+  color: var(--text, #e0e0e0);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.cloud-setup-btn.primary {
+  background: var(--primary, #0d6efd);
+  border-color: var(--primary, #0d6efd);
+  color: #fff;
+}
+
+.cloud-setup-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cloud-setup-btn:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+
+.cloud-setup-countdown {
+  margin: 1.25rem 0 0;
+  color: var(--text-secondary, #999);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.cloud-setup-hint {
+  margin: 0.75rem 0 0;
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.cloud-import-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary, #bbbbbb);
+}
+
+.cloud-profile-select {
+  width: 100%;
+  margin-bottom: 1.25rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border, #444);
+  background: var(--input-bg, #2d2d2d);
+  color: var(--text, #e0e0e0);
+  font-size: 0.95rem;
+}
+
 
 .widget-control-header h3 {
   margin: 0;

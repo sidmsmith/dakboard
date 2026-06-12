@@ -14,6 +14,9 @@ window.CONFIG = {
   
   // Google Photos Configuration (optional)
   // GOOGLE_PHOTOS_ALBUM_ID: 'your_album_id_here', // Leave null to randomize from all photos
+
+  // Cloud profile backup/sync (Neon) — same value as DAKBOARD_PROFILE_KEY on Vercel
+  DAKBOARD_PROFILE_KEY: 'your_household_profile_key_here',
 };
 
 

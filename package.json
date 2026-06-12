@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "python -m http.server 8000"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4"
+  },
   "devDependencies": {}
 }
 
