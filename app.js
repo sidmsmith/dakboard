@@ -3006,6 +3006,9 @@ async function loadSprinkler() {
 
     instances.forEach(instance => {
       updateSprinklerWidgetInstance(instance.element, widgetData, icons);
+      if (typeof updateSprinklerControlStyles === 'function') {
+        updateSprinklerControlStyles(instance.element);
+      }
     });
   } catch (error) {
     console.error('Error loading sprinklers:', error);
@@ -4569,6 +4572,42 @@ function updateWidgetDynamicStyles(widget) {
   widget.style.setProperty('--widget-hover-bg', isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.25)');
   widget.style.setProperty('--widget-text-primary', primaryTextColor);
   widget.style.setProperty('--widget-text-secondary', secondaryTextColor);
+}
+
+// Mirror sprinkler widget background styling onto its control cells
+function updateSprinklerControlStyles(widget) {
+  if (!widget || !widget.classList.contains('sprinkler-widget')) return;
+
+  const controls = widget.querySelectorAll('.sprinkler-control');
+  if (!controls.length) return;
+
+  const computed = window.getComputedStyle(widget);
+  const bgProps = ['backgroundColor', 'backgroundImage', 'backgroundRepeat', 'backgroundPosition', 'backgroundSize'];
+  const effectiveBg = widget.style.backgroundColor || computed.backgroundColor;
+  const isTransparent = effectiveBg === 'transparent' || effectiveBg === 'rgba(0, 0, 0, 0)';
+
+  controls.forEach(control => {
+    if (isTransparent) {
+      control.style.backgroundColor = 'transparent';
+      control.style.backgroundImage = 'none';
+      control.style.border = 'none';
+      control.style.boxShadow = 'none';
+      return;
+    }
+
+    bgProps.forEach(prop => {
+      control.style[prop] = widget.style[prop] || computed[prop] || '';
+    });
+
+    const borderWidth = parseFloat(widget.style.borderWidth) || parseFloat(computed.borderWidth) || 0;
+    if (borderWidth > 0) {
+      control.style.borderWidth = `${Math.min(borderWidth, 2)}px`;
+      control.style.borderStyle = widget.style.borderStyle || computed.borderStyle || 'solid';
+      control.style.borderColor = widget.style.borderColor || computed.borderColor || '';
+    } else {
+      control.style.border = 'none';
+    }
+  });
 }
 
 // Update thermostat control styles based on widget background color (kept for backward compatibility)

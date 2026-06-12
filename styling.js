@@ -4556,6 +4556,11 @@ function applyCurrentStylesToWidget(widget) {
     // Use setTimeout to ensure background styles are applied first
     setTimeout(() => updateThermostatControlStyles(widget), 0);
   }
+
+  // Mirror widget background onto sprinkler control cells
+  if (widget.classList.contains('sprinkler-widget') && typeof updateSprinklerControlStyles === 'function') {
+    setTimeout(() => updateSprinklerControlStyles(widget), 0);
+  }
   
   // Update dice colors if this is a dice widget
   if (widget.classList.contains('dice-widget')) {
@@ -5697,6 +5702,11 @@ function loadStylesToWidget(widget, styles) {
   // Also update thermostat-specific styles for backward compatibility
   if (widget.classList.contains('thermostat-widget') && typeof updateThermostatControlStyles === 'function') {
     setTimeout(() => updateThermostatControlStyles(widget), 0);
+  }
+
+  // Mirror widget background onto sprinkler control cells
+  if (widget.classList.contains('sprinkler-widget') && typeof updateSprinklerControlStyles === 'function') {
+    setTimeout(() => updateSprinklerControlStyles(widget), 0);
   }
   
   // Reload dice widget with saved colors if this is a dice widget
