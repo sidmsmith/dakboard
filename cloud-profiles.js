@@ -125,10 +125,9 @@
           <h2>Welcome to Dakboard</h2>
           <p class="cloud-setup-subtitle">No local configuration found on this device.</p>
           <div class="cloud-setup-actions">
-            <button type="button" class="cloud-setup-btn primary" id="setup-import-cloud" ${isCloudEnabled() ? '' : 'disabled'}>
+            <button type="button" class="cloud-setup-btn primary" id="setup-import-cloud">
               Import from cloud
             </button>
-            <button type="button" class="cloud-setup-btn" id="setup-import-file">Import from file</button>
             <button type="button" class="cloud-setup-btn" id="setup-start-new">Start new dashboard</button>
           </div>
           <p class="cloud-setup-countdown" id="setup-countdown">
@@ -152,12 +151,8 @@
       autoTimer = setTimeout(() => finish('start-new'), SETUP_AUTO_CLOSE_MS);
 
       overlay.querySelector('#setup-start-new').addEventListener('click', () => finish('start-new'));
-      overlay.querySelector('#setup-import-file').addEventListener('click', () => finish('import-file'));
 
-      const cloudBtn = overlay.querySelector('#setup-import-cloud');
-      if (cloudBtn && isCloudEnabled()) {
-        cloudBtn.addEventListener('click', () => finish('import-cloud'));
-      }
+      overlay.querySelector('#setup-import-cloud').addEventListener('click', () => finish('import-cloud'));
     });
   }
 
@@ -342,36 +337,6 @@
       return;
     }
 
-    if (action === 'import-file') {
-      await new Promise((resolve) => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        input.style.display = 'none';
-        input.addEventListener('change', async (e) => {
-          const file = e.target.files[0];
-          input.remove();
-          if (!file) {
-            await resolveCloudStartup();
-            resolve();
-            return;
-          }
-          try {
-            if (typeof window.importConfiguration === 'function') {
-              await window.importConfiguration(file, { mode: 'replace' });
-            }
-          } catch (err) {
-            console.error('File import failed:', err);
-            await resolveCloudStartup();
-          }
-          resolve();
-        });
-        document.body.appendChild(input);
-        input.click();
-      });
-      return;
-    }
-
     if (action === 'import-cloud') {
       try {
         const profileId = await showCloudImportPicker();
@@ -391,9 +356,56 @@
   }
 
   function promptCloudSaveName(defaultName) {
-    const name = prompt('Profile name for cloud save:', defaultName || 'My dashboard');
+    const name = prompt('Name this cloud save:', defaultName || 'My dashboard');
     if (!name || !name.trim()) return null;
     return name.trim();
+  }
+
+  function showCloudSaveDialog() {
+    const totalPages = parseInt(localStorage.getItem('dakboard-total-pages')) || 1;
+    const currentPage = parseInt(localStorage.getItem('dakboard-current-page')) || 0;
+
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'cloud-setup-overlay';
+
+      overlay.innerHTML = `
+        <div class="cloud-setup-dialog" role="dialog" aria-modal="true">
+          <h2>Save to cloud</h2>
+          <p class="cloud-setup-subtitle">Named saves are shared across all devices. Auto-backups run daily while the dashboard is open.</p>
+          <div class="cloud-setup-actions">
+            <button type="button" class="cloud-setup-btn primary" id="cloud-save-current">Current page</button>
+            <button type="button" class="cloud-setup-btn primary" id="cloud-save-all">All pages (${totalPages})</button>
+            <button type="button" class="cloud-setup-btn" id="cloud-save-cancel">Cancel</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+
+      const close = () => {
+        overlay.remove();
+        resolve();
+      };
+
+      overlay.querySelector('#cloud-save-cancel').addEventListener('click', close);
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) close();
+      });
+
+      overlay.querySelector('#cloud-save-current').addEventListener('click', async () => {
+        overlay.remove();
+        await window.cloudProfiles.promptSaveToCloud([currentPage]);
+        resolve();
+      });
+
+      overlay.querySelector('#cloud-save-all').addEventListener('click', async () => {
+        overlay.remove();
+        const allPages = Array.from({ length: totalPages }, (_, i) => i);
+        await window.cloudProfiles.promptSaveToCloud(allPages);
+        resolve();
+      });
+    });
   }
 
   window.resolveCloudStartup = resolveCloudStartup;
@@ -422,6 +434,7 @@
         alert('Cloud save failed: ' + err.message);
       }
     },
+    openCloudSaveDialog: showCloudSaveDialog,
     openCloudImportDialog: async function openCloudImportDialog() {
       try {
         const profileId = await showCloudImportPicker();
@@ -437,6 +450,13 @@
   };
 
   function wireCloudUi() {
+    const saveCloudBtn = document.getElementById('save-cloud-btn');
+    if (saveCloudBtn) {
+      saveCloudBtn.addEventListener('click', () => {
+        window.cloudProfiles.openCloudSaveDialog();
+      });
+    }
+
     const importCloudBtn = document.getElementById('import-cloud-btn');
     if (importCloudBtn) {
       importCloudBtn.addEventListener('click', () => {

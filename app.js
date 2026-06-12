@@ -11370,32 +11370,10 @@ function renamePage(pageIndex, labelElement) {
   });
 }
 
-// Export/Import Configuration Functions
+// Cloud save/import + refresh (file-based JSON backup removed — cloud only)
 function initializeConfigExportImport() {
-  const exportBtn = document.getElementById('export-config-btn');
-  const importBtn = document.getElementById('import-config-btn');
-  const importFileInput = document.getElementById('import-config-file');
   const refreshBtn = document.getElementById('refresh-btn');
-  
-  if (exportBtn) {
-    exportBtn.addEventListener('click', exportConfiguration);
-  }
-  
-  if (importBtn && importFileInput) {
-    importBtn.addEventListener('click', () => {
-      importFileInput.click();
-    });
-    
-    importFileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        importConfiguration(file);
-      }
-      // Reset input so same file can be selected again
-      e.target.value = '';
-    });
-  }
-  
+
   if (refreshBtn) {
     refreshBtn.addEventListener('click', () => {
       window.location.reload();
@@ -11403,157 +11381,7 @@ function initializeConfigExportImport() {
   }
 }
 
-// Show export dialog and handle export
-function exportConfiguration() {
-    // Get total pages and current page
-  const totalPages = parseInt(localStorage.getItem('dakboard-total-pages')) || 1;
-  const currentPage = parseInt(localStorage.getItem('dakboard-current-page')) || 0;
-  
-  // Create and show export dialog
-  const dialog = document.createElement('div');
-  dialog.className = 'export-dialog-overlay';
-  dialog.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-  `;
-  
-  const dialogContent = document.createElement('div');
-  dialogContent.style.cssText = `
-    background: var(--card-bg, #1e1e1e);
-    border: 1px solid var(--border, #333);
-    border-radius: 12px;
-    padding: 2rem;
-    max-width: 400px;
-    width: 90%;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  `;
-  
-  dialogContent.innerHTML = `
-    <h3 style="margin: 0 0 1.5rem 0; color: var(--text, #e0e0e0);">Export Configuration</h3>
-    <p style="margin: 0 0 1.5rem 0; color: var(--text-secondary, #bbbbbb);">Choose what to export:</p>
-    <div style="display: flex; flex-direction: column; gap: 1rem;">
-      <button id="export-current-page" class="export-option-btn" style="
-        padding: 1rem;
-        background: var(--primary, #0d6efd);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 1rem;
-        font-weight: 600;
-      ">Current Page</button>
-      <button id="export-all-pages" class="export-option-btn" style="
-        padding: 1rem;
-        background: var(--primary, #0d6efd);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 1rem;
-        font-weight: 600;
-      ">All Pages (${totalPages})</button>
-      ${window.cloudProfiles && window.cloudProfiles.isEnabled() ? `
-      <button id="export-cloud-current" class="export-option-btn" style="
-        padding: 1rem;
-        background: #2d6a4f;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 1rem;
-        font-weight: 600;
-      ">Save current page to cloud</button>
-      <button id="export-cloud-all" class="export-option-btn" style="
-        padding: 1rem;
-        background: #2d6a4f;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 1rem;
-        font-weight: 600;
-      ">Save all pages to cloud</button>
-      ` : ''}
-      <button id="export-cancel" class="export-option-btn" style="
-        padding: 1rem;
-        background: var(--input-bg, #2d2d2d);
-        color: var(--text, #e0e0e0);
-        border: 1px solid var(--border, #333);
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 1rem;
-      ">Cancel</button>
-    </div>
-  `;
-  
-  dialog.appendChild(dialogContent);
-  document.body.appendChild(dialog);
-  
-  // Add hover effects
-  const buttons = dialogContent.querySelectorAll('.export-option-btn');
-  buttons.forEach(btn => {
-    btn.addEventListener('mouseenter', () => {
-      if (btn.id !== 'export-cancel') {
-        btn.style.opacity = '0.9';
-      }
-    });
-    btn.addEventListener('mouseleave', () => {
-      if (btn.id !== 'export-cancel') {
-        btn.style.opacity = '1';
-      }
-    });
-  });
-  
-  // Handle button clicks
-  dialogContent.querySelector('#export-current-page').addEventListener('click', () => {
-    document.body.removeChild(dialog);
-    performExport([currentPage]);
-  });
-  
-  dialogContent.querySelector('#export-all-pages').addEventListener('click', () => {
-    document.body.removeChild(dialog);
-    const allPages = Array.from({ length: totalPages }, (_, i) => i);
-    performExport(allPages);
-  });
-
-  const cloudCurrentBtn = dialogContent.querySelector('#export-cloud-current');
-  if (cloudCurrentBtn && window.cloudProfiles) {
-    cloudCurrentBtn.addEventListener('click', () => {
-      document.body.removeChild(dialog);
-      window.cloudProfiles.promptSaveToCloud([currentPage]);
-    });
-  }
-
-  const cloudAllBtn = dialogContent.querySelector('#export-cloud-all');
-  if (cloudAllBtn && window.cloudProfiles) {
-    cloudAllBtn.addEventListener('click', () => {
-      document.body.removeChild(dialog);
-      const allPages = Array.from({ length: totalPages }, (_, i) => i);
-      window.cloudProfiles.promptSaveToCloud(allPages);
-    });
-  }
-  
-  dialogContent.querySelector('#export-cancel').addEventListener('click', () => {
-    document.body.removeChild(dialog);
-  });
-  
-  // Close on overlay click
-  dialog.addEventListener('click', (e) => {
-    if (e.target === dialog) {
-      document.body.removeChild(dialog);
-    }
-  });
-}
-
-// Build export configuration object for selected pages (no file download)
+// Build export configuration object for selected pages (used by cloud backup/sync)
 function buildExportConfig(pageIndices) {
     const totalPages = parseInt(localStorage.getItem('dakboard-total-pages')) || 1;
     const currentPage = parseInt(localStorage.getItem('dakboard-current-page')) || 0;
@@ -11935,46 +11763,7 @@ function buildExportConfig(pageIndices) {
     return config;
 }
 
-// Perform the actual export for selected pages (download JSON file)
-function performExport(pageIndices) {
-  try {
-    const config = buildExportConfig(pageIndices);
-    const jsonStr = JSON.stringify(config, null, 2);
-    const blob = new Blob([jsonStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
-    const timeStr = now.toTimeString().split(' ')[0].substring(0, 5).replace(':', '-');
-    
-    let pageLabel;
-    if (pageIndices.length === 1) {
-      const pageIndex = pageIndices[0];
-      const pageName = localStorage.getItem(`dakboard-page-name-${pageIndex}`) || `Page ${pageIndex + 1}`;
-      const sanitizedName = pageName
-        .replace(/[^a-zA-Z0-9\s-_]/g, '')
-        .replace(/\s+/g, '-')
-        .toLowerCase()
-        .substring(0, 50);
-      pageLabel = sanitizedName || `page-${pageIndex}`;
-    } else {
-      pageLabel = 'all-pages';
-    }
-    
-    a.download = `dakboard-config-${pageLabel}-${dateStr}_${timeStr}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error('Error exporting configuration:', error);
-    alert('Error exporting configuration. Please check the console for details.');
-  }
-}
-
 window.buildExportConfig = buildExportConfig;
-window.performExport = performExport;
 
 function initializeFreshDashboard() {
   if (window.cloudProfiles && typeof window.cloudProfiles.clearDakboardLocalConfig === 'function') {
@@ -12342,33 +12131,6 @@ function applyImportedConfig(config, options = {}) {
 }
 
 window.applyImportedConfig = applyImportedConfig;
-
-function importConfiguration(file, options = {}) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = (e) => {
-      try {
-        const config = JSON.parse(e.target.result);
-        applyImportedConfig(config, { mode: options.mode || 'append', reload: true });
-        resolve();
-      } catch (error) {
-        console.error('Error importing configuration:', error);
-        alert('Error importing configuration. Please ensure the file is a valid JSON configuration file.\n\nError: ' + error.message);
-        reject(error);
-      }
-    };
-
-    reader.onerror = () => {
-      alert('Error reading file. Please try again.');
-      reject(new Error('Error reading file'));
-    };
-
-    reader.readAsText(file);
-  });
-}
-
-window.importConfiguration = importConfiguration;
 
 // Setup page management event listeners
 function setupPageManagement() {
