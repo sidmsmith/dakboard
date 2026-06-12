@@ -1,12 +1,12 @@
-export function validateProfileApiKey(req) {
-  const expected = process.env.DAKBOARD_PROFILE_KEY;
+export function validateDakboardPassword(req) {
+  const expected = process.env.DAKBOARD_PASSWORD;
   if (!expected) {
-    return { ok: false, status: 500, error: 'DAKBOARD_PROFILE_KEY not configured' };
+    return { ok: false, status: 500, error: 'DAKBOARD_PASSWORD not configured' };
   }
 
-  const headerKey = req.headers['x-dakboard-key'] || req.headers['x-dakboard-profile-key'];
-  const bodyKey = req.body?.apiKey;
-  const provided = headerKey || bodyKey;
+  const headerPassword = req.headers['x-dakboard-password'];
+  const bodyPassword = req.body?.password;
+  const provided = headerPassword || bodyPassword;
 
   if (!provided || provided !== expected) {
     return { ok: false, status: 401, error: 'Unauthorized' };
@@ -18,5 +18,5 @@ export function validateProfileApiKey(req) {
 export function setCors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Dakboard-Key');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Dakboard-Password');
 }

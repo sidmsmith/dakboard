@@ -65,6 +65,10 @@ let clockInterval = null;
 
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', async () => {
+  if (typeof window.resolveDeviceAuth === 'function') {
+    await window.resolveDeviceAuth();
+  }
+
   if (typeof window.resolveCloudStartup === 'function') {
     await window.resolveCloudStartup();
   }

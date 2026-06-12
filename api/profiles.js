@@ -1,4 +1,4 @@
-import { validateProfileApiKey, setCors } from './lib/auth.js';
+import { validateDakboardPassword, setCors } from './lib/auth.js';
 import { ensureSchema, getSql, pruneAutoBackups } from './lib/db.js';
 import { hashConfig } from './lib/hash.js';
 
@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const auth = validateProfileApiKey(req);
+  const auth = validateDakboardPassword(req);
   if (!auth.ok) {
     return res.status(auth.status).json({ error: auth.error });
   }

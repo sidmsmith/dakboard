@@ -4209,6 +4209,34 @@ footer a:hover {
   font-size: 0.95rem;
 }
 
+html.dakboard-auth-pending body {
+  overflow: hidden;
+}
+
+html.dakboard-auth-pending body > *:not(#dakboard-auth-overlay) {
+  visibility: hidden;
+}
+
+#dakboard-auth-overlay {
+  visibility: visible !important;
+}
+
+.dakboard-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dakboard-auth-input {
+  margin-bottom: 0;
+}
+
+.dakboard-auth-error {
+  margin: 0;
+  color: #f87171;
+  font-size: 0.9rem;
+}
+
 
 .widget-control-header h3 {
   margin: 0;

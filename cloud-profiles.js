@@ -13,15 +13,17 @@
     DEVICE_ID_KEY,
     DEVICE_LABEL_KEY,
     LAST_AUTO_ATTEMPT_KEY,
-    LAST_CURRENT_SYNC_KEY
+    LAST_CURRENT_SYNC_KEY,
+    'dakboard-authenticated',
+    'dakboard-password'
   ]);
 
   function isCloudEnabled() {
-    return Boolean(window.CONFIG && window.CONFIG.DAKBOARD_PROFILE_KEY);
+    return window.dakboardAuth && window.dakboardAuth.isAuthenticated();
   }
 
-  function getApiKey() {
-    return window.CONFIG && window.CONFIG.DAKBOARD_PROFILE_KEY;
+  function getPassword() {
+    return window.dakboardAuth && window.dakboardAuth.getPassword();
   }
 
   function getProfilesApiUrl() {
@@ -48,7 +50,7 @@
   async function profilesFetch(url, options = {}) {
     const headers = {
       'Content-Type': 'application/json',
-      'X-Dakboard-Key': getApiKey(),
+      'X-Dakboard-Password': getPassword(),
       ...(options.headers || {})
     };
     const response = await fetch(url, { ...options, headers });
@@ -132,7 +134,6 @@
           <p class="cloud-setup-countdown" id="setup-countdown">
             Starting fresh in <strong>${remaining}</strong>s…
           </p>
-          ${!isCloudEnabled() ? '<p class="cloud-setup-hint">Cloud import requires DAKBOARD_PROFILE_KEY in config.js</p>' : ''}
         </div>
       `;
 
@@ -231,7 +232,6 @@
 
   async function saveManualProfile(name, pageIndices) {
     if (!isCloudEnabled()) {
-      alert('Cloud save is not configured. Add DAKBOARD_PROFILE_KEY to config.js');
       return;
     }
     if (typeof window.buildExportConfig !== 'function') {
@@ -423,10 +423,6 @@
       }
     },
     openCloudImportDialog: async function openCloudImportDialog() {
-      if (!isCloudEnabled()) {
-        alert('Cloud import is not configured. Add DAKBOARD_PROFILE_KEY to config.js');
-        return;
-      }
       try {
         const profileId = await showCloudImportPicker();
         if (!profileId) return;
