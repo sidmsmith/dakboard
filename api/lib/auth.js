@@ -8,7 +8,7 @@ export function validateDakboardPassword(req) {
   const bodyPassword = req.body?.password;
   const provided = headerPassword || bodyPassword;
 
-  if (!provided || provided !== expected) {
+  if (!provided || String(provided).toLowerCase() !== String(expected).toLowerCase()) {
     return { ok: false, status: 401, error: 'Unauthorized' };
   }
 
