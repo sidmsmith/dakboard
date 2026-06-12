@@ -73,6 +73,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     await window.resolveCloudStartup();
   }
 
+  const postReloadToast = sessionStorage.getItem('dakboard-post-reload-toast');
+  if (postReloadToast) {
+    sessionStorage.removeItem('dakboard-post-reload-toast');
+    if (typeof showToast === 'function') {
+      setTimeout(() => showToast(postReloadToast, 2500), 400);
+    }
+  }
+
   // Check if drag-resize functions are available
   if (typeof initializeDragAndResize === 'function') {
   } else {
@@ -11143,6 +11151,137 @@ function addPage() {
   return newPageIndex;
 }
 
+function remapPageIndexInString(value, oldPage, newPage) {
+  if (typeof value !== 'string') return value;
+  const oldToken = `-page-${oldPage}-`;
+  const newToken = `-page-${newPage}-`;
+  return value.includes(oldToken) ? value.split(oldToken).join(newToken) : value;
+}
+
+function remapObjectKeysWithPageIndex(obj, oldPage, newPage) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
+  const result = {};
+  Object.keys(obj).forEach((key) => {
+    result[remapPageIndexInString(key, oldPage, newPage)] = obj[key];
+  });
+  return result;
+}
+
+function getAllLocalStorageKeys() {
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key) keys.push(key);
+  }
+  return keys;
+}
+
+function isPageIndexedStorageKey(key, pageIndex) {
+  return key.includes(`-page-${pageIndex}-`)
+    || key.endsWith(`-page-${pageIndex}`)
+    || key === `dakboard-widget-visibility-page-${pageIndex}`
+    || key === `dakboard-widget-layout-page-${pageIndex}`
+    || key === `dakboard-page-background-${pageIndex}`
+    || key === `dakboard-page-name-${pageIndex}`
+    || key === `dakboard-annotation-page-${pageIndex}`
+    || key === `dakboard-annotation-highlight2-page-${pageIndex}`
+    || key === `dakboard-annotation-visibility-page-${pageIndex}`;
+}
+
+function removePageStorage(pageIndex) {
+  getAllLocalStorageKeys().forEach((key) => {
+    if (isPageIndexedStorageKey(key, pageIndex)) {
+      localStorage.removeItem(key);
+    }
+  });
+}
+
+function shiftPageStorageIndex(oldPage, newPage) {
+  const keys = getAllLocalStorageKeys();
+  const moves = [];
+  const removals = [];
+
+  keys.forEach((key) => {
+    const value = localStorage.getItem(key);
+    if (value === null) return;
+
+    if (key === `dakboard-widget-visibility-page-${oldPage}`) {
+      try {
+        const parsed = JSON.parse(value);
+        moves.push([
+          `dakboard-widget-visibility-page-${newPage}`,
+          JSON.stringify(remapObjectKeysWithPageIndex(parsed, oldPage, newPage))
+        ]);
+      } catch {
+        moves.push([`dakboard-widget-visibility-page-${newPage}`, value]);
+      }
+      removals.push(key);
+      return;
+    }
+
+    if (key === `dakboard-widget-layout-page-${oldPage}`) {
+      try {
+        const parsed = JSON.parse(value);
+        moves.push([
+          `dakboard-widget-layout-page-${newPage}`,
+          JSON.stringify(remapObjectKeysWithPageIndex(parsed, oldPage, newPage))
+        ]);
+      } catch {
+        moves.push([`dakboard-widget-layout-page-${newPage}`, value]);
+      }
+      removals.push(key);
+      return;
+    }
+
+    const exactRenames = {
+      [`dakboard-page-background-${oldPage}`]: `dakboard-page-background-${newPage}`,
+      [`dakboard-page-name-${oldPage}`]: `dakboard-page-name-${newPage}`,
+      [`dakboard-annotation-page-${oldPage}`]: `dakboard-annotation-page-${newPage}`,
+      [`dakboard-annotation-highlight2-page-${oldPage}`]: `dakboard-annotation-highlight2-page-${newPage}`,
+      [`dakboard-annotation-visibility-page-${oldPage}`]: `dakboard-annotation-visibility-page-${newPage}`,
+      [`whiteboard-drawing-page-${oldPage}`]: `whiteboard-drawing-page-${newPage}`,
+      [`whiteboard-bg-color-page-${oldPage}`]: `whiteboard-bg-color-page-${newPage}`,
+      [`whiteboard-ink-color-page-${oldPage}`]: `whiteboard-ink-color-page-${newPage}`,
+      [`whiteboard-brush-size-page-${oldPage}`]: `whiteboard-brush-size-page-${newPage}`
+    };
+
+    if (exactRenames[key]) {
+      moves.push([exactRenames[key], value]);
+      removals.push(key);
+      return;
+    }
+
+    if (key.includes(`-page-${oldPage}-`)) {
+      const newKey = remapPageIndexInString(key, oldPage, newPage);
+      if (newKey !== key) {
+        moves.push([newKey, value]);
+        removals.push(key);
+      }
+      return;
+    }
+
+    if (key.endsWith(`-page-${oldPage}`)) {
+      moves.push([key.replace(`-page-${oldPage}`, `-page-${newPage}`), value]);
+      removals.push(key);
+    }
+  });
+
+  removals.forEach((key) => localStorage.removeItem(key));
+  moves.forEach(([key, value]) => localStorage.setItem(key, value));
+}
+
+function remapWidgetClassesOnPage(pageElement, oldPage, newPage) {
+  if (!pageElement) return;
+  pageElement.querySelectorAll('.widget').forEach((widget) => {
+    Array.from(widget.classList).forEach((cls) => {
+      if (cls.includes(`-page-${oldPage}-instance-`)) {
+        widget.classList.remove(cls);
+        widget.classList.add(remapPageIndexInString(cls, oldPage, newPage));
+      }
+    });
+  });
+}
+
 // Delete a page
 function deletePage(pageIndex) {
   // Can't delete if only one page exists
@@ -11155,84 +11294,45 @@ function deletePage(pageIndex) {
     return false;
   }
   
-  // Remove page element
+  // Remove page element and its page-scoped storage
   const pageElement = getPageElement(pageIndex);
   if (pageElement) {
     pageElement.remove();
   }
-  
-  // Delete page data from localStorage
-  localStorage.removeItem(`dakboard-widget-layout-page-${pageIndex}`);
-  localStorage.removeItem(`dakboard-background-page-${pageIndex}`);
-  // Note: Edit mode is now global, not per-page, so we don't delete it here
-  localStorage.removeItem(`dakboard-page-name-${pageIndex}`); // Remove page name
-  
-  // Renumber pages after the deleted one
-  for (let i = pageIndex + 1; i < totalPages; i++) {
-    const oldLayoutKey = `dakboard-widget-layout-page-${i}`;
-    const oldBgKey = `dakboard-background-page-${i}`;
-    const oldNameKey = `dakboard-page-name-${i}`;
-    
-    const newLayoutKey = `dakboard-widget-layout-page-${i - 1}`;
-    const newBgKey = `dakboard-background-page-${i - 1}`;
-    const newNameKey = `dakboard-page-name-${i - 1}`;
-    
-    // Move layout data
-    const layoutData = localStorage.getItem(oldLayoutKey);
-    if (layoutData) {
-      localStorage.setItem(newLayoutKey, layoutData);
-      localStorage.removeItem(oldLayoutKey);
-    }
-    
-    // Move background data
-    const bgData = localStorage.getItem(oldBgKey);
-    if (bgData) {
-      localStorage.setItem(newBgKey, bgData);
-      localStorage.removeItem(oldBgKey);
-    }
-    
-    // Note: Edit mode is now global, not per-page, so we don't move it here
-    
-    // Move page name data
-    const nameData = localStorage.getItem(oldNameKey);
-    if (nameData) {
-      localStorage.setItem(newNameKey, nameData);
-      localStorage.removeItem(oldNameKey);
-    }
-    
-    // Update page element data-page-id
-    const pageToRenumber = getPageElement(i);
+  removePageStorage(pageIndex);
+
+  // Shift higher pages down (storage + DOM), highest index first to avoid collisions
+  for (let oldPage = totalPages - 1; oldPage > pageIndex; oldPage--) {
+    const newPage = oldPage - 1;
+    shiftPageStorageIndex(oldPage, newPage);
+
+    const pageToRenumber = getPageElement(oldPage);
     if (pageToRenumber) {
-      pageToRenumber.setAttribute('data-page-id', (i - 1).toString());
+      remapWidgetClassesOnPage(pageToRenumber, oldPage, newPage);
+      pageToRenumber.setAttribute('data-page-id', newPage.toString());
     }
   }
-  
+
   // Decrease total pages
   totalPages--;
   window.totalPages = totalPages;
   localStorage.setItem('dakboard-total-pages', totalPages.toString());
-  
+
   // Adjust current page index if needed
   if (currentPageIndex >= totalPages) {
     currentPageIndex = totalPages - 1;
     window.currentPageIndex = currentPageIndex;
     localStorage.setItem('dakboard-current-page', currentPageIndex.toString());
   } else if (currentPageIndex > pageIndex) {
-    // If we deleted a page before the current one, adjust index
     currentPageIndex--;
     window.currentPageIndex = currentPageIndex;
     localStorage.setItem('dakboard-current-page', currentPageIndex.toString());
   }
-  
-  // Update page list UI
+
   updatePageList();
-  
-  // Update navigation arrows
   updateNavigationArrows();
-  
-  // Show the current page (which may have changed)
   showPage(currentPageIndex);
-  
+
   return true;
 }
 
@@ -12121,9 +12221,10 @@ function applyImportedConfig(config, options = {}) {
   }
 
   if (shouldReload) {
-    if (mode === 'append') {
-      alert(`Successfully imported ${config.pages.length} page(s)! The page will reload to apply changes.`);
-    }
+    const message = mode === 'append'
+      ? `Added ${config.pages.length} page(s) from cloud`
+      : `Imported ${config.pages.length} page(s) from cloud`;
+    sessionStorage.setItem('dakboard-post-reload-toast', message);
     window.location.reload();
   }
 

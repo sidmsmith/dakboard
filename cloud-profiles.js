@@ -179,8 +179,10 @@
           <h2>Import from cloud</h2>
           <label class="cloud-import-label" for="cloud-profile-select">Choose a profile</label>
           <select id="cloud-profile-select" class="cloud-profile-select">${options}</select>
+          <p class="cloud-setup-subtitle">Import Pages replaces your current pages. Add Pages appends after them.</p>
           <div class="cloud-setup-actions">
-            <button type="button" class="cloud-setup-btn primary" id="cloud-import-confirm">Import</button>
+            <button type="button" class="cloud-setup-btn primary" id="cloud-import-replace">Import Pages</button>
+            <button type="button" class="cloud-setup-btn" id="cloud-import-append">Add Pages</button>
             <button type="button" class="cloud-setup-btn" id="cloud-import-cancel">Cancel</button>
           </div>
         </div>
@@ -188,16 +190,15 @@
 
       document.body.appendChild(overlay);
 
-      overlay.querySelector('#cloud-import-cancel').addEventListener('click', () => {
-        overlay.remove();
-        resolve(null);
-      });
-
-      overlay.querySelector('#cloud-import-confirm').addEventListener('click', async () => {
+      const finish = (mode) => {
         const id = overlay.querySelector('#cloud-profile-select').value;
         overlay.remove();
-        resolve(id);
-      });
+        resolve(mode ? { profileId: id, mode } : null);
+      };
+
+      overlay.querySelector('#cloud-import-cancel').addEventListener('click', () => finish(null));
+      overlay.querySelector('#cloud-import-replace').addEventListener('click', () => finish('replace'));
+      overlay.querySelector('#cloud-import-append').addEventListener('click', () => finish('append'));
     });
   }
 
@@ -339,14 +340,11 @@
 
     if (action === 'import-cloud') {
       try {
-        const profileId = await showCloudImportPicker();
-        if (!profileId) {
+        const selection = await showCloudImportPicker();
+        if (!selection) {
           return resolveCloudStartup();
         }
-        await importProfileById(profileId, 'replace');
-        if (typeof showToast === 'function') {
-          showToast('Configuration imported from cloud', 2500);
-        }
+        await importProfileById(selection.profileId, selection.mode);
       } catch (err) {
         console.error('Cloud import failed:', err);
         alert('Cloud import failed: ' + err.message);
@@ -437,12 +435,9 @@
     openCloudSaveDialog: showCloudSaveDialog,
     openCloudImportDialog: async function openCloudImportDialog() {
       try {
-        const profileId = await showCloudImportPicker();
-        if (!profileId) return;
-        await importProfileById(profileId, 'append');
-        if (typeof showToast === 'function') {
-          showToast('Configuration imported from cloud', 2500);
-        }
+        const selection = await showCloudImportPicker();
+        if (!selection) return;
+        await importProfileById(selection.profileId, selection.mode);
       } catch (err) {
         alert('Cloud import failed: ' + err.message);
       }
