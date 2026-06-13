@@ -1,7 +1,7 @@
 // Per-widget tablet edit: ~0.55s header hold then drag in one motion; 2.5s = single-widget resize
 (function () {
   const MOVE_THRESHOLD_MS = 550;
-  const RESIZE_THRESHOLD_MS = 2500;
+  const RESIZE_THRESHOLD_MS = 2000;
   const HEADER_FALLBACK_PX = 40;
   const PROGRESS_START_MS = 350;
   const PRE_MOVE_CANCEL_PX = 24;

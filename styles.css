@@ -2473,16 +2473,16 @@ body {
 
 .widget-header-press-progress.threshold-move {
   background: #5ba0f2;
-  animation: widget-header-press-fill-resize 1.95s linear forwards;
+  animation: widget-header-press-fill-resize 1.45s linear forwards;
 }
 
 @keyframes widget-header-press-fill {
   from { width: 0; }
-  to { width: 22%; }
+  to { width: 28%; }
 }
 
 @keyframes widget-header-press-fill-resize {
-  from { width: 22%; }
+  from { width: 28%; }
   to { width: 100%; }
 }
 
