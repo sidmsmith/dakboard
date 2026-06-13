@@ -8124,6 +8124,18 @@ function getWidgetTitle(fullWidgetId) {
   return config ? config.name : parsed.widgetType;
 }
 
+// Side panel label: show type + title when the display title differs from the widget type name
+function getWidgetPanelLabel(fullWidgetId) {
+  const parsed = parseWidgetId(fullWidgetId);
+  const config = WIDGET_CONFIG[parsed.widgetType];
+  const typeName = config ? config.name : parsed.widgetType;
+  const displayTitle = getWidgetTitle(fullWidgetId);
+  if (displayTitle !== typeName) {
+    return `${typeName} — ${displayTitle}`;
+  }
+  return displayTitle;
+}
+
 // Load widget visibility state from localStorage (page-specific)
 function loadWidgetVisibility() {
   try {
@@ -8909,9 +8921,7 @@ function updateWidgetControlPanel() {
       : isHiddenFromDOM;
     
     const isClone = instance.instanceIndex > 0;
-    
-    // Get widget title (configured title or default name)
-    const widgetTitle = getWidgetTitle(instance.fullId);
+    const panelLabel = getWidgetPanelLabel(instance.fullId);
     
     const item = document.createElement('div');
     item.className = `widget-control-item ${isHidden ? 'hidden' : ''}`;
@@ -9026,12 +9036,17 @@ function updateWidgetControlPanel() {
       });
     }
     
-    item.innerHTML = `
-      <div class="widget-control-item-info">
-        <span class="widget-control-item-icon">${config.icon}</span>
-        <span class="widget-control-item-name">${widgetTitle}</span>
-      </div>
-    `;
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'widget-control-item-info';
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'widget-control-item-icon';
+    iconSpan.textContent = config.icon;
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'widget-control-item-name';
+    nameSpan.textContent = panelLabel;
+    infoDiv.appendChild(iconSpan);
+    infoDiv.appendChild(nameSpan);
+    item.appendChild(infoDiv);
     item.appendChild(toggleBtn);
     item.appendChild(styleBtn);
     item.appendChild(cloneBtn);

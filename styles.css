@@ -4487,6 +4487,8 @@ html.dakboard-auth-pending body > *:not(#dakboard-auth-overlay) {
   color: #fff;
   font-size: 14px;
   font-weight: 500;
+  min-width: 0;
+  line-height: 1.3;
 }
 
 .widget-control-item.hidden .widget-control-item-name {
