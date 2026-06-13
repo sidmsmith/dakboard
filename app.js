@@ -3683,6 +3683,25 @@ let scoreboardConfigs = new Map(); // Track config per widget instance: { teams,
 let scoreboardScores = new Map(); // Track scores per widget instance: { teamId: score, ... }
 let scoreboardWinners = new Map(); // Track which teams have won per widget instance: Set of teamIds
 
+function parseScoreboardWinners(savedWinners) {
+  if (!savedWinners) return new Set();
+  try {
+    const parsed = JSON.parse(savedWinners);
+    if (Array.isArray(parsed)) {
+      return new Set(parsed);
+    }
+    if (parsed && typeof parsed === 'object') {
+      const keys = Object.keys(parsed);
+      if (keys.length === 0) return new Set();
+      return new Set(keys.filter((key) => parsed[key]));
+    }
+    return new Set();
+  } catch (e) {
+    console.error('Error parsing scoreboard winners:', e);
+    return new Set();
+  }
+}
+
 // Load and initialize scoreboard widgets
 function loadScoreboard() {
   const scoreboardWidgets = document.querySelectorAll('.scoreboard-widget');
@@ -3761,14 +3780,7 @@ function loadScoreboard() {
     // Get saved winners
     const winnersKey = `dakboard-scoreboard-winners-${fullWidgetId}`;
     const savedWinners = localStorage.getItem(winnersKey);
-    let winners = new Set();
-    if (savedWinners) {
-      try {
-        winners = new Set(JSON.parse(savedWinners));
-      } catch (e) {
-        console.error('Error parsing scoreboard winners:', e);
-      }
-    }
+    const winners = parseScoreboardWinners(savedWinners);
     
     scoreboardWinners.set(fullWidgetId, winners);
     
