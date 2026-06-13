@@ -8092,6 +8092,40 @@ function getWidgetInstances(widgetType, pageIndex) {
   return instances.sort((a, b) => a.instanceIndex - b.instanceIndex);
 }
 
+// DOM + localStorage instance IDs for export (includes styled/hidden widgets not yet in DOM)
+function collectWidgetInstancesForExport(widgetType, pageIndex, visibility, layout) {
+  const byId = new Map();
+
+  getWidgetInstances(widgetType, pageIndex).forEach(inst => {
+    byId.set(inst.fullId, inst);
+  });
+
+  const addFromId = (fullWidgetId) => {
+    const parsed = parseWidgetId(fullWidgetId);
+    if (parsed.isLegacy || parsed.widgetType !== widgetType || parsed.pageIndex !== pageIndex) {
+      return;
+    }
+    if (!byId.has(fullWidgetId)) {
+      byId.set(fullWidgetId, {
+        fullId: fullWidgetId,
+        instanceIndex: parsed.instanceIndex,
+        element: null
+      });
+    }
+  };
+
+  Object.keys(visibility || {}).forEach(addFromId);
+  Object.keys(layout || {}).forEach(addFromId);
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key || !key.startsWith('dakboard-widget-styles-')) continue;
+    addFromId(key.replace('dakboard-widget-styles-', ''));
+  }
+
+  return Array.from(byId.values()).sort((a, b) => a.instanceIndex - b.instanceIndex);
+}
+
 // Get next available instance index for a widget type on a page
 function getNextInstanceIndex(widgetType, pageIndex) {
   const instances = getWidgetInstances(widgetType, pageIndex);
@@ -8536,15 +8570,15 @@ function toggleWidgetVisibility(fullWidgetId) {
         setTimeout(() => {
           if (widgetType === 'scoreboard-widget' && typeof loadScoreboard === 'function') {
             loadScoreboard();
-          } else if (widgetType === 'clip-art-widget' && typeof loadClipArt === 'function') {
+          } else if (widgetType === 'blank-widget' && typeof loadClipArt === 'function') {
             loadClipArt();
           } else if (widgetType === 'stoplight-widget' && typeof loadStoplight === 'function') {
             loadStoplight();
           } else if (widgetType === 'weather-widget' && typeof loadWeather === 'function') {
             loadWeather();
-          } else if (widgetType === 'todos-widget' && typeof loadTodos === 'function') {
+          } else if (widgetType === 'todo-widget' && typeof loadTodos === 'function') {
             loadTodos();
-          } else if (widgetType === 'garage-doors-widget' && typeof loadGarageDoors === 'function') {
+          } else if (widgetType === 'garage-widget' && typeof loadGarageDoors === 'function') {
             loadGarageDoors();
           } else if (widgetType === 'alarm-widget' && typeof loadAlarm === 'function') {
             loadAlarm();
@@ -8560,8 +8594,8 @@ function toggleWidgetVisibility(fullWidgetId) {
             loadCalendarEvents();
           } else if (widgetType === 'agenda-widget' && typeof loadAgenda === 'function') {
             loadAgenda();
-          } else if (widgetType === 'blank-widget') {
-            // Blank widget doesn't need special loading
+          } else if (widgetType === 'tasks-widget' && typeof loadTasks === 'function') {
+            loadTasks();
           }
         }, 150);
       }
@@ -9116,11 +9150,11 @@ function cloneWidget(fullWidgetId) {
     const original = templateWidget.cloneNode(true);
     original.classList.add('hidden');
     const originalId = generateWidgetId(widgetType, pageIndex, 0);
-    original.className = `${widgetType} ${originalId} hidden`;
+    original.className = `widget ${widgetType} ${originalId} hidden`;
     pageElement.appendChild(original);
     // Now clone the original
     const cloned = original.cloneNode(true);
-    cloned.className = `${widgetType} ${newFullId}`;
+    cloned.className = `widget ${widgetType} ${newFullId}`;
     
     // Clear drag listener flag - cloned widgets need drag listeners re-attached
     // This prevents the cloned widget from being skipped during drag initialization
@@ -9774,7 +9808,7 @@ function moveWidgetToPage(fullWidgetId, targetPageIndex) {
     newWidget.classList.add('hidden');
     sourcePageElement.appendChild(newWidget);
     // Update its ID
-    newWidget.className = `${widgetType} ${fullWidgetId}`;
+    newWidget.className = `widget ${widgetType} ${fullWidgetId} hidden`;
   }
   
   // Get next available instance index on target page
@@ -10017,6 +10051,10 @@ function initializeWidgetInstance(fullWidgetId, widgetElement) {
     setTimeout(() => loadClipArt(), 50);
   } else if (widgetType === 'stoplight-widget' && typeof loadStoplight === 'function') {
     setTimeout(() => loadStoplight(), 50);
+  } else if (widgetType === 'agenda-widget' && typeof loadAgenda === 'function') {
+    setTimeout(() => loadAgenda(), 50);
+  } else if (widgetType === 'tasks-widget' && typeof loadTasks === 'function') {
+    setTimeout(() => loadTasks(), 50);
   }
   
   // Load layout (position, size, rotation)
@@ -11592,7 +11630,7 @@ function buildExportConfig(pageIndices) {
         const widgetInfo = WIDGET_CONFIG[widgetType];
         
         // Get all instances of this widget type on this page
-        const instances = getWidgetInstances(widgetType, pageIndex);
+        const instances = collectWidgetInstancesForExport(widgetType, pageIndex, visibility, layout);
         
         // If no instances exist, still export the widget type with default visibility
         if (instances.length === 0) {
@@ -11780,7 +11818,7 @@ function buildExportConfig(pageIndices) {
           // Check if this fullWidgetId matches any widget instance on this page
           let belongsToThisPage = false;
           Object.keys(WIDGET_CONFIG).forEach(widgetType => {
-            const instances = getWidgetInstances(widgetType, pageIndex);
+            const instances = collectWidgetInstancesForExport(widgetType, pageIndex, visibility, layout);
             instances.forEach(instance => {
               if (instance.fullId === keyWithoutPrefix) {
                 belongsToThisPage = true;
@@ -11805,7 +11843,7 @@ function buildExportConfig(pageIndices) {
           let belongsToThisPage = false;
           
           Object.keys(WIDGET_CONFIG).forEach(widgetType => {
-            const instances = getWidgetInstances(widgetType, pageIndex);
+            const instances = collectWidgetInstancesForExport(widgetType, pageIndex, visibility, layout);
             instances.forEach(instance => {
               // Check if key contains the full instance ID
               if (key.includes(instance.fullId)) {
@@ -11826,7 +11864,7 @@ function buildExportConfig(pageIndices) {
       
       // Also explicitly get all widget instances and ensure we export their data
       Object.keys(WIDGET_CONFIG).forEach(widgetType => {
-        const instances = getWidgetInstances(widgetType, pageIndex);
+        const instances = collectWidgetInstancesForExport(widgetType, pageIndex, visibility, layout);
         instances.forEach(instance => {
           const fullWidgetId = instance.fullId;
           
