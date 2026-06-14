@@ -8719,6 +8719,70 @@ function applyDefaultWidgetLayoutIfNeeded(widget, widgetType, fullWidgetId, page
   localStorage.setItem(layoutKey, JSON.stringify(layout));
 }
 
+function raiseWidgetToFront(widget, pageIndex, persistLayout = true) {
+  if (!widget || widget.classList.contains('hidden')) return;
+
+  const pageElement = getPageElement(pageIndex);
+  if (!pageElement) return;
+
+  const visibleWidgets = Array.from(pageElement.querySelectorAll('.widget:not(.hidden)'));
+  const maxZ = Math.max(
+    ...visibleWidgets.map((w) => parseInt(window.getComputedStyle(w).zIndex, 10) || 1),
+    1
+  );
+  const newZ = maxZ + 1;
+  widget.style.zIndex = String(newZ);
+
+  if (!persistLayout) return;
+
+  const fullId = resolveWidgetFullId(widget, pageIndex);
+  const layoutKey = `dakboard-widget-layout-page-${pageIndex}`;
+  let layout = {};
+  try {
+    const saved = localStorage.getItem(layoutKey);
+    if (saved) layout = JSON.parse(saved);
+  } catch (e) {
+    layout = {};
+  }
+
+  if (layout[fullId]) {
+    layout[fullId].zIndex = newZ;
+  } else {
+    layout[fullId] = captureWidgetLayoutFromElement(widget, pageElement);
+    layout[fullId].zIndex = newZ;
+  }
+
+  localStorage.setItem(layoutKey, JSON.stringify(layout));
+}
+
+function applyEditModeToWidget(widget, enabled) {
+  if (!widget || widget.classList.contains('hidden')) return;
+
+  if (enabled) {
+    widget.classList.add('edit-mode-active');
+    widget.style.pointerEvents = 'auto';
+    if (typeof addZIndexControls === 'function') {
+      addZIndexControls(widget);
+    }
+  } else {
+    widget.classList.remove('edit-mode-active');
+    widget.style.pointerEvents = '';
+    const zIndexControls = widget.querySelector('.widget-zindex-controls');
+    if (zIndexControls) zIndexControls.remove();
+    widget.querySelectorAll('.widget-edit-header').forEach((header) => header.remove());
+  }
+}
+
+function finalizeShownWidget(widget, pageIndex) {
+  raiseWidgetToFront(widget, pageIndex);
+  if (isEditMode) {
+    applyEditModeToWidget(widget, true);
+    if (typeof initializeDragAndResize === 'function') {
+      initializeDragAndResize();
+    }
+  }
+}
+
 // Toggle widget visibility (page-specific)
 function toggleWidgetVisibility(fullWidgetId) {
   const parsed = parseWidgetId(fullWidgetId);
@@ -8822,13 +8886,6 @@ function toggleWidgetVisibility(fullWidgetId) {
         }
       }
       
-      // Set initial z-index to bring new widget to front
-      const maxZIndex = Math.max(...Array.from(document.querySelectorAll('.widget:not(.hidden)')).map(w => {
-        const z = parseInt(window.getComputedStyle(w).zIndex) || 1;
-        return isNaN(z) ? 1 : z;
-      }), 1);
-      widget.style.zIndex = (maxZIndex + 1).toString();
-      
       // Initialize widget-specific functionality if needed
       if (typeof initializeDragAndResize === 'function') {
         // Reinitialize drag/resize for the new widget
@@ -8866,23 +8923,15 @@ function toggleWidgetVisibility(fullWidgetId) {
       // Save visibility state IMMEDIATELY to prevent loadWidgetVisibility from hiding it again
       saveWidgetVisibility();
       
-      // Bring widget to front when shown (set high z-index)
-      const maxZIndex = Math.max(...Array.from(document.querySelectorAll('.widget:not(.hidden)')).map(w => {
-        const z = parseInt(window.getComputedStyle(w).zIndex) || 1;
-        return isNaN(z) ? 1 : z;
-      }), 1);
-      widget.style.zIndex = (maxZIndex + 1).toString();
-      
       // Load widget-specific data and styles first
       loadWidgetStyles(fullWidgetId);
       
-      // Load layout for the widget if it exists (position, size, rotation)
-      if (typeof loadWidgetLayout === 'function') {
-        loadWidgetLayout();
-      }
+      // Layout already applied above — skip full-page reload (it resets z-index)
+      initializeWidgetInstance(fullWidgetId, widget, { skipLayoutReload: true });
+
+      finalizeShownWidget(widget, pageIndex);
       
       // Initialize widget instance (this also calls load functions with delay)
-      initializeWidgetInstance(fullWidgetId, widget);
       
       // For Dice and Stopwatch, ensure they're initialized properly
       // These widgets need their container elements to exist and be ready
@@ -8938,6 +8987,9 @@ function toggleWidgetVisibility(fullWidgetId) {
           }
         }, 150);
       }
+
+      // Re-apply after async init (loadWidgetStyles etc.) so z-index and edit handles stick
+      setTimeout(() => finalizeShownWidget(widget, pageIndex), 200);
     } else {
       widget.classList.add('hidden');
       
@@ -9088,33 +9140,12 @@ function setEditMode(enabled) {
     }
   }
   
-  // Update all widgets
-  const pageElement = getPageElement(currentPageIndex);
-  if (pageElement) {
-    pageElement.querySelectorAll('.widget').forEach(widget => {
-      if (enabled) {
-        widget.classList.add('edit-mode-active');
-        widget.style.pointerEvents = 'auto'; // Allow dragging
-        // Add z-index controls when entering edit mode
-        if (typeof addZIndexControls === 'function') {
-          addZIndexControls(widget);
-        }
-      } else {
-        widget.classList.remove('edit-mode-active');
-        widget.style.pointerEvents = ''; // Reset to default
-        // Remove z-index controls when exiting edit mode
-        const zIndexControls = widget.querySelector('.widget-zindex-controls');
-        if (zIndexControls) {
-          zIndexControls.remove();
-        }
-        // Remove minimal edit headers if they exist (but preserve original headers)
-        const minimalHeaders = widget.querySelectorAll('.widget-edit-header');
-        minimalHeaders.forEach(minimalHeader => {
-          minimalHeader.remove();
-        });
-      }
+  // Update all widgets on every page
+  document.querySelectorAll('.dashboard.page').forEach((page) => {
+    page.querySelectorAll('.widget').forEach((widget) => {
+      applyEditModeToWidget(widget, enabled);
     });
-  }
+  });
   
   // Reinitialize drag/resize when toggling edit mode
   if (typeof initializeDragAndResize === 'function') {
@@ -10355,7 +10386,7 @@ function copyWidgetConfiguration(sourceFullId, targetFullId, targetPageIndex, so
 }
 
 // Initialize widget instance (load data, attach event listeners, etc.)
-function initializeWidgetInstance(fullWidgetId, widgetElement) {
+function initializeWidgetInstance(fullWidgetId, widgetElement, options = {}) {
   const parsed = parseWidgetId(fullWidgetId);
   const widgetType = parsed.widgetType;
   
@@ -10399,8 +10430,8 @@ function initializeWidgetInstance(fullWidgetId, widgetElement) {
     setTimeout(() => loadTasks(), 50);
   }
   
-  // Load layout (position, size, rotation)
-  if (typeof loadWidgetLayout === 'function') {
+  // Load layout (position, size, rotation) unless caller already applied it
+  if (!options.skipLayoutReload && typeof loadWidgetLayout === 'function') {
     loadWidgetLayout();
   }
   
