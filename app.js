@@ -11986,6 +11986,32 @@ function initializeConfigExportImport() {
 }
 
 // Build export configuration object for selected pages (used by cloud backup/sync)
+function getPageVisibilityAndLayout(pageIndex) {
+  let visibility = {};
+  const visibilityKey = `dakboard-widget-visibility-page-${pageIndex}`;
+  const visibilityValue = localStorage.getItem(visibilityKey);
+  if (visibilityValue) {
+    try {
+      visibility = JSON.parse(visibilityValue);
+    } catch (e) {
+      console.warn(`Error parsing visibility for page ${pageIndex}:`, e);
+    }
+  }
+
+  let layout = {};
+  const layoutKey = `dakboard-widget-layout-page-${pageIndex}`;
+  const layoutValue = localStorage.getItem(layoutKey);
+  if (layoutValue) {
+    try {
+      layout = JSON.parse(layoutValue);
+    } catch (e) {
+      console.warn(`Error parsing layout for page ${pageIndex}:`, e);
+    }
+  }
+
+  return { visibility, layout };
+}
+
 function buildExportConfig(pageIndices) {
     if (typeof flushDashboardStateBeforeExport === 'function') {
       flushDashboardStateBeforeExport();
@@ -12028,29 +12054,8 @@ function buildExportConfig(pageIndices) {
         }
       }
       
-      // Get widget visibility for this page
-      const visibilityKey = `dakboard-widget-visibility-page-${pageIndex}`;
-      const visibilityValue = localStorage.getItem(visibilityKey);
-      let visibility = {};
-      if (visibilityValue) {
-        try {
-          visibility = JSON.parse(visibilityValue);
-        } catch (e) {
-          console.warn(`Error parsing visibility for page ${pageIndex}:`, e);
-        }
-      }
-      
-      // Get widget layout for this page (stored by full instance ID)
-      const layoutKey = `dakboard-widget-layout-page-${pageIndex}`;
-      const layoutValue = localStorage.getItem(layoutKey);
-      let layout = {};
-      if (layoutValue) {
-        try {
-          layout = JSON.parse(layoutValue);
-        } catch (e) {
-          console.warn(`Error parsing layout for page ${pageIndex}:`, e);
-        }
-      }
+      // Get widget visibility and layout for this page
+      const { visibility, layout } = getPageVisibilityAndLayout(pageIndex);
       
       // Get the actual page element to check real widget states
       const pageElement = getPageElement(pageIndex);
@@ -12199,6 +12204,8 @@ function buildExportConfig(pageIndices) {
     pageIndices.forEach(pageIndex => {
       const page = config.pages.find(p => p.pageIndex === pageIndex);
       if (!page) return;
+
+      const { visibility, layout } = getPageVisibilityAndLayout(pageIndex);
       
       if (!page.instanceData) page.instanceData = {};
       if (!page.localStorageData) page.localStorageData = {};
