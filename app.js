@@ -8346,55 +8346,142 @@ function getDefaultWidgetSize(widgetType) {
   return sizes[widgetType] || { width: 300, height: 200 };
 }
 
-function widgetHasSavedLayout(fullWidgetId, pageIndex) {
+const LAYOUT_STAGGER_PX = 60;
+const LAYOUT_MIN_SIZE_PX = 50;
+
+// A saved layout counts as "placed" only when it has real size and is on-screen
+function isLayoutValid(layout, viewportWidth, viewportHeight) {
+  if (!layout || typeof layout !== 'object') return false;
+  const width = parseFloat(layout.width);
+  const height = parseFloat(layout.height);
+  const x = parseFloat(layout.x);
+  const y = parseFloat(layout.y);
+  if (isNaN(width) || isNaN(height) || width < LAYOUT_MIN_SIZE_PX || height < LAYOUT_MIN_SIZE_PX) {
+    return false;
+  }
+  if (isNaN(x) || isNaN(y)) return false;
+  const vw = viewportWidth || window.innerWidth;
+  const vh = viewportHeight || window.innerHeight;
+  if (x + width < 0 || y + height < 0) return false;
+  if (x > vw || y > vh) return false;
+  return true;
+}
+
+function getSavedWidgetLayout(fullWidgetId, pageIndex) {
   const layoutKey = `dakboard-widget-layout-page-${pageIndex}`;
   const savedLayout = localStorage.getItem(layoutKey);
-  if (!savedLayout) return false;
+  if (!savedLayout) return null;
   try {
     const layout = JSON.parse(savedLayout);
-    return !!(layout && layout[fullWidgetId]);
+    const entry = layout && layout[fullWidgetId];
+    if (!entry) return null;
+    return isLayoutValid(entry) ? entry : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
-// Place widget on screen when it has no saved layout (or is clipped below viewport)
+function widgetHasSavedLayout(fullWidgetId, pageIndex) {
+  return getSavedWidgetLayout(fullWidgetId, pageIndex) !== null;
+}
+
+function sanitizePageLayout(pageIndex) {
+  const layoutKey = `dakboard-widget-layout-page-${pageIndex}`;
+  const saved = localStorage.getItem(layoutKey);
+  if (!saved) return;
+  try {
+    const layout = JSON.parse(saved);
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let changed = false;
+    Object.keys(layout).forEach((id) => {
+      if (!isLayoutValid(layout[id], vw, vh)) {
+        delete layout[id];
+        changed = true;
+      }
+    });
+    if (changed) {
+      localStorage.setItem(layoutKey, JSON.stringify(layout));
+    }
+  } catch (e) {
+    console.error('Error sanitizing page layout:', e);
+  }
+}
+
+function getCenteredDefaultLayout(widgetType, fullWidgetId) {
+  const { width, height } = getDefaultWidgetSize(widgetType);
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const parsed = parseWidgetId(fullWidgetId);
+  const stagger = (parsed.instanceIndex || 0) * LAYOUT_STAGGER_PX;
+  return {
+    x: Math.max(20, (viewportWidth - width) / 2 + stagger),
+    y: Math.max(20, (viewportHeight - height) / 2 + stagger),
+    width,
+    height,
+    zIndex: 1,
+    rotation: 0
+  };
+}
+
+function applyLayoutToWidget(widget, layoutData, pageElement) {
+  if (!widget || !layoutData) return;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const { x, y, width, height, zIndex, rotation } = layoutData;
+  const clampedX = Math.max(0, Math.min(x, viewportWidth - width));
+  const clampedY = Math.max(0, Math.min(y, viewportHeight - height));
+
+  widget.style.position = 'absolute';
+  widget.style.left = `${clampedX}px`;
+  widget.style.top = `${clampedY}px`;
+  widget.style.width = `${width}px`;
+  widget.style.height = `${height}px`;
+  widget.style.right = '';
+  widget.style.bottom = '';
+
+  if (zIndex !== undefined) {
+    widget.style.zIndex = zIndex;
+  }
+  if (rotation !== undefined && rotation !== 0) {
+    widget.style.transform = `rotate(${rotation}deg)`;
+    widget.setAttribute('data-rotation', rotation);
+  } else {
+    widget.style.transform = '';
+    widget.removeAttribute('data-rotation');
+  }
+  if (typeof updateWidgetScale === 'function') {
+    updateWidgetScale(widget);
+  }
+}
+
+// Center on first show only — never re-center after a valid saved layout exists
 function applyDefaultWidgetLayoutIfNeeded(widget, widgetType, fullWidgetId, pageIndex) {
   if (!widget) return;
 
-  const { width: defaultWidth, height: defaultHeight } = getDefaultWidgetSize(widgetType);
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
+  const saved = getSavedWidgetLayout(fullWidgetId, pageIndex);
+  const pageElement = getPageElement(pageIndex);
 
-  if (!widgetHasSavedLayout(fullWidgetId, pageIndex)) {
-    const defaultLeft = Math.max(50, (viewportWidth - defaultWidth) / 2);
-    const defaultTop = Math.max(50, (viewportHeight - defaultHeight) / 2);
-    widget.style.position = 'absolute';
-    widget.style.left = `${defaultLeft}px`;
-    widget.style.top = `${defaultTop}px`;
-    widget.style.width = `${defaultWidth}px`;
-    widget.style.height = `${defaultHeight}px`;
-    if (typeof saveCurrentPageLayout === 'function') {
-      saveCurrentPageLayout();
-    }
+  if (saved && pageElement) {
+    applyLayoutToWidget(widget, saved, pageElement);
     return;
   }
 
-  // Saved layout exists but widget may still be off-screen (e.g. CSS default top: 960px)
-  const top = parseFloat(widget.style.top);
-  const height = parseFloat(widget.style.height) || widget.offsetHeight || defaultHeight;
-  if (!isNaN(top) && top + height > viewportHeight - 20) {
-    const defaultLeft = Math.max(50, parseFloat(widget.style.left) || (viewportWidth - defaultWidth) / 2);
-    const defaultTop = Math.max(50, (viewportHeight - defaultHeight) / 2);
-    widget.style.position = 'absolute';
-    widget.style.left = `${defaultLeft}px`;
-    widget.style.top = `${defaultTop}px`;
-    widget.style.width = `${parseFloat(widget.style.width) || defaultWidth}px`;
-    widget.style.height = `${height}px`;
-    if (typeof saveCurrentPageLayout === 'function') {
-      saveCurrentPageLayout();
-    }
+  const defaultLayout = getCenteredDefaultLayout(widgetType, fullWidgetId);
+  if (pageElement) {
+    applyLayoutToWidget(widget, defaultLayout, pageElement);
   }
+
+  const layoutKey = `dakboard-widget-layout-page-${pageIndex}`;
+  let layout = {};
+  try {
+    const existing = localStorage.getItem(layoutKey);
+    if (existing) layout = JSON.parse(existing);
+  } catch (e) {
+    layout = {};
+  }
+  layout[fullWidgetId] = defaultLayout;
+  localStorage.setItem(layoutKey, JSON.stringify(layout));
 }
 
 // Toggle widget visibility (page-specific)
@@ -8482,22 +8569,22 @@ function toggleWidgetVisibility(fullWidgetId) {
       // Check if layout exists in localStorage first
       const layoutKey = `dakboard-widget-layout-page-${pageIndex}`;
       const savedLayout = localStorage.getItem(layoutKey);
-      let hasLayout = false;
-      if (savedLayout) {
-        try {
-          const layout = JSON.parse(savedLayout);
-          if (layout[fullWidgetId]) {
-            hasLayout = true;
-          }
-        } catch (e) {
-          // Ignore parse errors
-        }
-      }
+      const hasValidLayout = widgetHasSavedLayout(fullWidgetId, pageIndex);
       
       pageElement.appendChild(widget);
 
-      if (!hasLayout) {
+      if (!hasValidLayout) {
         applyDefaultWidgetLayoutIfNeeded(widget, widgetType, fullWidgetId, pageIndex);
+      } else if (savedLayout) {
+        try {
+          const layout = JSON.parse(savedLayout);
+          const pageEl = getPageElement(pageIndex);
+          if (layout[fullWidgetId] && pageEl) {
+            applyLayoutToWidget(widget, layout[fullWidgetId], pageEl);
+          }
+        } catch (e) {
+          applyDefaultWidgetLayoutIfNeeded(widget, widgetType, fullWidgetId, pageIndex);
+        }
       }
       
       // Set initial z-index to bring new widget to front
@@ -8538,7 +8625,7 @@ function toggleWidgetVisibility(fullWidgetId) {
     if (isCurrentlyHidden) {
       widget.classList.remove('hidden');
 
-      // Ensure first-time visible widgets are on-screen (CSS defaults can be below viewport)
+      // Center on first show; restore saved position when layout is valid
       applyDefaultWidgetLayoutIfNeeded(widget, widgetType, fullWidgetId, pageIndex);
       
       // Save visibility state IMMEDIATELY to prevent loadWidgetVisibility from hiding it again
@@ -11015,8 +11102,11 @@ function loadCurrentPage() {
   });
   
   // Load page-specific widget layout
+  sanitizePageLayout(currentPageIndex);
   const layoutKey = `dakboard-widget-layout-page-${currentPageIndex}`;
   const saved = localStorage.getItem(layoutKey);
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
   
   if (saved) {
     try {
@@ -11044,28 +11134,14 @@ function loadCurrentPage() {
           }
         }
         
-        if (widget && layout[widgetId] && !widget.classList.contains('hidden')) {
-          const { x, y, width, height, zIndex, rotation } = layout[widgetId];
-          const viewportWidth = window.innerWidth;
-          const viewportHeight = window.innerHeight;
-          
-          const clampedX = Math.max(0, Math.min(x, viewportWidth - width));
-          const clampedY = Math.max(0, Math.min(y, viewportHeight - height));
-          
-          widget.style.left = `${clampedX}px`;
-          widget.style.top = `${clampedY}px`;
-          widget.style.width = `${width}px`;
-          widget.style.height = `${height}px`;
-          if (zIndex !== undefined) {
-            widget.style.zIndex = zIndex;
-          }
-          if (rotation !== undefined) {
-            widget.style.transform = `rotate(${rotation}deg)`;
-            widget.setAttribute('data-rotation', rotation);
-          }
-          if (typeof updateWidgetScale === 'function') {
-            updateWidgetScale(widget);
-          }
+        if (!widget || widget.classList.contains('hidden')) return;
+
+        const layoutEntry = layout[widgetId];
+        if (isLayoutValid(layoutEntry, viewportWidth, viewportHeight)) {
+          applyLayoutToWidget(widget, layoutEntry, pageElement);
+        } else {
+          const parsed = parseWidgetId(widgetId);
+          applyDefaultWidgetLayoutIfNeeded(widget, parsed.widgetType, widgetId, currentPageIndex);
         }
       });
       
@@ -11077,6 +11153,15 @@ function loadCurrentPage() {
       console.error('Error loading page layout:', error);
     }
   }
+
+  // Visible widgets with no valid saved layout (e.g. after CSS defaults removed)
+  pageElement.querySelectorAll('.widget:not(.hidden)').forEach((widget) => {
+    const fullId = resolveWidgetFullId(widget, currentPageIndex);
+    if (!widgetHasSavedLayout(fullId, currentPageIndex)) {
+      const parsed = parseWidgetId(fullId);
+      applyDefaultWidgetLayoutIfNeeded(widget, parsed.widgetType, fullId, currentPageIndex);
+    }
+  });
 }
 
 function resolveWidgetFullId(widget, pageIndex) {
