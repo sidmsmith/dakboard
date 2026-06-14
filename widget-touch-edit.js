@@ -78,7 +78,7 @@
 
   function clearResizeMode() {
     if (resizeWidget) {
-      resizeWidget.classList.remove('widget-edit-focus');
+      resizeWidget.classList.remove('widget-edit-focus', 'widget-move-armed');
       resizeWidget.querySelectorAll('.resize-handle, .rotate-handle').forEach((h) => h.remove());
       resizeWidget = null;
     }
@@ -99,7 +99,10 @@
     clearTimeout(moveTimer);
     clearTimeout(resizeTimer);
     clearTimeout(progressTimer);
-    widget.classList.remove('widget-header-pressing', 'widget-header-move-ready', 'widget-move-armed');
+    widget.classList.remove('widget-header-pressing', 'widget-header-move-ready');
+    if (resizeWidget !== widget) {
+      widget.classList.remove('widget-move-armed');
+    }
     if (progressEl && progressEl.parentNode) {
       progressEl.remove();
     }
@@ -129,7 +132,7 @@
     }
 
     resizeWidget = widget;
-    widget.classList.add('widget-edit-focus');
+    widget.classList.add('widget-edit-focus', 'widget-move-armed');
     applyInteractionLock(true);
 
     if (window.dakboardDragResize) {
@@ -138,13 +141,26 @@
 
     vibrate(80);
     if (typeof showToast === 'function') {
-      showToast('Drag handles to resize', 1800);
+      showToast('Resize handles on — drag header to move', 1800);
+    }
+  }
+
+  function startResizeModeDrag(widget, e) {
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+    if (window.dakboardDragResize && typeof window.dakboardDragResize.startDrag === 'function') {
+      window.dakboardDragResize.startDrag(widget, e);
+      activePress = {
+        widget,
+        dragStarted: true,
+        fromResizeMode: true
+      };
     }
   }
 
   function tryStartMoveDrag(e) {
     if (!activePress || !activePress.moveReady || activePress.dragStarted) return;
-    if (resizeWidget) return;
 
     const widget = activePress.widget;
     activePress.dragStarted = true;
@@ -162,8 +178,12 @@
 
   function onDragComplete(widget) {
     if (activePress?.widget === widget) {
+      if (activePress.fromResizeMode) {
+        activePress = null;
+        return;
+      }
       cancelActivePress();
-    } else {
+    } else if (resizeWidget !== widget) {
       widget.classList.remove('widget-move-armed');
       if (!resizeWidget) {
         applyInteractionLock(false);
@@ -182,7 +202,11 @@
     const { x, y } = getPointerCoords(e);
     if (!isHeaderOrFallbackTouch(widget, x, y)) return;
 
-    if (resizeWidget === widget) return;
+    // In resize mode, header press-drag moves immediately (green border stays)
+    if (resizeWidget === widget) {
+      startResizeModeDrag(widget, e);
+      return;
+    }
 
     if (resizeWidget && resizeWidget !== widget) {
       clearSingleWidgetEdit();
@@ -235,14 +259,21 @@
       return;
     }
 
-    if (resizeWidget === widget) return;
     tryStartMoveDrag(e);
   }
 
   function handlePressEnd() {
     if (!activePress) return;
 
-    const { widget, dragStarted } = activePress;
+    const { widget, dragStarted, fromResizeMode } = activePress;
+
+    if (fromResizeMode) {
+      if (dragStarted && window.dakboardDragResize?.endActiveGesture) {
+        window.dakboardDragResize.endActiveGesture();
+      }
+      activePress = null;
+      return;
+    }
 
     if (resizeWidget === widget) {
       cancelActivePress();
@@ -303,12 +334,12 @@
 
   window.widgetTouchEdit = {
     isMoveArmed(widget) {
-      return Boolean(
-        activePress
-        && activePress.widget === widget
-        && activePress.moveReady
-        && !resizeWidget
-      );
+      return resizeWidget === widget
+        || Boolean(
+          activePress
+          && activePress.widget === widget
+          && (activePress.moveReady || activePress.fromResizeMode)
+        );
     },
     isResizeActive(widget) {
       return resizeWidget === widget;
