@@ -7176,14 +7176,92 @@ let highlightMaskCanvas = null;
 let highlightMaskCtx = null;
 let highlight2Canvas = null;
 let highlight2Ctx = null;
+
+const ANNOTATION_TOOLS = ['pen', 'highlighter', 'highlighter2', 'airbrush', 'eraser'];
+const ANNOTATION_BRUSH_SETTINGS_KEY = 'dakboard-annotation-brush-settings';
+const ANNOTATION_TOOL_DEFAULTS = {
+  pen: { color: '#000000', brushSize: 3, opacity: 100 },
+  highlighter: { color: '#ffd700', brushSize: 24, opacity: 15 },
+  highlighter2: { color: '#ffff00', brushSize: 24, opacity: 30 },
+  airbrush: { color: '#9b59b6', brushSize: 15, opacity: 50 },
+  eraser: { color: '#000000', brushSize: 20, opacity: 100 }
+};
+
+function mergeAnnotationBrushSettings(saved) {
+  const merged = {};
+  ANNOTATION_TOOLS.forEach((tool) => {
+    const defaults = ANNOTATION_TOOL_DEFAULTS[tool];
+    const entry = saved && saved[tool];
+    merged[tool] = {
+      color: entry?.color || defaults.color,
+      brushSize: Number.isFinite(entry?.brushSize) ? entry.brushSize : defaults.brushSize,
+      opacity: Number.isFinite(entry?.opacity) ? entry.opacity : defaults.opacity
+    };
+  });
+  return merged;
+}
+
+function loadAnnotationBrushSettings() {
+  const saved = localStorage.getItem(ANNOTATION_BRUSH_SETTINGS_KEY);
+  if (saved) {
+    try {
+      return mergeAnnotationBrushSettings(JSON.parse(saved));
+    } catch (e) {
+      console.warn('Invalid annotation brush settings, using defaults:', e);
+    }
+  }
+
+  const settings = mergeAnnotationBrushSettings(null);
+  const legacyColor = localStorage.getItem('dakboard-annotation-color');
+  const legacySize = parseInt(localStorage.getItem('dakboard-annotation-brush-size'), 10);
+  const legacyOpacity = parseInt(localStorage.getItem('dakboard-annotation-opacity'), 10);
+  if (legacyColor) settings.pen.color = legacyColor;
+  if (Number.isFinite(legacySize)) settings.pen.brushSize = legacySize;
+  if (Number.isFinite(legacyOpacity)) settings.pen.opacity = legacyOpacity;
+  saveAnnotationBrushSettings(settings);
+  return settings;
+}
+
+function saveAnnotationBrushSettings(settings) {
+  localStorage.setItem(ANNOTATION_BRUSH_SETTINGS_KEY, JSON.stringify(settings));
+}
+
+let annotationBrushSettings = loadAnnotationBrushSettings();
+
+function saveCurrentToolBrushSettings() {
+  const tool = annotationState.currentTool;
+  if (!ANNOTATION_TOOLS.includes(tool)) return;
+  annotationBrushSettings[tool] = {
+    color: annotationState.currentColor,
+    brushSize: annotationState.brushSize,
+    opacity: annotationState.opacity
+  };
+  saveAnnotationBrushSettings(annotationBrushSettings);
+}
+
+function applyToolBrushSettings(tool) {
+  const settings = annotationBrushSettings[tool] || ANNOTATION_TOOL_DEFAULTS[tool];
+  annotationState.currentColor = settings.color;
+  annotationState.brushSize = settings.brushSize;
+  annotationState.opacity = settings.opacity;
+}
+
+function switchAnnotationTool(tool) {
+  if (!ANNOTATION_TOOLS.includes(tool) || tool === annotationState.currentTool) return;
+  saveCurrentToolBrushSettings();
+  annotationState.currentTool = tool;
+  applyToolBrushSettings(tool);
+  updateAnnotationToolbar();
+}
+
 let annotationState = {
   isDrawing: false,
   lastX: 0,
   lastY: 0,
   currentTool: 'pen',
-  currentColor: localStorage.getItem('dakboard-annotation-color') || '#000000',
-  brushSize: parseInt(localStorage.getItem('dakboard-annotation-brush-size')) || 3,
-  opacity: parseInt(localStorage.getItem('dakboard-annotation-opacity')) || 15,
+  currentColor: annotationBrushSettings.pen.color,
+  brushSize: annotationBrushSettings.pen.brushSize,
+  opacity: annotationBrushSettings.pen.opacity,
   isVisible: true // Will be page-specific, loaded per page
 };
 
@@ -7259,9 +7337,11 @@ function setAnnotationMode(enabled) {
     if (!annotationCanvas) {
       initializeAnnotationCanvas();
     }
+    applyToolBrushSettings(annotationState.currentTool);
     setupAnnotationDrawing();
     updateAnnotationToolbar();
   } else {
+    saveCurrentToolBrushSettings();
     removeAnnotationDrawing();
   }
   
@@ -7903,8 +7983,7 @@ function initializeAnnotationListeners() {
   // Tool buttons
   document.querySelectorAll('.annotation-tool-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      annotationState.currentTool = btn.dataset.tool;
-      updateAnnotationToolbar();
+      switchAnnotationTool(btn.dataset.tool);
     });
   });
   
@@ -7915,8 +7994,7 @@ function initializeAnnotationListeners() {
     colorPicker.addEventListener('input', (e) => {
       annotationState.currentColor = e.target.value;
       if (colorText) colorText.value = e.target.value;
-      // Save to localStorage
-      localStorage.setItem('dakboard-annotation-color', e.target.value);
+      saveCurrentToolBrushSettings();
     });
   }
   if (colorText) {
@@ -7925,8 +8003,7 @@ function initializeAnnotationListeners() {
       if (/^#[0-9A-F]{6}$/i.test(value)) {
         annotationState.currentColor = value;
         if (colorPicker) colorPicker.value = value;
-        // Save to localStorage
-        localStorage.setItem('dakboard-annotation-color', value);
+        saveCurrentToolBrushSettings();
       }
     });
   }
@@ -7938,8 +8015,7 @@ function initializeAnnotationListeners() {
     brushSize.addEventListener('input', (e) => {
       annotationState.brushSize = parseInt(e.target.value);
       if (brushSizeValue) brushSizeValue.textContent = annotationState.brushSize + 'px';
-      // Save to localStorage
-      localStorage.setItem('dakboard-annotation-brush-size', annotationState.brushSize.toString());
+      saveCurrentToolBrushSettings();
     });
   }
   
@@ -7950,8 +8026,7 @@ function initializeAnnotationListeners() {
     opacitySlider.addEventListener('input', (e) => {
       annotationState.opacity = parseInt(e.target.value);
       if (opacityValue) opacityValue.textContent = annotationState.opacity + '%';
-      // Save to localStorage
-      localStorage.setItem('dakboard-annotation-opacity', annotationState.opacity.toString());
+      saveCurrentToolBrushSettings();
     });
   }
   
