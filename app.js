@@ -7269,6 +7269,134 @@ let annotationState = {
 let highlightStrokes = [];
 let currentHighlightStroke = null;
 
+const ANNOTATION_HISTORY_MAX = 10;
+let annotationHistoryByPage = {};
+let annotationPreStrokeSnapshot = null;
+
+function getAnnotationHistory(pageIndex) {
+  if (!annotationHistoryByPage[pageIndex]) {
+    annotationHistoryByPage[pageIndex] = { undo: [], redo: [] };
+  }
+  return annotationHistoryByPage[pageIndex];
+}
+
+function clearAllAnnotationHistory() {
+  annotationHistoryByPage = {};
+  annotationPreStrokeSnapshot = null;
+}
+
+function clearAnnotationHistoryForPage(pageIndex) {
+  if (annotationHistoryByPage[pageIndex]) {
+    annotationHistoryByPage[pageIndex] = { undo: [], redo: [] };
+  }
+  updateAnnotationUndoRedoUI();
+}
+
+function captureAnnotationSnapshot() {
+  return {
+    mainDataUrl: annotationCanvas ? annotationCanvas.toDataURL('image/png') : null,
+    maskDataUrl: highlightMaskCanvas ? highlightMaskCanvas.toDataURL('image/png') : null,
+    highlightStrokes: JSON.parse(JSON.stringify(highlightStrokes))
+  };
+}
+
+function restoreAnnotationSnapshot(snapshot, callback) {
+  if (!annotationCtx || !snapshot) {
+    if (callback) callback();
+    return;
+  }
+
+  let pending = 2;
+  const finish = () => {
+    pending--;
+    if (pending > 0) return;
+    highlightStrokes = JSON.parse(JSON.stringify(snapshot.highlightStrokes || []));
+    currentHighlightStroke = null;
+    drawAllHighlightStrokes();
+    if (callback) callback();
+  };
+
+  const loadToCanvas = (dataUrl, ctx, canvas) => {
+    if (!ctx || !canvas) {
+      finish();
+      return;
+    }
+    if (!dataUrl) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      finish();
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      finish();
+    };
+    img.onerror = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      finish();
+    };
+    img.src = dataUrl;
+  };
+
+  loadToCanvas(snapshot.mainDataUrl, annotationCtx, annotationCanvas);
+  loadToCanvas(snapshot.maskDataUrl, highlightMaskCtx, highlightMaskCanvas);
+}
+
+function commitStrokeToHistory() {
+  if (!isAnnotationMode || annotationPreStrokeSnapshot === null) return;
+  const history = getAnnotationHistory(currentPageIndex);
+  history.undo.push(annotationPreStrokeSnapshot);
+  while (history.undo.length > ANNOTATION_HISTORY_MAX) {
+    history.undo.shift();
+  }
+  history.redo = [];
+  annotationPreStrokeSnapshot = null;
+  updateAnnotationUndoRedoUI();
+}
+
+function undoAnnotation() {
+  if (!isAnnotationMode || !annotationState.isVisible || annotationState.isDrawing) return;
+  const history = getAnnotationHistory(currentPageIndex);
+  if (history.undo.length === 0) return;
+
+  history.redo.push(captureAnnotationSnapshot());
+  while (history.redo.length > ANNOTATION_HISTORY_MAX) {
+    history.redo.shift();
+  }
+
+  const snapshot = history.undo.pop();
+  restoreAnnotationSnapshot(snapshot, () => {
+    saveAnnotationData();
+    updateAnnotationUndoRedoUI();
+  });
+}
+
+function redoAnnotation() {
+  if (!isAnnotationMode || !annotationState.isVisible || annotationState.isDrawing) return;
+  const history = getAnnotationHistory(currentPageIndex);
+  if (history.redo.length === 0) return;
+
+  history.undo.push(captureAnnotationSnapshot());
+  while (history.undo.length > ANNOTATION_HISTORY_MAX) {
+    history.undo.shift();
+  }
+
+  const snapshot = history.redo.pop();
+  restoreAnnotationSnapshot(snapshot, () => {
+    saveAnnotationData();
+    updateAnnotationUndoRedoUI();
+  });
+}
+
+function updateAnnotationUndoRedoUI() {
+  const history = getAnnotationHistory(currentPageIndex);
+  const undoBtn = document.getElementById('annotation-undo');
+  const redoBtn = document.getElementById('annotation-redo');
+  if (undoBtn) undoBtn.disabled = history.undo.length === 0;
+  if (redoBtn) redoBtn.disabled = history.redo.length === 0;
+}
+
 // Initialize annotation canvas
 function initializeAnnotationCanvas() {
   annotationCanvas = document.getElementById('annotation-canvas');
@@ -7307,6 +7435,7 @@ function initializeAnnotationCanvas() {
       highlight2Canvas.width = window.innerWidth;
       highlight2Canvas.height = window.innerHeight;
     }
+    clearAnnotationHistoryForPage(currentPageIndex);
     // Reload saved annotations if visible
     if (annotationState.isVisible) {
       loadAnnotationData();
@@ -7340,8 +7469,10 @@ function setAnnotationMode(enabled) {
     applyToolBrushSettings(annotationState.currentTool);
     setupAnnotationDrawing();
     updateAnnotationToolbar();
+    updateAnnotationUndoRedoUI();
   } else {
     saveCurrentToolBrushSettings();
+    clearAllAnnotationHistory();
     removeAnnotationDrawing();
   }
   
@@ -7383,6 +7514,7 @@ function startAnnotationDrawing(e) {
   if (!annotationCanvas || !annotationCtx) return;
   // Prevent drawing if annotations are hidden
   if (!annotationState.isVisible) return;
+  annotationPreStrokeSnapshot = captureAnnotationSnapshot();
   annotationState.isDrawing = true;
   
   const rect = annotationCanvas.getBoundingClientRect();
@@ -7435,6 +7567,7 @@ function stopAnnotationDrawing() {
     if (annotationState.currentTool === 'highlighter2') {
       currentHighlightStroke = null;
     }
+    commitStrokeToHistory();
     saveAnnotationData();
   }
 }
@@ -7443,6 +7576,8 @@ function stopAnnotationDrawing() {
 function startAnnotationDrawingTouch(e) {
   e.preventDefault();
   if (!annotationCanvas || !annotationCtx) return;
+  if (!annotationState.isVisible) return;
+  annotationPreStrokeSnapshot = captureAnnotationSnapshot();
   annotationState.isDrawing = true;
   
   const touch = e.touches[0];
@@ -7856,6 +7991,7 @@ function clearAnnotations() {
   localStorage.removeItem(key);
   const highlight2Key = `dakboard-annotation-highlight2-page-${currentPageIndex}`;
   localStorage.removeItem(highlight2Key);
+  clearAnnotationHistoryForPage(currentPageIndex);
 }
 
 // Get annotation visibility for current page
@@ -7968,6 +8104,7 @@ function updateAnnotationToolbar() {
   const opacityValue = document.getElementById('annotation-opacity-value');
   if (opacitySlider) opacitySlider.value = annotationState.opacity;
   if (opacityValue) opacityValue.textContent = annotationState.opacity + '%';
+  updateAnnotationUndoRedoUI();
 }
 
 // Initialize annotation event listeners
@@ -8039,6 +8176,16 @@ function initializeAnnotationListeners() {
       }
     });
   }
+
+  const undoBtn = document.getElementById('annotation-undo');
+  if (undoBtn) {
+    undoBtn.addEventListener('click', undoAnnotation);
+  }
+
+  const redoBtn = document.getElementById('annotation-redo');
+  if (redoBtn) {
+    redoBtn.addEventListener('click', redoAnnotation);
+  }
   
   // Toggle visibility
   const toggleVisibilityBtn = document.getElementById('annotation-toggle-visibility');
@@ -8054,9 +8201,22 @@ function initializeAnnotationListeners() {
     });
   }
   
-  // ESC key to exit annotation mode
+  // ESC to exit; Ctrl/Cmd+Z/Y for undo/redo while annotating
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isAnnotationMode) {
+    if (!isAnnotationMode) return;
+
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      undoAnnotation();
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) {
+      e.preventDefault();
+      redoAnnotation();
+      return;
+    }
+
+    if (e.key === 'Escape') {
       setAnnotationMode(false);
     }
   });
@@ -11123,6 +11283,9 @@ function loadCurrentPage() {
   if (annotationCanvas && annotationCtx) {
     loadAnnotationData();
     loadAnnotationVisibility();
+    if (isAnnotationMode) {
+      updateAnnotationUndoRedoUI();
+    }
   }
   
   // Load global edit mode (applies to all pages)

@@ -2781,6 +2781,18 @@ footer a:hover {
   transform: translateY(-2px);
 }
 
+.annotation-action-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.annotation-action-btn:disabled:hover {
+  background: #2a2a2a;
+  border-color: #4a4a4a;
+  transform: none;
+}
+
 .annotation-close-btn {
   background: #e74c3c;
   border-color: #c0392b;
