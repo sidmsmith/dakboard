@@ -186,6 +186,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (sortedPages.length > 0) {
       preloadNextPage();
     }
+
+    if (!window.dakboardExportReady) {
+      window.dakboardExportReady = true;
+      window.dispatchEvent(new Event('dakboard-export-ready'));
+    }
+  }).catch(() => {
+    if (!window.dakboardExportReady) {
+      window.dakboardExportReady = true;
+      window.dispatchEvent(new Event('dakboard-export-ready'));
+    }
   });
   
   startAutoRefresh();
@@ -8279,33 +8289,40 @@ function loadWidgetVisibility() {
 }
 
 // Save widget visibility state to localStorage (page-specific)
-function saveWidgetVisibility() {
+function savePageVisibility(pageIndex) {
   try {
-    const pageElement = getPageElement(currentPageIndex);
+    const pageElement = getPageElement(pageIndex);
     if (!pageElement) return;
-    
-    const visibility = {};
-    
-    // Process all widget types
+
+    const visibilityKey = `dakboard-widget-visibility-page-${pageIndex}`;
+    let visibility = {};
+    const saved = localStorage.getItem(visibilityKey);
+    if (saved) {
+      try {
+        visibility = JSON.parse(saved);
+      } catch (e) {
+        visibility = {};
+      }
+    }
+
     Object.keys(WIDGET_CONFIG).forEach(widgetType => {
-      // Get all instances of this widget type on the current page
-      const instances = getWidgetInstances(widgetType, currentPageIndex);
-      
-      // Save visibility for each instance
+      const instances = getWidgetInstances(widgetType, pageIndex);
       instances.forEach(instance => {
-        const fullWidgetId = instance.fullId;
         const widget = instance.element;
         if (widget) {
-          visibility[fullWidgetId] = !widget.classList.contains('hidden');
+          visibility[instance.fullId] = !widget.classList.contains('hidden');
         }
       });
     });
-    
-    const visibilityKey = `dakboard-widget-visibility-page-${currentPageIndex}`;
+
     localStorage.setItem(visibilityKey, JSON.stringify(visibility));
   } catch (error) {
     console.error('Error saving widget visibility:', error);
   }
+}
+
+function saveWidgetVisibility() {
+  savePageVisibility(currentPageIndex);
 }
 
 // Default dimensions for widget types (used when first shown or cloned)
@@ -8636,6 +8653,7 @@ function initializeWidgetControlPanel() {
   toggleBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     panel.classList.toggle('open');
+    document.body.classList.toggle('widget-panel-open', panel.classList.contains('open'));
     if (panel.classList.contains('open')) {
       updateWidgetControlPanel();
     }
@@ -8645,6 +8663,7 @@ function initializeWidgetControlPanel() {
     closeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       panel.classList.remove('open');
+      document.body.classList.remove('widget-panel-open');
     });
   }
   
@@ -8668,6 +8687,7 @@ function initializeWidgetControlPanel() {
         !panel.contains(e.target) && 
         !toggleBtn.contains(e.target)) {
       panel.classList.remove('open');
+      document.body.classList.remove('widget-panel-open');
     }
   });
   
@@ -10765,6 +10785,53 @@ function setupPageNavigation() {
   });
   
   updateNavigationArrows();
+  setupPageNavReveal();
+}
+
+// Edge-hover reveal for page nav (longer delay when widget panel is open)
+function setupPageNavReveal() {
+  const EDGE_PX = 72;
+  const DELAY_MS = 400;
+  const DELAY_PANEL_OPEN_MS = 1800;
+  const timers = { left: null, right: null };
+
+  function getDelay() {
+    return document.body.classList.contains('widget-panel-open') ? DELAY_PANEL_OPEN_MS : DELAY_MS;
+  }
+
+  function setRevealed(side, revealed) {
+    const arrow = document.getElementById(`page-nav-${side}`);
+    if (!arrow || arrow.classList.contains('hidden')) return;
+    arrow.classList.toggle('is-revealed', revealed);
+  }
+
+  function scheduleReveal(side, inEdge) {
+    clearTimeout(timers[side]);
+    timers[side] = null;
+    if (!inEdge || totalPages <= 1) {
+      setRevealed(side, false);
+      return;
+    }
+    timers[side] = setTimeout(() => setRevealed(side, true), getDelay());
+  }
+
+  document.addEventListener('mousemove', (e) => {
+    if (totalPages <= 1) return;
+
+    const panelOpen = document.body.classList.contains('widget-panel-open');
+    const panelWidth = panelOpen ? 400 : 0;
+    const inLeftEdge = e.clientX <= EDGE_PX;
+    const inRightEdge = e.clientX >= window.innerWidth - EDGE_PX
+      && (!panelOpen || e.clientX < window.innerWidth - panelWidth);
+
+    scheduleReveal('left', inLeftEdge);
+    scheduleReveal('right', inRightEdge);
+  });
+
+  document.addEventListener('mouseleave', () => {
+    scheduleReveal('left', false);
+    scheduleReveal('right', false);
+  });
 }
 
 // Update navigation arrows visibility
@@ -11012,85 +11079,121 @@ function loadCurrentPage() {
   }
 }
 
+function resolveWidgetFullId(widget, pageIndex) {
+  let widgetId = widget.classList[1];
+
+  if (!widgetId || (!widgetId.includes('page-') && !widgetId.includes('instance-'))) {
+    const fullIdClass = Array.from(widget.classList).find(cls =>
+      cls.includes('page-') && cls.includes('instance-')
+    );
+    if (fullIdClass) {
+      widgetId = fullIdClass;
+    } else {
+      const widgetType = Array.from(widget.classList).find(cls =>
+        cls.endsWith('-widget') && cls !== 'widget'
+      ) || widget.classList[1];
+      if (widgetType && typeof generateWidgetId === 'function') {
+        widgetId = generateWidgetId(widgetType, pageIndex, 0);
+        widget.classList.add(widgetId);
+      } else {
+        widgetId = widgetType || 'unknown-widget';
+      }
+    }
+  }
+
+  return widgetId;
+}
+
+function captureWidgetLayoutFromElement(widget, pageElement) {
+  let x;
+  let y;
+  const styleLeft = widget.style.left;
+  const styleTop = widget.style.top;
+
+  if (styleLeft && styleLeft !== 'auto') {
+    x = parseFloat(styleLeft) || 0;
+  } else {
+    const rect = widget.getBoundingClientRect();
+    const dashboardRect = pageElement.getBoundingClientRect();
+    x = rect.left - dashboardRect.left;
+  }
+
+  if (styleTop && styleTop !== 'auto') {
+    y = parseFloat(styleTop) || 0;
+  } else {
+    const rect = widget.getBoundingClientRect();
+    const dashboardRect = pageElement.getBoundingClientRect();
+    y = rect.top - dashboardRect.top;
+  }
+
+  const styleWidth = widget.style.width;
+  const styleHeight = widget.style.height;
+  const width = (styleWidth && styleWidth !== 'auto') ? parseFloat(styleWidth) : widget.offsetWidth;
+  const height = (styleHeight && styleHeight !== 'auto') ? parseFloat(styleHeight) : widget.offsetHeight;
+  const zIndex = parseInt(window.getComputedStyle(widget).zIndex) || 1;
+  const rotation = widget.getAttribute('data-rotation') ? parseFloat(widget.getAttribute('data-rotation')) : 0;
+
+  return { x, y, width, height, zIndex, rotation };
+}
+
 // Save current page layout
-function saveCurrentPageLayout() {
-  const pageElement = getPageElement(currentPageIndex);
+function savePageLayout(pageIndex) {
+  const pageElement = getPageElement(pageIndex);
   if (!pageElement) return;
-  
+
   try {
     const layout = {};
     pageElement.querySelectorAll('.widget').forEach(widget => {
-      // Get full widget ID from class list (second class should be the full instance ID)
-      // Fallback to first class if second doesn't match pattern
-      let widgetId = widget.classList[1];
-      
-      // Check if it's a full instance ID (contains 'page-' and 'instance-')
-      if (!widgetId || (!widgetId.includes('page-') && !widgetId.includes('instance-'))) {
-        // Try to find a full ID in the class list
-        const fullIdClass = Array.from(widget.classList).find(cls => 
-          cls.includes('page-') && cls.includes('instance-')
-        );
-        if (fullIdClass) {
-          widgetId = fullIdClass;
-        } else {
-          // Legacy widget - generate instance-0 ID
-          const widgetType = widget.classList[0] || widget.classList[1];
-          if (widgetType && typeof generateWidgetId === 'function') {
-            widgetId = generateWidgetId(widgetType, currentPageIndex, 0);
-            // Add the full ID to the widget
-            widget.classList.add(widgetId);
-          } else {
-            widgetId = widgetType || 'unknown-widget';
-          }
-        }
-      }
-      
-      // Get position from style values (more accurate, especially for rotated widgets)
-      // Fallback to getBoundingClientRect if style values aren't set
-      let x, y;
-      const styleLeft = widget.style.left;
-      const styleTop = widget.style.top;
-      
-      if (styleLeft && styleLeft !== 'auto') {
-        x = parseFloat(styleLeft) || 0;
-      } else {
-        const rect = widget.getBoundingClientRect();
-        const dashboardRect = pageElement.getBoundingClientRect();
-        x = rect.left - dashboardRect.left;
-      }
-      
-      if (styleTop && styleTop !== 'auto') {
-        y = parseFloat(styleTop) || 0;
-      } else {
-        const rect = widget.getBoundingClientRect();
-        const dashboardRect = pageElement.getBoundingClientRect();
-        y = rect.top - dashboardRect.top;
-      }
-      
-      // Get size from style or computed size
-      const styleWidth = widget.style.width;
-      const styleHeight = widget.style.height;
-      const width = (styleWidth && styleWidth !== 'auto') ? parseFloat(styleWidth) : widget.offsetWidth;
-      const height = (styleHeight && styleHeight !== 'auto') ? parseFloat(styleHeight) : widget.offsetHeight;
-      
-      const zIndex = parseInt(window.getComputedStyle(widget).zIndex) || 1;
-      const rotation = widget.getAttribute('data-rotation') ? parseFloat(widget.getAttribute('data-rotation')) : 0;
-      layout[widgetId] = {
-        x: x,
-        y: y,
-        width: width,
-        height: height,
-        zIndex: zIndex,
-        rotation: rotation
-      };
+      const widgetId = resolveWidgetFullId(widget, pageIndex);
+      layout[widgetId] = captureWidgetLayoutFromElement(widget, pageElement);
     });
-    
-    const layoutKey = `dakboard-widget-layout-page-${currentPageIndex}`;
+
+    const layoutKey = `dakboard-widget-layout-page-${pageIndex}`;
     localStorage.setItem(layoutKey, JSON.stringify(layout));
   } catch (error) {
     console.error('Error saving page layout:', error);
   }
 }
+
+function saveCurrentPageLayout() {
+  savePageLayout(currentPageIndex);
+}
+
+function saveAllPagesLayoutFromDom() {
+  const total = parseInt(localStorage.getItem('dakboard-total-pages')) || 1;
+  for (let i = 0; i < total; i++) {
+    savePageLayout(i);
+  }
+}
+
+function saveAllPagesVisibilityFromDom() {
+  const total = parseInt(localStorage.getItem('dakboard-total-pages')) || 1;
+  for (let i = 0; i < total; i++) {
+    savePageVisibility(i);
+  }
+}
+
+// Sync live DOM + localStorage before cloud export/backup
+function flushDashboardStateBeforeExport() {
+  const originalPageIndex = currentPageIndex;
+  const total = parseInt(localStorage.getItem('dakboard-total-pages')) || 1;
+
+  for (let i = 0; i < total; i++) {
+    currentPageIndex = i;
+    window.currentPageIndex = i;
+    if (typeof loadWidgetVisibility === 'function') {
+      loadWidgetVisibility();
+    }
+  }
+
+  saveAllPagesLayoutFromDom();
+  saveAllPagesVisibilityFromDom();
+
+  currentPageIndex = originalPageIndex;
+  window.currentPageIndex = originalPageIndex;
+}
+
+window.flushDashboardStateBeforeExport = flushDashboardStateBeforeExport;
 
 // Get page background
 function getPageBackground(pageIndex) {
@@ -11561,6 +11664,10 @@ function initializeConfigExportImport() {
 
 // Build export configuration object for selected pages (used by cloud backup/sync)
 function buildExportConfig(pageIndices) {
+    if (typeof flushDashboardStateBeforeExport === 'function') {
+      flushDashboardStateBeforeExport();
+    }
+
     const totalPages = parseInt(localStorage.getItem('dakboard-total-pages')) || 1;
     const currentPage = parseInt(localStorage.getItem('dakboard-current-page')) || 0;
     
@@ -11675,32 +11782,13 @@ function buildExportConfig(pageIndices) {
                          (visibility[fullWidgetId] === undefined && visibility[widgetType] === true);
             }
             
-            // Get layout for this specific instance (by full instance ID)
-            const instanceLayout = layout[fullWidgetId] || null;
-            
-            // If no layout in storage but widget exists, get current position from DOM
-            let finalLayout = instanceLayout;
-            if (!finalLayout && widgetElement) {
-              const styleLeft = widgetElement.style.left;
-              const styleTop = widgetElement.style.top;
-              const styleWidth = widgetElement.style.width;
-              const styleHeight = widgetElement.style.height;
-              
-              if (styleLeft && styleTop && styleWidth && styleHeight) {
-                const rect = widgetElement.getBoundingClientRect();
-                const pageRect = pageElement ? pageElement.getBoundingClientRect() : { left: 0, top: 0 };
-                const zIndex = parseInt(window.getComputedStyle(widgetElement).zIndex) || 1;
-                const rotation = widgetElement.getAttribute('data-rotation') ? parseFloat(widgetElement.getAttribute('data-rotation')) : 0;
-                
-                finalLayout = {
-                  x: parseFloat(styleLeft) || (rect.left - pageRect.left),
-                  y: parseFloat(styleTop) || (rect.top - pageRect.top),
-                  width: parseFloat(styleWidth) || widgetElement.offsetWidth,
-                  height: parseFloat(styleHeight) || widgetElement.offsetHeight,
-                  zIndex: zIndex,
-                  rotation: rotation
-                };
-              }
+            // Prefer live DOM layout; fall back to flushed localStorage
+            let finalLayout = null;
+            if (widgetElement && pageElement) {
+              finalLayout = captureWidgetLayoutFromElement(widgetElement, pageElement);
+            }
+            if (!finalLayout) {
+              finalLayout = layout[fullWidgetId] || null;
             }
             
             const widget = {

@@ -54,25 +54,28 @@ body {
   height: 100px;
   font-size: 32px;
   opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: auto;
+  pointer-events: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  transition: all 0.2s ease;
+  transition: opacity 0.25s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   user-select: none;
 }
 
-.page-nav-arrow:hover {
+.page-nav-arrow.is-revealed {
   opacity: 1;
+  pointer-events: auto;
+}
+
+.page-nav-arrow.is-revealed:hover {
   background: rgba(66, 66, 66, 0.9);
   border-color: #5a5a5a;
   color: #fff;
 }
 
-.page-nav-arrow:active {
+.page-nav-arrow.is-revealed:active {
   background: rgba(80, 80, 80, 0.9);
 }
 
@@ -2453,10 +2456,18 @@ body {
   z-index: 50;
 }
 
+.widget.widget-move-armed,
+.widget.widget-header-move-ready {
+  outline: 2px solid #4be285;
+  box-shadow:
+    0 0 0 4px rgba(75, 226, 133, 0.4),
+    0 0 20px rgba(75, 226, 133, 0.45);
+  z-index: 55;
+}
+
 .widget.widget-move-armed .widget-header,
 .widget.widget-header-move-ready .widget-header {
-  background: rgba(74, 144, 226, 0.18);
-  outline: 1px solid rgba(74, 144, 226, 0.65);
+  background: rgba(75, 226, 133, 0.12);
 }
 
 .widget-header-press-progress {

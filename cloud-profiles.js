@@ -302,8 +302,16 @@
   function startBackgroundSync() {
     if (!isCloudEnabled()) return;
 
-    if (shouldAttemptAutoBackup()) {
-      saveAutoBackup().catch((err) => console.warn('Auto-backup failed:', err));
+    const runAutoBackup = () => {
+      if (shouldAttemptAutoBackup()) {
+        saveAutoBackup().catch((err) => console.warn('Auto-backup failed:', err));
+      }
+    };
+
+    if (window.dakboardExportReady) {
+      runAutoBackup();
+    } else {
+      window.addEventListener('dakboard-export-ready', runAutoBackup, { once: true });
     }
 
     setInterval(() => {
@@ -311,6 +319,16 @@
         saveAutoBackup().catch((err) => console.warn('Auto-backup failed:', err));
       }
     }, AUTO_BACKUP_POLL_MS);
+
+    const runCurrentSync = () => {
+      syncCurrentProfile().catch((err) => console.warn('Current sync failed:', err));
+    };
+
+    if (window.dakboardExportReady) {
+      runCurrentSync();
+    } else {
+      window.addEventListener('dakboard-export-ready', runCurrentSync, { once: true });
+    }
 
     setInterval(() => {
       syncCurrentProfile().catch((err) => console.warn('Current sync failed:', err));
