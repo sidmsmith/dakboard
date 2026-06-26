@@ -3945,9 +3945,10 @@ footer a:hover {
 /* Widget Control Panel Edit Mode Section */
 .widget-control-edit-mode {
   padding: 20px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
   border-top: 2px solid #3a3a3a;
   flex-shrink: 0;
-  margin-top: auto;
+  background: #2a2a2a;
 }
 
 .edit-annotate-row {
@@ -4111,6 +4112,8 @@ footer a:hover {
   right: -440px;
   width: 385px;
   height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
   background: #2a2a2a;
   border-left: 2px solid #3a3a3a;
   box-shadow: -4px 0 16px rgba(0, 0, 0, 0.5);
@@ -4119,7 +4122,8 @@ footer a:hover {
   display: flex;
   flex-direction: column;
   pointer-events: none;
-  overflow-y: auto;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .widget-control-panel.open {
@@ -4318,8 +4322,11 @@ html.dakboard-auth-pending body > *:not(#dakboard-auth-overlay) {
 }
 
 .widget-control-list {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   padding: 10px;
 }
 
@@ -4328,6 +4335,7 @@ html.dakboard-auth-pending body > *:not(#dakboard-auth-overlay) {
   border-top: 2px solid #3a3a3a;
   padding: 15px;
   background: #2a2a2a;
+  flex-shrink: 0;
 }
 
 .page-management-header {
