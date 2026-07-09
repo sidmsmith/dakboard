@@ -339,16 +339,19 @@ const CLOCK_ANALOG_SVG = `<svg class="clock-analog-svg" viewBox="0 0 200 200" xm
     <line class="clock-minute-hand" x1="100" y1="100" x2="100" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
   </g>
   <g class="clock-second-hand-group">
-    <line class="clock-second-hand" x1="100" y1="108" x2="100" y2="28" stroke="#4a90e2" stroke-width="2" stroke-linecap="round"/>
+    <line class="clock-second-hand" x1="100" y1="108" x2="100" y2="28" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
   </g>
-  <circle cx="100" cy="100" r="4" fill="#4a90e2"/>
+  <circle class="clock-analog-center" cx="100" cy="100" r="4" fill="#fff"/>
 </svg>`;
 
 function getDefaultClockStyles() {
   return {
     clockDisplayType: 'digital',
     clockShowSeconds: true,
-    clockShowDate: true
+    clockShowDate: true,
+    clockFontColor: '#ffffff',
+    clockAnalogFaceColor: '#1e1e1e',
+    clockAnalogHandColor: '#ffffff'
   };
 }
 
@@ -358,7 +361,10 @@ function normalizeClockStyles(styles) {
   return {
     clockDisplayType: styles.clockDisplayType === 'analog' ? 'analog' : 'digital',
     clockShowSeconds: styles.clockShowSeconds !== false,
-    clockShowDate: styles.clockShowDate !== false
+    clockShowDate: styles.clockShowDate !== false,
+    clockFontColor: styles.clockFontColor || defaults.clockFontColor,
+    clockAnalogFaceColor: styles.clockAnalogFaceColor || defaults.clockAnalogFaceColor,
+    clockAnalogHandColor: styles.clockAnalogHandColor || defaults.clockAnalogHandColor
   };
 }
 
@@ -471,6 +477,26 @@ function updateAnalogClockHands(widget, now) {
   if (secondGroup) secondGroup.setAttribute('transform', `rotate(${angles.second} 100 100)`);
 }
 
+function applyClockColors(widget, styles) {
+  if (!widget) return;
+  const opts = normalizeClockStyles(styles);
+
+  const timeEl = widget.querySelector('.clock-time');
+  const dateEl = widget.querySelector('.clock-date');
+  if (timeEl) timeEl.style.color = opts.clockFontColor;
+  if (dateEl) dateEl.style.color = opts.clockFontColor;
+
+  const face = widget.querySelector('.clock-analog-face');
+  if (face) face.setAttribute('fill', opts.clockAnalogFaceColor);
+
+  widget.querySelectorAll('.clock-hour-hand, .clock-minute-hand, .clock-second-hand').forEach((hand) => {
+    hand.setAttribute('stroke', opts.clockAnalogHandColor);
+  });
+
+  const center = widget.querySelector('.clock-analog-center');
+  if (center) center.setAttribute('fill', opts.clockAnalogHandColor);
+}
+
 function applyClockDisplaySettings(widget, styles) {
   if (!widget || !widget.classList.contains('clock-widget')) return;
   ensureClockStructure(widget);
@@ -481,6 +507,8 @@ function applyClockDisplaySettings(widget, styles) {
   widget.classList.add(isAnalog ? 'clock-mode-analog' : 'clock-mode-digital');
   if (!opts.clockShowSeconds) widget.classList.add('clock-no-seconds');
   if (!opts.clockShowDate) widget.classList.add('clock-no-date');
+
+  applyClockColors(widget, opts);
 }
 
 function updateSingleClockWidget(widget, now, styles) {
@@ -518,28 +546,31 @@ function buildClockPreviewHtml(styles, options = {}) {
   const timeText = formatClockTime(now, opts.clockShowSeconds);
   const dateText = formatClockDate(now);
   const angles = getAnalogHandAngles(now);
+  const fontColor = opts.clockFontColor;
+  const faceColor = opts.clockAnalogFaceColor;
+  const handColor = opts.clockAnalogHandColor;
   const dateHtml = opts.clockShowDate
-    ? `<div class="clock-date" style="font-size:${compact ? '13px' : '18px'};color:#fff;text-align:center;">${dateText}</div>`
+    ? `<div class="clock-date" style="font-size:${compact ? '13px' : '18px'};color:${fontColor};text-align:center;">${dateText}</div>`
     : '';
 
   if (opts.clockDisplayType === 'analog') {
     const secondHand = opts.clockShowSeconds
       ? `<g class="clock-second-hand-group" transform="rotate(${angles.second} 100 100)">
-           <line x1="100" y1="108" x2="100" y2="28" stroke="#4a90e2" stroke-width="2" stroke-linecap="round"/>
+           <line x1="100" y1="108" x2="100" y2="28" stroke="${handColor}" stroke-width="2" stroke-linecap="round"/>
          </g>`
       : '';
     return `
       <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;padding:12px;">
         <svg viewBox="0 0 200 200" style="width:${compact ? '120px' : '160px'};height:auto;">
-          <circle cx="100" cy="100" r="94" fill="#1e1e1e" stroke="#666" stroke-width="2"/>
+          <circle cx="100" cy="100" r="94" fill="${faceColor}" stroke="#666" stroke-width="2"/>
           <g transform="rotate(${angles.hour} 100 100)">
-            <line x1="100" y1="100" x2="100" y2="52" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+            <line x1="100" y1="100" x2="100" y2="52" stroke="${handColor}" stroke-width="6" stroke-linecap="round"/>
           </g>
           <g transform="rotate(${angles.minute} 100 100)">
-            <line x1="100" y1="100" x2="100" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+            <line x1="100" y1="100" x2="100" y2="32" stroke="${handColor}" stroke-width="4" stroke-linecap="round"/>
           </g>
           ${secondHand}
-          <circle cx="100" cy="100" r="4" fill="#4a90e2"/>
+          <circle cx="100" cy="100" r="4" fill="${handColor}"/>
         </svg>
         ${dateHtml}
       </div>`;
@@ -547,7 +578,7 @@ function buildClockPreviewHtml(styles, options = {}) {
 
   return `
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;padding:12px;">
-      <div class="clock-time" style="font-size:${compact ? '28px' : '48px'};font-weight:700;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:2px;">${timeText}</div>
+      <div class="clock-time" style="font-size:${compact ? '28px' : '48px'};font-weight:700;color:${fontColor};font-variant-numeric:tabular-nums;letter-spacing:2px;">${timeText}</div>
       ${dateHtml}
     </div>`;
 }

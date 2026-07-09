@@ -721,6 +721,9 @@ function generateAdvancedTab() {
   const clockDisplayType = currentStyles.clockDisplayType || 'digital';
   const clockShowSeconds = currentStyles.clockShowSeconds !== false;
   const clockShowDate = currentStyles.clockShowDate !== false;
+  const clockFontColor = currentStyles.clockFontColor || '#ffffff';
+  const clockAnalogFaceColor = currentStyles.clockAnalogFaceColor || '#1e1e1e';
+  const clockAnalogHandColor = currentStyles.clockAnalogHandColor || '#ffffff';
   
   // Load scoreboard config if this is a scoreboard widget
   let scoreboardConfig = {
@@ -778,7 +781,7 @@ function generateAdvancedTab() {
             </select>
           </div>
         </div>
-        <div class="styling-form-row" id="clock-digital-options" style="display: ${clockDisplayType === 'digital' ? '' : 'none'};">
+        <div class="styling-form-row">
           <label class="styling-form-label">
             <input type="checkbox" id="clock-show-seconds" ${clockShowSeconds ? 'checked' : ''} style="margin-right: 8px;"> Show seconds
           </label>
@@ -787,6 +790,27 @@ function generateAdvancedTab() {
           <label class="styling-form-label">
             <input type="checkbox" id="clock-show-date" ${clockShowDate ? 'checked' : ''} style="margin-right: 8px;"> Show date
           </label>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Text color</label>
+          <div class="styling-form-control">
+            <input type="color" id="clock-font-color" value="${clockFontColor}">
+            <input type="text" id="clock-font-color-text" value="${clockFontColor}" pattern="^#[0-9A-F]{6}$" placeholder="#ffffff">
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Analog face</label>
+          <div class="styling-form-control">
+            <input type="color" id="clock-analog-face-color" value="${clockAnalogFaceColor}">
+            <input type="text" id="clock-analog-face-color-text" value="${clockAnalogFaceColor}" pattern="^#[0-9A-F]{6}$" placeholder="#1e1e1e">
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Analog hands</label>
+          <div class="styling-form-control">
+            <input type="color" id="clock-analog-hand-color" value="${clockAnalogHandColor}">
+            <input type="text" id="clock-analog-hand-color-text" value="${clockAnalogHandColor}" pattern="^#[0-9A-F]{6}$" placeholder="#ffffff">
+          </div>
         </div>
       </div>
     </div>
@@ -2650,7 +2674,6 @@ function attachTabEventListeners(tabName) {
 
       if (widgetType === 'clock-widget') {
         const clockDisplayType = stylingModal.querySelector('#clock-display-type');
-        const clockDigitalOptions = stylingModal.querySelector('#clock-digital-options');
         const clockShowSeconds = stylingModal.querySelector('#clock-show-seconds');
         const clockShowDate = stylingModal.querySelector('#clock-show-date');
         const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined')
@@ -2668,12 +2691,46 @@ function attachTabEventListeners(tabName) {
           }
         };
 
+        const bindClockColorPicker = (colorInput, textInput, styleKey) => {
+          if (!colorInput || !textInput) return;
+          colorInput.addEventListener('input', (e) => {
+            textInput.value = e.target.value;
+            currentStyles[styleKey] = e.target.value;
+            applyClockPreview();
+          });
+          colorInput.addEventListener('change', (e) => {
+            textInput.value = e.target.value;
+            currentStyles[styleKey] = e.target.value;
+            applyClockPreview();
+          });
+          textInput.addEventListener('input', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+              colorInput.value = e.target.value;
+              currentStyles[styleKey] = e.target.value;
+              applyClockPreview();
+            }
+          });
+        };
+
+        bindClockColorPicker(
+          stylingModal.querySelector('#clock-font-color'),
+          stylingModal.querySelector('#clock-font-color-text'),
+          'clockFontColor'
+        );
+        bindClockColorPicker(
+          stylingModal.querySelector('#clock-analog-face-color'),
+          stylingModal.querySelector('#clock-analog-face-color-text'),
+          'clockAnalogFaceColor'
+        );
+        bindClockColorPicker(
+          stylingModal.querySelector('#clock-analog-hand-color'),
+          stylingModal.querySelector('#clock-analog-hand-color-text'),
+          'clockAnalogHandColor'
+        );
+
         if (clockDisplayType) {
           clockDisplayType.addEventListener('change', (e) => {
             currentStyles.clockDisplayType = e.target.value;
-            if (clockDigitalOptions) {
-              clockDigitalOptions.style.display = e.target.value === 'digital' ? '' : 'none';
-            }
             applyClockPreview();
           });
         }
@@ -4240,6 +4297,24 @@ function updateCurrentStylesFromForm() {
   if (clockShowDate) {
     currentStyles.clockShowDate = clockShowDate.checked;
   }
+
+  const clockFontColor = stylingModal.querySelector('#clock-font-color');
+  const clockFontColorText = stylingModal.querySelector('#clock-font-color-text');
+  if (clockFontColor && clockFontColorText) {
+    currentStyles.clockFontColor = clockFontColor.value;
+  }
+
+  const clockAnalogFaceColor = stylingModal.querySelector('#clock-analog-face-color');
+  const clockAnalogFaceColorText = stylingModal.querySelector('#clock-analog-face-color-text');
+  if (clockAnalogFaceColor && clockAnalogFaceColorText) {
+    currentStyles.clockAnalogFaceColor = clockAnalogFaceColor.value;
+  }
+
+  const clockAnalogHandColor = stylingModal.querySelector('#clock-analog-hand-color');
+  const clockAnalogHandColorText = stylingModal.querySelector('#clock-analog-hand-color-text');
+  if (clockAnalogHandColor && clockAnalogHandColorText) {
+    currentStyles.clockAnalogHandColor = clockAnalogHandColor.value;
+  }
   
   // Blank widget display mode and text settings
   const blankDisplayMode = stylingModal.querySelector('#blank-display-mode');
@@ -5173,7 +5248,10 @@ function loadWidgetStyles(fullWidgetId) {
       ...(widgetType === 'clock-widget' ? {
         clockDisplayType: 'digital',
         clockShowSeconds: true,
-        clockShowDate: true
+        clockShowDate: true,
+        clockFontColor: '#ffffff',
+        clockAnalogFaceColor: '#1e1e1e',
+        clockAnalogHandColor: '#ffffff'
       } : {})
     };
   }
@@ -5182,6 +5260,9 @@ function loadWidgetStyles(fullWidgetId) {
     if (currentStyles.clockDisplayType === undefined) currentStyles.clockDisplayType = 'digital';
     if (currentStyles.clockShowSeconds === undefined) currentStyles.clockShowSeconds = true;
     if (currentStyles.clockShowDate === undefined) currentStyles.clockShowDate = true;
+    if (!currentStyles.clockFontColor) currentStyles.clockFontColor = '#ffffff';
+    if (!currentStyles.clockAnalogFaceColor) currentStyles.clockAnalogFaceColor = '#1e1e1e';
+    if (!currentStyles.clockAnalogHandColor) currentStyles.clockAnalogHandColor = '#ffffff';
   }
   
   // Ensure titleVisible is set for existing widgets (migration)
