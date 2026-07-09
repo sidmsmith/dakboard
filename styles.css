@@ -3097,6 +3097,38 @@ footer a:hover {
   gap: 16px;
 }
 
+.clock-digital,
+.clock-analog {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.clock-mode-digital .clock-digital {
+  display: flex;
+}
+
+.clock-mode-analog .clock-analog {
+  display: flex;
+}
+
+.clock-analog-svg {
+  width: min(100%, 180px);
+  height: auto;
+  max-height: calc(100% - 8px);
+}
+
+.clock-no-seconds .clock-second-hand-group {
+  display: none;
+}
+
+.clock-no-date .clock-date {
+  display: none;
+}
+
 .clock-time {
   font-size: 48px;
   font-weight: 700;

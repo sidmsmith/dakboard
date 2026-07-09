@@ -330,38 +330,244 @@ function initializeCalendar() {
 }
 
 // Initialize clock
-function initializeClock() {
-  function updateClock() {
-    const now = new Date();
-    const timeElements = document.querySelectorAll('#clock-time');
-    const dateElements = document.querySelectorAll('#clock-date');
-    
-      // 12-hour format with AM/PM
-      let hours = now.getHours();
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12;
-      hours = hours ? hours : 12; // 0 should be 12
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
-    const timeText = `${hours}:${minutes}:${seconds} ${ampm}`;
-    
-    timeElements.forEach(el => el.textContent = timeText);
-    
-      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const dateText = now.toLocaleDateString('en-US', options);
-    dateElements.forEach(el => el.textContent = dateText);
+const CLOCK_ANALOG_SVG = `<svg class="clock-analog-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <circle class="clock-analog-face" cx="100" cy="100" r="94" fill="#1e1e1e" stroke="#666" stroke-width="2"/>
+  <g class="clock-hour-hand-group">
+    <line class="clock-hour-hand" x1="100" y1="100" x2="100" y2="52" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <g class="clock-minute-hand-group">
+    <line class="clock-minute-hand" x1="100" y1="100" x2="100" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <g class="clock-second-hand-group">
+    <line class="clock-second-hand" x1="100" y1="108" x2="100" y2="28" stroke="#4a90e2" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <circle cx="100" cy="100" r="4" fill="#4a90e2"/>
+</svg>`;
+
+function getDefaultClockStyles() {
+  return {
+    clockDisplayType: 'digital',
+    clockShowSeconds: true,
+    clockShowDate: true
+  };
+}
+
+function normalizeClockStyles(styles) {
+  const defaults = getDefaultClockStyles();
+  if (!styles) return { ...defaults };
+  return {
+    clockDisplayType: styles.clockDisplayType === 'analog' ? 'analog' : 'digital',
+    clockShowSeconds: styles.clockShowSeconds !== false,
+    clockShowDate: styles.clockShowDate !== false
+  };
+}
+
+function getClockStylesForWidget(widget) {
+  if (!widget) return getDefaultClockStyles();
+  const page = widget.closest('.dashboard.page');
+  const pageIndex = page ? parseInt(page.dataset.pageId, 10) : (window.currentPageIndex || 0);
+  const fullId = typeof resolveWidgetFullId === 'function'
+    ? resolveWidgetFullId(widget, pageIndex)
+    : null;
+  if (!fullId) return getDefaultClockStyles();
+  try {
+    const saved = localStorage.getItem(`dakboard-widget-styles-${fullId}`);
+    if (saved) {
+      return normalizeClockStyles(JSON.parse(saved));
     }
-  
-  // Clear any existing interval to prevent memory leaks
+  } catch (e) {
+    console.warn('Error reading clock styles:', e);
+  }
+  return getDefaultClockStyles();
+}
+
+function ensureClockStructure(widget) {
+  const content = widget.querySelector('.clock-content');
+  if (!content) return;
+
+  let digital = content.querySelector('.clock-digital');
+  let timeEl = content.querySelector('.clock-time');
+
+  if (!digital) {
+    digital = document.createElement('div');
+    digital.className = 'clock-digital';
+    if (timeEl && timeEl.parentElement === content) {
+      digital.appendChild(timeEl);
+      content.insertBefore(digital, content.firstChild);
+    } else if (timeEl) {
+      digital.appendChild(timeEl);
+      content.insertBefore(digital, content.firstChild);
+    } else {
+      timeEl = document.createElement('div');
+      timeEl.className = 'clock-time';
+      timeEl.textContent = '--:--:--';
+      digital.appendChild(timeEl);
+      content.insertBefore(digital, content.firstChild);
+    }
+  } else if (!timeEl) {
+    timeEl = document.createElement('div');
+    timeEl.className = 'clock-time';
+    timeEl.textContent = '--:--:--';
+    digital.appendChild(timeEl);
+  }
+
+  if (!content.querySelector('.clock-analog')) {
+    const analog = document.createElement('div');
+    analog.className = 'clock-analog';
+    analog.innerHTML = CLOCK_ANALOG_SVG;
+    content.insertBefore(analog, digital.nextSibling);
+  }
+
+  if (!content.querySelector('.clock-date')) {
+    const dateEl = document.createElement('div');
+    dateEl.className = 'clock-date';
+    dateEl.textContent = '-- --, ----';
+    content.appendChild(dateEl);
+  }
+
+  content.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+}
+
+function formatClockTime(now, showSeconds) {
+  let hours = now.getHours();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  if (showSeconds) {
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds} ${ampm}`;
+  }
+  return `${hours}:${minutes} ${ampm}`;
+}
+
+function formatClockDate(now) {
+  return now.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+
+function getAnalogHandAngles(now) {
+  const hours = now.getHours() % 12;
+  const minutes = now.getMinutes();
+  const seconds = now.getSeconds();
+  return {
+    hour: (hours + minutes / 60 + seconds / 3600) * 30,
+    minute: (minutes + seconds / 60) * 6,
+    second: seconds * 6
+  };
+}
+
+function updateAnalogClockHands(widget, now) {
+  const angles = getAnalogHandAngles(now);
+  const hourGroup = widget.querySelector('.clock-hour-hand-group');
+  const minuteGroup = widget.querySelector('.clock-minute-hand-group');
+  const secondGroup = widget.querySelector('.clock-second-hand-group');
+  if (hourGroup) hourGroup.setAttribute('transform', `rotate(${angles.hour} 100 100)`);
+  if (minuteGroup) minuteGroup.setAttribute('transform', `rotate(${angles.minute} 100 100)`);
+  if (secondGroup) secondGroup.setAttribute('transform', `rotate(${angles.second} 100 100)`);
+}
+
+function applyClockDisplaySettings(widget, styles) {
+  if (!widget || !widget.classList.contains('clock-widget')) return;
+  ensureClockStructure(widget);
+  const opts = normalizeClockStyles(styles);
+  const isAnalog = opts.clockDisplayType === 'analog';
+
+  widget.classList.remove('clock-mode-digital', 'clock-mode-analog', 'clock-no-seconds', 'clock-no-date');
+  widget.classList.add(isAnalog ? 'clock-mode-analog' : 'clock-mode-digital');
+  if (!opts.clockShowSeconds) widget.classList.add('clock-no-seconds');
+  if (!opts.clockShowDate) widget.classList.add('clock-no-date');
+}
+
+function updateSingleClockWidget(widget, now, styles) {
+  if (!widget || widget.classList.contains('hidden')) return;
+  const opts = normalizeClockStyles(styles || getClockStylesForWidget(widget));
+  applyClockDisplaySettings(widget, opts);
+
+  const timeEl = widget.querySelector('.clock-time');
+  const dateEl = widget.querySelector('.clock-date');
+  if (timeEl) {
+    timeEl.textContent = formatClockTime(now, opts.clockShowSeconds);
+  }
+  if (dateEl) {
+    dateEl.textContent = formatClockDate(now);
+  }
+  updateAnalogClockHands(widget, now);
+}
+
+function updateAllClocks() {
+  const now = new Date();
+  document.querySelectorAll('.clock-widget:not(.hidden)').forEach((widget) => {
+    updateSingleClockWidget(widget, now);
+  });
+}
+
+function applyClockSettingsToWidget(widget, styles) {
+  if (!widget) return;
+  updateSingleClockWidget(widget, new Date(), styles);
+}
+
+function buildClockPreviewHtml(styles, options = {}) {
+  const opts = normalizeClockStyles(styles);
+  const now = options.now || new Date();
+  const compact = options.compact !== false;
+  const timeText = formatClockTime(now, opts.clockShowSeconds);
+  const dateText = formatClockDate(now);
+  const angles = getAnalogHandAngles(now);
+  const dateHtml = opts.clockShowDate
+    ? `<div class="clock-date" style="font-size:${compact ? '13px' : '18px'};color:#fff;text-align:center;">${dateText}</div>`
+    : '';
+
+  if (opts.clockDisplayType === 'analog') {
+    const secondHand = opts.clockShowSeconds
+      ? `<g class="clock-second-hand-group" transform="rotate(${angles.second} 100 100)">
+           <line x1="100" y1="108" x2="100" y2="28" stroke="#4a90e2" stroke-width="2" stroke-linecap="round"/>
+         </g>`
+      : '';
+    return `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;padding:12px;">
+        <svg viewBox="0 0 200 200" style="width:${compact ? '120px' : '160px'};height:auto;">
+          <circle cx="100" cy="100" r="94" fill="#1e1e1e" stroke="#666" stroke-width="2"/>
+          <g transform="rotate(${angles.hour} 100 100)">
+            <line x1="100" y1="100" x2="100" y2="52" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+          </g>
+          <g transform="rotate(${angles.minute} 100 100)">
+            <line x1="100" y1="100" x2="100" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+          </g>
+          ${secondHand}
+          <circle cx="100" cy="100" r="4" fill="#4a90e2"/>
+        </svg>
+        ${dateHtml}
+      </div>`;
+  }
+
+  return `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;padding:12px;">
+      <div class="clock-time" style="font-size:${compact ? '28px' : '48px'};font-weight:700;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:2px;">${timeText}</div>
+      ${dateHtml}
+    </div>`;
+}
+
+window.applyClockSettingsToWidget = applyClockSettingsToWidget;
+window.buildClockPreviewHtml = buildClockPreviewHtml;
+window.normalizeClockStyles = normalizeClockStyles;
+
+function initializeClock() {
   if (clockInterval) {
     clearInterval(clockInterval);
   }
-  
-  // Update immediately
-  updateClock();
-  
-  // Update every second
-  clockInterval = setInterval(updateClock, 1000);
+
+  document.querySelectorAll('.clock-widget').forEach((widget) => {
+    ensureClockStructure(widget);
+    applyClockDisplaySettings(widget, getClockStylesForWidget(widget));
+  });
+
+  updateAllClocks();
+  clockInterval = setInterval(updateAllClocks, 1000);
 }
 
 // Initialize event listeners

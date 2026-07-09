@@ -715,8 +715,12 @@ function generateAdvancedTab() {
   const isAgendaWidget = widgetType === 'agenda-widget';
   const isTasksWidget = widgetType === 'tasks-widget';
   const isCalendarWidget = widgetType === 'calendar-widget';
+  const isClockWidget = widgetType === 'clock-widget';
   const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
   const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
+  const clockDisplayType = currentStyles.clockDisplayType || 'digital';
+  const clockShowSeconds = currentStyles.clockShowSeconds !== false;
+  const clockShowDate = currentStyles.clockShowDate !== false;
   
   // Load scoreboard config if this is a scoreboard widget
   let scoreboardConfig = {
@@ -761,6 +765,32 @@ function generateAdvancedTab() {
         </div>
       </div>
     </div>
+    ${isClockWidget ? `
+    <div class="styling-form-section">
+      <div class="styling-section-title">Clock Display</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Style</label>
+          <div class="styling-form-control">
+            <select id="clock-display-type" class="styling-select">
+              <option value="digital" ${clockDisplayType === 'digital' ? 'selected' : ''}>Digital</option>
+              <option value="analog" ${clockDisplayType === 'analog' ? 'selected' : ''}>Analog</option>
+            </select>
+          </div>
+        </div>
+        <div class="styling-form-row" id="clock-digital-options" style="display: ${clockDisplayType === 'digital' ? '' : 'none'};">
+          <label class="styling-form-label">
+            <input type="checkbox" id="clock-show-seconds" ${clockShowSeconds ? 'checked' : ''} style="margin-right: 8px;"> Show seconds
+          </label>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">
+            <input type="checkbox" id="clock-show-date" ${clockShowDate ? 'checked' : ''} style="margin-right: 8px;"> Show date
+          </label>
+        </div>
+      </div>
+    </div>
+    ` : ''}
     ${isDiceWidget ? `
     <div class="styling-form-section">
       <div class="styling-section-title">Dice Colors</div>
@@ -2617,6 +2647,51 @@ function attachTabEventListeners(tabName) {
           });
         }
       }
+
+      if (widgetType === 'clock-widget') {
+        const clockDisplayType = stylingModal.querySelector('#clock-display-type');
+        const clockDigitalOptions = stylingModal.querySelector('#clock-digital-options');
+        const clockShowSeconds = stylingModal.querySelector('#clock-show-seconds');
+        const clockShowDate = stylingModal.querySelector('#clock-show-date');
+        const currentPageIndex = (typeof window !== 'undefined' && typeof window.currentPageIndex !== 'undefined')
+          ? window.currentPageIndex
+          : 0;
+        const currentPage = document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
+        const clockWidget = currentPage
+          ? currentPage.querySelector(`.${currentWidgetId}`)
+          : document.querySelector(`.${currentWidgetId}`);
+
+        const applyClockPreview = () => {
+          updatePreview();
+          if (clockWidget && typeof window.applyClockSettingsToWidget === 'function') {
+            window.applyClockSettingsToWidget(clockWidget, currentStyles);
+          }
+        };
+
+        if (clockDisplayType) {
+          clockDisplayType.addEventListener('change', (e) => {
+            currentStyles.clockDisplayType = e.target.value;
+            if (clockDigitalOptions) {
+              clockDigitalOptions.style.display = e.target.value === 'digital' ? '' : 'none';
+            }
+            applyClockPreview();
+          });
+        }
+
+        if (clockShowSeconds) {
+          clockShowSeconds.addEventListener('change', (e) => {
+            currentStyles.clockShowSeconds = e.target.checked;
+            applyClockPreview();
+          });
+        }
+
+        if (clockShowDate) {
+          clockShowDate.addEventListener('change', (e) => {
+            currentStyles.clockShowDate = e.target.checked;
+            applyClockPreview();
+          });
+        }
+      }
     }
   }
 }
@@ -3738,7 +3813,11 @@ function updatePreview() {
         </div>
       </div>
     `;
-  } else if (previewContent && widgetType !== 'dice-widget' && widgetType !== 'blank-widget' && widgetType !== 'scoreboard-widget' && widgetType !== 'stoplight-widget' && widgetType !== 'agenda-widget' && widgetType !== 'tasks-widget') {
+  } else if (previewContent && widgetType === 'clock-widget') {
+    previewContent.innerHTML = typeof window.buildClockPreviewHtml === 'function'
+      ? window.buildClockPreviewHtml(currentStyles, { compact: true })
+      : '<div style="padding:20px;color:#fff;text-align:center;">Clock preview</div>';
+  } else if (previewContent && widgetType !== 'dice-widget' && widgetType !== 'blank-widget' && widgetType !== 'scoreboard-widget' && widgetType !== 'stoplight-widget' && widgetType !== 'agenda-widget' && widgetType !== 'tasks-widget' && widgetType !== 'clock-widget') {
     // Reset to default text for other widgets
     previewContent.innerHTML = 'Preview updates in real-time as you adjust settings';
   }
@@ -4145,6 +4224,21 @@ function updateCurrentStylesFromForm() {
   const stoplightGreenFontWeight = stylingModal.querySelector('#stoplight-green-font-weight');
   if (stoplightGreenFontWeight) {
     currentStyles.stoplightGreenFontWeight = stoplightGreenFontWeight.value;
+  }
+
+  const clockDisplayType = stylingModal.querySelector('#clock-display-type');
+  if (clockDisplayType) {
+    currentStyles.clockDisplayType = clockDisplayType.value;
+  }
+
+  const clockShowSeconds = stylingModal.querySelector('#clock-show-seconds');
+  if (clockShowSeconds) {
+    currentStyles.clockShowSeconds = clockShowSeconds.checked;
+  }
+
+  const clockShowDate = stylingModal.querySelector('#clock-show-date');
+  if (clockShowDate) {
+    currentStyles.clockShowDate = clockShowDate.checked;
   }
   
   // Blank widget display mode and text settings
@@ -4593,6 +4687,10 @@ function applyCurrentStylesToWidget(widget) {
       }
     }
   }
+
+  if (widget.classList.contains('clock-widget') && typeof window.applyClockSettingsToWidget === 'function') {
+    window.applyClockSettingsToWidget(widget, currentStyles);
+  }
   
   // Update scoreboard configuration if this is a scoreboard widget
   if (widget.classList.contains('scoreboard-widget')) {
@@ -5033,14 +5131,6 @@ function loadWidgetStyles(fullWidgetId) {
     if (widgetType === 'scoreboard-widget' && currentStyles.scoreboardConfig) {
       delete currentStyles.scoreboardConfig;
     }
-    if (widgetType === 'clock-widget') {
-      console.log('Parsed currentStyles:', JSON.stringify(currentStyles, null, 2));
-      console.log('Background type:', currentStyles.backgroundType);
-      console.log('Background color:', currentStyles.backgroundColor);
-      console.log('Gradient color1:', currentStyles.gradientColor1);
-      console.log('Gradient color2:', currentStyles.gradientColor2);
-      console.log('Gradient direction:', currentStyles.gradientDirection);
-    }
     // For existing widgets, set textColorDynamic based on whether textColor exists
     // If textColor is set and not the default, assume it was manually set (dynamic = false)
     // If textColor is not set or is default, assume dynamic (dynamic = true)
@@ -5075,8 +5165,19 @@ function loadWidgetStyles(fullWidgetId) {
       fontSize: 18,
       fontWeight: '600',
       padding: 24,
-      widgetOpacity: 100
+      widgetOpacity: 100,
+      ...(widgetType === 'clock-widget' ? {
+        clockDisplayType: 'digital',
+        clockShowSeconds: true,
+        clockShowDate: true
+      } : {})
     };
+  }
+  
+  if (widgetType === 'clock-widget') {
+    if (currentStyles.clockDisplayType === undefined) currentStyles.clockDisplayType = 'digital';
+    if (currentStyles.clockShowSeconds === undefined) currentStyles.clockShowSeconds = true;
+    if (currentStyles.clockShowDate === undefined) currentStyles.clockShowDate = true;
   }
   
   // Ensure titleVisible is set for existing widgets (migration)
@@ -5712,6 +5813,10 @@ function loadStylesToWidget(widget, styles) {
   // Reload dice widget with saved colors if this is a dice widget
   if (widget.classList.contains('dice-widget') && typeof loadDice === 'function') {
     setTimeout(() => loadDice(), 0);
+  }
+
+  if (widget.classList.contains('clock-widget') && typeof window.applyClockSettingsToWidget === 'function') {
+    window.applyClockSettingsToWidget(widget, styles);
   }
 }
 

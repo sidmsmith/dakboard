@@ -449,13 +449,30 @@
     </div>
 
     <!-- Clock Widget -->
-    <div class="widget clock-widget">
+    <div class="widget clock-widget clock-mode-digital">
       <div class="widget-header">
         <div class="widget-title">🕐 Clock</div>
       </div>
-      <div class="clock-content" id="clock-content">
-        <div class="clock-time" id="clock-time">--:--:--</div>
-        <div class="clock-date" id="clock-date">-- --, ----</div>
+      <div class="clock-content">
+        <div class="clock-digital">
+          <div class="clock-time">--:--:--</div>
+        </div>
+        <div class="clock-analog">
+          <svg class="clock-analog-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle class="clock-analog-face" cx="100" cy="100" r="94" fill="#1e1e1e" stroke="#666" stroke-width="2"/>
+            <g class="clock-hour-hand-group">
+              <line class="clock-hour-hand" x1="100" y1="100" x2="100" y2="52" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+            </g>
+            <g class="clock-minute-hand-group">
+              <line class="clock-minute-hand" x1="100" y1="100" x2="100" y2="32" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+            </g>
+            <g class="clock-second-hand-group">
+              <line class="clock-second-hand" x1="100" y1="108" x2="100" y2="28" stroke="#4a90e2" stroke-width="2" stroke-linecap="round"/>
+            </g>
+            <circle cx="100" cy="100" r="4" fill="#4a90e2"/>
+          </svg>
+        </div>
+        <div class="clock-date">-- --, ----</div>
       </div>
     </div>
 
