@@ -4359,34 +4359,9 @@ function loadClipArt() {
     
     // Display based on mode
     if (displayMode === 'text') {
-      // Map font family to Google Fonts if needed
-      const fontFamilyMap = {
-        'Comic Sans MS': 'Comic Sans MS, cursive',
-        'Bangers': 'Bangers, cursive',
-        'Fredoka One': 'Fredoka One, cursive',
-        'Nunito': 'Nunito, sans-serif',
-        'Quicksand': 'Quicksand, sans-serif',
-        'Indie Flower': 'Indie Flower, cursive',
-        'Permanent Marker': 'Permanent Marker, cursive',
-        'Chewy': 'Chewy, cursive',
-        'Lobster': 'Lobster, cursive',
-        'Pacifico': 'Pacifico, cursive',
-        'Bubblegum Sans': 'Bubblegum Sans, cursive',
-        'Poppins': 'Poppins, sans-serif',
-        'Righteous': 'Righteous, cursive',
-        'Bungee': 'Bungee, cursive',
-        'Boogaloo': 'Boogaloo, cursive',
-        'Creepster': 'Creepster, cursive',
-        'Luckiest Guy': 'Luckiest Guy, cursive',
-        'Amatic SC': 'Amatic SC, cursive',
-        'Shadows Into Light': 'Shadows Into Light, cursive',
-        'Kalam': 'Kalam, cursive',
-        'Patrick Hand': 'Patrick Hand, cursive',
-        'Schoolbell': 'Schoolbell, cursive',
-        'Arial': 'Arial, sans-serif',
-        'Impact': 'Impact, sans-serif'
-      };
-      const mappedFontFamily = fontFamilyMap[textFontFamily] || textFontFamily;
+      const mappedFontFamily = typeof window.mapFontFamily === 'function'
+        ? window.mapFontFamily(textFontFamily)
+        : textFontFamily;
       
       // Text mode - create editable text area
       const textStyle = [

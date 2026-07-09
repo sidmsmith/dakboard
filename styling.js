@@ -5,11 +5,11 @@
 // =====================================
 // Calendar Widget: Has custom header layout with month-view button (opens month modal) and calendar icon.
 //                  Title visibility, editable text, and alignment are disabled to preserve functional elements.
-//                  Still supports title color, font size, and font weight styling.
+//                  Still supports title color, font family, font size, and font weight styling.
 //
 // Whiteboard Widget: Has custom header layout with toolbar (clear button, color pickers, brush size controls).
 //                    Title visibility, editable text, and alignment are disabled to preserve functional elements.
-//                    Still supports title color, font size, and font weight styling.
+//                    Still supports title color, font family, font size, and font weight styling.
 
 let currentWidgetId = null;
 let currentStyles = {};
@@ -27,6 +27,59 @@ function hexToRgba(hex, opacity) {
   // Return rgba string
   return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
 }
+
+const STYLING_FONT_FAMILIES = [
+  { value: 'Comic Sans MS', css: 'Comic Sans MS, cursive' },
+  { value: 'Bangers', css: 'Bangers, cursive' },
+  { value: 'Fredoka One', css: 'Fredoka One, cursive' },
+  { value: 'Nunito', css: 'Nunito, sans-serif' },
+  { value: 'Quicksand', css: 'Quicksand, sans-serif' },
+  { value: 'Indie Flower', css: 'Indie Flower, cursive' },
+  { value: 'Permanent Marker', css: 'Permanent Marker, cursive' },
+  { value: 'Chewy', css: 'Chewy, cursive' },
+  { value: 'Lobster', css: 'Lobster, cursive' },
+  { value: 'Pacifico', css: 'Pacifico, cursive' },
+  { value: 'Bubblegum Sans', css: 'Bubblegum Sans, cursive' },
+  { value: 'Poppins', css: 'Poppins, sans-serif' },
+  { value: 'Righteous', css: 'Righteous, cursive' },
+  { value: 'Bungee', css: 'Bungee, cursive' },
+  { value: 'Boogaloo', css: 'Boogaloo, cursive' },
+  { value: 'Creepster', css: 'Creepster, cursive' },
+  { value: 'Luckiest Guy', css: 'Luckiest Guy, cursive' },
+  { value: 'Amatic SC', css: 'Amatic SC, cursive' },
+  { value: 'Shadows Into Light', css: 'Shadows Into Light, cursive' },
+  { value: 'Kalam', css: 'Kalam, cursive' },
+  { value: 'Patrick Hand', css: 'Patrick Hand, cursive' },
+  { value: 'Schoolbell', css: 'Schoolbell, cursive' },
+  { value: 'Arial', css: 'Arial, sans-serif' },
+  { value: 'Impact', css: 'Impact, sans-serif' },
+  { value: 'Georgia', css: 'Georgia, serif' },
+  { value: 'Times New Roman', css: '"Times New Roman", Times, serif' },
+  { value: 'Courier New', css: '"Courier New", monospace' },
+  { value: 'Verdana', css: 'Verdana, sans-serif' }
+];
+
+function mapFontFamily(fontKey) {
+  if (!fontKey) return '';
+  const found = STYLING_FONT_FAMILIES.find((f) => f.value === fontKey);
+  return found ? found.css : fontKey;
+}
+
+function buildFontFamilySelectOptions(selectedValue, options = {}) {
+  const { includeSystemDefault = false } = options;
+  let html = '';
+  if (includeSystemDefault) {
+    const isDefault = !selectedValue;
+    html += `<option value="" ${isDefault ? 'selected' : ''}>Default (System)</option>`;
+  }
+  STYLING_FONT_FAMILIES.forEach(({ value, css }) => {
+    const selected = selectedValue === value ? 'selected' : '';
+    html += `<option value="${value}" data-font="${css}" ${selected} style="font-family: ${css};">${value}</option>`;
+  });
+  return html;
+}
+
+window.mapFontFamily = mapFontFamily;
 
 // Initialize styling system
 function initStyling() {
@@ -535,7 +588,7 @@ function generateTitleTab() {
   // - Calendar widget: Has month-view button in header (opens month modal) and custom calendar icon
   // - Whiteboard widget: Has toolbar in header (clear button, color pickers, brush size controls)
   // These widgets are excluded from standard title styling (visibility, alignment, editable text)
-  // to preserve their functional elements. They still support title color, font size, and font weight styling.
+  // to preserve their functional elements. They still support title color, font family, font size, and font weight styling.
   
   // Parse widget ID to get widget type (handles both instance IDs and legacy IDs)
   const parsed = typeof parseWidgetId !== 'undefined' && currentWidgetId ? parseWidgetId(currentWidgetId) : { widgetType: currentWidgetId || '', pageIndex: 0, instanceIndex: 0, isLegacy: true };
@@ -570,6 +623,7 @@ function generateTitleTab() {
   const textColor = normalizeHexColor(textColorRaw);
   const fontSize = currentStyles.fontSize !== undefined ? currentStyles.fontSize : 18;
   const fontWeight = currentStyles.fontWeight || '600';
+  const titleFontFamily = currentStyles.titleFontFamily || '';
   // Default to dynamic (true) if textColorDynamic is not set, or if textColor is not explicitly set
   const textColorDynamic = currentStyles.textColorDynamic !== undefined 
     ? currentStyles.textColorDynamic 
@@ -626,6 +680,17 @@ function generateTitleTab() {
             </select>
             <label class="styling-apply-all-checkbox">
               <input type="checkbox" id="title-alignment-apply-all" ${applyToAllFlags.titleAlignment ? 'checked' : ''}> Apply to all
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Font Family</label>
+          <div class="styling-form-control">
+            <select id="title-font-family" class="styling-select title-font-select" style="width: 100%;">
+              ${buildFontFamilySelectOptions(titleFontFamily, { includeSystemDefault: true })}
+            </select>
+            <label class="styling-apply-all-checkbox">
+              <input type="checkbox" id="title-font-family-apply-all" ${applyToAllFlags.titleFontFamily ? 'checked' : ''}> Apply to all
             </label>
           </div>
         </div>
@@ -1011,37 +1076,14 @@ function generateAdvancedTab() {
           <label class="styling-form-label">Font Family</label>
           <div class="styling-form-control">
             <select id="blank-text-font-family" class="styling-select blank-font-select" style="width: 100%;">
-              <option value="Comic Sans MS" data-font="Comic Sans MS, cursive" ${(!currentStyles.blankTextFontFamily || currentStyles.blankTextFontFamily === 'Comic Sans MS') ? 'selected' : ''} style="font-family: Comic Sans MS, cursive;">Comic Sans MS</option>
-              <option value="Bangers" data-font="Bangers, cursive" ${currentStyles.blankTextFontFamily === 'Bangers' ? 'selected' : ''} style="font-family: Bangers, cursive;">Bangers</option>
-              <option value="Fredoka One" data-font="Fredoka One, cursive" ${currentStyles.blankTextFontFamily === 'Fredoka One' ? 'selected' : ''} style="font-family: Fredoka One, cursive;">Fredoka One</option>
-              <option value="Nunito" data-font="Nunito, sans-serif" ${currentStyles.blankTextFontFamily === 'Nunito' ? 'selected' : ''} style="font-family: Nunito, sans-serif;">Nunito</option>
-              <option value="Quicksand" data-font="Quicksand, sans-serif" ${currentStyles.blankTextFontFamily === 'Quicksand' ? 'selected' : ''} style="font-family: Quicksand, sans-serif;">Quicksand</option>
-              <option value="Indie Flower" data-font="Indie Flower, cursive" ${currentStyles.blankTextFontFamily === 'Indie Flower' ? 'selected' : ''} style="font-family: Indie Flower, cursive;">Indie Flower</option>
-              <option value="Permanent Marker" data-font="Permanent Marker, cursive" ${currentStyles.blankTextFontFamily === 'Permanent Marker' ? 'selected' : ''} style="font-family: Permanent Marker, cursive;">Permanent Marker</option>
-              <option value="Chewy" data-font="Chewy, cursive" ${currentStyles.blankTextFontFamily === 'Chewy' ? 'selected' : ''} style="font-family: Chewy, cursive;">Chewy</option>
-              <option value="Lobster" data-font="Lobster, cursive" ${currentStyles.blankTextFontFamily === 'Lobster' ? 'selected' : ''} style="font-family: Lobster, cursive;">Lobster</option>
-              <option value="Pacifico" data-font="Pacifico, cursive" ${currentStyles.blankTextFontFamily === 'Pacifico' ? 'selected' : ''} style="font-family: Pacifico, cursive;">Pacifico</option>
-              <option value="Bubblegum Sans" data-font="Bubblegum Sans, cursive" ${currentStyles.blankTextFontFamily === 'Bubblegum Sans' ? 'selected' : ''} style="font-family: Bubblegum Sans, cursive;">Bubblegum Sans</option>
-              <option value="Poppins" data-font="Poppins, sans-serif" ${currentStyles.blankTextFontFamily === 'Poppins' ? 'selected' : ''} style="font-family: Poppins, sans-serif;">Poppins</option>
-              <option value="Righteous" data-font="Righteous, cursive" ${currentStyles.blankTextFontFamily === 'Righteous' ? 'selected' : ''} style="font-family: Righteous, cursive;">Righteous</option>
-              <option value="Bungee" data-font="Bungee, cursive" ${currentStyles.blankTextFontFamily === 'Bungee' ? 'selected' : ''} style="font-family: Bungee, cursive;">Bungee</option>
-              <option value="Boogaloo" data-font="Boogaloo, cursive" ${currentStyles.blankTextFontFamily === 'Boogaloo' ? 'selected' : ''} style="font-family: Boogaloo, cursive;">Boogaloo</option>
-              <option value="Creepster" data-font="Creepster, cursive" ${currentStyles.blankTextFontFamily === 'Creepster' ? 'selected' : ''} style="font-family: Creepster, cursive;">Creepster</option>
-              <option value="Luckiest Guy" data-font="Luckiest Guy, cursive" ${currentStyles.blankTextFontFamily === 'Luckiest Guy' ? 'selected' : ''} style="font-family: Luckiest Guy, cursive;">Luckiest Guy</option>
-              <option value="Amatic SC" data-font="Amatic SC, cursive" ${currentStyles.blankTextFontFamily === 'Amatic SC' ? 'selected' : ''} style="font-family: Amatic SC, cursive;">Amatic SC</option>
-              <option value="Shadows Into Light" data-font="Shadows Into Light, cursive" ${currentStyles.blankTextFontFamily === 'Shadows Into Light' ? 'selected' : ''} style="font-family: Shadows Into Light, cursive;">Shadows Into Light</option>
-              <option value="Kalam" data-font="Kalam, cursive" ${currentStyles.blankTextFontFamily === 'Kalam' ? 'selected' : ''} style="font-family: Kalam, cursive;">Kalam</option>
-              <option value="Patrick Hand" data-font="Patrick Hand, cursive" ${currentStyles.blankTextFontFamily === 'Patrick Hand' ? 'selected' : ''} style="font-family: Patrick Hand, cursive;">Patrick Hand</option>
-              <option value="Schoolbell" data-font="Schoolbell, cursive" ${currentStyles.blankTextFontFamily === 'Schoolbell' ? 'selected' : ''} style="font-family: Schoolbell, cursive;">Schoolbell</option>
-              <option value="Arial" data-font="Arial, sans-serif" ${currentStyles.blankTextFontFamily === 'Arial' ? 'selected' : ''} style="font-family: Arial, sans-serif;">Arial</option>
-              <option value="Impact" data-font="Impact, sans-serif" ${currentStyles.blankTextFontFamily === 'Impact' ? 'selected' : ''} style="font-family: Impact, sans-serif;">Impact</option>
+              ${buildFontFamilySelectOptions(currentStyles.blankTextFontFamily || 'Comic Sans MS')}
             </select>
           </div>
         </div>
         <div class="styling-form-row">
           <label class="styling-form-label">Font Size: <span id="blank-text-font-size-value">${currentStyles.blankTextFontSize || 16}</span>px</label>
           <div class="styling-form-control">
-            <input type="range" id="blank-text-font-size" min="8" max="72" value="${currentStyles.blankTextFontSize || 16}" step="1" class="styling-slider">
+            <input type="range" id="blank-text-font-size" min="8" max="300" value="${currentStyles.blankTextFontSize || 16}" step="1" class="styling-slider">
           </div>
         </div>
         <div class="styling-form-row">
@@ -1689,6 +1731,24 @@ function attachTabEventListeners(tabName) {
     if (titleAlignmentSelect) {
       titleAlignmentSelect.addEventListener('change', (e) => {
         currentStyles.titleAlignment = e.target.value;
+        updatePreview();
+      });
+    }
+
+    const titleFontFamilySelect = document.getElementById('title-font-family');
+    if (titleFontFamilySelect) {
+      titleFontFamilySelect.addEventListener('change', (e) => {
+        const selectedOption = e.target.selectedOptions[0];
+        const fontFamily = selectedOption?.dataset.font || selectedOption?.value || '';
+        if (fontFamily) {
+          titleFontFamilySelect.style.fontFamily = fontFamily;
+        } else {
+          titleFontFamilySelect.style.fontFamily = '';
+        }
+        currentStyles.titleFontFamily = e.target.value || undefined;
+        if (!e.target.value) {
+          delete currentStyles.titleFontFamily;
+        }
         updatePreview();
       });
     }
@@ -3403,6 +3463,11 @@ function updatePreview() {
     if (currentStyles.fontWeight) {
       titleText.style.fontWeight = currentStyles.fontWeight;
     }
+    if (currentStyles.titleFontFamily) {
+      titleText.style.fontFamily = mapFontFamily(currentStyles.titleFontFamily);
+    } else {
+      titleText.style.fontFamily = '';
+    }
     // Apply widget opacity to title (independent of background opacity)
     if (currentStyles.widgetOpacity !== undefined) {
       titleText.style.opacity = (currentStyles.widgetOpacity / 100);
@@ -3580,34 +3645,7 @@ function updatePreview() {
       const isItalic = currentStyles.blankTextItalic || false;
       const isUnderline = currentStyles.blankTextUnderline || false;
       
-      // Map font family to Google Fonts if needed
-      const fontFamilyMap = {
-        'Comic Sans MS': 'Comic Sans MS, cursive',
-        'Bangers': 'Bangers, cursive',
-        'Fredoka One': 'Fredoka One, cursive',
-        'Nunito': 'Nunito, sans-serif',
-        'Quicksand': 'Quicksand, sans-serif',
-        'Indie Flower': 'Indie Flower, cursive',
-        'Permanent Marker': 'Permanent Marker, cursive',
-        'Chewy': 'Chewy, cursive',
-        'Lobster': 'Lobster, cursive',
-        'Pacifico': 'Pacifico, cursive',
-        'Bubblegum Sans': 'Bubblegum Sans, cursive',
-        'Poppins': 'Poppins, sans-serif',
-        'Righteous': 'Righteous, cursive',
-        'Bungee': 'Bungee, cursive',
-        'Boogaloo': 'Boogaloo, cursive',
-        'Creepster': 'Creepster, cursive',
-        'Luckiest Guy': 'Luckiest Guy, cursive',
-        'Amatic SC': 'Amatic SC, cursive',
-        'Shadows Into Light': 'Shadows Into Light, cursive',
-        'Kalam': 'Kalam, cursive',
-        'Patrick Hand': 'Patrick Hand, cursive',
-        'Schoolbell': 'Schoolbell, cursive',
-        'Arial': 'Arial, sans-serif',
-        'Impact': 'Impact, sans-serif'
-      };
-      const mappedFontFamily = fontFamilyMap[fontFamily] || fontFamily;
+      const mappedFontFamily = mapFontFamily(fontFamily);
       
       // Build container style string (without text-decoration on container)
       const containerStyle = [
@@ -4104,6 +4142,15 @@ function updateCurrentStylesFromForm() {
   
   const titleAlignment = document.getElementById('title-alignment');
   if (titleAlignment) currentStyles.titleAlignment = titleAlignment.value;
+
+  const titleFontFamily = document.getElementById('title-font-family');
+  if (titleFontFamily) {
+    if (titleFontFamily.value) {
+      currentStyles.titleFontFamily = titleFontFamily.value;
+    } else {
+      delete currentStyles.titleFontFamily;
+    }
+  }
   
   const textColor = document.getElementById('text-color');
   const textColorDynamic = document.getElementById('text-color-dynamic');
@@ -4674,6 +4721,13 @@ function applyCurrentStylesToWidget(widget) {
         title.style.fontWeight = currentStyles.fontWeight;
       }
     }
+    if (currentStyles.titleFontFamily) {
+      if (!isApplyingToAll || applyToAllFlags.titleFontFamily) {
+        title.style.fontFamily = mapFontFamily(currentStyles.titleFontFamily);
+      }
+    } else if (!isApplyingToAll || applyToAllFlags.titleFontFamily) {
+      title.style.fontFamily = '';
+    }
     // Apply widget opacity to title (independent of background opacity)
     if (currentStyles.widgetOpacity !== undefined && (!isApplyingToAll || applyToAllFlags.widgetOpacity)) {
       title.style.opacity = (currentStyles.widgetOpacity / 100);
@@ -4823,34 +4877,7 @@ function applyCurrentStylesToWidget(widget) {
       const isItalic = currentStyles.blankTextItalic || false;
       const isUnderline = currentStyles.blankTextUnderline || false;
       
-      // Map font family to Google Fonts if needed
-      const fontFamilyMap = {
-        'Comic Sans MS': 'Comic Sans MS, cursive',
-        'Bangers': 'Bangers, cursive',
-        'Fredoka One': 'Fredoka One, cursive',
-        'Nunito': 'Nunito, sans-serif',
-        'Quicksand': 'Quicksand, sans-serif',
-        'Indie Flower': 'Indie Flower, cursive',
-        'Permanent Marker': 'Permanent Marker, cursive',
-        'Chewy': 'Chewy, cursive',
-        'Lobster': 'Lobster, cursive',
-        'Pacifico': 'Pacifico, cursive',
-        'Bubblegum Sans': 'Bubblegum Sans, cursive',
-        'Poppins': 'Poppins, sans-serif',
-        'Righteous': 'Righteous, cursive',
-        'Bungee': 'Bungee, cursive',
-        'Boogaloo': 'Boogaloo, cursive',
-        'Creepster': 'Creepster, cursive',
-        'Luckiest Guy': 'Luckiest Guy, cursive',
-        'Amatic SC': 'Amatic SC, cursive',
-        'Shadows Into Light': 'Shadows Into Light, cursive',
-        'Kalam': 'Kalam, cursive',
-        'Patrick Hand': 'Patrick Hand, cursive',
-        'Schoolbell': 'Schoolbell, cursive',
-        'Arial': 'Arial, sans-serif',
-        'Impact': 'Impact, sans-serif'
-      };
-      const mappedFontFamily = fontFamilyMap[fontFamily] || fontFamily;
+      const mappedFontFamily = mapFontFamily(fontFamily);
       
       // Build style string
       const textStyle = [
@@ -5078,6 +5105,7 @@ function updateApplyToAllFlags() {
   applyToAllFlags.titleIconVisible = document.getElementById('title-icon-visible-apply-all')?.checked || false;
   applyToAllFlags.titleText = document.getElementById('title-text-apply-all')?.checked || false;
   applyToAllFlags.titleAlignment = document.getElementById('title-alignment-apply-all')?.checked || false;
+  applyToAllFlags.titleFontFamily = document.getElementById('title-font-family-apply-all')?.checked || false;
   applyToAllFlags.textColor = document.getElementById('text-color-apply-all')?.checked || false;
   applyToAllFlags.fontSize = document.getElementById('font-size-apply-all')?.checked || false;
   applyToAllFlags.fontWeight = document.getElementById('font-weight-apply-all')?.checked || false;
@@ -5141,6 +5169,7 @@ function resetStyles() {
       // Reset text color to use dynamic (remove inline style)
       title.style.color = '';
       title.style.fontSize = '18px';
+      title.style.fontFamily = '';
       // Reset text color to use dynamic (remove inline style)
       title.style.color = '';
       title.style.fontWeight = '600';
@@ -5839,6 +5868,11 @@ function loadStylesToWidget(widget, styles) {
     }
     if (styles.fontSize !== undefined) title.style.fontSize = styles.fontSize + 'px';
     if (styles.fontWeight !== undefined) title.style.fontWeight = styles.fontWeight;
+    if (styles.titleFontFamily) {
+      title.style.fontFamily = mapFontFamily(styles.titleFontFamily);
+    } else {
+      title.style.fontFamily = '';
+    }
     // Apply widget opacity to title (independent of background opacity)
     if (styles.widgetOpacity !== undefined) {
       title.style.opacity = (styles.widgetOpacity / 100);
