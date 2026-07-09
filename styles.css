@@ -2455,6 +2455,16 @@ body {
   background: rgba(75, 226, 133, 0.12);
 }
 
+.widget.widget-hold-zone-active {
+  position: absolute;
+}
+
+.widget.widget-hold-zone-active .widget-header-press-progress {
+  top: 0;
+  bottom: auto;
+  z-index: 60;
+}
+
 .widget-header-press-progress {
   position: absolute;
   left: 0;

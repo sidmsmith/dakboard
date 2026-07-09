@@ -2,7 +2,8 @@
 (function () {
   const MOVE_THRESHOLD_MS = 550;
   const RESIZE_THRESHOLD_MS = 2000;
-  const HEADER_FALLBACK_PX = 40;
+  const HIDDEN_TITLE_HOLD_RATIO = 0.25;
+  const HEADER_FALLBACK_PX_MIN = 48;
   const PROGRESS_START_MS = 350;
   const PRE_MOVE_CANCEL_PX = 24;
 
@@ -69,22 +70,47 @@
     return { x: e.clientX, y: e.clientY };
   }
 
-  function isHeaderOrFallbackTouch(widget, clientX, clientY) {
-    const header = widget.querySelector('.widget-header');
-    if (header) {
-      const style = window.getComputedStyle(header);
-      if (style.display !== 'none' && style.visibility !== 'hidden' && header.offsetHeight > 0) {
-        const rect = header.getBoundingClientRect();
-        if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
-          return true;
-        }
-      }
+  function isWidgetTitleVisible(widget) {
+    const header = widget.querySelector('.widget-header:not(.widget-edit-header)');
+    if (!header) return false;
+
+    if (widget.classList.contains('whiteboard-title-collapsed')) return false;
+
+    const style = window.getComputedStyle(header);
+    if (style.display === 'none' || style.visibility === 'hidden' || header.offsetHeight <= 0) {
+      return false;
     }
+    return true;
+  }
+
+  function getHiddenTitleHoldZoneHeight(widget) {
     const widgetRect = widget.getBoundingClientRect();
-    return clientY >= widgetRect.top
-      && clientY <= widgetRect.top + HEADER_FALLBACK_PX
-      && clientX >= widgetRect.left
-      && clientX <= widgetRect.right;
+    return Math.max(HEADER_FALLBACK_PX_MIN, widgetRect.height * HIDDEN_TITLE_HOLD_RATIO);
+  }
+
+  function isHeaderOrFallbackTouch(widget, clientX, clientY) {
+    const widgetRect = widget.getBoundingClientRect();
+    const inWidgetWidth = clientX >= widgetRect.left && clientX <= widgetRect.right;
+    if (!inWidgetWidth) return false;
+
+    if (isWidgetTitleVisible(widget)) {
+      const header = widget.querySelector('.widget-header:not(.widget-edit-header)');
+      if (!header) return false;
+      const rect = header.getBoundingClientRect();
+      return clientY >= rect.top && clientY <= rect.bottom;
+    }
+
+    // Title hidden: top 25% inside the widget (not above the widget border)
+    const holdZoneHeight = getHiddenTitleHoldZoneHeight(widget);
+    return clientY >= widgetRect.top && clientY <= widgetRect.top + holdZoneHeight;
+  }
+
+  function getPressProgressHost(widget) {
+    if (isWidgetTitleVisible(widget)) {
+      const header = widget.querySelector('.widget-header:not(.widget-edit-header)');
+      return header || widget;
+    }
+    return widget;
   }
 
   function applyInteractionLock(locked) {
@@ -134,7 +160,7 @@
     clearTimeout(moveTimer);
     clearTimeout(resizeTimer);
     clearTimeout(progressTimer);
-    widget.classList.remove('widget-header-pressing', 'widget-header-move-ready');
+    widget.classList.remove('widget-header-pressing', 'widget-header-move-ready', 'widget-hold-zone-active');
     if (resizeWidget !== widget) {
       widget.classList.remove('widget-move-armed');
     }
@@ -254,11 +280,16 @@
       e.preventDefault();
     }
 
-    const header = widget.querySelector('.widget-header') || widget;
+    const progressHost = getPressProgressHost(widget);
+    const useHoldZoneProgress = progressHost === widget;
+
     const progressEl = document.createElement('div');
     progressEl.className = 'widget-header-press-progress';
-    header.style.position = header.style.position || 'relative';
-    header.appendChild(progressEl);
+    progressHost.style.position = progressHost.style.position || 'relative';
+    if (useHoldZoneProgress) {
+      widget.classList.add('widget-hold-zone-active');
+    }
+    progressHost.appendChild(progressEl);
 
     const moveTimer = setTimeout(() => {
       markMoveReady(widget, progressEl);
