@@ -4462,7 +4462,11 @@ function applyCurrentStylesToWidget(widget) {
     // Title visibility
     if (currentStyles.titleVisible !== undefined) {
       if (!isApplyingToAll || applyToAllFlags.titleVisible) {
-        widgetHeader.style.display = currentStyles.titleVisible ? '' : 'none';
+        if (isWhiteboardWidget && typeof applyWhiteboardTitleVisibility === 'function') {
+          applyWhiteboardTitleVisibility(widget, currentStyles.titleVisible);
+        } else {
+          widgetHeader.style.display = currentStyles.titleVisible ? '' : 'none';
+        }
       }
     }
     
@@ -5635,7 +5639,11 @@ function loadStylesToWidget(widget, styles) {
   if (widgetHeader) {
     // Title visibility
     const titleVisible = styles.titleVisible !== undefined ? styles.titleVisible : true;
-    widgetHeader.style.display = titleVisible ? '' : 'none';
+    if (isWhiteboardWidget && typeof applyWhiteboardTitleVisibility === 'function') {
+      applyWhiteboardTitleVisibility(widget, titleVisible);
+    } else {
+      widgetHeader.style.display = titleVisible ? '' : 'none';
+    }
     
     // Title alignment - skip for calendar and whiteboard (they have custom layouts)
     if (!isCalendarWidget && !isWhiteboardWidget) {

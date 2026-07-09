@@ -6766,6 +6766,40 @@ function formatNewsDate(dateString) {
 // Whiteboard state management - per widget instance
 let whiteboardStates = new Map(); // Track drawing state per widget: { canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, isDrawing: boolean, lastX: number, lastY: number, autoHideTimer: number }
 
+function getWhiteboardFullWidgetId(widget) {
+  if (!widget) return null;
+  const classes = Array.from(widget.classList);
+  return classes.find(c => c.startsWith('whiteboard-widget-page-') && c.includes('-instance-'))
+    || classes.find(c => c.includes('whiteboard-widget'));
+}
+
+function applyWhiteboardTitleVisibility(widget, titleVisible) {
+  if (!widget || !widget.classList.contains('whiteboard-widget')) return;
+
+  const widgetHeader = widget.querySelector('.widget-header:not(.widget-edit-header)');
+  if (!widgetHeader) return;
+
+  widgetHeader.style.display = '';
+  widgetHeader.classList.remove('whiteboard-header-temporary');
+
+  const fullWidgetId = getWhiteboardFullWidgetId(widget);
+  if (fullWidgetId) {
+    const state = whiteboardStates.get(fullWidgetId);
+    if (state?.autoHideTimer) {
+      clearTimeout(state.autoHideTimer);
+      state.autoHideTimer = null;
+    }
+  }
+
+  if (titleVisible === false) {
+    widget.classList.add('whiteboard-title-collapsed');
+  } else {
+    widget.classList.remove('whiteboard-title-collapsed');
+  }
+}
+
+window.applyWhiteboardTitleVisibility = applyWhiteboardTitleVisibility;
+
 // Initialize whiteboard
 function initializeWhiteboard() {
   // Get all whiteboard widget instances on the current page
@@ -6815,6 +6849,22 @@ function initializeWhiteboard() {
     // Set canvas size to match container
     const container = canvas.closest('.whiteboard-container');
     const whiteboardWidget = canvas.closest('.whiteboard-widget');
+
+    const stylesKey = `dakboard-widget-styles-${fullWidgetId}`;
+    let titleVisible = true;
+    const savedStylesStr = localStorage.getItem(stylesKey);
+    if (savedStylesStr) {
+      try {
+        const savedStyles = JSON.parse(savedStylesStr);
+        titleVisible = savedStyles.titleVisible !== false;
+      } catch (e) {
+        // keep default
+      }
+    }
+    if (whiteboardWidget) {
+      applyWhiteboardTitleVisibility(whiteboardWidget, titleVisible);
+    }
+
     if (container && whiteboardWidget) {
       const resizeCanvas = () => {
         // Get the actual container dimensions
@@ -6875,102 +6925,48 @@ function initializeWhiteboard() {
     const savedInkColor = localStorage.getItem(`whiteboard-ink-color-${fullWidgetId}`) || localStorage.getItem(`whiteboard-ink-color-page-${currentPageIndex}`) || '#000000';
     const savedBrushSize = localStorage.getItem(`whiteboard-brush-size-${fullWidgetId}`) || localStorage.getItem(`whiteboard-brush-size-page-${currentPageIndex}`) || '3';
     let bgColor = localStorage.getItem(`whiteboard-bg-color-${fullWidgetId}`) || localStorage.getItem(`whiteboard-bg-color-page-${currentPageIndex}`) || '#ffffff';
-    
-    // Check if title should be hidden (from saved styles)
-    const stylesKey = `dakboard-widget-styles-${fullWidgetId}`;
-    const checkTitleShouldBeHidden = () => {
-      const savedStylesStr = localStorage.getItem(stylesKey);
-      if (savedStylesStr) {
-        try {
-          const savedStyles = JSON.parse(savedStylesStr);
-          return savedStyles.titleVisible === false;
-        } catch (e) {
-          return false;
-        }
-      }
-      return false;
-    };
-    
-    // Helper function to show header temporarily if hidden (accessible to controls and drawing handlers)
-    const showHeaderTemporarily = () => {
-      // Only show temporary header if title should be hidden
-      if (!checkTitleShouldBeHidden()) return;
-      
-      const widgetHeader = whiteboardWidget.querySelector('.widget-header');
-      if (!widgetHeader) return;
-      
-      // Check if header is currently hidden
-      const computedStyle = window.getComputedStyle(widgetHeader);
-      const isHidden = computedStyle.display === 'none';
-      
-      // Only show if hidden (title visibility is disabled)
-      if (isHidden) {
-        // Clear any existing timer
-        if (state.autoHideTimer) {
-          clearTimeout(state.autoHideTimer);
-          state.autoHideTimer = null;
-        }
-        
-        // Show header temporarily - position it absolutely above the widget
-        widgetHeader.style.display = '';
-        widgetHeader.classList.add('whiteboard-header-temporary');
-        
-        // Widget is already position: absolute (from .widget class), which is sufficient
-        // for absolutely positioning the header relative to it. No need to change position.
-        
-        // Set timer to hide after 5 seconds
-        state.autoHideTimer = setTimeout(() => {
-          // Double-check title should still be hidden before hiding
-          if (checkTitleShouldBeHidden() && widgetHeader.classList.contains('whiteboard-header-temporary')) {
-            widgetHeader.style.display = 'none';
-            widgetHeader.classList.remove('whiteboard-header-temporary');
-          }
-          state.autoHideTimer = null;
-        }, 5000);
+
+    const checkTitleShouldBeHidden = () => whiteboardWidget?.classList.contains('whiteboard-title-collapsed');
+
+    const hideTemporaryHeader = () => {
+      const widgetHeader = whiteboardWidget.querySelector('.widget-header:not(.widget-edit-header)');
+      if (widgetHeader && checkTitleShouldBeHidden()) {
+        widgetHeader.classList.remove('whiteboard-header-temporary');
       }
     };
-    
-    // Helper function to reset auto-hide timer (when controls are used)
-    const resetAutoHideTimer = () => {
-      // Only manage timer if title should be hidden
-      if (!checkTitleShouldBeHidden()) return;
-      
-      const widgetHeader = whiteboardWidget.querySelector('.widget-header');
-      if (!widgetHeader) return;
-      
-      // Clear any existing timer first
+
+    const scheduleTemporaryHeaderHide = () => {
       if (state.autoHideTimer) {
         clearTimeout(state.autoHideTimer);
+      }
+      state.autoHideTimer = setTimeout(() => {
+        hideTemporaryHeader();
         state.autoHideTimer = null;
-      }
-      
-      const computedStyle = window.getComputedStyle(widgetHeader);
-      const isCurrentlyHidden = computedStyle.display === 'none';
-      
-      // If header is hidden, show it temporarily
-      if (isCurrentlyHidden) {
-        widgetHeader.style.display = '';
+      }, 5000);
+    };
+
+    // Helper function to show header temporarily if hidden (accessible to controls and drawing handlers)
+    const showHeaderTemporarily = () => {
+      if (!checkTitleShouldBeHidden()) return;
+
+      const widgetHeader = whiteboardWidget.querySelector('.widget-header:not(.widget-edit-header)');
+      if (!widgetHeader) return;
+
+      widgetHeader.classList.add('whiteboard-header-temporary');
+      scheduleTemporaryHeaderHide();
+    };
+
+    // Helper function to reset auto-hide timer (when controls are used)
+    const resetAutoHideTimer = () => {
+      if (!checkTitleShouldBeHidden()) return;
+
+      const widgetHeader = whiteboardWidget.querySelector('.widget-header:not(.widget-edit-header)');
+      if (!widgetHeader) return;
+
+      if (!widgetHeader.classList.contains('whiteboard-header-temporary')) {
         widgetHeader.classList.add('whiteboard-header-temporary');
-        
-        // Widget is already position: absolute (from .widget class), which is sufficient
-        // for absolutely positioning the header relative to it. No need to change position.
-      } else if (!widgetHeader.classList.contains('whiteboard-header-temporary')) {
-        // Header is permanently visible (titleVisible is true), don't set timer
-        return;
       }
-      // If header already has temporary class, we'll reset the timer below
-      
-      // Always set timer if header has temporary class (it should eventually hide)
-      if (widgetHeader.classList.contains('whiteboard-header-temporary')) {
-        state.autoHideTimer = setTimeout(() => {
-          // Verify title should still be hidden and header is still temporary before hiding
-          if (checkTitleShouldBeHidden() && widgetHeader.classList.contains('whiteboard-header-temporary')) {
-            widgetHeader.style.display = 'none';
-            widgetHeader.classList.remove('whiteboard-header-temporary');
-          }
-          state.autoHideTimer = null;
-        }, 5000);
-      }
+      scheduleTemporaryHeaderHide();
     };
     
     // Find controls for this specific widget instance

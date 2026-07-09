@@ -3761,7 +3761,8 @@ footer a:hover {
    Title styling system (visibility, icon, name, size) is enabled for this widget,
    but alignment is disabled. When title is hidden and user draws, header appears
    temporarily for 5 seconds. See styling.js and app.js for implementation details. */
-/* Temporary header uses absolute positioning within the absolute .widget parent */
+/* When title is hidden, reserve header space so the pad size stays constant.
+   Header is visibility:hidden until user draws, then fades in via whiteboard-header-temporary. */
 .whiteboard-widget .widget-header {
   display: flex;
   justify-content: space-between;
@@ -3770,29 +3771,59 @@ footer a:hover {
   transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
 
-/* Temporary header appears above widget without affecting layout */
-/* Widget is already position: absolute, so header can be positioned relative to it */
-.whiteboard-widget .widget-header.whiteboard-header-temporary {
+/* Temporary header appears in the reserved header slot (no layout shift) */
+.whiteboard-widget.whiteboard-title-collapsed .widget-header {
+  visibility: hidden;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.whiteboard-widget.whiteboard-title-collapsed .widget-header.whiteboard-header-temporary {
+  visibility: visible;
+  pointer-events: auto;
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  width: auto;
+  margin-bottom: 16px;
+  padding: 0 0 12px 0;
+  z-index: auto;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  border-bottom: 2px solid #3a3a3a;
+  animation: whiteboardHeaderFadeIn 0.2s ease-out;
+}
+
+@keyframes whiteboardHeaderFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Legacy fallback if collapsed class missing */
+.whiteboard-widget:not(.whiteboard-title-collapsed) .widget-header.whiteboard-header-temporary {
   position: absolute;
-  top: -60px; /* Position above the widget (adjust based on header height) */
-  left: -24px; /* Account for widget padding (24px on each side) */
+  top: -60px;
+  left: -24px;
   right: -24px;
-  width: calc(100% + 48px); /* Match widget width including padding */
+  width: calc(100% + 48px);
   z-index: 100;
   background: #2a2a2a;
   border-radius: 12px 12px 0 0;
   padding: 12px 24px;
   margin-bottom: 0;
-  margin-top: 0;
-  margin-left: 0;
-  margin-right: 0;
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
   border-bottom: 2px solid #3a3a3a;
   opacity: 1;
   transform: translateY(0);
   animation: slideDownFadeIn 0.3s ease-out;
-  pointer-events: auto; /* Ensure controls are clickable */
-  box-sizing: border-box; /* Include padding in width calculation */
+  pointer-events: auto;
+  box-sizing: border-box;
 }
 
 @keyframes slideDownFadeIn {
