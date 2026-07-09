@@ -247,6 +247,7 @@ function initializeDragAndResize() {
 
         if (target) {
           if (inEditMode && (target.tagName === 'CANVAS' || target.tagName === 'TEXTAREA')) {
+            if (e.cancelable) e.preventDefault();
             startDrag(widget, e);
             return;
           }
@@ -259,6 +260,10 @@ function initializeDragAndResize() {
               target.closest('select')) {
             return;
           }
+        }
+
+        if (e.cancelable) {
+          e.preventDefault();
         }
 
         startDrag(widget, e);
@@ -413,6 +418,10 @@ function initializeWidgetDragAndResize(widget) {
     if (target && (target.tagName === 'BUTTON' || target.tagName === 'INPUT' || target.tagName === 'SELECT' ||
         target.closest('button') || target.closest('input') || target.closest('select'))) {
       return;
+    }
+
+    if (e.cancelable) {
+      e.preventDefault();
     }
 
     startDrag(widget, e);

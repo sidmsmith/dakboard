@@ -5608,7 +5608,7 @@ function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
   
   // Only attach interaction handlers if not in edit mode (similar to stoplight widget)
   if (!isEditMode) {
-    card.addEventListener('touchstart', handleLongPressStart, { passive: true });
+    card.addEventListener('touchstart', handleLongPressStart, { passive: false });
     card.addEventListener('touchend', handleLongPressEnd);
     card.addEventListener('mousedown', handleLongPressStart);
     card.addEventListener('mouseup', handleLongPressEnd);

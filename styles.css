@@ -35,6 +35,7 @@ body {
   background: #1a1a1a;
   transition: transform 0.3s ease-in-out;
   will-change: transform;
+  -webkit-touch-callout: none;
 }
 
 .dashboard.page {
@@ -107,6 +108,7 @@ body {
   display: flex;
   flex-direction: column;
   user-select: none;
+  -webkit-touch-callout: none;
   min-width: 200px;
   min-height: 150px;
   transition: box-shadow 0.2s;
@@ -239,6 +241,8 @@ body {
   white-space: pre-wrap;
   word-wrap: break-word;
   cursor: text;
+  -webkit-touch-callout: default;
+  user-select: text;
 }
 
 /* Show move cursor for textarea in blank widgets when in edit mode */

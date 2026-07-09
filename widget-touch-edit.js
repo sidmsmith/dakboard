@@ -6,6 +6,41 @@
   const PROGRESS_START_MS = 350;
   const PRE_MOVE_CANCEL_PX = 24;
 
+  function shouldAllowNativeContextMenu(target) {
+    if (!target || !(target instanceof Element)) return false;
+    return Boolean(target.closest(
+      'input, textarea, select, option, [contenteditable="true"], ' +
+      '.blank-text-editable, .styling-modal, .background-modal, ' +
+      '#cloud-profiles-modal, #styling-modal, #background-modal, ' +
+      '.widget-control-panel, .widget-control-panel *'
+    ));
+  }
+
+  function shouldSuppressTouchMenu(target) {
+    if (!target || !(target instanceof Element)) return false;
+    if (shouldAllowNativeContextMenu(target)) return false;
+    return Boolean(target.closest(
+      '#pages-container, .dashboard, .widget, .page-nav-arrow, ' +
+      '.annotation-overlay, .annotation-toolbar, .diagonal-watermark'
+    ));
+  }
+
+  function suppressContextMenu(e) {
+    if (!shouldSuppressTouchMenu(e.target)) return;
+    e.preventDefault();
+  }
+
+  function bindContextMenuGuard() {
+    if (document.documentElement.dataset.touchContextGuardBound) return;
+    document.documentElement.dataset.touchContextGuardBound = 'true';
+
+    document.addEventListener('contextmenu', suppressContextMenu, { capture: true });
+    document.addEventListener('selectstart', (e) => {
+      if (!shouldSuppressTouchMenu(e.target)) return;
+      e.preventDefault();
+    }, { capture: true });
+  }
+
   let resizeWidget = null;
   let activePress = null;
 
@@ -214,6 +249,11 @@
 
     cancelActivePress();
 
+    // Suppress Android Chrome long-press Download/Share/Print menu for header holds
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+
     const header = widget.querySelector('.widget-header') || widget;
     const progressEl = document.createElement('div');
     progressEl.className = 'widget-header-press-progress';
@@ -316,6 +356,8 @@
   }
 
   function bindWidgetHeaderPress() {
+    bindContextMenuGuard();
+
     const container = document.getElementById('pages-container');
     if (!container || container.dataset.widgetTouchEditBound) return;
     container.dataset.widgetTouchEditBound = 'true';
