@@ -1877,7 +1877,8 @@ async function loadWeather() {
       const iconEl = widget.querySelector('#weather-icon');
       const temp = widget.querySelector('#weather-temp');
       const condition = widget.querySelector('#weather-conditions');
-      const feelsLike = widget.querySelector('#weather-feels-like');
+      const secondaryTemp = widget.querySelector('#weather-feels-like');
+      const secondaryTempLabel = widget.querySelector('#weather-secondary-temp-label');
       const humidity = widget.querySelector('#weather-humidity');
       const wind = widget.querySelector('#weather-wind');
       const weatherTime = widget.querySelector('#weather-time');
@@ -1886,9 +1887,22 @@ async function loadWeather() {
       const icon = getWeatherIcon(attrs.condition || state);
       if (iconEl) iconEl.textContent = icon;
       
-      // Primary temp is now "Feels Like" (apparent temperature)
       const feelsLikeTemp = attrs.apparent_temperature || attrs.temperature || attrs.temp || '--';
-      if (temp) temp.textContent = `${Math.round(feelsLikeTemp)}°F`;
+      const actualTemp = attrs.temperature || attrs.temp || '--';
+      const feelsLikeText = feelsLikeTemp !== '--' ? `${Math.round(feelsLikeTemp)}°F` : '--°F';
+      const actualTempText = actualTemp !== '--' ? `${Math.round(actualTemp)}°F` : '--°F';
+
+      // Default: feels like on top, actual below. Toggle reverses that.
+      const showActualPrimary = isWeatherActualTempPrimary(widget);
+      if (showActualPrimary) {
+        if (temp) temp.textContent = actualTempText;
+        if (secondaryTemp) secondaryTemp.textContent = feelsLikeText;
+        if (secondaryTempLabel) secondaryTempLabel.textContent = 'Feels Like';
+      } else {
+        if (temp) temp.textContent = feelsLikeText;
+        if (secondaryTemp) secondaryTemp.textContent = actualTempText;
+        if (secondaryTempLabel) secondaryTempLabel.textContent = 'Actual Temperature';
+      }
       
       // Update condition text
       const conditionText = attrs.condition || state || '--';
@@ -1897,10 +1911,6 @@ async function loadWeather() {
       // Hide date/time (removed since we have clock widget)
       if (weatherTime) weatherTime.style.display = 'none';
       
-      // Update details - "Actual Temperature" shows the current temp
-      const actualTemp = attrs.temperature || attrs.temp || '--';
-      const actualTempText = actualTemp !== '--' ? `${Math.round(actualTemp)}°F` : '--°F';
-      if (feelsLike) feelsLike.textContent = actualTempText;
       if (humidity) humidity.textContent = attrs.humidity ? `${Math.round(attrs.humidity)}%` : '--%';
       if (wind) wind.textContent = attrs.wind_speed ? `${Math.round(attrs.wind_speed)} mph` : '-- mph';
     });
@@ -1919,6 +1929,24 @@ async function loadWeather() {
         if (condition) condition.textContent = 'Error loading weather';
       });
     }
+  }
+}
+
+function isWeatherActualTempPrimary(widget) {
+  if (!widget) return false;
+  const page = widget.closest('.dashboard.page');
+  const pageIndex = page ? parseInt(page.dataset.pageId, 10) : (window.currentPageIndex || 0);
+  const fullId = typeof resolveWidgetFullId === 'function'
+    ? resolveWidgetFullId(widget, pageIndex)
+    : null;
+  if (!fullId) return false;
+  try {
+    const saved = localStorage.getItem(`dakboard-widget-styles-${fullId}`);
+    if (!saved) return false;
+    const styles = JSON.parse(saved);
+    return styles.weatherShowActualTempPrimary === true;
+  } catch (e) {
+    return false;
   }
 }
 

@@ -786,6 +786,7 @@ function generateAdvancedTab() {
   const isCalendarWidget = widgetType === 'calendar-widget';
   const isClockWidget = widgetType === 'clock-widget';
   const isAlarmWidget = widgetType === 'alarm-widget';
+  const isWeatherWidget = widgetType === 'weather-widget';
   const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
   const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
   const clockDisplayType = currentStyles.clockDisplayType || 'digital';
@@ -921,6 +922,21 @@ function generateAdvancedTab() {
         </div>
         <div style="font-size: 12px; color: #888; margin-top: 4px;">
           When enabled, tapping the ARMED icon will disarm the alarm (local network only).
+        </div>
+      </div>
+    </div>
+    ` : ''}
+    ${isWeatherWidget ? `
+    <div class="styling-form-section">
+      <div class="styling-section-title">Weather Display</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">
+            <input type="checkbox" id="weather-show-actual-temp-primary" ${currentStyles.weatherShowActualTempPrimary === true ? 'checked' : ''} style="margin-right: 8px;"> Show actual temperature as main
+          </label>
+        </div>
+        <div style="font-size: 12px; color: #888; margin-top: 4px;">
+          Default shows Feels Like as the large temp. When enabled, actual is on top and Feels Like moves below.
         </div>
       </div>
     </div>
@@ -2993,6 +3009,15 @@ function attachTabEventListeners(tabName) {
           });
         }
       }
+
+      if (widgetType === 'weather-widget') {
+        const weatherShowActualTempPrimary = stylingModal.querySelector('#weather-show-actual-temp-primary');
+        if (weatherShowActualTempPrimary) {
+          weatherShowActualTempPrimary.addEventListener('change', (e) => {
+            currentStyles.weatherShowActualTempPrimary = e.target.checked;
+          });
+        }
+      }
     }
   }
 }
@@ -4309,6 +4334,10 @@ function applyStyles() {
     if (typeof loadAlarm === 'function') {
       setTimeout(() => loadAlarm(), 50);
     }
+  } else if (widgetType === 'weather-widget') {
+    if (typeof loadWeather === 'function') {
+      setTimeout(() => loadWeather(), 50);
+    }
   } else if (widgetType === 'agenda-widget') {
     // Reload agenda widget to apply card styles (same pattern as scoreboard)
     // Load all agenda widgets - each will load its own styles from localStorage
@@ -4679,6 +4708,11 @@ function updateCurrentStylesFromForm() {
   const alarmEnableDisarm = stylingModal.querySelector('#alarm-enable-disarm');
   if (alarmEnableDisarm) {
     currentStyles.alarmEnableDisarm = alarmEnableDisarm.checked;
+  }
+
+  const weatherShowActualTempPrimary = stylingModal.querySelector('#weather-show-actual-temp-primary');
+  if (weatherShowActualTempPrimary) {
+    currentStyles.weatherShowActualTempPrimary = weatherShowActualTempPrimary.checked;
   }
 
   const clockFontColor = stylingModal.querySelector('#clock-font-color');
@@ -5171,6 +5205,10 @@ function applyCurrentStylesToWidget(widget) {
   if (widget.classList.contains('alarm-widget') && typeof loadAlarm === 'function') {
     setTimeout(() => loadAlarm(), 0);
   }
+
+  if (widget.classList.contains('weather-widget') && typeof loadWeather === 'function') {
+    setTimeout(() => loadWeather(), 0);
+  }
   
   // Update scoreboard configuration if this is a scoreboard widget
   if (widget.classList.contains('scoreboard-widget')) {
@@ -5638,6 +5676,9 @@ function loadWidgetStyles(fullWidgetId) {
       } : {}),
       ...(widgetType === 'alarm-widget' ? {
         alarmEnableDisarm: false
+      } : {}),
+      ...(widgetType === 'weather-widget' ? {
+        weatherShowActualTempPrimary: false
       } : {})
     };
   }
@@ -5654,6 +5695,10 @@ function loadWidgetStyles(fullWidgetId) {
 
   if (widgetType === 'alarm-widget' && currentStyles.alarmEnableDisarm === undefined) {
     currentStyles.alarmEnableDisarm = false;
+  }
+
+  if (widgetType === 'weather-widget' && currentStyles.weatherShowActualTempPrimary === undefined) {
+    currentStyles.weatherShowActualTempPrimary = false;
   }
 
   if (widgetType === 'picker-wheel-widget' && !currentStyles.pickerWheelConfig) {
@@ -6321,6 +6366,10 @@ function loadStylesToWidget(widget, styles) {
 
   if (widget.classList.contains('alarm-widget') && typeof loadAlarm === 'function') {
     setTimeout(() => loadAlarm(), 0);
+  }
+
+  if (widget.classList.contains('weather-widget') && typeof loadWeather === 'function') {
+    setTimeout(() => loadWeather(), 0);
   }
 }
 
