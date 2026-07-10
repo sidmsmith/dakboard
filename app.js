@@ -615,6 +615,7 @@ function buildClockPreviewHtml(styles, options = {}) {
 }
 
 window.applyClockSettingsToWidget = applyClockSettingsToWidget;
+window.applyClockDisplaySettings = applyClockDisplaySettings;
 window.buildClockPreviewHtml = buildClockPreviewHtml;
 window.normalizeClockStyles = normalizeClockStyles;
 

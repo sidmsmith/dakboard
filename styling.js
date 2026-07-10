@@ -15,6 +15,7 @@ let currentWidgetId = null;
 let currentStyles = {};
 let applyToAllFlags = {};
 let shadowSameAsBorder = false; // Track "Same as Border" checkbox state
+let clockPreviewFrozenNow = null; // Freeze analog preview hands while styling modal is open
 
 // Helper function to convert hex color to rgba with opacity
 function hexToRgba(hex, opacity) {
@@ -115,6 +116,7 @@ function initStyling() {
 // Open styling modal for a widget
 function openStylingModal(fullWidgetId) {
   currentWidgetId = fullWidgetId;
+  clockPreviewFrozenNow = null;
   
   // Parse instance ID to get widget type
   const parsed = typeof parseWidgetId !== 'undefined' ? parseWidgetId(fullWidgetId) : { widgetType: fullWidgetId, pageIndex: 0, instanceIndex: 0, isLegacy: true };
@@ -173,6 +175,7 @@ function closeStylingModal() {
   currentWidgetId = null;
   currentStyles = {};
   applyToAllFlags = {};
+  clockPreviewFrozenNow = null;
 }
 
 // Switch tabs
@@ -2885,8 +2888,13 @@ function attachTabEventListeners(tabName) {
 
         const applyClockPreview = () => {
           updatePreview();
-          if (clockWidget && typeof window.applyClockSettingsToWidget === 'function') {
-            window.applyClockSettingsToWidget(clockWidget, currentStyles);
+          // Update live widget display settings (numbers/colors) without resetting hands to a new Date()
+          if (clockWidget) {
+            if (typeof window.applyClockDisplaySettings === 'function') {
+              window.applyClockDisplaySettings(clockWidget, currentStyles);
+            } else if (typeof window.applyClockSettingsToWidget === 'function') {
+              window.applyClockSettingsToWidget(clockWidget, currentStyles);
+            }
           }
         };
 
@@ -4164,8 +4172,11 @@ function updatePreview() {
       </div>
     `;
   } else if (previewContent && widgetType === 'clock-widget') {
+    if (!clockPreviewFrozenNow) {
+      clockPreviewFrozenNow = new Date();
+    }
     previewContent.innerHTML = typeof window.buildClockPreviewHtml === 'function'
-      ? window.buildClockPreviewHtml(currentStyles, { compact: true })
+      ? window.buildClockPreviewHtml(currentStyles, { compact: true, now: clockPreviewFrozenNow })
       : '<div style="padding:20px;color:#fff;text-align:center;">Clock preview</div>';
   } else if (previewContent && widgetType !== 'dice-widget' && widgetType !== 'blank-widget' && widgetType !== 'scoreboard-widget' && widgetType !== 'stoplight-widget' && widgetType !== 'agenda-widget' && widgetType !== 'tasks-widget' && widgetType !== 'clock-widget' && widgetType !== 'picker-wheel-widget') {
     // Reset to default text for other widgets

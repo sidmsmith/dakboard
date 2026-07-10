@@ -3266,11 +3266,11 @@ footer a:hover {
   display: none;
 }
 
-.clock-analog-numbers {
+.clock-widget .clock-analog-numbers {
   visibility: hidden;
 }
 
-.clock-show-analog-numbers .clock-analog-numbers {
+.clock-widget.clock-show-analog-numbers .clock-analog-numbers {
   visibility: visible;
 }
 
