@@ -144,6 +144,9 @@ function updateWidgetScale(widget) {
   } else if (widget.classList.contains('dice-widget')) {
     defaultWidth = 300;
     defaultHeight = 200;
+  } else if (widget.classList.contains('picker-wheel-widget')) {
+    defaultWidth = 320;
+    defaultHeight = 320;
   }
   
   // Calculate scale factor based on the smaller dimension to maintain aspect ratio
@@ -190,8 +193,8 @@ function initializeDragAndResize() {
     const allWidgets = currentPage.querySelectorAll('.widget');
     
     // Also find widgets by type that might be missing .widget class (defensive)
-    const widgetTypes = ['scoreboard-widget', 'stopwatch-widget', 'stoplight-widget', 'dice-widget', 
-                         'blank-widget', 'whiteboard-widget', 'compressor-widget', 'sprinkler-widget',
+    const widgetTypes = ['scoreboard-widget', 'stopwatch-widget', 'stoplight-widget', 'dice-widget',
+                         'picker-wheel-widget', 'blank-widget', 'whiteboard-widget', 'compressor-widget', 'sprinkler-widget',
                          'thermostat-widget', 'weather-widget', 'todo-widget', 'calendar-widget',
                          'agenda-widget', 'tasks-widget', 'garage-widget', 'alarm-widget', 'news-widget'];
     const widgetsByType = new Set();

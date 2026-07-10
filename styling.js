@@ -773,6 +773,7 @@ function generateAdvancedTab() {
   const widgetType = parsed.widgetType;
   
   const isDiceWidget = widgetType === 'dice-widget';
+  const isPickerWheelWidget = widgetType === 'picker-wheel-widget';
   const isStopwatchWidget = widgetType === 'stopwatch-widget';
   const isScoreboardWidget = widgetType === 'scoreboard-widget';
   const isBlankWidget = widgetType === 'blank-widget';
@@ -789,6 +790,25 @@ function generateAdvancedTab() {
   const clockFontColor = currentStyles.clockFontColor || '#ffffff';
   const clockAnalogFaceColor = currentStyles.clockAnalogFaceColor || '#1e1e1e';
   const clockAnalogHandColor = currentStyles.clockAnalogHandColor || '#ffffff';
+
+  let pickerWheelConfig = typeof window.getDefaultPickerWheelConfig === 'function'
+    ? window.getDefaultPickerWheelConfig()
+    : {
+      choices: [
+        { id: 'choice-1', label: 'YES', color: '#22c55e', weight: 1 },
+        { id: 'choice-2', label: 'NO', color: '#ef4444', weight: 1 }
+      ]
+    };
+
+  if (isPickerWheelWidget && currentStyles.pickerWheelConfig) {
+    try {
+      pickerWheelConfig = typeof window.normalizePickerWheelConfig === 'function'
+        ? window.normalizePickerWheelConfig(currentStyles.pickerWheelConfig)
+        : currentStyles.pickerWheelConfig;
+    } catch (e) {
+      console.error('Error parsing picker wheel config:', e);
+    }
+  }
   
   // Load scoreboard config if this is a scoreboard widget
   let scoreboardConfig = {
@@ -940,6 +960,32 @@ function generateAdvancedTab() {
               <input type="checkbox" id="stopwatch-reset-button-color-apply-all" ${applyToAllFlags.stopwatchResetButtonColor ? 'checked' : ''}> Apply to all
             </label>
           </div>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+    ${isPickerWheelWidget ? `
+    <div class="styling-form-section">
+      <div class="styling-section-title">Picker Wheel Choices</div>
+      <div class="styling-form-group" id="picker-wheel-choices-list">
+        ${pickerWheelConfig.choices.map((choice, index) => `
+          <div class="picker-wheel-choice-config" data-choice-index="${index}">
+            <div class="styling-form-row">
+              <label class="styling-form-label">Choice ${index + 1}</label>
+              <div class="styling-form-control" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <input type="text" class="picker-wheel-choice-label" value="${String(choice.label).replace(/&/g, '&amp;').replace(/"/g, '&quot;')}" placeholder="Label" style="flex: 1; min-width: 80px;">
+                <input type="color" class="picker-wheel-choice-color" value="${choice.color}">
+                <input type="number" class="picker-wheel-choice-weight" min="1" max="100" value="${choice.weight}" title="Weight" style="width: 64px;">
+                <span style="font-size: 11px; color: #888;">weight</span>
+                ${pickerWheelConfig.choices.length > 2 ? `<button type="button" class="picker-wheel-remove-choice-btn" data-choice-index="${index}">Remove</button>` : ''}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="styling-form-row">
+        <div class="styling-form-control">
+          <button type="button" id="picker-wheel-add-choice-btn" class="styling-btn-secondary">+ Add Choice</button>
         </div>
       </div>
     </div>
@@ -2253,6 +2299,15 @@ function attachTabEventListeners(tabName) {
         // Update config from form to ensure preview shows correct data
         updateScoreboardConfig();
       }
+
+      if (widgetType === 'picker-wheel-widget') {
+        const addChoiceBtn = stylingModal.querySelector('#picker-wheel-add-choice-btn');
+        if (addChoiceBtn) {
+          addChoiceBtn.addEventListener('click', addPickerWheelChoice);
+        }
+        setupPickerWheelChoiceListeners();
+        updatePickerWheelConfig();
+      }
       
       // Clip art widget controls
       if (widgetType === 'blank-widget') {
@@ -2843,6 +2898,91 @@ function updateScoreboardConfig() {
   
   currentStyles.scoreboardConfig = config;
   updatePreview();
+}
+
+function updatePickerWheelConfig() {
+  const stylingModal = document.getElementById('styling-modal');
+  if (!stylingModal) return;
+
+  const choiceEls = stylingModal.querySelectorAll('.picker-wheel-choice-config');
+  const choices = Array.from(choiceEls).map((el, index) => {
+    const labelInput = el.querySelector('.picker-wheel-choice-label');
+    const colorInput = el.querySelector('.picker-wheel-choice-color');
+    const weightInput = el.querySelector('.picker-wheel-choice-weight');
+    return {
+      id: `choice-${index + 1}`,
+      label: labelInput ? labelInput.value : `Choice ${index + 1}`,
+      color: colorInput ? colorInput.value : '#4a90e2',
+      weight: weightInput ? parseInt(weightInput.value, 10) || 1 : 1
+    };
+  });
+
+  currentStyles.pickerWheelConfig = typeof window.normalizePickerWheelConfig === 'function'
+    ? window.normalizePickerWheelConfig({ choices })
+    : { choices };
+  updatePreview();
+}
+
+function setupPickerWheelChoiceListeners() {
+  const stylingModal = document.getElementById('styling-modal');
+  if (!stylingModal) return;
+
+  stylingModal.querySelectorAll('.picker-wheel-choice-label, .picker-wheel-choice-color, .picker-wheel-choice-weight').forEach((input) => {
+    if (input.dataset.pickerWheelListenerAttached) return;
+    input.dataset.pickerWheelListenerAttached = 'true';
+    input.addEventListener('input', updatePickerWheelConfig);
+    input.addEventListener('change', updatePickerWheelConfig);
+  });
+
+  stylingModal.querySelectorAll('.picker-wheel-remove-choice-btn').forEach((btn) => {
+    if (btn.dataset.pickerWheelListenerAttached) return;
+    btn.dataset.pickerWheelListenerAttached = 'true';
+    btn.addEventListener('click', () => {
+      const index = parseInt(btn.dataset.choiceIndex, 10);
+      removePickerWheelChoice(index);
+    });
+  });
+}
+
+function removePickerWheelChoice(index) {
+  updatePickerWheelConfig();
+  const choices = currentStyles.pickerWheelConfig?.choices || [];
+  if (choices.length <= 2) return;
+  choices.splice(index, 1);
+  currentStyles.pickerWheelConfig = typeof window.normalizePickerWheelConfig === 'function'
+    ? window.normalizePickerWheelConfig({ choices })
+    : { choices };
+  const activeTab = document.querySelector('.styling-tab.active');
+  if (activeTab && activeTab.dataset.tab === 'advanced') {
+    switchTab('advanced');
+    setupPickerWheelChoiceListeners();
+    updatePickerWheelConfig();
+  } else {
+    updatePreview();
+  }
+}
+
+function addPickerWheelChoice() {
+  updatePickerWheelConfig();
+  const choices = [...(currentStyles.pickerWheelConfig?.choices || [])];
+  if (choices.length >= 20) return;
+  choices.push({
+    id: `choice-${choices.length + 1}`,
+    label: `Choice ${choices.length + 1}`,
+    color: '#4a90e2',
+    weight: 1
+  });
+  currentStyles.pickerWheelConfig = typeof window.normalizePickerWheelConfig === 'function'
+    ? window.normalizePickerWheelConfig({ choices })
+    : { choices };
+  const activeTab = document.querySelector('.styling-tab.active');
+  if (activeTab && activeTab.dataset.tab === 'advanced') {
+    switchTab('advanced');
+    setupPickerWheelChoiceListeners();
+    updatePickerWheelConfig();
+  } else {
+    updatePreview();
+  }
 }
 
 // Add a new team to scoreboard
@@ -3584,6 +3724,16 @@ function updatePreview() {
         </div>
       `;
     }
+  } else if (previewContent && widgetType === 'picker-wheel-widget') {
+    const config = typeof window.normalizePickerWheelConfig === 'function'
+      ? window.normalizePickerWheelConfig(currentStyles.pickerWheelConfig)
+      : (currentStyles.pickerWheelConfig || (typeof window.getDefaultPickerWheelConfig === 'function' ? window.getDefaultPickerWheelConfig() : null));
+    if (typeof window.buildPickerWheelHtml === 'function' && config) {
+      previewContent.innerHTML = `
+        <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:12px;">
+          ${window.buildPickerWheelHtml(config, { compact: true, interactive: false })}
+        </div>`;
+    }
   } else if (previewContent && widgetType === 'scoreboard-widget') {
     // Render scoreboard preview
     const config = currentStyles.scoreboardConfig || {
@@ -3912,7 +4062,7 @@ function updatePreview() {
     previewContent.innerHTML = typeof window.buildClockPreviewHtml === 'function'
       ? window.buildClockPreviewHtml(currentStyles, { compact: true })
       : '<div style="padding:20px;color:#fff;text-align:center;">Clock preview</div>';
-  } else if (previewContent && widgetType !== 'dice-widget' && widgetType !== 'blank-widget' && widgetType !== 'scoreboard-widget' && widgetType !== 'stoplight-widget' && widgetType !== 'agenda-widget' && widgetType !== 'tasks-widget' && widgetType !== 'clock-widget') {
+  } else if (previewContent && widgetType !== 'dice-widget' && widgetType !== 'blank-widget' && widgetType !== 'scoreboard-widget' && widgetType !== 'stoplight-widget' && widgetType !== 'agenda-widget' && widgetType !== 'tasks-widget' && widgetType !== 'clock-widget' && widgetType !== 'picker-wheel-widget') {
     // Reset to default text for other widgets
     previewContent.innerHTML = 'Preview updates in real-time as you adjust settings';
   }
@@ -4009,6 +4159,10 @@ function applyStyles() {
     // Reload scoreboard widget
     if (typeof loadScoreboard === 'function') {
       loadScoreboard();
+    }
+  } else if (widgetType === 'picker-wheel-widget') {
+    if (typeof loadPickerWheel === 'function') {
+      loadPickerWheel();
     }
   } else if (widgetType === 'agenda-widget') {
     // Reload agenda widget to apply card styles (same pattern as scoreboard)
@@ -4436,6 +4590,9 @@ function updateCurrentStylesFromForm() {
     // Update scoreboard config from form (ensures latest values are captured)
     updateScoreboardConfig();
   }
+  if (widgetType === 'picker-wheel-widget') {
+    updatePickerWheelConfig();
+  }
   
 }
 
@@ -4823,6 +4980,10 @@ function applyCurrentStylesToWidget(widget) {
 
   if (widget.classList.contains('clock-widget') && typeof window.applyClockSettingsToWidget === 'function') {
     window.applyClockSettingsToWidget(widget, currentStyles);
+  }
+
+  if (widget.classList.contains('picker-wheel-widget') && typeof loadPickerWheel === 'function') {
+    setTimeout(() => loadPickerWheel(), 0);
   }
   
   // Update scoreboard configuration if this is a scoreboard widget
@@ -5274,6 +5435,9 @@ function loadWidgetStyles(fullWidgetId) {
       fontWeight: '600',
       padding: 24,
       widgetOpacity: 100,
+      ...(widgetType === 'picker-wheel-widget' && typeof window.getDefaultPickerWheelConfig === 'function'
+        ? { pickerWheelConfig: window.getDefaultPickerWheelConfig() }
+        : {}),
       ...(widgetType === 'clock-widget' ? {
         clockDisplayType: 'digital',
         clockShowSeconds: true,
@@ -5292,6 +5456,17 @@ function loadWidgetStyles(fullWidgetId) {
     if (!currentStyles.clockFontColor) currentStyles.clockFontColor = '#ffffff';
     if (!currentStyles.clockAnalogFaceColor) currentStyles.clockAnalogFaceColor = '#1e1e1e';
     if (!currentStyles.clockAnalogHandColor) currentStyles.clockAnalogHandColor = '#ffffff';
+  }
+
+  if (widgetType === 'picker-wheel-widget' && !currentStyles.pickerWheelConfig) {
+    currentStyles.pickerWheelConfig = typeof window.getDefaultPickerWheelConfig === 'function'
+      ? window.getDefaultPickerWheelConfig()
+      : {
+        choices: [
+          { id: 'choice-1', label: 'YES', color: '#22c55e', weight: 1 },
+          { id: 'choice-2', label: 'NO', color: '#ef4444', weight: 1 }
+        ]
+      };
   }
   
   // Ensure titleVisible is set for existing widgets (migration)
@@ -5940,6 +6115,10 @@ function loadStylesToWidget(widget, styles) {
 
   if (widget.classList.contains('clock-widget') && typeof window.applyClockSettingsToWidget === 'function') {
     window.applyClockSettingsToWidget(widget, styles);
+  }
+
+  if (widget.classList.contains('picker-wheel-widget') && typeof loadPickerWheel === 'function') {
+    setTimeout(() => loadPickerWheel(), 0);
   }
 }
 

@@ -1764,6 +1764,7 @@ async function loadAllData() {
       loadCompressor(), // Load air compressor
       loadSprinkler(), // Load sprinklers
       loadDice(), // Load dice widget
+      loadPickerWheel(), // Load picker wheel widget
       loadStopwatch(), // Load stopwatch widget
       loadScoreboard(), // Load scoreboard widget
       loadClipArt(), // Load clip art widget
@@ -8441,6 +8442,7 @@ const WIDGET_CONFIG = {
   'compressor-widget': { name: 'Air Compressor', icon: '🌬️' },
   'sprinkler-widget': { name: 'Sprinklers', icon: '💧' },
   'dice-widget': { name: 'Dice', icon: '🎲' },
+  'picker-wheel-widget': { name: 'Picker Wheel', icon: '🎡' },
   'stopwatch-widget': { name: 'Stopwatch', icon: '⏱️' },
   'scoreboard-widget': { name: 'Scoreboard', icon: '🏆' },
   'blank-widget': { name: 'Blank', icon: '⬜' },
@@ -8780,6 +8782,7 @@ function getDefaultWidgetSize(widgetType) {
     'sprinkler-widget': { width: 420, height: 280 },
     'thermostat-widget': { width: 400, height: 350 },
     'dice-widget': { width: 300, height: 200 },
+    'picker-wheel-widget': { width: 320, height: 320 },
     'stopwatch-widget': { width: 300, height: 200 },
     'scoreboard-widget': { width: 500, height: 300 },
     'news-widget': { width: 400, height: 400 },
@@ -9143,12 +9146,14 @@ function toggleWidgetVisibility(fullWidgetId) {
       
       // For Dice and Stopwatch, ensure they're initialized properly
       // These widgets need their container elements to exist and be ready
-      if (widgetType === 'dice-widget' || widgetType === 'stopwatch-widget') {
+      if (widgetType === 'dice-widget' || widgetType === 'stopwatch-widget' || widgetType === 'picker-wheel-widget') {
         // Force a reflow to ensure DOM is ready
         void widget.offsetHeight;
         
         // Call load function with multiple retries to ensure it finds the widget
-        const loadFunction = widgetType === 'dice-widget' ? loadDice : loadStopwatch;
+        const loadFunction = widgetType === 'dice-widget' ? loadDice
+          : widgetType === 'picker-wheel-widget' ? loadPickerWheel
+          : loadStopwatch;
         if (typeof loadFunction === 'function') {
           // Immediate attempt
           loadFunction();
@@ -10339,6 +10344,9 @@ function removeWidgetInstance(fullWidgetId) {
   } else if (widgetType === 'dice-widget' && typeof loadDice === 'function') {
     loadDice();
     reinitializeAfterLoad();
+  } else if (widgetType === 'picker-wheel-widget' && typeof loadPickerWheel === 'function') {
+    loadPickerWheel();
+    reinitializeAfterLoad();
   } else if (widgetType === 'compressor-widget' && typeof loadCompressor === 'function') {
     loadCompressor();
     reinitializeAfterLoad();
@@ -10604,6 +10612,8 @@ function initializeWidgetInstance(fullWidgetId, widgetElement, options = {}) {
   // Load widget-specific functionality
   if (widgetType === 'dice-widget' && typeof loadDice === 'function') {
     setTimeout(() => loadDice(), 50);
+  } else if (widgetType === 'picker-wheel-widget' && typeof loadPickerWheel === 'function') {
+    setTimeout(() => loadPickerWheel(), 50);
   } else if (widgetType === 'stopwatch-widget' && typeof loadStopwatch === 'function') {
     setTimeout(() => loadStopwatch(), 50);
   } else if (widgetType === 'scoreboard-widget' && typeof loadScoreboard === 'function') {
