@@ -1328,6 +1328,14 @@ function generateAdvancedTab() {
             </div>
           </div>
           <div class="styling-form-row">
+            <label class="styling-form-label">Red Text Font Family</label>
+            <div class="styling-form-control">
+              <select id="stoplight-red-font-family">
+                ${buildFontFamilySelectOptions(currentStyles.stoplightRedFontFamily || '', { includeSystemDefault: true })}
+              </select>
+            </div>
+          </div>
+          <div class="styling-form-row">
             <label class="styling-form-label">Red Text Weight</label>
             <div class="styling-form-control">
               <select id="stoplight-red-font-weight">
@@ -1357,6 +1365,14 @@ function generateAdvancedTab() {
             </div>
           </div>
           <div class="styling-form-row">
+            <label class="styling-form-label">Amber Text Font Family</label>
+            <div class="styling-form-control">
+              <select id="stoplight-amber-font-family">
+                ${buildFontFamilySelectOptions(currentStyles.stoplightAmberFontFamily || '', { includeSystemDefault: true })}
+              </select>
+            </div>
+          </div>
+          <div class="styling-form-row">
             <label class="styling-form-label">Amber Text Weight</label>
             <div class="styling-form-control">
               <select id="stoplight-amber-font-weight">
@@ -1383,6 +1399,14 @@ function generateAdvancedTab() {
             <label class="styling-form-label">Green Text Color</label>
             <div class="styling-form-control">
               <input type="color" id="stoplight-green-text-color" value="${currentStyles.stoplightGreenTextColor || '#e0e0e0'}">
+            </div>
+          </div>
+          <div class="styling-form-row">
+            <label class="styling-form-label">Green Text Font Family</label>
+            <div class="styling-form-control">
+              <select id="stoplight-green-font-family">
+                ${buildFontFamilySelectOptions(currentStyles.stoplightGreenFontFamily || '', { includeSystemDefault: true })}
+              </select>
             </div>
           </div>
           <div class="styling-form-row">
@@ -2705,6 +2729,24 @@ function attachTabEventListeners(tabName) {
             updatePreview();
           });
         }
+
+        const redFontFamily = stylingModal.querySelector('#stoplight-red-font-family');
+        if (redFontFamily) {
+          const initialRedOption = redFontFamily.selectedOptions[0];
+          const initialRedFont = initialRedOption?.dataset.font || initialRedOption?.value || '';
+          if (initialRedFont) redFontFamily.style.fontFamily = initialRedFont;
+          redFontFamily.addEventListener('change', (e) => {
+            const selectedOption = e.target.selectedOptions[0];
+            const fontFamily = selectedOption?.dataset.font || selectedOption?.value || '';
+            redFontFamily.style.fontFamily = fontFamily || '';
+            if (e.target.value) {
+              currentStyles.stoplightRedFontFamily = e.target.value;
+            } else {
+              delete currentStyles.stoplightRedFontFamily;
+            }
+            updatePreview();
+          });
+        }
         
         const redFontWeight = stylingModal.querySelector('#stoplight-red-font-weight');
         if (redFontWeight) {
@@ -2741,6 +2783,24 @@ function attachTabEventListeners(tabName) {
             updatePreview();
           });
         }
+
+        const amberFontFamily = stylingModal.querySelector('#stoplight-amber-font-family');
+        if (amberFontFamily) {
+          const initialAmberOption = amberFontFamily.selectedOptions[0];
+          const initialAmberFont = initialAmberOption?.dataset.font || initialAmberOption?.value || '';
+          if (initialAmberFont) amberFontFamily.style.fontFamily = initialAmberFont;
+          amberFontFamily.addEventListener('change', (e) => {
+            const selectedOption = e.target.selectedOptions[0];
+            const fontFamily = selectedOption?.dataset.font || selectedOption?.value || '';
+            amberFontFamily.style.fontFamily = fontFamily || '';
+            if (e.target.value) {
+              currentStyles.stoplightAmberFontFamily = e.target.value;
+            } else {
+              delete currentStyles.stoplightAmberFontFamily;
+            }
+            updatePreview();
+          });
+        }
         
         const amberFontWeight = stylingModal.querySelector('#stoplight-amber-font-weight');
         if (amberFontWeight) {
@@ -2774,6 +2834,24 @@ function attachTabEventListeners(tabName) {
         if (greenTextColor) {
           greenTextColor.addEventListener('input', (e) => {
             currentStyles.stoplightGreenTextColor = e.target.value;
+            updatePreview();
+          });
+        }
+
+        const greenFontFamily = stylingModal.querySelector('#stoplight-green-font-family');
+        if (greenFontFamily) {
+          const initialGreenOption = greenFontFamily.selectedOptions[0];
+          const initialGreenFont = initialGreenOption?.dataset.font || initialGreenOption?.value || '';
+          if (initialGreenFont) greenFontFamily.style.fontFamily = initialGreenFont;
+          greenFontFamily.addEventListener('change', (e) => {
+            const selectedOption = e.target.selectedOptions[0];
+            const fontFamily = selectedOption?.dataset.font || selectedOption?.value || '';
+            greenFontFamily.style.fontFamily = fontFamily || '';
+            if (e.target.value) {
+              currentStyles.stoplightGreenFontFamily = e.target.value;
+            } else {
+              delete currentStyles.stoplightGreenFontFamily;
+            }
             updatePreview();
           });
         }
@@ -3895,16 +3973,19 @@ function updatePreview() {
     const redTextStyleStr = [];
     if (currentStyles.stoplightRedFontSize) redTextStyleStr.push(`font-size: ${currentStyles.stoplightRedFontSize}px`);
     if (currentStyles.stoplightRedTextColor) redTextStyleStr.push(`color: ${currentStyles.stoplightRedTextColor}`);
+    if (currentStyles.stoplightRedFontFamily) redTextStyleStr.push(`font-family: ${mapFontFamily(currentStyles.stoplightRedFontFamily)}`);
     if (currentStyles.stoplightRedFontWeight) redTextStyleStr.push(`font-weight: ${currentStyles.stoplightRedFontWeight}`);
     
     const amberTextStyleStr = [];
     if (currentStyles.stoplightAmberFontSize) amberTextStyleStr.push(`font-size: ${currentStyles.stoplightAmberFontSize}px`);
     if (currentStyles.stoplightAmberTextColor) amberTextStyleStr.push(`color: ${currentStyles.stoplightAmberTextColor}`);
+    if (currentStyles.stoplightAmberFontFamily) amberTextStyleStr.push(`font-family: ${mapFontFamily(currentStyles.stoplightAmberFontFamily)}`);
     if (currentStyles.stoplightAmberFontWeight) amberTextStyleStr.push(`font-weight: ${currentStyles.stoplightAmberFontWeight}`);
     
     const greenTextStyleStr = [];
     if (currentStyles.stoplightGreenFontSize) greenTextStyleStr.push(`font-size: ${currentStyles.stoplightGreenFontSize}px`);
     if (currentStyles.stoplightGreenTextColor) greenTextStyleStr.push(`color: ${currentStyles.stoplightGreenTextColor}`);
+    if (currentStyles.stoplightGreenFontFamily) greenTextStyleStr.push(`font-family: ${mapFontFamily(currentStyles.stoplightGreenFontFamily)}`);
     if (currentStyles.stoplightGreenFontWeight) greenTextStyleStr.push(`font-weight: ${currentStyles.stoplightGreenFontWeight}`);
     
     const previewHtml = `
@@ -4449,6 +4530,15 @@ function updateCurrentStylesFromForm() {
   if (stoplightRedFontWeight) {
     currentStyles.stoplightRedFontWeight = stoplightRedFontWeight.value;
   }
+
+  const stoplightRedFontFamily = stylingModal.querySelector('#stoplight-red-font-family');
+  if (stoplightRedFontFamily) {
+    if (stoplightRedFontFamily.value) {
+      currentStyles.stoplightRedFontFamily = stoplightRedFontFamily.value;
+    } else {
+      delete currentStyles.stoplightRedFontFamily;
+    }
+  }
   
   const stoplightAmberText = stylingModal.querySelector('#stoplight-amber-text');
   if (stoplightAmberText) {
@@ -4469,6 +4559,15 @@ function updateCurrentStylesFromForm() {
   if (stoplightAmberFontWeight) {
     currentStyles.stoplightAmberFontWeight = stoplightAmberFontWeight.value;
   }
+
+  const stoplightAmberFontFamily = stylingModal.querySelector('#stoplight-amber-font-family');
+  if (stoplightAmberFontFamily) {
+    if (stoplightAmberFontFamily.value) {
+      currentStyles.stoplightAmberFontFamily = stoplightAmberFontFamily.value;
+    } else {
+      delete currentStyles.stoplightAmberFontFamily;
+    }
+  }
   
   const stoplightGreenText = stylingModal.querySelector('#stoplight-green-text');
   if (stoplightGreenText) {
@@ -4488,6 +4587,15 @@ function updateCurrentStylesFromForm() {
   const stoplightGreenFontWeight = stylingModal.querySelector('#stoplight-green-font-weight');
   if (stoplightGreenFontWeight) {
     currentStyles.stoplightGreenFontWeight = stoplightGreenFontWeight.value;
+  }
+
+  const stoplightGreenFontFamily = stylingModal.querySelector('#stoplight-green-font-family');
+  if (stoplightGreenFontFamily) {
+    if (stoplightGreenFontFamily.value) {
+      currentStyles.stoplightGreenFontFamily = stoplightGreenFontFamily.value;
+    } else {
+      delete currentStyles.stoplightGreenFontFamily;
+    }
   }
 
   const clockDisplayType = stylingModal.querySelector('#clock-display-type');
@@ -5206,17 +5314,20 @@ function applyCurrentStylesToWidget(widget) {
       const redTextStyle = {
         fontSize: currentStyles.stoplightRedFontSize,
         color: currentStyles.stoplightRedTextColor,
-        fontWeight: currentStyles.stoplightRedFontWeight
+        fontWeight: currentStyles.stoplightRedFontWeight,
+        fontFamily: currentStyles.stoplightRedFontFamily
       };
       const amberTextStyle = {
         fontSize: currentStyles.stoplightAmberFontSize,
         color: currentStyles.stoplightAmberTextColor,
-        fontWeight: currentStyles.stoplightAmberFontWeight
+        fontWeight: currentStyles.stoplightAmberFontWeight,
+        fontFamily: currentStyles.stoplightAmberFontFamily
       };
       const greenTextStyle = {
         fontSize: currentStyles.stoplightGreenFontSize,
         color: currentStyles.stoplightGreenTextColor,
-        fontWeight: currentStyles.stoplightGreenFontWeight
+        fontWeight: currentStyles.stoplightGreenFontWeight,
+        fontFamily: currentStyles.stoplightGreenFontFamily
       };
       
       // Only apply if labels are enabled or if this is initial application

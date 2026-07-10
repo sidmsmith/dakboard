@@ -4495,17 +4495,20 @@ function loadStoplight() {
         redTextStyle = {
           fontSize: styles.stoplightRedFontSize,
           color: styles.stoplightRedTextColor,
-          fontWeight: styles.stoplightRedFontWeight
+          fontWeight: styles.stoplightRedFontWeight,
+          fontFamily: styles.stoplightRedFontFamily
         };
         amberTextStyle = {
           fontSize: styles.stoplightAmberFontSize,
           color: styles.stoplightAmberTextColor,
-          fontWeight: styles.stoplightAmberFontWeight
+          fontWeight: styles.stoplightAmberFontWeight,
+          fontFamily: styles.stoplightAmberFontFamily
         };
         greenTextStyle = {
           fontSize: styles.stoplightGreenFontSize,
           color: styles.stoplightGreenTextColor,
-          fontWeight: styles.stoplightGreenFontWeight
+          fontWeight: styles.stoplightGreenFontWeight,
+          fontFamily: styles.stoplightGreenFontFamily
         };
       } catch (e) {
         console.error('Error parsing stoplight styles:', e);
@@ -4587,6 +4590,13 @@ function updateStoplightLabels(widget, redText, amberText, greenText, redTextSty
     if (redTextStyle.fontSize) redLabel.style.fontSize = redTextStyle.fontSize + 'px';
     if (redTextStyle.color) redLabel.style.color = redTextStyle.color;
     if (redTextStyle.fontWeight) redLabel.style.fontWeight = redTextStyle.fontWeight;
+    if (redTextStyle.fontFamily) {
+      redLabel.style.fontFamily = typeof window.mapFontFamily === 'function'
+        ? window.mapFontFamily(redTextStyle.fontFamily)
+        : redTextStyle.fontFamily;
+    } else {
+      redLabel.style.fontFamily = '';
+    }
   }
   
   if (amberLabel) {
@@ -4594,6 +4604,13 @@ function updateStoplightLabels(widget, redText, amberText, greenText, redTextSty
     if (amberTextStyle.fontSize) amberLabel.style.fontSize = amberTextStyle.fontSize + 'px';
     if (amberTextStyle.color) amberLabel.style.color = amberTextStyle.color;
     if (amberTextStyle.fontWeight) amberLabel.style.fontWeight = amberTextStyle.fontWeight;
+    if (amberTextStyle.fontFamily) {
+      amberLabel.style.fontFamily = typeof window.mapFontFamily === 'function'
+        ? window.mapFontFamily(amberTextStyle.fontFamily)
+        : amberTextStyle.fontFamily;
+    } else {
+      amberLabel.style.fontFamily = '';
+    }
   }
   
   if (greenLabel) {
@@ -4601,6 +4618,13 @@ function updateStoplightLabels(widget, redText, amberText, greenText, redTextSty
     if (greenTextStyle.fontSize) greenLabel.style.fontSize = greenTextStyle.fontSize + 'px';
     if (greenTextStyle.color) greenLabel.style.color = greenTextStyle.color;
     if (greenTextStyle.fontWeight) greenLabel.style.fontWeight = greenTextStyle.fontWeight;
+    if (greenTextStyle.fontFamily) {
+      greenLabel.style.fontFamily = typeof window.mapFontFamily === 'function'
+        ? window.mapFontFamily(greenTextStyle.fontFamily)
+        : greenTextStyle.fontFamily;
+    } else {
+      greenLabel.style.fontFamily = '';
+    }
   }
 }
 
