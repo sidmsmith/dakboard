@@ -2874,6 +2874,9 @@ function updateScoreboardConfig() {
   if (!stylingModal) return;
   
   const teamsList = stylingModal.querySelectorAll('.scoreboard-team-config');
+  // Advanced tab is not mounted — keep existing saved config
+  if (teamsList.length === 0) return;
+
   const teams = Array.from(teamsList).map((teamEl, index) => {
     const nameInput = teamEl.querySelector('.scoreboard-team-name-input');
     const iconSelect = teamEl.querySelector('.scoreboard-team-icon-select');
@@ -2905,6 +2908,9 @@ function updatePickerWheelConfig() {
   if (!stylingModal) return;
 
   const choiceEls = stylingModal.querySelectorAll('.picker-wheel-choice-config');
+  // Advanced tab is not mounted — keep existing saved config (do not reset to defaults)
+  if (choiceEls.length === 0) return;
+
   const choices = Array.from(choiceEls).map((el, index) => {
     const labelInput = el.querySelector('.picker-wheel-choice-label');
     const colorInput = el.querySelector('.picker-wheel-choice-color');

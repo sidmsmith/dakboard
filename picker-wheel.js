@@ -2,6 +2,7 @@
 (function () {
   const MAX_CHOICES = 20;
   const SPIN_DURATION_MS = 4000;
+  const HIGHLIGHT_DURATION_MS = 10000;
   const pickerWheelStates = new Map();
 
   function getDefaultPickerWheelConfig() {
@@ -156,6 +157,23 @@
     });
   }
 
+  function clearHighlightTimer(state) {
+    if (state.highlightTimer) {
+      clearTimeout(state.highlightTimer);
+      state.highlightTimer = null;
+    }
+  }
+
+  function scheduleHighlightClear(widget, fullWidgetId, state) {
+    clearHighlightTimer(state);
+    state.highlightTimer = setTimeout(() => {
+      state.selectedIndex = -1;
+      highlightSlice(widget, -1);
+      state.highlightTimer = null;
+      pickerWheelStates.set(fullWidgetId, state);
+    }, HIGHLIGHT_DURATION_MS);
+  }
+
   function spinPickerWheel(widget, fullWidgetId) {
     if (!widget || widget.classList.contains('hidden')) return;
     if (typeof window.isEditMode === 'boolean' && window.isEditMode) return;
@@ -180,6 +198,7 @@
 
     state.spinning = true;
     state.selectedIndex = -1;
+    clearHighlightTimer(state);
     highlightSlice(widget, -1);
     if (spinBtn) spinBtn.disabled = true;
 
@@ -193,6 +212,7 @@
       state.spinning = false;
       state.selectedIndex = winnerIndex;
       highlightSlice(widget, winnerIndex);
+      scheduleHighlightClear(widget, fullWidgetId, state);
       if (spinBtn) spinBtn.disabled = false;
       pickerWheelStates.set(fullWidgetId, state);
     };
@@ -214,6 +234,7 @@
     if (!container) return;
 
     const state = pickerWheelStates.get(fullWidgetId) || { rotation: 0, spinning: false, selectedIndex: -1 };
+    clearHighlightTimer(state);
     if (state.selectedIndex >= config.choices.length) {
       state.selectedIndex = -1;
     }
@@ -244,6 +265,10 @@
     }
 
     pickerWheelStates.set(fullWidgetId, state);
+
+    if (state.selectedIndex >= 0) {
+      scheduleHighlightClear(widget, fullWidgetId, state);
+    }
   }
 
   function loadPickerWheel() {
