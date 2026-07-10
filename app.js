@@ -37,7 +37,9 @@ const CONFIG = {
   HA_GARAGE_WEBHOOK_1: 'garage1toggle', // Update with your webhook IDs
   HA_GARAGE_WEBHOOK_2: 'garage2toggle',
   HA_GARAGE_WEBHOOK_3: 'garage3toggle',
-  HA_ALARM_WEBHOOK: 'setalarm', // Alarm set webhook (only used when disarmed)
+  // Alarm arm/disarm use local-only HA webhooks (browser calls these directly on the LAN)
+  HA_ALARM_WEBHOOK: 'http://192.168.86.40:8123/api/webhook/setalarmlocal',
+  HA_ALARM_DISARM_WEBHOOK: 'http://192.168.86.40:8123/api/webhook/disarmalarmlocal',
   HA_COMPRESSOR_WEBHOOK: 'http://homeassistant.local:8123/api/webhook/compressor', // Air Compressor webhook
   
   // Refresh interval (milliseconds)
@@ -2888,6 +2890,7 @@ async function loadAlarm() {
     }
     
     const state = entity.state;
+    const isArmed = state === 'armed_away' || state === 'armed_home' || state === 'armed_night';
     
     // Update each alarm widget instance
     instances.forEach(instance => {
@@ -2900,30 +2903,37 @@ async function loadAlarm() {
       
       if (!statusDiv || !icon || !text) return;
     
-    // Remove existing state classes
-    statusDiv.classList.remove('armed', 'disarmed');
+      // Remove existing state classes
+      statusDiv.classList.remove('armed', 'disarmed');
+      
+      if (isArmed) {
+        statusDiv.classList.add('armed');
+        icon.textContent = '🔒';
+        text.textContent = 'ARMED';
+      } else {
+        statusDiv.classList.add('disarmed');
+        icon.textContent = '🔓';
+        text.textContent = 'DISARMED';
+      }
+
+      const disarmEnabled = isAlarmDisarmEnabledForWidget(widget);
     
-    if (state === 'armed_away' || state === 'armed_home' || state === 'armed_night') {
-      statusDiv.classList.add('armed');
-      icon.textContent = '🔒';
-      text.textContent = 'ARMED';
-    } else {
-      statusDiv.classList.add('disarmed');
-      icon.textContent = '🔓';
-      text.textContent = 'DISARMED';
-    }
-    
-      // Add click handler - only clickable when DISARMED
-      if (state === 'disarmed' || state === 'disarming' || (!state.includes('armed'))) {
-        // Only allow clicking when disarmed
+      // Disarmed: always clickable to arm. Armed: clickable only when Enable Disarm is on.
+      if (!isArmed) {
         icon.style.cursor = 'pointer';
         icon.onclick = () => {
           if (!isEditMode) {
             setAlarm();
           }
         };
+      } else if (disarmEnabled) {
+        icon.style.cursor = 'pointer';
+        icon.onclick = () => {
+          if (!isEditMode) {
+            disarmAlarm();
+          }
+        };
       } else {
-        // Armed states are not clickable
         icon.style.cursor = 'not-allowed';
         icon.onclick = null;
       }
@@ -2943,12 +2953,40 @@ async function loadAlarm() {
   }
 }
 
-// Set alarm (only works when disarmed)
+function isAlarmDisarmEnabledForWidget(widget) {
+  if (!widget) return false;
+  const page = widget.closest('.dashboard.page');
+  const pageIndex = page ? parseInt(page.dataset.pageId, 10) : (window.currentPageIndex || 0);
+  const fullId = typeof resolveWidgetFullId === 'function'
+    ? resolveWidgetFullId(widget, pageIndex)
+    : null;
+  if (!fullId) return false;
+  try {
+    const saved = localStorage.getItem(`dakboard-widget-styles-${fullId}`);
+    if (!saved) return false;
+    const styles = JSON.parse(saved);
+    return styles.alarmEnableDisarm === true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function setAlarmIconsLoading(isLoading) {
+  const pageElement = getPageElement(currentPageIndex);
+  if (!pageElement) return;
+  const instances = getWidgetInstances('alarm-widget', currentPageIndex);
+  instances.forEach(instance => {
+    const widget = instance.element;
+    if (!widget || widget.classList.contains('hidden')) return;
+    const icon = widget.querySelector('#alarm-icon');
+    if (icon) icon.classList.toggle('loading', isLoading);
+  });
+}
+
+// Set alarm (only works when disarmed) — local-only webhook
 async function setAlarm() {
-  // Don't allow interaction in edit mode
   if (isEditMode) return;
   
-  // Check current state - only allow if disarmed (check first instance on current page)
   const pageElement = getPageElement(currentPageIndex);
   if (pageElement) {
     const instances = getWidgetInstances('alarm-widget', currentPageIndex);
@@ -2961,51 +2999,51 @@ async function setAlarm() {
     }
   }
   
-  // Add loading state to all alarm icons on current page
-  if (pageElement) {
-    const instances = getWidgetInstances('alarm-widget', currentPageIndex);
-    instances.forEach(instance => {
-      const widget = instance.element;
-      if (!widget || widget.classList.contains('hidden')) return;
-      const icon = widget.querySelector('#alarm-icon');
-      if (icon) icon.classList.add('loading');
-    });
-  }
-  
-  // Show toast notification immediately (like garage widget)
-  showToast('Alarm Button Pressed', 1500);
+  setAlarmIconsLoading(true);
+  showToast('Arming Alarm...', 1500);
   
   try {
-    // Use triggerHAWebhook which handles both webhook IDs and full URLs
-    // It will extract the webhook ID from URLs and use serverless function in production
-    // This avoids mixed content errors (HTTP from HTTPS page)
-    await triggerHAWebhook(CONFIG.HA_ALARM_WEBHOOK);
-    
-    // Reload alarm after a short delay to get updated state
-    setTimeout(() => {
-      loadAlarm();
-    }, 1000);
-    
-    // Trigger a full refresh after 2-3 seconds to ensure all widgets are updated
-    setTimeout(() => {
-      loadAllData();
-    }, 2500);
+    await triggerLocalHAWebhook(CONFIG.HA_ALARM_WEBHOOK);
+    setTimeout(() => loadAlarm(), 1000);
+    setTimeout(() => loadAllData(), 2500);
   } catch (error) {
     console.error('Error setting alarm:', error);
-    // Still reload alarm since the webhook likely worked (serverless function may return 500 even on success)
-    // This matches the garage widget behavior
-    setTimeout(() => {
-      loadAlarm();
-    }, 1000);
-    // Still trigger full refresh
-    setTimeout(() => {
-      loadAllData();
-    }, 2500);
-    // Don't show error toast since webhook likely succeeded despite the error
+    setTimeout(() => loadAlarm(), 1000);
+    setTimeout(() => loadAllData(), 2500);
   } finally {
-    // Remove loading state from all alarm icons
-    const allIcons = document.querySelectorAll('#alarm-icon');
-    allIcons.forEach(icon => icon.classList.remove('loading'));
+    setAlarmIconsLoading(false);
+  }
+}
+
+// Disarm alarm (only when Enable Disarm is on) — local-only webhook
+async function disarmAlarm() {
+  if (isEditMode) return;
+
+  const pageElement = getPageElement(currentPageIndex);
+  if (pageElement) {
+    const instances = getWidgetInstances('alarm-widget', currentPageIndex);
+    if (instances.length > 0) {
+      const firstWidget = instances[0].element;
+      const firstStatusDiv = firstWidget ? firstWidget.querySelector('#alarm-status') : null;
+      if (firstStatusDiv && firstStatusDiv.classList.contains('disarmed')) {
+        return;
+      }
+    }
+  }
+
+  setAlarmIconsLoading(true);
+  showToast('Disarming Alarm...', 1500);
+
+  try {
+    await triggerLocalHAWebhook(CONFIG.HA_ALARM_DISARM_WEBHOOK);
+    setTimeout(() => loadAlarm(), 1000);
+    setTimeout(() => loadAllData(), 2500);
+  } catch (error) {
+    console.error('Error disarming alarm:', error);
+    setTimeout(() => loadAlarm(), 1000);
+    setTimeout(() => loadAllData(), 2500);
+  } finally {
+    setAlarmIconsLoading(false);
   }
 }
 
@@ -7429,6 +7467,41 @@ async function triggerHAWebhook(webhookId) {
   } catch (error) {
     console.error(`Error triggering webhook ${webhookId}:`, error);
     throw error;
+  }
+}
+
+// Call a local-only HA webhook directly from the browser (LAN).
+// Intentionally bypasses the serverless proxy so remote clients cannot trigger it.
+async function triggerLocalHAWebhook(webhookUrl) {
+  if (!webhookUrl) {
+    throw new Error('Local webhook URL is required');
+  }
+
+  // Prefer a normal CORS request when HA allows it; fall back to no-cors so the
+  // webhook still fires even if we cannot read the response.
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: ''
+    });
+    if (!response.ok && response.status !== 0) {
+      throw new Error(`Local webhook HTTP ${response.status}`);
+    }
+    return { success: true };
+  } catch (corsOrNetworkError) {
+    try {
+      await fetch(webhookUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: ''
+      });
+      // Opaque response — assume the request left the browser
+      return { success: true, opaque: true };
+    } catch (error) {
+      console.error(`Error triggering local webhook ${webhookUrl}:`, error);
+      throw error;
+    }
   }
 }
 

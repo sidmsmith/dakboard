@@ -785,6 +785,7 @@ function generateAdvancedTab() {
   const isTasksWidget = widgetType === 'tasks-widget';
   const isCalendarWidget = widgetType === 'calendar-widget';
   const isClockWidget = widgetType === 'clock-widget';
+  const isAlarmWidget = widgetType === 'alarm-widget';
   const clipArtEmoji = currentStyles.clipArtEmoji || '🎨';
   const clipArtColor = currentStyles.clipArtColor || '#4a90e2';
   const clockDisplayType = currentStyles.clockDisplayType || 'digital';
@@ -905,6 +906,21 @@ function generateAdvancedTab() {
             <input type="color" id="clock-analog-hand-color" value="${clockAnalogHandColor}">
             <input type="text" id="clock-analog-hand-color-text" value="${clockAnalogHandColor}" pattern="^#[0-9A-F]{6}$" placeholder="#ffffff">
           </div>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+    ${isAlarmWidget ? `
+    <div class="styling-form-section">
+      <div class="styling-section-title">Alarm Controls</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">
+            <input type="checkbox" id="alarm-enable-disarm" ${currentStyles.alarmEnableDisarm === true ? 'checked' : ''} style="margin-right: 8px;"> Enable Disarm?
+          </label>
+        </div>
+        <div style="font-size: 12px; color: #888; margin-top: 4px;">
+          When enabled, tapping the ARMED icon will disarm the alarm (local network only).
         </div>
       </div>
     </div>
@@ -2968,6 +2984,15 @@ function attachTabEventListeners(tabName) {
           });
         }
       }
+
+      if (widgetType === 'alarm-widget') {
+        const alarmEnableDisarm = stylingModal.querySelector('#alarm-enable-disarm');
+        if (alarmEnableDisarm) {
+          alarmEnableDisarm.addEventListener('change', (e) => {
+            currentStyles.alarmEnableDisarm = e.target.checked;
+          });
+        }
+      }
     }
   }
 }
@@ -4280,6 +4305,10 @@ function applyStyles() {
     if (typeof loadPickerWheel === 'function') {
       loadPickerWheel();
     }
+  } else if (widgetType === 'alarm-widget') {
+    if (typeof loadAlarm === 'function') {
+      setTimeout(() => loadAlarm(), 50);
+    }
   } else if (widgetType === 'agenda-widget') {
     // Reload agenda widget to apply card styles (same pattern as scoreboard)
     // Load all agenda widgets - each will load its own styles from localStorage
@@ -4645,6 +4674,11 @@ function updateCurrentStylesFromForm() {
   const clockShowAnalogNumbers = stylingModal.querySelector('#clock-show-analog-numbers');
   if (clockShowAnalogNumbers) {
     currentStyles.clockShowAnalogNumbers = clockShowAnalogNumbers.checked;
+  }
+
+  const alarmEnableDisarm = stylingModal.querySelector('#alarm-enable-disarm');
+  if (alarmEnableDisarm) {
+    currentStyles.alarmEnableDisarm = alarmEnableDisarm.checked;
   }
 
   const clockFontColor = stylingModal.querySelector('#clock-font-color');
@@ -5133,6 +5167,10 @@ function applyCurrentStylesToWidget(widget) {
   if (widget.classList.contains('picker-wheel-widget') && typeof loadPickerWheel === 'function') {
     setTimeout(() => loadPickerWheel(), 0);
   }
+
+  if (widget.classList.contains('alarm-widget') && typeof loadAlarm === 'function') {
+    setTimeout(() => loadAlarm(), 0);
+  }
   
   // Update scoreboard configuration if this is a scoreboard widget
   if (widget.classList.contains('scoreboard-widget')) {
@@ -5597,6 +5635,9 @@ function loadWidgetStyles(fullWidgetId) {
         clockFontColor: '#ffffff',
         clockAnalogFaceColor: '#1e1e1e',
         clockAnalogHandColor: '#ffffff'
+      } : {}),
+      ...(widgetType === 'alarm-widget' ? {
+        alarmEnableDisarm: false
       } : {})
     };
   }
@@ -5609,6 +5650,10 @@ function loadWidgetStyles(fullWidgetId) {
     if (!currentStyles.clockFontColor) currentStyles.clockFontColor = '#ffffff';
     if (!currentStyles.clockAnalogFaceColor) currentStyles.clockAnalogFaceColor = '#1e1e1e';
     if (!currentStyles.clockAnalogHandColor) currentStyles.clockAnalogHandColor = '#ffffff';
+  }
+
+  if (widgetType === 'alarm-widget' && currentStyles.alarmEnableDisarm === undefined) {
+    currentStyles.alarmEnableDisarm = false;
   }
 
   if (widgetType === 'picker-wheel-widget' && !currentStyles.pickerWheelConfig) {
@@ -6272,6 +6317,10 @@ function loadStylesToWidget(widget, styles) {
 
   if (widget.classList.contains('picker-wheel-widget') && typeof loadPickerWheel === 'function') {
     setTimeout(() => loadPickerWheel(), 0);
+  }
+
+  if (widget.classList.contains('alarm-widget') && typeof loadAlarm === 'function') {
+    setTimeout(() => loadAlarm(), 0);
   }
 }
 
