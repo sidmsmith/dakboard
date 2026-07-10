@@ -787,6 +787,7 @@ function generateAdvancedTab() {
   const clockDisplayType = currentStyles.clockDisplayType || 'digital';
   const clockShowSeconds = currentStyles.clockShowSeconds !== false;
   const clockShowDate = currentStyles.clockShowDate !== false;
+  const clockShowAnalogNumbers = currentStyles.clockShowAnalogNumbers === true;
   const clockFontColor = currentStyles.clockFontColor || '#ffffff';
   const clockAnalogFaceColor = currentStyles.clockAnalogFaceColor || '#1e1e1e';
   const clockAnalogHandColor = currentStyles.clockAnalogHandColor || '#ffffff';
@@ -874,6 +875,11 @@ function generateAdvancedTab() {
         <div class="styling-form-row">
           <label class="styling-form-label">
             <input type="checkbox" id="clock-show-date" ${clockShowDate ? 'checked' : ''} style="margin-right: 8px;"> Show date
+          </label>
+        </div>
+        <div class="styling-form-row" id="clock-show-analog-numbers-row" style="${clockDisplayType === 'analog' ? '' : 'display: none;'}">
+          <label class="styling-form-label">
+            <input type="checkbox" id="clock-show-analog-numbers" ${clockShowAnalogNumbers ? 'checked' : ''} style="margin-right: 8px;"> Show numbers (1–12)
           </label>
         </div>
         <div class="styling-form-row">
@@ -2924,6 +2930,10 @@ function attachTabEventListeners(tabName) {
         if (clockDisplayType) {
           clockDisplayType.addEventListener('change', (e) => {
             currentStyles.clockDisplayType = e.target.value;
+            const numbersRow = stylingModal.querySelector('#clock-show-analog-numbers-row');
+            if (numbersRow) {
+              numbersRow.style.display = e.target.value === 'analog' ? '' : 'none';
+            }
             applyClockPreview();
           });
         }
@@ -2938,6 +2948,14 @@ function attachTabEventListeners(tabName) {
         if (clockShowDate) {
           clockShowDate.addEventListener('change', (e) => {
             currentStyles.clockShowDate = e.target.checked;
+            applyClockPreview();
+          });
+        }
+
+        const clockShowAnalogNumbers = stylingModal.querySelector('#clock-show-analog-numbers');
+        if (clockShowAnalogNumbers) {
+          clockShowAnalogNumbers.addEventListener('change', (e) => {
+            currentStyles.clockShowAnalogNumbers = e.target.checked;
             applyClockPreview();
           });
         }
@@ -4613,6 +4631,11 @@ function updateCurrentStylesFromForm() {
     currentStyles.clockShowDate = clockShowDate.checked;
   }
 
+  const clockShowAnalogNumbers = stylingModal.querySelector('#clock-show-analog-numbers');
+  if (clockShowAnalogNumbers) {
+    currentStyles.clockShowAnalogNumbers = clockShowAnalogNumbers.checked;
+  }
+
   const clockFontColor = stylingModal.querySelector('#clock-font-color');
   const clockFontColorText = stylingModal.querySelector('#clock-font-color-text');
   if (clockFontColor && clockFontColorText) {
@@ -5559,6 +5582,7 @@ function loadWidgetStyles(fullWidgetId) {
         clockDisplayType: 'digital',
         clockShowSeconds: true,
         clockShowDate: true,
+        clockShowAnalogNumbers: false,
         clockFontColor: '#ffffff',
         clockAnalogFaceColor: '#1e1e1e',
         clockAnalogHandColor: '#ffffff'
@@ -5570,6 +5594,7 @@ function loadWidgetStyles(fullWidgetId) {
     if (currentStyles.clockDisplayType === undefined) currentStyles.clockDisplayType = 'digital';
     if (currentStyles.clockShowSeconds === undefined) currentStyles.clockShowSeconds = true;
     if (currentStyles.clockShowDate === undefined) currentStyles.clockShowDate = true;
+    if (currentStyles.clockShowAnalogNumbers === undefined) currentStyles.clockShowAnalogNumbers = false;
     if (!currentStyles.clockFontColor) currentStyles.clockFontColor = '#ffffff';
     if (!currentStyles.clockAnalogFaceColor) currentStyles.clockAnalogFaceColor = '#1e1e1e';
     if (!currentStyles.clockAnalogHandColor) currentStyles.clockAnalogHandColor = '#ffffff';

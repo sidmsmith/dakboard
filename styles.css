@@ -3266,6 +3266,14 @@ footer a:hover {
   display: none;
 }
 
+.clock-analog-numbers {
+  visibility: hidden;
+}
+
+.clock-show-analog-numbers .clock-analog-numbers {
+  visibility: visible;
+}
+
 .clock-time {
   font-size: 48px;
   font-weight: 700;

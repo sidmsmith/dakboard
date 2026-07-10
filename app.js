@@ -330,8 +330,23 @@ function initializeCalendar() {
 }
 
 // Initialize clock
+function buildAnalogClockNumberTexts(fillColor = '#fff') {
+  const texts = [];
+  for (let n = 1; n <= 12; n++) {
+    const rad = (n * 30) * Math.PI / 180;
+    const r = 72;
+    const x = (100 + r * Math.sin(rad)).toFixed(2);
+    const y = (100 - r * Math.cos(rad)).toFixed(2);
+    texts.push(
+      `<text class="clock-analog-number" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" fill="${fillColor}" font-size="14" font-weight="600">${n}</text>`
+    );
+  }
+  return texts.join('');
+}
+
 const CLOCK_ANALOG_SVG = `<svg class="clock-analog-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
   <circle class="clock-analog-face" cx="100" cy="100" r="94" fill="#1e1e1e" stroke="#666" stroke-width="2"/>
+  <g class="clock-analog-numbers">${buildAnalogClockNumberTexts('#fff')}</g>
   <g class="clock-hour-hand-group">
     <line class="clock-hour-hand" x1="100" y1="100" x2="100" y2="52" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
   </g>
@@ -349,6 +364,7 @@ function getDefaultClockStyles() {
     clockDisplayType: 'digital',
     clockShowSeconds: true,
     clockShowDate: true,
+    clockShowAnalogNumbers: false,
     clockFontColor: '#ffffff',
     clockAnalogFaceColor: '#1e1e1e',
     clockAnalogHandColor: '#ffffff'
@@ -362,6 +378,7 @@ function normalizeClockStyles(styles) {
     clockDisplayType: styles.clockDisplayType === 'analog' ? 'analog' : 'digital',
     clockShowSeconds: styles.clockShowSeconds !== false,
     clockShowDate: styles.clockShowDate !== false,
+    clockShowAnalogNumbers: styles.clockShowAnalogNumbers === true,
     clockFontColor: styles.clockFontColor || defaults.clockFontColor,
     clockAnalogFaceColor: styles.clockAnalogFaceColor || defaults.clockAnalogFaceColor,
     clockAnalogHandColor: styles.clockAnalogHandColor || defaults.clockAnalogHandColor
@@ -422,6 +439,11 @@ function ensureClockStructure(widget) {
     analog.className = 'clock-analog';
     analog.innerHTML = CLOCK_ANALOG_SVG;
     content.insertBefore(analog, digital.nextSibling);
+  } else {
+    const analog = content.querySelector('.clock-analog');
+    if (analog && !analog.querySelector('.clock-analog-numbers')) {
+      analog.innerHTML = CLOCK_ANALOG_SVG;
+    }
   }
 
   if (!content.querySelector('.clock-date')) {
@@ -495,6 +517,10 @@ function applyClockColors(widget, styles) {
 
   const center = widget.querySelector('.clock-analog-center');
   if (center) center.setAttribute('fill', opts.clockAnalogHandColor);
+
+  widget.querySelectorAll('.clock-analog-number').forEach((num) => {
+    num.setAttribute('fill', opts.clockAnalogHandColor);
+  });
 }
 
 function applyClockDisplaySettings(widget, styles) {
@@ -503,10 +529,11 @@ function applyClockDisplaySettings(widget, styles) {
   const opts = normalizeClockStyles(styles);
   const isAnalog = opts.clockDisplayType === 'analog';
 
-  widget.classList.remove('clock-mode-digital', 'clock-mode-analog', 'clock-no-seconds', 'clock-no-date');
+  widget.classList.remove('clock-mode-digital', 'clock-mode-analog', 'clock-no-seconds', 'clock-no-date', 'clock-show-analog-numbers');
   widget.classList.add(isAnalog ? 'clock-mode-analog' : 'clock-mode-digital');
   if (!opts.clockShowSeconds) widget.classList.add('clock-no-seconds');
   if (!opts.clockShowDate) widget.classList.add('clock-no-date');
+  if (isAnalog && opts.clockShowAnalogNumbers) widget.classList.add('clock-show-analog-numbers');
 
   applyClockColors(widget, opts);
 }
@@ -559,10 +586,14 @@ function buildClockPreviewHtml(styles, options = {}) {
            <line x1="100" y1="108" x2="100" y2="28" stroke="${handColor}" stroke-width="2" stroke-linecap="round"/>
          </g>`
       : '';
+    const numbersHtml = opts.clockShowAnalogNumbers
+      ? `<g class="clock-analog-numbers">${buildAnalogClockNumberTexts(handColor)}</g>`
+      : '';
     return `
       <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;padding:12px;">
         <svg viewBox="0 0 200 200" style="width:${compact ? '120px' : '160px'};height:auto;">
           <circle cx="100" cy="100" r="94" fill="${faceColor}" stroke="#666" stroke-width="2"/>
+          ${numbersHtml}
           <g transform="rotate(${angles.hour} 100 100)">
             <line x1="100" y1="100" x2="100" y2="52" stroke="${handColor}" stroke-width="6" stroke-linecap="round"/>
           </g>
