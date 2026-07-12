@@ -319,7 +319,10 @@
         
         <!-- Forecast Section -->
         <div class="weather-forecast" id="weather-forecast">
-          <div class="weather-forecast-header">5-Day Forecast</div>
+          <div class="weather-forecast-header">
+            <span>5-Day Forecast</span>
+            <button type="button" class="weather-radar-btn" title="Open weather radar" aria-label="Open weather radar">📡</button>
+          </div>
           <div class="weather-forecast-list" id="weather-forecast-list">
             <!-- Forecast items will be populated by JavaScript -->
           </div>
@@ -608,7 +611,7 @@
       <div class="modal-header">
         <div class="hourly-modal-title-row">
           <h2 id="hourly-modal-title">Hourly Forecast</h2>
-          <button type="button" class="hourly-radar-btn" id="open-weather-radar-btn" title="Open weather radar" aria-label="Open weather radar">📡</button>
+          <button type="button" class="weather-radar-btn" id="open-weather-radar-btn" title="Open weather radar" aria-label="Open weather radar">📡</button>
         </div>
         <button class="modal-close" id="close-hourly-modal">&times;</button>
       </div>

@@ -754,6 +754,18 @@ function initializeEventListeners() {
     });
   }
 
+  // Weather widget forecast-header radar buttons (supports cloned widgets)
+  if (!document.body.dataset.weatherRadarDelegationAttached) {
+    document.body.dataset.weatherRadarDelegationAttached = 'true';
+    document.body.addEventListener('click', (e) => {
+      const radarBtn = e.target.closest('.weather-widget .weather-radar-btn');
+      if (!radarBtn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      showWeatherRadarModal();
+    });
+  }
+
   const closeWeatherRadarBtn = document.getElementById('close-weather-radar-modal');
   if (closeWeatherRadarBtn && !closeWeatherRadarBtn.dataset.listenerAttached) {
     closeWeatherRadarBtn.dataset.listenerAttached = 'true';
