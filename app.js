@@ -2160,94 +2160,85 @@ async function loadWeatherForecast(attrs) {
   });
   
   if (forecastLists.length === 0) return;
-  
+
+  // Only show loading placeholder on first fill — keep existing rows during refresh
   forecastLists.forEach(list => {
-    list.innerHTML = '<div style="color: #888; text-align: center; padding: 10px;">Loading forecast...</div>';
+    if (!list.querySelector('.weather-forecast-item')) {
+      list.innerHTML = '<div style="color: #888; text-align: center; padding: 10px;">Loading forecast...</div>';
+    }
   });
-  
+
   try {
     const daysToShow = 5; // Only show 5 days (0d-4d) - entities beyond don't exist
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const forecastData = [];
-    
+
     // Pirate Weather uses pattern:
     // - Highs: sensor.pirateweather_daytime_high_temperature_0d, 1d, 2d, etc.
     // - Lows: sensor.pirateweather_overnight_low_temperature_0d, 1d, 2d, etc.
     // - Icons: sensor.pirateweather_icon_0d, 1d, 2d, etc.
-    // Days are 0d (today), 1d (tomorrow), 2d, etc.
-    // Only days 0d-4d are available
-    
-    for (let dayOffset = 0; dayOffset < daysToShow; dayOffset++) {
-      try {
+    // Fetch all days in parallel so refresh stays quick
+    const dayResults = await Promise.all(
+      Array.from({ length: daysToShow }, async (_, dayOffset) => {
         const daySuffix = `${dayOffset}d`;
-        
-        // Fetch entities for this day
         const [highEntity, lowEntity, iconEntity] = await Promise.all([
           fetchHAEntity(`sensor.pirateweather_daytime_high_temperature_${daySuffix}`).catch(() => null),
           fetchHAEntity(`sensor.pirateweather_overnight_low_temperature_${daySuffix}`).catch(() => null),
           fetchHAEntity(`sensor.pirateweather_icon_${daySuffix}`).catch(() => null)
         ]);
-        
-        // If we have high and low, we can build the forecast
-        if (highEntity && lowEntity && highEntity.state && lowEntity.state) {
-          const high = Math.round(parseFloat(highEntity.state) || 0);
-          const low = Math.round(parseFloat(lowEntity.state) || 0);
-          
-          // Get icon and condition from icon entity
-          let condition = 'unknown';
-          let icon = '🌤️';
-          
-          if (iconEntity && iconEntity.state) {
-            // Icon entity state might be the condition name or icon emoji
-            const iconState = iconEntity.state;
-            // Check if it's an emoji (contains emoji characters)
-            if (/[\u{1F300}-\u{1F9FF}]/u.test(iconState)) {
-              icon = iconState;
-              // Try to get condition from attributes if available
-              condition = iconEntity.attributes?.condition || iconEntity.attributes?.friendly_name || 'unknown';
-            } else {
-              // It's a condition name, convert to icon
-              condition = iconState;
-              icon = getWeatherIcon(iconState);
-            }
+
+        if (!highEntity?.state || !lowEntity?.state) return null;
+
+        const high = Math.round(parseFloat(highEntity.state) || 0);
+        const low = Math.round(parseFloat(lowEntity.state) || 0);
+        let condition = 'unknown';
+        let icon = '🌤️';
+
+        if (iconEntity?.state) {
+          const iconState = iconEntity.state;
+          if (/[\u{1F300}-\u{1F9FF}]/u.test(iconState)) {
+            icon = iconState;
+            condition = iconEntity.attributes?.condition || iconEntity.attributes?.friendly_name || 'unknown';
+          } else {
+            condition = iconState;
+            icon = getWeatherIcon(iconState);
           }
-          
-          // Calculate day name (today + day offset)
-          const forecastDate = new Date();
-          forecastDate.setDate(forecastDate.getDate() + dayOffset);
-          const dayName = dayNames[forecastDate.getDay()];
-          
-          forecastData.push({ 
-            day: dayOffset + 1, 
-            dayName, 
-            dayOffset, // Store for click handler
-            high, 
-            low, 
-            condition, 
-            icon 
-          });
-        } else {
-          // Entity doesn't exist, stop trying further days
-          break;
         }
-      } catch (error) {
-        // Silently stop if entity doesn't exist
-        break;
-      }
+
+        const forecastDate = new Date();
+        forecastDate.setDate(forecastDate.getDate() + dayOffset);
+        return {
+          day: dayOffset + 1,
+          dayName: dayNames[forecastDate.getDay()],
+          dayOffset,
+          high,
+          low,
+          condition,
+          icon
+        };
+      })
+    );
+
+    // Keep contiguous days from 0d; stop at first missing day
+    const forecastData = [];
+    for (const day of dayResults) {
+      if (!day) break;
+      forecastData.push(day);
     }
-    
+
     if (forecastData.length === 0) {
-      forecastList.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Forecast data not available. Check browser console for entity list.</div>';
-      // Log available entities for debugging
-      const pirateEntities = await getPirateWeatherEntities();
+      const noDataHtml = '<div style="color: #888; text-align: center; padding: 20px;">Forecast data not available. Check browser console for entity list.</div>';
+      forecastLists.forEach(list => { list.innerHTML = noDataHtml; });
+      await getPirateWeatherEntities();
       return;
     }
-    
-    // Render forecast
+
     renderForecast(forecastData, attrs);
   } catch (error) {
     console.error('Error loading forecast:', error);
-    forecastList.innerHTML = '<div style="color: #e74c3c; text-align: center; padding: 20px;">Error loading forecast</div>';
+    const errHtml = '<div style="color: #e74c3c; text-align: center; padding: 20px;">Error loading forecast</div>';
+    forecastLists.forEach(list => {
+      if (!list.querySelector('.weather-forecast-item')) list.innerHTML = errHtml;
+    });
   }
 }
 
@@ -2305,124 +2296,99 @@ function parseForecastFromEntities(entities, daysToShow) {
   return forecastData;
 }
 
-// Render forecast items
+// Render forecast items (update existing rows in place when possible)
 function renderForecast(forecastData, attrs) {
   const forecastLists = document.querySelectorAll('#weather-forecast-list');
   if (forecastLists.length === 0) return;
-  
+
   if (forecastData.length === 0) {
     const noDataHtml = '<div style="color: #888; text-align: center; padding: 20px;">No forecast data available</div>';
-    forecastLists.forEach(list => list.innerHTML = noDataHtml);
+    forecastLists.forEach(list => { list.innerHTML = noDataHtml; });
     return;
   }
-  
-  // Calculate temperature range for bars
+
   const allHighs = forecastData.map(d => d.high);
   const allLows = forecastData.map(d => d.low);
   const minTemp = Math.min(...allLows);
   const maxTemp = Math.max(...allHighs);
   const range = maxTemp - minTemp;
-  
-  // Current temp for marker
   const currentTemp = attrs.temperature ? Math.round(attrs.temperature) : null;
-  
-  // Helper function to create a forecast item
-  function createForecastItem(day, index, range, minTemp, currentTemp, forecastList) {
+
+  function applyForecastItemContent(forecastItem, day, index, forecastList) {
     const lowPercent = range > 0 ? ((day.low - minTemp) / range) * 100 : 0;
     const highPercent = range > 0 ? ((day.high - minTemp) / range) * 100 : 100;
     const barWidth = highPercent - lowPercent;
     const barLeft = lowPercent;
-    
-    // Current temp marker on first day
+
     let markerPercent = null;
     if (currentTemp && index === 0 && currentTemp >= minTemp && currentTemp <= maxTemp) {
       markerPercent = range > 0 ? ((currentTemp - minTemp) / range) * 100 : 50;
     }
-    
+
+    const dayDiv = forecastItem.querySelector('.weather-forecast-day');
+    const iconDiv = forecastItem.querySelector('.weather-forecast-icon');
+    const lowDiv = forecastItem.querySelector('.weather-forecast-low');
+    const highDiv = forecastItem.querySelector('.weather-forecast-high');
+    const barFill = forecastItem.querySelector('.weather-forecast-bar-fill');
+
+    if (dayDiv) dayDiv.textContent = day.dayName;
+    if (iconDiv) iconDiv.textContent = day.icon;
+    if (lowDiv) lowDiv.textContent = `${day.low}°`;
+    if (highDiv) highDiv.textContent = `${day.high}°`;
+    if (barFill) {
+      barFill.style.width = `${barWidth}%`;
+      barFill.style.left = `${barLeft}%`;
+      let marker = barFill.querySelector('.weather-forecast-bar-marker');
+      if (markerPercent !== null) {
+        if (!marker) {
+          marker = document.createElement('div');
+          marker.className = 'weather-forecast-bar-marker';
+          barFill.appendChild(marker);
+        }
+        marker.style.left = `${markerPercent}%`;
+      } else if (marker) {
+        marker.remove();
+      }
+    }
+
+    const dayOffsetForClick = day.dayOffset !== undefined ? day.dayOffset : index;
+    forecastItem.onclick = (e) => {
+      e.stopPropagation();
+      if (!isEditMode) {
+        weatherRadarContextWidget = forecastList ? forecastList.closest('.weather-widget') : null;
+        showHourlyForecast(dayOffsetForClick, day.dayName, day.high, day.low);
+      }
+    };
+  }
+
+  function createForecastItem(day, index, forecastList) {
     const forecastItem = document.createElement('div');
     forecastItem.className = 'weather-forecast-item';
-    
-    // Day name
-    const dayDiv = document.createElement('div');
-    dayDiv.className = 'weather-forecast-day';
-    dayDiv.textContent = day.dayName;
-    
-    // Icon
-    const iconDiv = document.createElement('div');
-    iconDiv.className = 'weather-forecast-icon';
-    iconDiv.textContent = day.icon;
-    
-    // Temps container
-    const tempsDiv = document.createElement('div');
-    tempsDiv.className = 'weather-forecast-temps';
-    
-    // Low temp
-    const lowDiv = document.createElement('div');
-    lowDiv.className = 'weather-forecast-low';
-    lowDiv.textContent = `${day.low}°`;
-    
-    // Bar
-    const bar = document.createElement('div');
-    bar.className = 'weather-forecast-bar';
-    
-    // Bar fill
-    const barFill = document.createElement('div');
-    barFill.className = 'weather-forecast-bar-fill';
-    barFill.style.width = `${barWidth}%`;
-    barFill.style.left = `${barLeft}%`;
-    
-    // Current temp marker (if today)
-    if (markerPercent !== null) {
-      const marker = document.createElement('div');
-      marker.className = 'weather-forecast-bar-marker';
-      marker.style.left = `${markerPercent}%`;
-      barFill.appendChild(marker);
-    }
-    
-    bar.appendChild(barFill);
-    
-    // High temp
-    const highDiv = document.createElement('div');
-    highDiv.className = 'weather-forecast-high';
-    highDiv.textContent = `${day.high}°`;
-    
-    // Assemble
-    tempsDiv.appendChild(lowDiv);
-    tempsDiv.appendChild(bar);
-    tempsDiv.appendChild(highDiv);
-    
-    forecastItem.appendChild(dayDiv);
-    forecastItem.appendChild(iconDiv);
-    forecastItem.appendChild(tempsDiv);
-    
-    // Add click handler to load hourly forecast (capture day data in closure)
-    const dayOffsetForClick = day.dayOffset !== undefined ? day.dayOffset : index;
-    forecastItem.addEventListener('click', (function(offset, name, highTemp, lowTemp, listEl) {
-      return function(e) {
-        e.stopPropagation();
-        if (!isEditMode) {
-          weatherRadarContextWidget = listEl ? listEl.closest('.weather-widget') : null;
-          showHourlyForecast(offset, name, highTemp, lowTemp);
-        }
-      };
-    })(dayOffsetForClick, day.dayName, day.high, day.low, forecastList));
-    
+    forecastItem.innerHTML = `
+      <div class="weather-forecast-day"></div>
+      <div class="weather-forecast-icon"></div>
+      <div class="weather-forecast-temps">
+        <div class="weather-forecast-low"></div>
+        <div class="weather-forecast-bar"><div class="weather-forecast-bar-fill"></div></div>
+        <div class="weather-forecast-high"></div>
+      </div>
+    `;
+    applyForecastItemContent(forecastItem, day, index, forecastList);
     return forecastItem;
   }
-  
-  // Update all forecast lists - simplified: just add all items directly to the list
+
   forecastLists.forEach(forecastList => {
-    forecastList.innerHTML = '';
-    
-    if (forecastData.length === 0) return;
-    
-    // Add all forecast items directly to the list (no separate containers)
-    forecastData.forEach((day, index) => {
-      const dayItem = createForecastItem(day, index, range, minTemp, currentTemp, forecastList);
-      forecastList.appendChild(dayItem);
-    });
-    
-    // Calculate available height for forecast list and enable scrolling if needed
+    const existing = Array.from(forecastList.querySelectorAll('.weather-forecast-item'));
+    if (existing.length === forecastData.length) {
+      forecastData.forEach((day, index) => {
+        applyForecastItemContent(existing[index], day, index, forecastList);
+      });
+    } else {
+      forecastList.innerHTML = '';
+      forecastData.forEach((day, index) => {
+        forecastList.appendChild(createForecastItem(day, index, forecastList));
+      });
+    }
     updateForecastListHeight(forecastList);
   });
 }
@@ -2911,112 +2877,106 @@ async function fetchMDIIcon(iconName) {
   return null;
 }
 
-// Load garage doors from HA
+function isGarageDoorOpen(entity) {
+  return !!(entity && (
+    entity.state === 'open' ||
+    entity.state === 'opening' ||
+    entity.state === 'on'
+  ));
+}
+
+function garageDoorIconHtml(isOpen, garageIcon, garageOpenIcon) {
+  const iconSvg = isOpen ? (garageOpenIcon || garageIcon) : (garageIcon || garageOpenIcon);
+  return iconSvg
+    ? iconSvg.replace('<svg', '<svg class="mdi-icon"')
+    : '<div style="width: 120px; height: 120px; background: currentColor; opacity: 0.3;"></div>';
+}
+
+function createGarageDoorElement(door, garageIcon, garageOpenIcon) {
+  const doorDiv = document.createElement('div');
+  doorDiv.className = `garage-door ${door.isOpen ? 'open' : 'closed'}`;
+  doorDiv.dataset.doorId = door.id;
+  doorDiv.dataset.webhookId = door.webhook;
+  doorDiv.innerHTML = `
+    <div class="garage-door-icon ${door.isOpen ? 'open' : 'closed'}">
+      ${garageDoorIconHtml(door.isOpen, garageIcon, garageOpenIcon)}
+    </div>
+    <div class="garage-door-name">${door.name}</div>
+  `;
+  doorDiv.addEventListener('click', () => {
+    if (!isEditMode) toggleGarageDoor(doorDiv);
+  });
+  return doorDiv;
+}
+
+function updateGarageDoorElement(doorDiv, door, garageIcon, garageOpenIcon) {
+  doorDiv.dataset.webhookId = door.webhook;
+  const nameEl = doorDiv.querySelector('.garage-door-name');
+  if (nameEl && nameEl.textContent !== door.name) nameEl.textContent = door.name;
+
+  const wasOpen = doorDiv.classList.contains('open');
+  if (wasOpen === door.isOpen) return;
+
+  doorDiv.className = `garage-door ${door.isOpen ? 'open' : 'closed'}`;
+  const iconWrap = doorDiv.querySelector('.garage-door-icon');
+  if (iconWrap) {
+    iconWrap.className = `garage-door-icon ${door.isOpen ? 'open' : 'closed'}`;
+    iconWrap.innerHTML = garageDoorIconHtml(door.isOpen, garageIcon, garageOpenIcon);
+  }
+}
+
+// Load garage doors from HA (parallel fetch; update existing rows in place)
 async function loadGarageDoors() {
   const doors = [
     { id: 1, entity: CONFIG.HA_GARAGE_DOOR_1, webhook: CONFIG.HA_GARAGE_WEBHOOK_1, name: 'Garage 1: Truck' },
     { id: 2, entity: CONFIG.HA_GARAGE_DOOR_2, webhook: CONFIG.HA_GARAGE_WEBHOOK_2, name: 'Garage 2: Sarah' },
     { id: 3, entity: CONFIG.HA_GARAGE_DOOR_3, webhook: CONFIG.HA_GARAGE_WEBHOOK_3, name: 'Garage 3: Sidney' },
   ];
-  
-  // Get all garage widget instances on the current page
+
   const pageElement = getPageElement(currentPageIndex);
   if (!pageElement) return;
-  
+
   const instances = getWidgetInstances('garage-widget', currentPageIndex);
   const containers = [];
-  
   instances.forEach(instance => {
     const widget = instance.element;
     if (!widget || widget.classList.contains('hidden')) return;
     const container = widget.querySelector('#garage-doors');
     if (container) containers.push(container);
   });
-  
   if (containers.length === 0) return;
-  
-  // Clear all containers first to prevent duplicate rows
-  containers.forEach(container => container.innerHTML = '');
-  
-  // Pre-fetch both icons
-  const [garageIcon, garageOpenIcon] = await Promise.all([
+
+  const [garageIcon, garageOpenIcon, ...entities] = await Promise.all([
     fetchMDIIcon('garage'),
-    fetchMDIIcon('garage-open')
+    fetchMDIIcon('garage-open'),
+    ...doors.map(door => fetchHAEntity(door.entity).catch(err => {
+      console.error(`Error loading garage door ${door.id}:`, err);
+      return null;
+    }))
   ]);
-  
-  for (const door of doors) {
-    try {
-      const entity = await fetchHAEntity(door.entity);
-      // Handle binary_sensor entities (on = open, off = closed)
-      // Also handle cover entities (open/closed/opening/closing states)
-      const isOpen = entity && (
-        entity.state === 'open' || 
-        entity.state === 'opening' || 
-        entity.state === 'on' // For binary_sensor entities
-      );
-      
-      const doorDiv = document.createElement('div');
-      doorDiv.className = `garage-door ${isOpen ? 'open' : 'closed'}`;
-      doorDiv.dataset.doorId = door.id;
-      doorDiv.dataset.webhookId = door.webhook;
-      
-      // Use MDI icon based on state
-      const iconSvg = isOpen ? (garageOpenIcon || garageIcon) : (garageIcon || garageOpenIcon);
-      const iconHtml = iconSvg ? iconSvg.replace('<svg', '<svg class="mdi-icon"') : '<div style="width: 120px; height: 120px; background: currentColor; opacity: 0.3;"></div>';
-      
-      doorDiv.innerHTML = `
-        <div class="garage-door-icon ${isOpen ? 'open' : 'closed'}">
-          ${iconHtml}
-        </div>
-        <div class="garage-door-name">${door.name}</div>
-      `;
-      
-      // Attach event listener to original
-      doorDiv.addEventListener('click', (e) => {
-        if (!isEditMode) {
-          toggleGarageDoor(doorDiv);
-        }
+
+  const doorStates = doors.map((door, i) => ({
+    ...door,
+    isOpen: isGarageDoorOpen(entities[i])
+  }));
+
+  containers.forEach(container => {
+    const existing = Array.from(container.querySelectorAll('.garage-door'));
+    const canUpdateInPlace = existing.length === doorStates.length &&
+      doorStates.every((door, i) => existing[i]?.dataset.doorId === String(door.id));
+
+    if (canUpdateInPlace) {
+      doorStates.forEach((door, i) => {
+        updateGarageDoorElement(existing[i], door, garageIcon, garageOpenIcon);
       });
-      
-      // Clone and attach event listeners to each container
-      containers.forEach(container => {
-        const clonedDoor = doorDiv.cloneNode(true);
-        // Re-attach event listener to cloned element
-        clonedDoor.addEventListener('click', (e) => {
-          if (!isEditMode) {
-            toggleGarageDoor(clonedDoor);
-          }
-        });
-        container.appendChild(clonedDoor);
-      });
-    } catch (error) {
-      console.error(`Error loading garage door ${door.id}:`, error);
-      // Still create the door element but show error state
-      const doorDiv = document.createElement('div');
-      doorDiv.className = 'garage-door closed';
-      doorDiv.dataset.doorId = door.id;
-      doorDiv.dataset.webhookId = door.webhook;
-      const iconHtml = garageIcon ? garageIcon.replace('<svg', '<svg class="mdi-icon"') : '<div style="width: 120px; height: 120px; background: currentColor; opacity: 0.3;"></div>';
-      doorDiv.innerHTML = `
-        <div class="garage-door-icon closed">
-          ${iconHtml}
-        </div>
-        <div class="garage-door-name">${door.name}</div>
-      `;
-      
-      // Clone and attach event listeners to each container
-      containers.forEach(container => {
-        const clonedDoor = doorDiv.cloneNode(true);
-        // Re-attach event listener to cloned element
-        clonedDoor.addEventListener('click', (e) => {
-          if (!isEditMode) {
-            toggleGarageDoor(clonedDoor);
-          }
-        });
-        container.appendChild(clonedDoor);
-      });
+      return;
     }
-  }
+
+    container.innerHTML = '';
+    doorStates.forEach(door => {
+      container.appendChild(createGarageDoorElement(door, garageIcon, garageOpenIcon));
+    });
+  });
 }
 
 // Show toast notification
