@@ -45,6 +45,11 @@ const CONFIG = {
   // Refresh interval (milliseconds)
   REFRESH_INTERVAL: 30000, // 30 seconds
   
+  // Weather radar modal (Windy embed — Marietta / home area)
+  WEATHER_RADAR_LAT: 33.9939,
+  WEATHER_RADAR_LON: -84.4778,
+  WEATHER_RADAR_ZOOM: 8,
+  
   // Calendar configuration
   CALENDAR_SOURCES: [], // Will be populated when calendar integration is added
 };
@@ -738,6 +743,34 @@ function initializeEventListeners() {
     }
   });
   }
+
+  const openWeatherRadarBtn = document.getElementById('open-weather-radar-btn');
+  if (openWeatherRadarBtn && !openWeatherRadarBtn.dataset.listenerAttached) {
+    openWeatherRadarBtn.dataset.listenerAttached = 'true';
+    openWeatherRadarBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      showWeatherRadarModal();
+    });
+  }
+
+  const closeWeatherRadarBtn = document.getElementById('close-weather-radar-modal');
+  if (closeWeatherRadarBtn && !closeWeatherRadarBtn.dataset.listenerAttached) {
+    closeWeatherRadarBtn.dataset.listenerAttached = 'true';
+    closeWeatherRadarBtn.addEventListener('click', () => {
+      closeWeatherRadarModal();
+    });
+  }
+
+  const weatherRadarModal = document.getElementById('weather-radar-modal');
+  if (weatherRadarModal && !weatherRadarModal.dataset.listenerAttached) {
+    weatherRadarModal.dataset.listenerAttached = 'true';
+    weatherRadarModal.addEventListener('click', (e) => {
+      if (e.target.id === 'weather-radar-modal') {
+        closeWeatherRadarModal();
+      }
+    });
+  }
   
   // Calendar event details modal - single instances, safe to use getElementById
   const closeEventModalBtn = document.getElementById('close-event-modal');
@@ -1361,6 +1394,52 @@ function showHourlyForecast(dayOffset, dayName, high, low) {
 // Close hourly forecast modal
 function closeHourlyModal() {
   document.getElementById('hourly-modal').classList.remove('active');
+}
+
+function getWindyRadarEmbedUrl() {
+  const lat = CONFIG.WEATHER_RADAR_LAT ?? 33.9939;
+  const lon = CONFIG.WEATHER_RADAR_LON ?? -84.4778;
+  const zoom = CONFIG.WEATHER_RADAR_ZOOM ?? 8;
+  const params = new URLSearchParams({
+    lat: String(lat),
+    lon: String(lon),
+    detailLat: String(lat),
+    detailLon: String(lon),
+    zoom: String(zoom),
+    level: 'surface',
+    overlay: 'radar',
+    product: 'radar',
+    menu: '',
+    message: 'true',
+    marker: 'true',
+    calendar: 'now',
+    pressure: '',
+    type: 'map',
+    location: 'coordinates',
+    detail: '',
+    metricWind: 'mph',
+    metricTemp: '°F',
+    radarRange: '-1'
+  });
+  return `https://embed.windy.com/embed2.html?${params.toString()}`;
+}
+
+function showWeatherRadarModal() {
+  if (isEditMode) return;
+  const modal = document.getElementById('weather-radar-modal');
+  const iframe = document.getElementById('weather-radar-iframe');
+  if (!modal || !iframe) return;
+
+  const radarUrl = getWindyRadarEmbedUrl();
+  if (iframe.src !== radarUrl) {
+    iframe.src = radarUrl;
+  }
+  modal.classList.add('active');
+}
+
+function closeWeatherRadarModal() {
+  const modal = document.getElementById('weather-radar-modal');
+  if (modal) modal.classList.remove('active');
 }
 
 // Show calendar event details modal

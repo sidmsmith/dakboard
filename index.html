@@ -606,11 +606,27 @@
   <div id="hourly-modal" class="modal">
     <div class="modal-content modal-large">
       <div class="modal-header">
-        <h2 id="hourly-modal-title">Hourly Forecast</h2>
+        <div class="hourly-modal-title-row">
+          <h2 id="hourly-modal-title">Hourly Forecast</h2>
+          <button type="button" class="hourly-radar-btn" id="open-weather-radar-btn" title="Open weather radar" aria-label="Open weather radar">📡</button>
+        </div>
         <button class="modal-close" id="close-hourly-modal">&times;</button>
       </div>
       <div id="hourly-forecast-content">
         <!-- Hourly forecast will be populated here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Weather Radar Modal (Windy embed) -->
+  <div id="weather-radar-modal" class="modal">
+    <div class="modal-content modal-large weather-radar-modal-content" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 id="weather-radar-modal-title">Weather Radar</h2>
+        <button class="modal-close" id="close-weather-radar-modal">&times;</button>
+      </div>
+      <div class="weather-radar-frame-wrap">
+        <iframe id="weather-radar-iframe" class="weather-radar-iframe" title="Weather radar" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
       </div>
     </div>
   </div>
