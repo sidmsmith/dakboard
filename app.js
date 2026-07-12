@@ -43,7 +43,8 @@ const CONFIG = {
   HA_COMPRESSOR_WEBHOOK: 'http://homeassistant.local:8123/api/webhook/compressor', // Air Compressor webhook
   
   // Refresh interval (milliseconds)
-  REFRESH_INTERVAL: 30000, // 30 seconds
+  REFRESH_INTERVAL: 30000, // 30 seconds — full dashboard
+  GARAGE_REFRESH_INTERVAL: 10000, // 10 seconds — garage doors only
   
   // Weather radar modal (Windy embed — Marietta / home area)
   WEATHER_RADAR_LAT: 33.9939,
@@ -3073,17 +3074,17 @@ async function toggleGarageDoor(doorElement) {
       loadGarageDoors();
     }, 1000);
     
-    // Trigger a full refresh after 2-3 seconds to ensure all widgets are updated
+    // Full refresh a bit later — doors can still be moving at 2.5s
     setTimeout(() => {
       loadAllData();
-    }, 2500);
+    }, 4000);
   } catch (error) {
     console.error('Error toggling garage door:', error);
     // Still show success message since the webhook likely worked
     // Still trigger full refresh
     setTimeout(() => {
       loadAllData();
-    }, 2500);
+    }, 4000);
   } finally {
     doorElement.classList.remove('loading');
   }
@@ -11207,6 +11208,13 @@ function startAutoRefresh() {
   setInterval(() => {
     loadAllData();
   }, CONFIG.REFRESH_INTERVAL);
+
+  // Garage doors need fresher status than the full dashboard poll
+  setInterval(() => {
+    if (typeof loadGarageDoors === 'function') {
+      loadGarageDoors();
+    }
+  }, CONFIG.GARAGE_REFRESH_INTERVAL || 10000);
 }
 
 // ==================== PAGE MANAGEMENT ====================
