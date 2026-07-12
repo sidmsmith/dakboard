@@ -940,6 +940,37 @@ function generateAdvancedTab() {
         </div>
       </div>
     </div>
+    <div class="styling-form-section">
+      <div class="styling-section-title">Weather Radar</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Radar location</label>
+          <div class="styling-form-control">
+            <select id="weather-radar-location-source" class="styling-select">
+              <option value="configured" ${(currentStyles.weatherRadarLocationSource || 'configured') !== 'device' ? 'selected' : ''}>Configured location</option>
+              <option value="device" ${currentStyles.weatherRadarLocationSource === 'device' ? 'selected' : ''}>Device location</option>
+            </select>
+          </div>
+        </div>
+        <div id="weather-radar-coords-row">
+          <div class="styling-form-row">
+            <label class="styling-form-label">Latitude</label>
+            <div class="styling-form-control">
+              <input type="number" id="weather-radar-lat" step="0.0001" value="${currentStyles.weatherRadarLat !== undefined ? currentStyles.weatherRadarLat : 33.9939}">
+            </div>
+          </div>
+          <div class="styling-form-row">
+            <label class="styling-form-label">Longitude</label>
+            <div class="styling-form-control">
+              <input type="number" id="weather-radar-lon" step="0.0001" value="${currentStyles.weatherRadarLon !== undefined ? currentStyles.weatherRadarLon : -84.4778}">
+            </div>
+          </div>
+        </div>
+        <div style="font-size: 12px; color: #888; margin-top: 4px;">
+          Configured lat/long centers the radar map. Device location asks the browser for GPS/Wi‑Fi location (falls back to configured if denied).
+        </div>
+      </div>
+    </div>
     ` : ''}
     ${isDiceWidget ? `
     <div class="styling-form-section">
@@ -3017,6 +3048,37 @@ function attachTabEventListeners(tabName) {
             currentStyles.weatherShowActualTempPrimary = e.target.checked;
           });
         }
+
+        const weatherRadarLocationSource = stylingModal.querySelector('#weather-radar-location-source');
+        const weatherRadarLat = stylingModal.querySelector('#weather-radar-lat');
+        const weatherRadarLon = stylingModal.querySelector('#weather-radar-lon');
+        const weatherRadarCoordsRow = stylingModal.querySelector('#weather-radar-coords-row');
+
+        const syncRadarCoordsVisibility = () => {
+          if (!weatherRadarCoordsRow || !weatherRadarLocationSource) return;
+          // Always show configured coords — used as primary or device fallback
+          weatherRadarCoordsRow.style.display = '';
+        };
+
+        if (weatherRadarLocationSource) {
+          weatherRadarLocationSource.addEventListener('change', (e) => {
+            currentStyles.weatherRadarLocationSource = e.target.value === 'device' ? 'device' : 'configured';
+            syncRadarCoordsVisibility();
+          });
+        }
+        if (weatherRadarLat) {
+          weatherRadarLat.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if (Number.isFinite(val)) currentStyles.weatherRadarLat = val;
+          });
+        }
+        if (weatherRadarLon) {
+          weatherRadarLon.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if (Number.isFinite(val)) currentStyles.weatherRadarLon = val;
+          });
+        }
+        syncRadarCoordsVisibility();
       }
     }
   }
@@ -4715,6 +4777,23 @@ function updateCurrentStylesFromForm() {
     currentStyles.weatherShowActualTempPrimary = weatherShowActualTempPrimary.checked;
   }
 
+  const weatherRadarLocationSource = stylingModal.querySelector('#weather-radar-location-source');
+  if (weatherRadarLocationSource) {
+    currentStyles.weatherRadarLocationSource = weatherRadarLocationSource.value === 'device' ? 'device' : 'configured';
+  }
+
+  const weatherRadarLat = stylingModal.querySelector('#weather-radar-lat');
+  if (weatherRadarLat) {
+    const lat = parseFloat(weatherRadarLat.value);
+    if (Number.isFinite(lat)) currentStyles.weatherRadarLat = lat;
+  }
+
+  const weatherRadarLon = stylingModal.querySelector('#weather-radar-lon');
+  if (weatherRadarLon) {
+    const lon = parseFloat(weatherRadarLon.value);
+    if (Number.isFinite(lon)) currentStyles.weatherRadarLon = lon;
+  }
+
   const clockFontColor = stylingModal.querySelector('#clock-font-color');
   const clockFontColorText = stylingModal.querySelector('#clock-font-color-text');
   if (clockFontColor && clockFontColorText) {
@@ -5678,7 +5757,10 @@ function loadWidgetStyles(fullWidgetId) {
         alarmEnableDisarm: false
       } : {}),
       ...(widgetType === 'weather-widget' ? {
-        weatherShowActualTempPrimary: false
+        weatherShowActualTempPrimary: false,
+        weatherRadarLocationSource: 'configured',
+        weatherRadarLat: 33.9939,
+        weatherRadarLon: -84.4778
       } : {})
     };
   }
@@ -5697,8 +5779,19 @@ function loadWidgetStyles(fullWidgetId) {
     currentStyles.alarmEnableDisarm = false;
   }
 
-  if (widgetType === 'weather-widget' && currentStyles.weatherShowActualTempPrimary === undefined) {
-    currentStyles.weatherShowActualTempPrimary = false;
+  if (widgetType === 'weather-widget') {
+    if (currentStyles.weatherShowActualTempPrimary === undefined) {
+      currentStyles.weatherShowActualTempPrimary = false;
+    }
+    if (currentStyles.weatherRadarLocationSource === undefined) {
+      currentStyles.weatherRadarLocationSource = 'configured';
+    }
+    if (currentStyles.weatherRadarLat === undefined) {
+      currentStyles.weatherRadarLat = 33.9939;
+    }
+    if (currentStyles.weatherRadarLon === undefined) {
+      currentStyles.weatherRadarLon = -84.4778;
+    }
   }
 
   if (widgetType === 'picker-wheel-widget' && !currentStyles.pickerWheelConfig) {

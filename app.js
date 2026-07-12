@@ -750,7 +750,7 @@ function initializeEventListeners() {
     openWeatherRadarBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      showWeatherRadarModal();
+      showWeatherRadarModal(weatherRadarContextWidget || getFirstVisibleWeatherWidget());
     });
   }
 
@@ -762,7 +762,9 @@ function initializeEventListeners() {
       if (!radarBtn) return;
       e.preventDefault();
       e.stopPropagation();
-      showWeatherRadarModal();
+      const widget = radarBtn.closest('.weather-widget');
+      weatherRadarContextWidget = widget;
+      showWeatherRadarModal(widget);
     });
   }
 
@@ -1408,15 +1410,15 @@ function closeHourlyModal() {
   document.getElementById('hourly-modal').classList.remove('active');
 }
 
-function getWindyRadarEmbedUrl() {
-  const lat = CONFIG.WEATHER_RADAR_LAT ?? 33.9939;
-  const lon = CONFIG.WEATHER_RADAR_LON ?? -84.4778;
+function getWindyRadarEmbedUrl(lat, lon) {
+  const resolvedLat = Number.isFinite(lat) ? lat : (CONFIG.WEATHER_RADAR_LAT ?? 33.9939);
+  const resolvedLon = Number.isFinite(lon) ? lon : (CONFIG.WEATHER_RADAR_LON ?? -84.4778);
   const zoom = CONFIG.WEATHER_RADAR_ZOOM ?? 8;
   const params = new URLSearchParams({
-    lat: String(lat),
-    lon: String(lon),
-    detailLat: String(lat),
-    detailLon: String(lon),
+    lat: String(resolvedLat),
+    lon: String(resolvedLon),
+    detailLat: String(resolvedLat),
+    detailLon: String(resolvedLon),
     zoom: String(zoom),
     level: 'surface',
     overlay: 'radar',
@@ -1436,17 +1438,116 @@ function getWindyRadarEmbedUrl() {
   return `https://embed.windy.com/embed2.html?${params.toString()}`;
 }
 
-function showWeatherRadarModal() {
+let weatherRadarContextWidget = null;
+
+function getDefaultWeatherRadarStyles() {
+  return {
+    weatherRadarLocationSource: 'configured',
+    weatherRadarLat: CONFIG.WEATHER_RADAR_LAT ?? 33.9939,
+    weatherRadarLon: CONFIG.WEATHER_RADAR_LON ?? -84.4778
+  };
+}
+
+function getWeatherRadarStylesForWidget(widget) {
+  const defaults = getDefaultWeatherRadarStyles();
+  if (!widget) return defaults;
+  const page = widget.closest('.dashboard.page');
+  const pageIndex = page ? parseInt(page.dataset.pageId, 10) : (window.currentPageIndex || 0);
+  const fullId = typeof resolveWidgetFullId === 'function'
+    ? resolveWidgetFullId(widget, pageIndex)
+    : null;
+  if (!fullId) return defaults;
+  try {
+    const saved = localStorage.getItem(`dakboard-widget-styles-${fullId}`);
+    if (!saved) return defaults;
+    const styles = JSON.parse(saved);
+    const lat = parseFloat(styles.weatherRadarLat);
+    const lon = parseFloat(styles.weatherRadarLon);
+    return {
+      weatherRadarLocationSource: styles.weatherRadarLocationSource === 'device' ? 'device' : 'configured',
+      weatherRadarLat: Number.isFinite(lat) ? lat : defaults.weatherRadarLat,
+      weatherRadarLon: Number.isFinite(lon) ? lon : defaults.weatherRadarLon
+    };
+  } catch (e) {
+    return defaults;
+  }
+}
+
+function getFirstVisibleWeatherWidget() {
+  const pageElement = typeof getPageElement === 'function'
+    ? getPageElement(currentPageIndex)
+    : document.querySelector(`.dashboard.page[data-page-id="${currentPageIndex}"]`);
+  if (!pageElement) return null;
+  return pageElement.querySelector('.weather-widget:not(.hidden)');
+}
+
+function resolveWeatherRadarCoordinates(radarStyles) {
+  const configured = {
+    lat: radarStyles.weatherRadarLat,
+    lon: radarStyles.weatherRadarLon
+  };
+
+  if (radarStyles.weatherRadarLocationSource !== 'device') {
+    return Promise.resolve({ ...configured, source: 'configured' });
+  }
+
+  if (!navigator.geolocation) {
+    if (typeof showToast === 'function') {
+      showToast('Location unavailable — using configured location', 2200);
+    }
+    return Promise.resolve({ ...configured, source: 'configured' });
+  }
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        resolve({
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+          source: 'device'
+        });
+      },
+      () => {
+        if (typeof showToast === 'function') {
+          showToast('Location denied — using configured location', 2200);
+        }
+        resolve({ ...configured, source: 'configured' });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 8000,
+        maximumAge: 60000
+      }
+    );
+  });
+}
+
+async function showWeatherRadarModal(widget) {
   if (isEditMode) return;
   const modal = document.getElementById('weather-radar-modal');
   const iframe = document.getElementById('weather-radar-iframe');
+  const title = document.getElementById('weather-radar-modal-title');
   if (!modal || !iframe) return;
 
-  const radarUrl = getWindyRadarEmbedUrl();
-  if (iframe.src !== radarUrl) {
-    iframe.src = radarUrl;
-  }
+  const sourceWidget = widget || weatherRadarContextWidget || getFirstVisibleWeatherWidget();
+  const radarStyles = getWeatherRadarStylesForWidget(sourceWidget);
+
+  if (title) title.textContent = 'Weather Radar';
+  iframe.removeAttribute('src');
   modal.classList.add('active');
+
+  try {
+    const coords = await resolveWeatherRadarCoordinates(radarStyles);
+    iframe.src = getWindyRadarEmbedUrl(coords.lat, coords.lon);
+    if (title) {
+      title.textContent = coords.source === 'device'
+        ? 'Weather Radar (Device Location)'
+        : 'Weather Radar';
+    }
+  } catch (error) {
+    console.error('Error loading weather radar:', error);
+    iframe.src = getWindyRadarEmbedUrl(radarStyles.weatherRadarLat, radarStyles.weatherRadarLon);
+  }
 }
 
 function closeWeatherRadarModal() {
@@ -2225,7 +2326,7 @@ function renderForecast(forecastData, attrs) {
   const currentTemp = attrs.temperature ? Math.round(attrs.temperature) : null;
   
   // Helper function to create a forecast item
-  function createForecastItem(day, index, range, minTemp, currentTemp) {
+  function createForecastItem(day, index, range, minTemp, currentTemp, forecastList) {
     const lowPercent = range > 0 ? ((day.low - minTemp) / range) * 100 : 0;
     const highPercent = range > 0 ? ((day.high - minTemp) / range) * 100 : 100;
     const barWidth = highPercent - lowPercent;
@@ -2295,14 +2396,15 @@ function renderForecast(forecastData, attrs) {
     
     // Add click handler to load hourly forecast (capture day data in closure)
     const dayOffsetForClick = day.dayOffset !== undefined ? day.dayOffset : index;
-    forecastItem.addEventListener('click', (function(offset, name, highTemp, lowTemp) {
+    forecastItem.addEventListener('click', (function(offset, name, highTemp, lowTemp, listEl) {
       return function(e) {
         e.stopPropagation();
         if (!isEditMode) {
+          weatherRadarContextWidget = listEl ? listEl.closest('.weather-widget') : null;
           showHourlyForecast(offset, name, highTemp, lowTemp);
         }
       };
-    })(dayOffsetForClick, day.dayName, day.high, day.low));
+    })(dayOffsetForClick, day.dayName, day.high, day.low, forecastList));
     
     return forecastItem;
   }
@@ -2315,7 +2417,7 @@ function renderForecast(forecastData, attrs) {
     
     // Add all forecast items directly to the list (no separate containers)
     forecastData.forEach((day, index) => {
-      const dayItem = createForecastItem(day, index, range, minTemp, currentTemp);
+      const dayItem = createForecastItem(day, index, range, minTemp, currentTemp, forecastList);
       forecastList.appendChild(dayItem);
     });
     
