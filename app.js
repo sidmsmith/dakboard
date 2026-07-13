@@ -45,6 +45,9 @@ const CONFIG = {
   // Refresh interval (milliseconds)
   REFRESH_INTERVAL: 30000, // 30 seconds — full dashboard
   GARAGE_REFRESH_INTERVAL: 10000, // 10 seconds — garage doors only
+  // After garage/alarm actions: poll ~1s until HA state changes or timeout, then resume normal cadence
+  ENTITY_FAST_WATCH_INTERVAL: 1000,
+  ENTITY_FAST_WATCH_TIMEOUT: 90000,
   
   // Weather radar modal (Windy embed — Marietta / home area)
   WEATHER_RADAR_LAT: 33.9939,
@@ -2925,6 +2928,102 @@ function updateGarageDoorElement(doorDiv, door, garageIcon, garageOpenIcon) {
   }
 }
 
+// --- Fast-watch: ~1s poll after garage/alarm actions until state changes or timeout ---
+const lastGarageDoorStates = {}; // doorId -> isOpen
+const garageFastWatch = {
+  active: false,
+  timerId: null,
+  deadline: 0,
+  baseline: {} // doorId -> isOpen at tap time
+};
+
+let lastAlarmIsArmed = null;
+const alarmFastWatch = {
+  active: false,
+  timerId: null,
+  deadline: 0,
+  baselineArmed: null
+};
+
+function getFastWatchInterval() {
+  return CONFIG.ENTITY_FAST_WATCH_INTERVAL || 1000;
+}
+
+function getFastWatchTimeout() {
+  return CONFIG.ENTITY_FAST_WATCH_TIMEOUT || 90000;
+}
+
+function stopGarageFastWatch() {
+  if (garageFastWatch.timerId) {
+    clearInterval(garageFastWatch.timerId);
+    garageFastWatch.timerId = null;
+  }
+  garageFastWatch.active = false;
+  garageFastWatch.baseline = {};
+  garageFastWatch.deadline = 0;
+}
+
+function checkGarageFastWatch() {
+  if (!garageFastWatch.active) return;
+  for (const doorId of Object.keys(garageFastWatch.baseline)) {
+    const prev = garageFastWatch.baseline[doorId];
+    if (Object.prototype.hasOwnProperty.call(lastGarageDoorStates, doorId) &&
+        lastGarageDoorStates[doorId] !== prev) {
+      delete garageFastWatch.baseline[doorId];
+    }
+  }
+  if (Object.keys(garageFastWatch.baseline).length === 0 || Date.now() >= garageFastWatch.deadline) {
+    stopGarageFastWatch();
+  }
+}
+
+function startGarageFastWatch(doorId, previousIsOpen) {
+  const id = String(doorId);
+  garageFastWatch.baseline[id] = previousIsOpen;
+  garageFastWatch.deadline = Date.now() + getFastWatchTimeout();
+  if (garageFastWatch.active) {
+    checkGarageFastWatch();
+    return;
+  }
+  garageFastWatch.active = true;
+  loadGarageDoors().then(() => checkGarageFastWatch());
+  garageFastWatch.timerId = setInterval(() => {
+    loadGarageDoors().then(() => checkGarageFastWatch());
+  }, getFastWatchInterval());
+}
+
+function stopAlarmFastWatch() {
+  if (alarmFastWatch.timerId) {
+    clearInterval(alarmFastWatch.timerId);
+    alarmFastWatch.timerId = null;
+  }
+  alarmFastWatch.active = false;
+  alarmFastWatch.baselineArmed = null;
+  alarmFastWatch.deadline = 0;
+}
+
+function checkAlarmFastWatch() {
+  if (!alarmFastWatch.active) return;
+  const changed = lastAlarmIsArmed !== null && lastAlarmIsArmed !== alarmFastWatch.baselineArmed;
+  if (changed || Date.now() >= alarmFastWatch.deadline) {
+    stopAlarmFastWatch();
+  }
+}
+
+function startAlarmFastWatch(previousIsArmed) {
+  alarmFastWatch.baselineArmed = previousIsArmed;
+  alarmFastWatch.deadline = Date.now() + getFastWatchTimeout();
+  if (alarmFastWatch.active) {
+    checkAlarmFastWatch();
+    return;
+  }
+  alarmFastWatch.active = true;
+  loadAlarm().then(() => checkAlarmFastWatch());
+  alarmFastWatch.timerId = setInterval(() => {
+    loadAlarm().then(() => checkAlarmFastWatch());
+  }, getFastWatchInterval());
+}
+
 // Load garage doors from HA (parallel fetch; update existing rows in place)
 async function loadGarageDoors() {
   const doors = [
@@ -2960,6 +3059,10 @@ async function loadGarageDoors() {
     isOpen: isGarageDoorOpen(entities[i])
   }));
 
+  doorStates.forEach(door => {
+    lastGarageDoorStates[String(door.id)] = door.isOpen;
+  });
+
   containers.forEach(container => {
     const existing = Array.from(container.querySelectorAll('.garage-door'));
     const canUpdateInPlace = existing.length === doorStates.length &&
@@ -2977,6 +3080,8 @@ async function loadGarageDoors() {
       container.appendChild(createGarageDoorElement(door, garageIcon, garageOpenIcon));
     });
   });
+
+  checkGarageFastWatch();
 }
 
 // Show toast notification
@@ -3014,39 +3119,27 @@ function showToast(message, duration = 1000) {
 async function toggleGarageDoor(doorElement) {
   // Don't allow interaction in edit mode
   if (isEditMode) return;
-  
+
   const webhookId = doorElement.dataset.webhookId;
   if (!webhookId) {
     console.error('No webhook ID for garage door');
     return;
   }
-  
+
+  const doorId = doorElement.dataset.doorId;
+  const previousIsOpen = doorElement.classList.contains('open');
+
   doorElement.classList.add('loading');
-  
-  // Show toast notification immediately
   showToast('Garage Button Pressed', 1500);
-  
+
   try {
     await triggerHAWebhook(webhookId);
-    
-    // Reload garage doors after a short delay to get updated state
-    setTimeout(() => {
-      loadGarageDoors();
-    }, 1000);
-    
-    // Full refresh a bit later — doors can still be moving at 2.5s
-    setTimeout(() => {
-      loadAllData();
-    }, 4000);
   } catch (error) {
     console.error('Error toggling garage door:', error);
-    // Still show success message since the webhook likely worked
-    // Still trigger full refresh
-    setTimeout(() => {
-      loadAllData();
-    }, 4000);
+    // Webhook may still have fired — watch HA state either way
   } finally {
     doorElement.classList.remove('loading');
+    if (doorId != null) startGarageFastWatch(doorId, previousIsOpen);
   }
 }
 
@@ -3073,7 +3166,8 @@ async function loadAlarm() {
     
     const state = entity.state;
     const isArmed = state === 'armed_away' || state === 'armed_home' || state === 'armed_night';
-    
+    lastAlarmIsArmed = isArmed;
+
     // Update each alarm widget instance
     instances.forEach(instance => {
       const widget = instance.element;
@@ -3120,6 +3214,7 @@ async function loadAlarm() {
         icon.onclick = null;
       }
     });
+    checkAlarmFastWatch();
   } catch (error) {
     console.error('Error loading alarm:', error);
     const pageElement = getPageElement(currentPageIndex);
@@ -3168,7 +3263,8 @@ function setAlarmIconsLoading(isLoading) {
 // Set alarm (only works when disarmed) — local-only webhook
 async function setAlarm() {
   if (isEditMode) return;
-  
+
+  let previousIsArmed = false;
   const pageElement = getPageElement(currentPageIndex);
   if (pageElement) {
     const instances = getWidgetInstances('alarm-widget', currentPageIndex);
@@ -3178,22 +3274,20 @@ async function setAlarm() {
       if (firstStatusDiv && firstStatusDiv.classList.contains('armed')) {
         return;
       }
+      previousIsArmed = !!(firstStatusDiv && firstStatusDiv.classList.contains('armed'));
     }
   }
-  
+
   setAlarmIconsLoading(true);
   showToast('Arming Alarm...', 1500);
-  
+
   try {
     await triggerLocalHAWebhook(CONFIG.HA_ALARM_WEBHOOK);
-    setTimeout(() => loadAlarm(), 1000);
-    setTimeout(() => loadAllData(), 2500);
   } catch (error) {
     console.error('Error setting alarm:', error);
-    setTimeout(() => loadAlarm(), 1000);
-    setTimeout(() => loadAllData(), 2500);
   } finally {
     setAlarmIconsLoading(false);
+    startAlarmFastWatch(previousIsArmed);
   }
 }
 
@@ -3201,6 +3295,7 @@ async function setAlarm() {
 async function disarmAlarm() {
   if (isEditMode) return;
 
+  let previousIsArmed = true;
   const pageElement = getPageElement(currentPageIndex);
   if (pageElement) {
     const instances = getWidgetInstances('alarm-widget', currentPageIndex);
@@ -3210,6 +3305,7 @@ async function disarmAlarm() {
       if (firstStatusDiv && firstStatusDiv.classList.contains('disarmed')) {
         return;
       }
+      previousIsArmed = !!(firstStatusDiv && firstStatusDiv.classList.contains('armed'));
     }
   }
 
@@ -3218,14 +3314,11 @@ async function disarmAlarm() {
 
   try {
     await triggerLocalHAWebhook(CONFIG.HA_ALARM_DISARM_WEBHOOK);
-    setTimeout(() => loadAlarm(), 1000);
-    setTimeout(() => loadAllData(), 2500);
   } catch (error) {
     console.error('Error disarming alarm:', error);
-    setTimeout(() => loadAlarm(), 1000);
-    setTimeout(() => loadAllData(), 2500);
   } finally {
     setAlarmIconsLoading(false);
+    startAlarmFastWatch(previousIsArmed);
   }
 }
 
@@ -11171,6 +11264,7 @@ function startAutoRefresh() {
 
   // Garage doors need fresher status than the full dashboard poll
   setInterval(() => {
+    if (garageFastWatch.active) return; // fast-watch owns cadence after a tap
     if (typeof loadGarageDoors === 'function') {
       loadGarageDoors();
     }
