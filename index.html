@@ -695,6 +695,63 @@
     </div>
   </div>
 
+  <!-- Create Google Calendar Event Modal -->
+  <div id="create-google-event-modal" class="modal">
+    <div class="modal-content create-google-event-modal-content" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2>New Event</h2>
+        <button class="modal-close" id="close-create-google-event-modal">&times;</button>
+      </div>
+      <form id="create-google-event-form" class="create-google-event-form">
+        <label class="create-event-field">
+          <span>Calendar</span>
+          <select id="create-event-calendar" required></select>
+        </label>
+        <label class="create-event-field">
+          <span>Title</span>
+          <input type="text" id="create-event-title" required maxlength="200" placeholder="Event title" />
+        </label>
+        <label class="create-event-checkbox">
+          <input type="checkbox" id="create-event-all-day" />
+          <span>All day</span>
+        </label>
+        <div id="create-event-timed-fields" class="create-event-row">
+          <label class="create-event-field">
+            <span>Start</span>
+            <input type="datetime-local" id="create-event-start" required />
+          </label>
+          <label class="create-event-field">
+            <span>End</span>
+            <input type="datetime-local" id="create-event-end" required />
+          </label>
+        </div>
+        <div id="create-event-allday-fields" class="create-event-row" hidden>
+          <label class="create-event-field">
+            <span>Start date</span>
+            <input type="date" id="create-event-start-date" />
+          </label>
+          <label class="create-event-field">
+            <span>End date</span>
+            <input type="date" id="create-event-end-date" />
+          </label>
+        </div>
+        <label class="create-event-field">
+          <span>Location (optional)</span>
+          <input type="text" id="create-event-location" maxlength="300" placeholder="Where" />
+        </label>
+        <label class="create-event-field">
+          <span>Description (optional)</span>
+          <textarea id="create-event-description" rows="3" maxlength="2000" placeholder="Notes"></textarea>
+        </label>
+        <p id="create-event-status" class="create-event-status" hidden></p>
+        <div class="create-event-actions">
+          <button type="button" class="create-event-btn secondary" id="create-event-cancel">Cancel</button>
+          <button type="submit" class="create-event-btn primary" id="create-event-submit">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Daily Agenda Modal -->
   <div id="daily-agenda-modal" class="modal">
     <div class="modal-content modal-large" onclick="event.stopPropagation()">

@@ -1302,6 +1302,30 @@ function generateAdvancedTab() {
         </div>
       </div>
     </div>
+    ${isAgendaDirectWidget ? `
+    <div class="styling-form-section">
+      <div class="styling-section-title">Add Event</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Show + button</label>
+          <div class="styling-form-control">
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="google-show-add-event" ${currentStyles.googleShowAddEvent !== false ? 'checked' : ''}>
+              <span>Show add-event button on this widget</span>
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Default calendar</label>
+          <div class="styling-form-control">
+            <select id="google-default-calendar" class="styling-select" style="width: 100%;">
+              <option value="">First available</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    ` : ''}
     <div class="styling-form-section">
       <div class="styling-section-title">Agenda Card Styling</div>
       <div class="styling-form-group">
@@ -1556,6 +1580,30 @@ function generateAdvancedTab() {
         </div>
       </div>
     </div>
+    ${isCalendarDirectWidget ? `
+    <div class="styling-form-section">
+      <div class="styling-section-title">Add Event</div>
+      <div class="styling-form-group">
+        <div class="styling-form-row">
+          <label class="styling-form-label">Show + button</label>
+          <div class="styling-form-control">
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="google-show-add-event" ${currentStyles.googleShowAddEvent !== false ? 'checked' : ''}>
+              <span>Show add-event button on this widget</span>
+            </label>
+          </div>
+        </div>
+        <div class="styling-form-row">
+          <label class="styling-form-label">Default calendar</label>
+          <div class="styling-form-control">
+            <select id="google-default-calendar" class="styling-select" style="width: 100%;">
+              <option value="">First available</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    ` : ''}
     <div class="styling-form-section">
       <div class="styling-section-title">Calendar Day Colors</div>
       <div class="styling-form-group">
@@ -3143,6 +3191,13 @@ function attachTabEventListeners(tabName) {
 
       if (widgetType === 'calendar-widget' || widgetType === 'calendar-direct-widget' || widgetType === 'agenda-widget' || widgetType === 'agenda-direct-widget') {
         populateCalendarVisibilityList();
+        const googleShowAddEvent = stylingModal.querySelector('#google-show-add-event');
+        if (googleShowAddEvent && !googleShowAddEvent.dataset.listenerAttached) {
+          googleShowAddEvent.dataset.listenerAttached = 'true';
+          googleShowAddEvent.addEventListener('change', () => {
+            currentStyles.googleShowAddEvent = googleShowAddEvent.checked;
+          });
+        }
       }
     }
   }
@@ -3290,6 +3345,31 @@ async function populateCalendarVisibilityList() {
         syncCalendarColorsFromForm();
         updatePreview();
       });
+    });
+  }
+
+  populateGoogleDefaultCalendarSelect(calendars);
+}
+
+async function populateGoogleDefaultCalendarSelect(calendars) {
+  const stylingModal = document.getElementById('styling-modal');
+  if (!stylingModal) return;
+  const select = stylingModal.querySelector('#google-default-calendar');
+  if (!select) return;
+
+  const current = currentStyles.defaultGoogleCalendarId || '';
+  select.innerHTML = `<option value="">First available</option>` + (calendars || []).map(cal => {
+    const id = cal.id || cal;
+    const name = cal.name || String(id);
+    const selected = id === current ? 'selected' : '';
+    return `<option value="${String(id).replace(/"/g, '&quot;')}" ${selected}>${String(name).replace(/</g, '&lt;')}</option>`;
+  }).join('');
+
+  if (!select.dataset.listenerAttached) {
+    select.dataset.listenerAttached = 'true';
+    select.addEventListener('change', () => {
+      currentStyles.defaultGoogleCalendarId = select.value || '';
+      updatePreview();
     });
   }
 }
@@ -4846,6 +4926,15 @@ function updateCurrentStylesFromForm() {
   // Calendar / agenda visible-calendar checkboxes (unchecked = hidden)
   syncHiddenCalendarsFromForm();
   syncCalendarColorsFromForm();
+
+  const googleShowAddEvent = stylingModal.querySelector('#google-show-add-event');
+  if (googleShowAddEvent) {
+    currentStyles.googleShowAddEvent = googleShowAddEvent.checked;
+  }
+  const googleDefaultCalendar = stylingModal.querySelector('#google-default-calendar');
+  if (googleDefaultCalendar) {
+    currentStyles.defaultGoogleCalendarId = googleDefaultCalendar.value || '';
+  }
   
   // Dice widget colors
   const diceFaceColor = stylingModal.querySelector('#dice-face-color');
@@ -5989,7 +6078,11 @@ function loadWidgetStyles(fullWidgetId) {
       } : {}),
       ...((widgetType === 'calendar-widget' || widgetType === 'calendar-direct-widget' || widgetType === 'agenda-widget' || widgetType === 'agenda-direct-widget') ? {
         hiddenCalendars: [],
-        ...((widgetType === 'agenda-direct-widget' || widgetType === 'calendar-direct-widget') ? { calendarColors: {} } : {})
+        ...((widgetType === 'agenda-direct-widget' || widgetType === 'calendar-direct-widget') ? {
+          calendarColors: {},
+          googleShowAddEvent: true,
+          defaultGoogleCalendarId: ''
+        } : {})
       } : {})
     };
   }
@@ -6031,6 +6124,14 @@ function loadWidgetStyles(fullWidgetId) {
   if ((widgetType === 'agenda-direct-widget' || widgetType === 'calendar-direct-widget') &&
       (!currentStyles.calendarColors || typeof currentStyles.calendarColors !== 'object' || Array.isArray(currentStyles.calendarColors))) {
     currentStyles.calendarColors = {};
+  }
+  if ((widgetType === 'agenda-direct-widget' || widgetType === 'calendar-direct-widget') &&
+      currentStyles.googleShowAddEvent === undefined) {
+    currentStyles.googleShowAddEvent = true;
+  }
+  if ((widgetType === 'agenda-direct-widget' || widgetType === 'calendar-direct-widget') &&
+      currentStyles.defaultGoogleCalendarId === undefined) {
+    currentStyles.defaultGoogleCalendarId = '';
   }
 
   if (widgetType === 'picker-wheel-widget' && !currentStyles.pickerWheelConfig) {

@@ -3,46 +3,14 @@
 
 import ical from 'node-ical';
 import rrulePkg from 'rrule';
+import { parseGoogleCalendarConfigs } from './lib/google-calendar-oauth.js';
+
 const { RRule } = rrulePkg;
 
 const DEFAULT_COLOR = '#0f9d58';
 
 function parseCalendarConfigs() {
-  const configs = [];
-
-  // Multi-calendar JSON: [{"id","name","url","color"}]
-  const multi = process.env.GOOGLE_CALENDAR_ICS_URLS;
-  if (multi) {
-    try {
-      const parsed = JSON.parse(multi);
-      if (Array.isArray(parsed)) {
-        parsed.forEach((entry, index) => {
-          if (!entry?.url) return;
-          configs.push({
-            id: entry.id || `google-cal-${index + 1}`,
-            name: entry.name || entry.id || `Google Calendar ${index + 1}`,
-            url: String(entry.url).trim(),
-            color: entry.color || DEFAULT_COLOR
-          });
-        });
-      }
-    } catch (e) {
-      console.error('Invalid GOOGLE_CALENDAR_ICS_URLS JSON');
-    }
-  }
-
-  // Single-calendar convenience vars
-  const singleUrl = process.env.GOOGLE_CALENDAR_ICS_URL;
-  if (singleUrl && configs.length === 0) {
-    configs.push({
-      id: process.env.GOOGLE_CALENDAR_ICS_ID || 'google.smithfamily',
-      name: process.env.GOOGLE_CALENDAR_ICS_NAME || 'Smith Family Calendar',
-      url: String(singleUrl).trim(),
-      color: process.env.GOOGLE_CALENDAR_ICS_COLOR || DEFAULT_COLOR
-    });
-  }
-
-  return configs;
+  return parseGoogleCalendarConfigs();
 }
 
 function toIso(date) {
@@ -211,7 +179,8 @@ async function fetchAndParseCalendar(config, rangeStart, rangeEnd) {
     calendar: {
       id: config.id,
       name: config.name || calName,
-      color: config.color || DEFAULT_COLOR
+      color: config.color || DEFAULT_COLOR,
+      googleCalendarId: config.googleCalendarId || null
     },
     events
   };

@@ -147,6 +147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initializeCalendar();
   initializeClock(); // Initialize clock
   initializeEventListeners();
+  initializeCreateGoogleEventModal();
   initializeAnnotationCanvas(); // Initialize annotation system
   initializeAnnotationListeners(); // Set up annotation event listeners
   
@@ -370,7 +371,8 @@ function updateAvailableGoogleCalendarsFromPayload(calendars, events) {
     byId.set(id, {
       id,
       name: (typeof cal === 'object' && cal.name) || fallbackCalendarName(id),
-      color: (typeof cal === 'object' && cal.color) || '#0f9d58'
+      color: (typeof cal === 'object' && cal.color) || '#0f9d58',
+      googleCalendarId: (typeof cal === 'object' && cal.googleCalendarId) || null
     });
   });
   (events || []).forEach(event => {
@@ -449,6 +451,266 @@ async function loadGoogleCalendarEvents(rangeStart, rangeEnd) {
 
 window.loadGoogleCalendarEvents = loadGoogleCalendarEvents;
 window.ensureAvailableGoogleCalendars = ensureAvailableGoogleCalendars;
+
+let createGoogleEventContextWidgetId = null;
+let googleCalendarWriteConfigured = null;
+
+function toDatetimeLocalValue(date) {
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function toDateInputValue(date) {
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function getGoogleDirectWidgetStyles(fullWidgetId) {
+  if (!fullWidgetId) return {};
+  try {
+    const saved = localStorage.getItem(`dakboard-widget-styles-${fullWidgetId}`);
+    return saved ? JSON.parse(saved) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function shouldShowGoogleAddEventButton(fullWidgetId) {
+  const styles = getGoogleDirectWidgetStyles(fullWidgetId);
+  return styles.googleShowAddEvent !== false;
+}
+
+function ensureGoogleAddEventButton(widget, fullWidgetId) {
+  if (!widget || !fullWidgetId) return;
+  if (!isGoogleDirectWidgetId(fullWidgetId)) return;
+
+  const header = widget.querySelector('.widget-header');
+  const title = header?.querySelector('.widget-title');
+  if (!header || !title) return;
+
+  let btn = header.querySelector('.google-add-event-btn');
+  if (!shouldShowGoogleAddEventButton(fullWidgetId)) {
+    if (btn) btn.remove();
+    return;
+  }
+
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'google-add-event-btn';
+    btn.title = 'Add event';
+    btn.setAttribute('aria-label', 'Add event');
+    btn.textContent = '+';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof isEditMode !== 'undefined' && isEditMode) return;
+      openCreateGoogleEventModal(fullWidgetId);
+    });
+    title.appendChild(btn);
+  }
+}
+
+async function refreshGoogleCalendarWriteStatus() {
+  try {
+    const response = await fetch('/api/google-calendar-create');
+    if (!response.ok) {
+      googleCalendarWriteConfigured = false;
+      return false;
+    }
+    const data = await response.json();
+    googleCalendarWriteConfigured = !!data.configured;
+    if (Array.isArray(data.calendars) && data.calendars.length) {
+      updateAvailableGoogleCalendarsFromPayload(data.calendars, googleCalendarEvents);
+    }
+    return googleCalendarWriteConfigured;
+  } catch (e) {
+    googleCalendarWriteConfigured = false;
+    return false;
+  }
+}
+
+function syncCreateEventAllDayFields() {
+  const allDay = document.getElementById('create-event-all-day')?.checked;
+  const timed = document.getElementById('create-event-timed-fields');
+  const dates = document.getElementById('create-event-allday-fields');
+  const start = document.getElementById('create-event-start');
+  const end = document.getElementById('create-event-end');
+  const startDate = document.getElementById('create-event-start-date');
+  const endDate = document.getElementById('create-event-end-date');
+  if (timed) timed.hidden = !!allDay;
+  if (dates) dates.hidden = !allDay;
+  if (start) start.required = !allDay;
+  if (end) end.required = !allDay;
+  if (startDate) startDate.required = !!allDay;
+  if (endDate) endDate.required = !!allDay;
+}
+
+async function openCreateGoogleEventModal(fullWidgetId, presetDate = null) {
+  createGoogleEventContextWidgetId = fullWidgetId || null;
+  const modal = document.getElementById('create-google-event-modal');
+  const form = document.getElementById('create-google-event-form');
+  const status = document.getElementById('create-event-status');
+  const calendarSelect = document.getElementById('create-event-calendar');
+  if (!modal || !form || !calendarSelect) return;
+
+  if (status) {
+    status.hidden = true;
+    status.textContent = '';
+    status.className = 'create-event-status';
+  }
+
+  await ensureAvailableGoogleCalendars();
+  if (googleCalendarWriteConfigured === null) {
+    await refreshGoogleCalendarWriteStatus();
+  }
+
+  const calendars = typeof window.getAvailableGoogleCalendars === 'function'
+    ? window.getAvailableGoogleCalendars()
+    : availableGoogleCalendars;
+  const styles = getGoogleDirectWidgetStyles(fullWidgetId);
+  const defaultId = styles.defaultGoogleCalendarId || '';
+
+  calendarSelect.innerHTML = (calendars || []).map(cal => {
+    const id = cal.id;
+    const selected = id === defaultId ? 'selected' : '';
+    const label = cal.name || id;
+    return `<option value="${String(id).replace(/"/g, '&quot;')}" ${selected}>${String(label).replace(/</g, '&lt;')}</option>`;
+  }).join('');
+
+  if (!calendarSelect.options.length) {
+    calendarSelect.innerHTML = '<option value="">No calendars configured</option>';
+  } else if (!defaultId) {
+    calendarSelect.selectedIndex = 0;
+  }
+
+  const base = presetDate ? new Date(presetDate) : new Date();
+  base.setSeconds(0, 0);
+  base.setMinutes(Math.ceil(base.getMinutes() / 15) * 15);
+  const end = new Date(base.getTime() + 60 * 60 * 1000);
+
+  const titleInput = document.getElementById('create-event-title');
+  const allDay = document.getElementById('create-event-all-day');
+  const start = document.getElementById('create-event-start');
+  const endInput = document.getElementById('create-event-end');
+  const startDate = document.getElementById('create-event-start-date');
+  const endDate = document.getElementById('create-event-end-date');
+  const location = document.getElementById('create-event-location');
+  const description = document.getElementById('create-event-description');
+
+  if (titleInput) titleInput.value = '';
+  if (allDay) allDay.checked = false;
+  if (start) start.value = toDatetimeLocalValue(base);
+  if (endInput) endInput.value = toDatetimeLocalValue(end);
+  if (startDate) startDate.value = toDateInputValue(base);
+  if (endDate) endDate.value = toDateInputValue(base);
+  if (location) location.value = '';
+  if (description) description.value = '';
+  syncCreateEventAllDayFields();
+
+  if (googleCalendarWriteConfigured === false) {
+    if (status) {
+      status.hidden = false;
+      status.className = 'create-event-status error';
+      status.innerHTML = 'Google write is not connected yet. Admin: open <a href="/api/google-calendar-auth" target="_blank" rel="noopener">/api/google-calendar-auth</a> once, then set the refresh token in Vercel.';
+    }
+  }
+
+  modal.classList.add('active');
+  titleInput?.focus();
+}
+
+function closeCreateGoogleEventModal() {
+  const modal = document.getElementById('create-google-event-modal');
+  if (modal) modal.classList.remove('active');
+  createGoogleEventContextWidgetId = null;
+}
+
+async function submitCreateGoogleEvent(event) {
+  event.preventDefault();
+  const status = document.getElementById('create-event-status');
+  const submitBtn = document.getElementById('create-event-submit');
+  const calendar = document.getElementById('create-event-calendar')?.value;
+  const title = document.getElementById('create-event-title')?.value?.trim();
+  const allDay = !!document.getElementById('create-event-all-day')?.checked;
+  const location = document.getElementById('create-event-location')?.value?.trim() || '';
+  const description = document.getElementById('create-event-description')?.value?.trim() || '';
+
+  if (!title) return;
+
+  const payload = {
+    calendar,
+    title,
+    allDay,
+    location: location || undefined,
+    description: description || undefined,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York'
+  };
+
+  if (allDay) {
+    payload.startDate = document.getElementById('create-event-start-date')?.value;
+    payload.endDate = document.getElementById('create-event-end-date')?.value || payload.startDate;
+  } else {
+    const startLocal = document.getElementById('create-event-start')?.value;
+    const endLocal = document.getElementById('create-event-end')?.value;
+    payload.start = startLocal ? new Date(startLocal).toISOString() : null;
+    payload.end = endLocal ? new Date(endLocal).toISOString() : null;
+  }
+
+  if (submitBtn) submitBtn.disabled = true;
+  if (status) {
+    status.hidden = false;
+    status.className = 'create-event-status';
+    status.textContent = 'Creating event...';
+  }
+
+  try {
+    const response = await fetch('/api/google-calendar-create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.message || data.error || 'Failed to create event');
+    }
+
+    if (status) {
+      status.className = 'create-event-status ok';
+      status.textContent = 'Event created. Refreshing...';
+    }
+
+    await loadGoogleCalendarEvents();
+    closeCreateGoogleEventModal();
+  } catch (error) {
+    if (status) {
+      status.hidden = false;
+      status.className = 'create-event-status error';
+      status.textContent = error.message || 'Failed to create event';
+    }
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+function initializeCreateGoogleEventModal() {
+  const modal = document.getElementById('create-google-event-modal');
+  if (!modal || modal.dataset.listenerAttached) return;
+  modal.dataset.listenerAttached = 'true';
+
+  document.getElementById('close-create-google-event-modal')?.addEventListener('click', closeCreateGoogleEventModal);
+  document.getElementById('create-event-cancel')?.addEventListener('click', closeCreateGoogleEventModal);
+  document.getElementById('create-event-all-day')?.addEventListener('change', syncCreateEventAllDayFields);
+  document.getElementById('create-google-event-form')?.addEventListener('submit', submitCreateGoogleEvent);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeCreateGoogleEventModal();
+  });
+}
+
+window.openCreateGoogleEventModal = openCreateGoogleEventModal;
 
 function filterEventsByHiddenList(events, hiddenList) {
   if (!Array.isArray(events)) return [];
@@ -1398,7 +1660,10 @@ function renderCalendar() {
     const weekRange = widget.querySelector('#week-range');
     // Use fullId (not fullWidgetId) - getWidgetInstances returns fullId
     const fullWidgetId = instance.fullId || instance.fullWidgetId;
-    if (grid) calendarWidgets.push({ grid, weekRange, fullWidgetId });
+    if (grid) {
+      ensureGoogleAddEventButton(widget, fullWidgetId);
+      calendarWidgets.push({ grid, weekRange, fullWidgetId });
+    }
   });
   
   if (calendarWidgets.length === 0) return;
@@ -6044,6 +6309,7 @@ function loadAgenda() {
     }
 
     setupAgendaNavigation(fullWidgetId, container);
+    ensureGoogleAddEventButton(widget, fullWidgetId);
     renderAgenda(fullWidgetId, container);
   });
 }

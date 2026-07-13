@@ -2284,6 +2284,128 @@ body {
   justify-content: center;
 }
 
+.create-google-event-modal-content {
+  width: min(480px, 94vw);
+  max-width: 480px;
+}
+
+.create-google-event-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.create-event-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #ddd;
+  font-size: 13px;
+}
+
+.create-event-field input,
+.create-event-field select,
+.create-event-field textarea {
+  background: #1f1f1f;
+  border: 1px solid #444;
+  border-radius: 8px;
+  color: #fff;
+  padding: 10px 12px;
+  font-size: 15px;
+}
+
+.create-event-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ddd;
+  font-size: 14px;
+}
+
+.create-event-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.create-event-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.create-event-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.create-event-btn.primary {
+  background: #0f9d58;
+  color: #fff;
+}
+
+.create-event-btn.secondary {
+  background: #3a3a3a;
+  color: #eee;
+}
+
+.create-event-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.create-event-status {
+  font-size: 13px;
+  margin: 0;
+}
+
+.create-event-status.error {
+  color: #f1948a;
+}
+
+.create-event-status.ok {
+  color: #7dcea0;
+}
+
+.google-add-event-btn {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: inherit;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.google-add-event-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.widget-header .widget-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .create-event-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .modal-content {
   background: #2a2a2a;
   border-radius: 12px;
