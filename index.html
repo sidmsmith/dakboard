@@ -830,7 +830,13 @@
       <div class="modal-header">
         <div class="daily-agenda-nav">
           <button class="daily-agenda-nav-btn" id="prev-day-btn" title="Previous Day">‹</button>
-          <h2 id="daily-agenda-title">Daily Agenda</h2>
+          <div class="daily-agenda-title-wrap">
+            <span class="daily-agenda-title-side" aria-hidden="true"></span>
+            <h2 id="daily-agenda-title">Daily Agenda</h2>
+            <span class="daily-agenda-title-side">
+              <button type="button" class="google-add-event-btn daily-agenda-add-event-btn" id="daily-agenda-add-event-btn" title="Add event" aria-label="Add event" hidden>+</button>
+            </span>
+          </div>
           <button class="daily-agenda-nav-btn" id="next-day-btn" title="Next Day">›</button>
         </div>
         <button class="modal-close" id="close-daily-agenda-modal">&times;</button>

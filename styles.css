@@ -680,8 +680,49 @@ body {
 .daily-agenda-nav {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   flex: 1;
+  min-width: 0;
+}
+
+.daily-agenda-title-wrap {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  min-width: 0;
+}
+
+.daily-agenda-title-wrap h2 {
+  margin: 0;
+  text-align: center;
+  grid-column: 2;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+}
+
+.daily-agenda-title-side {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+}
+
+.daily-agenda-title-side:first-child {
+  grid-column: 1;
+  justify-content: flex-end;
+  padding-right: 8px;
+}
+
+.daily-agenda-title-side:last-child {
+  grid-column: 3;
+  justify-content: flex-start;
+  padding-left: 28px;
+}
+
+.daily-agenda-add-event-btn {
+  width: 36px;
+  height: 36px;
 }
 
 .daily-agenda-nav-btn {
@@ -2319,6 +2360,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Keep event/create modals above the daily agenda when stacked */
+#event-modal.active,
+#create-google-event-modal.active {
+  z-index: 1100;
 }
 
 .create-google-event-modal-content {

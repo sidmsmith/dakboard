@@ -680,6 +680,7 @@ function mergeCreatedGoogleEvent(apiEvent, calendarInternalId, extras = {}) {
   if (typeof renderCalendar === 'function') renderCalendar();
   if (typeof loadAgenda === 'function') loadAgenda();
   refreshOpenMonthModal();
+  refreshOpenDailyAgendaModal();
 }
 
 /** Re-render the full-month modal from in-memory events (optimistic creates + ICS). */
@@ -702,6 +703,13 @@ function refreshOpenMonthModal() {
   events = deduplicateEvents(events);
   events = filterEventsForWidget(events, calendarViewContextWidgetId);
   renderMonthCalendar(content, year, month, events);
+}
+
+/** Re-render the day agenda modal if it is open (e.g. after optimistic create). */
+function refreshOpenDailyAgendaModal() {
+  const modal = document.getElementById('daily-agenda-modal');
+  if (!modal || !modal.classList.contains('active') || !currentAgendaDate) return;
+  loadDailyAgendaForDate(currentAgendaDate);
 }
 
 async function refreshGoogleCalendarWriteStatus() {
@@ -3425,18 +3433,19 @@ function loadDailyAgendaForDate(date) {
   
   content.innerHTML = agendaHTML;
   
-  // Add click handlers to events to show details
+  // Add click handlers to events to show details (keep day modal open underneath)
   content.querySelectorAll('.daily-agenda-event').forEach(eventEl => {
     eventEl.style.cursor = 'pointer';
     eventEl.addEventListener('click', () => {
       const eventId = eventEl.dataset.eventId;
       const event = sortedEvents.find(e => (e.uid || '') === eventId);
       if (event) {
-        closeDailyAgendaModal();
-        setTimeout(() => showEventDetails(event), 100);
+        showEventDetails(event, calendarViewContextWidgetId);
       }
     });
   });
+
+  updateDailyAgendaAddButton();
   
   // Show modal if not already visible
   if (!modal.classList.contains('active')) {
@@ -3445,6 +3454,26 @@ function loadDailyAgendaForDate(date) {
   
   // Set up navigation button event listeners
   setupDailyAgendaNavigation();
+}
+
+function updateDailyAgendaAddButton() {
+  const btn = document.getElementById('daily-agenda-add-event-btn');
+  if (!btn) return;
+
+  const show =
+    supportsGoogleAddEvent(calendarViewContextWidgetId) &&
+    shouldShowGoogleAddEventButton(calendarViewContextWidgetId);
+  btn.hidden = !show;
+
+  if (!btn.dataset.listenerAttached) {
+    btn.dataset.listenerAttached = 'true';
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof isEditMode !== 'undefined' && isEditMode) return;
+      openCreateGoogleEventModal(calendarViewContextWidgetId, currentAgendaDate || new Date());
+    });
+  }
 }
 
 // Set up daily agenda navigation buttons
