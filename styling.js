@@ -204,6 +204,7 @@ function closeStylingModal() {
   currentStyles = {};
   applyToAllFlags = {};
   clockPreviewFrozenNow = null;
+  agendaPreviewDate = null;
 }
 
 // Switch tabs
