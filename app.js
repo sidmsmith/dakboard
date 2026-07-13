@@ -85,6 +85,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     await window.resolveCloudStartup();
   }
 
+  // Remap legacy Agenda/Calendar Direct+Hybrid instances before loading layouts
+  if (typeof migrateLegacyCalendarWidgetsToCanonical === 'function') {
+    try {
+      migrateLegacyCalendarWidgetsToCanonical();
+    } catch (e) {
+      console.error('Hybrid calendar conversion failed:', e);
+    }
+  }
+
   const postReloadToast = sessionStorage.getItem('dakboard-post-reload-toast');
   if (postReloadToast) {
     sessionStorage.removeItem('dakboard-post-reload-toast');
@@ -216,7 +225,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Calendar events cache
 let calendarEvents = [];
-let googleCalendarEvents = []; // Direct Google ICS (Agenda Direct / future Calendar Direct)
+let googleCalendarEvents = []; // Google Calendar ICS events (merged into Agenda/Calendar)
 let availableCalendars = []; // [{ id, name, color }] from HA
 let availableGoogleCalendars = []; // [{ id, name, color }] from Google ICS API
 let calendarViewContextWidgetId = null; // widget that opened month/daily modal
@@ -336,6 +345,15 @@ window.getCalendarColorsForWidget = getCalendarColorsForWidget;
 window.getCalendarEvents = () => calendarEvents;
 window.getGoogleCalendarEvents = () => googleCalendarEvents;
 
+/** Legacy types remapped once to canonical Agenda/Calendar (ICS+HA). */
+const LEGACY_CALENDAR_WIDGET_REMAP = {
+  'agenda-direct-widget': 'agenda-widget',
+  'agenda-hybrid-widget': 'agenda-widget',
+  'calendar-direct-widget': 'calendar-widget',
+  'calendar-hybrid-widget': 'calendar-widget'
+};
+const HYBRID_CONVERSION_FLAG = 'dakboard-hybrid-conversion-v1';
+
 function getWidgetTypeSafe(widgetId) {
   try {
     return getWidgetType(widgetId);
@@ -347,68 +365,33 @@ function getWidgetTypeSafe(widgetId) {
   }
 }
 
-function isAgendaDirectWidgetId(widgetId) {
-  return getWidgetTypeSafe(widgetId) === 'agenda-direct-widget' ||
-    String(widgetId || '').startsWith('agenda-direct-widget');
-}
-
-function isCalendarDirectWidgetId(widgetId) {
-  return getWidgetTypeSafe(widgetId) === 'calendar-direct-widget' ||
-    String(widgetId || '').startsWith('calendar-direct-widget');
-}
-
-function isAgendaHybridWidgetId(widgetId) {
-  return getWidgetTypeSafe(widgetId) === 'agenda-hybrid-widget' ||
-    String(widgetId || '').startsWith('agenda-hybrid-widget');
-}
-
-function isCalendarHybridWidgetId(widgetId) {
-  return getWidgetTypeSafe(widgetId) === 'calendar-hybrid-widget' ||
-    String(widgetId || '').startsWith('calendar-hybrid-widget');
+function canonicalizeCalendarWidgetType(widgetType) {
+  return LEGACY_CALENDAR_WIDGET_REMAP[widgetType] || widgetType;
 }
 
 function isAgendaFamilyWidgetId(widgetId) {
-  const type = getWidgetTypeSafe(widgetId);
-  return type === 'agenda-widget' ||
-    type === 'agenda-direct-widget' ||
-    type === 'agenda-hybrid-widget' ||
-    String(widgetId || '').startsWith('agenda-widget') ||
-    isAgendaDirectWidgetId(widgetId) ||
-    isAgendaHybridWidgetId(widgetId);
+  const type = canonicalizeCalendarWidgetType(getWidgetTypeSafe(widgetId));
+  return type === 'agenda-widget' || String(widgetId || '').startsWith('agenda-widget');
 }
 
 function isCalendarFamilyWidgetId(widgetId) {
-  const type = getWidgetTypeSafe(widgetId);
-  return type === 'calendar-widget' ||
-    type === 'calendar-direct-widget' ||
-    type === 'calendar-hybrid-widget' ||
-    String(widgetId || '').startsWith('calendar-widget') ||
-    isCalendarDirectWidgetId(widgetId) ||
-    isCalendarHybridWidgetId(widgetId);
+  const type = canonicalizeCalendarWidgetType(getWidgetTypeSafe(widgetId));
+  return type === 'calendar-widget' || String(widgetId || '').startsWith('calendar-widget');
 }
 
-/** Google ICS (Direct or Hybrid). */
+/** Agenda + Calendar widgets always use Google ICS. */
 function usesGoogleCalendarSource(widgetId) {
-  return isAgendaDirectWidgetId(widgetId) ||
-    isCalendarDirectWidgetId(widgetId) ||
-    isAgendaHybridWidgetId(widgetId) ||
-    isCalendarHybridWidgetId(widgetId);
+  return isAgendaFamilyWidgetId(widgetId) || isCalendarFamilyWidgetId(widgetId);
 }
 
-/** Home Assistant calendars (HA-only or Hybrid). */
+/** Agenda + Calendar widgets always use Home Assistant calendars. */
 function usesHaCalendarSource(widgetId) {
-  if (isAgendaHybridWidgetId(widgetId) || isCalendarHybridWidgetId(widgetId)) return true;
-  if (usesGoogleCalendarSource(widgetId)) return false;
   return isAgendaFamilyWidgetId(widgetId) || isCalendarFamilyWidgetId(widgetId);
 }
 
 /** Widgets that can create Google events (+ button). */
 function supportsGoogleAddEvent(widgetId) {
   return usesGoogleCalendarSource(widgetId);
-}
-
-function isGoogleDirectWidgetId(widgetId) {
-  return isAgendaDirectWidgetId(widgetId) || isCalendarDirectWidgetId(widgetId);
 }
 
 function mergeCalendarEventSources(...lists) {
@@ -419,31 +402,232 @@ function mergeCalendarEventSources(...lists) {
   return typeof deduplicateEvents === 'function' ? deduplicateEvents(merged) : merged;
 }
 
-function getEventsForAgendaWidget(widgetId) {
-  if (isAgendaHybridWidgetId(widgetId)) {
-    return mergeCalendarEventSources(googleCalendarEvents, calendarEvents);
-  }
-  if (isAgendaDirectWidgetId(widgetId)) return googleCalendarEvents;
-  return calendarEvents;
+function getEventsForAgendaWidget(/* widgetId */) {
+  return mergeCalendarEventSources(googleCalendarEvents, calendarEvents);
 }
 
-function getEventsForCalendarWidget(widgetId) {
-  if (isCalendarHybridWidgetId(widgetId)) {
-    return mergeCalendarEventSources(googleCalendarEvents, calendarEvents);
-  }
-  if (isCalendarDirectWidgetId(widgetId)) return googleCalendarEvents;
-  return calendarEvents;
+function getEventsForCalendarWidget(/* widgetId */) {
+  return mergeCalendarEventSources(googleCalendarEvents, calendarEvents);
 }
 
-window.isAgendaDirectWidgetId = isAgendaDirectWidgetId;
-window.isCalendarDirectWidgetId = isCalendarDirectWidgetId;
-window.isAgendaHybridWidgetId = isAgendaHybridWidgetId;
-window.isCalendarHybridWidgetId = isCalendarHybridWidgetId;
 window.isAgendaFamilyWidgetId = isAgendaFamilyWidgetId;
 window.isCalendarFamilyWidgetId = isCalendarFamilyWidgetId;
 window.usesGoogleCalendarSource = usesGoogleCalendarSource;
 window.usesHaCalendarSource = usesHaCalendarSource;
 window.supportsGoogleAddEvent = supportsGoogleAddEvent;
+window.canonicalizeCalendarWidgetType = canonicalizeCalendarWidgetType;
+
+function nextFreeWidgetInstanceId(canonicalType, pageIndex, takenIds) {
+  let instanceIndex = 0;
+  while (true) {
+    const candidate = `${canonicalType}-page-${pageIndex}-instance-${instanceIndex}`;
+    if (!takenIds.has(candidate)) return candidate;
+    instanceIndex += 1;
+  }
+}
+
+function collectTakenWidgetIdsFromStorage() {
+  const taken = new Set();
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+      if (key.startsWith('dakboard-widget-styles-')) {
+        taken.add(key.replace('dakboard-widget-styles-', ''));
+      }
+    }
+    const totalPages = parseInt(localStorage.getItem('dakboard-total-pages'), 10) || 1;
+    for (let page = 0; page < totalPages; page++) {
+      ['dakboard-widget-visibility-page-', 'dakboard-widget-layout-page-'].forEach(prefix => {
+        try {
+          const raw = localStorage.getItem(`${prefix}${page}`);
+          if (!raw) return;
+          const obj = JSON.parse(raw);
+          Object.keys(obj || {}).forEach(id => taken.add(id));
+        } catch (e) { /* ignore */ }
+      });
+    }
+    try {
+      const legacyLayout = JSON.parse(localStorage.getItem('dakboard-widget-layout') || '{}');
+      Object.keys(legacyLayout || {}).forEach(id => taken.add(id));
+    } catch (e) { /* ignore */ }
+  } catch (e) { /* ignore */ }
+  return taken;
+}
+
+/**
+ * One-time migration: agenda/calendar direct+hybrid instances → canonical agenda/calendar.
+ * Rollback tag: before-hybrid-conversion
+ */
+function migrateLegacyCalendarWidgetsToCanonical() {
+  const alreadyDone = localStorage.getItem(HYBRID_CONVERSION_FLAG) === '1';
+  const idMap = new Map(); // oldFullId -> newFullId
+  const taken = collectTakenWidgetIdsFromStorage();
+
+  const considerId = (fullId) => {
+    if (!fullId || idMap.has(fullId)) return;
+    const parsed = typeof parseWidgetId === 'function'
+      ? parseWidgetId(fullId)
+      : { widgetType: fullId, pageIndex: 0, instanceIndex: 0, isLegacy: true };
+    const legacyType = parsed.widgetType;
+    const canonical = LEGACY_CALENDAR_WIDGET_REMAP[legacyType];
+    if (!canonical) return;
+
+    let newId;
+    if (parsed.isLegacy) {
+      newId = canonical;
+    } else {
+      const preferred = `${canonical}-page-${parsed.pageIndex}-instance-${parsed.instanceIndex}`;
+      if (!taken.has(preferred) || preferred === fullId) {
+        newId = preferred;
+      } else {
+        newId = nextFreeWidgetInstanceId(canonical, parsed.pageIndex, taken);
+      }
+    }
+    idMap.set(fullId, newId);
+    taken.add(newId);
+  };
+
+  // Discover IDs from styles + visibility + layout
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('dakboard-widget-styles-')) {
+        considerId(key.replace('dakboard-widget-styles-', ''));
+      }
+    }
+    const totalPages = parseInt(localStorage.getItem('dakboard-total-pages'), 10) || 1;
+    for (let page = 0; page < totalPages; page++) {
+      ['dakboard-widget-visibility-page-', 'dakboard-widget-layout-page-'].forEach(prefix => {
+        try {
+          const raw = localStorage.getItem(`${prefix}${page}`);
+          if (!raw) return;
+          const obj = JSON.parse(raw);
+          Object.keys(obj || {}).forEach(considerId);
+        } catch (e) { /* ignore */ }
+      });
+    }
+    try {
+      const legacyLayout = JSON.parse(localStorage.getItem('dakboard-widget-layout') || '{}');
+      Object.keys(legacyLayout || {}).forEach(considerId);
+    } catch (e) { /* ignore */ }
+  } catch (e) {
+    console.error('Hybrid conversion discovery failed:', e);
+  }
+
+  // Also discover from DOM (legacy widgets still on page)
+  document.querySelectorAll(
+    '.agenda-direct-widget, .agenda-hybrid-widget, .calendar-direct-widget, .calendar-hybrid-widget'
+  ).forEach(el => {
+    Array.from(el.classList).forEach(cls => {
+      if (
+        cls.includes('agenda-direct-widget') ||
+        cls.includes('agenda-hybrid-widget') ||
+        cls.includes('calendar-direct-widget') ||
+        cls.includes('calendar-hybrid-widget')
+      ) {
+        if (cls.endsWith('-widget') || cls.includes('-page-')) considerId(cls);
+      }
+    });
+  });
+
+  if (!alreadyDone && idMap.size) {
+    // Move styles keys
+    idMap.forEach((newId, oldId) => {
+      if (newId === oldId) return;
+      const oldKey = `dakboard-widget-styles-${oldId}`;
+      const newKey = `dakboard-widget-styles-${newId}`;
+      const val = localStorage.getItem(oldKey);
+      if (val == null) return;
+      if (!localStorage.getItem(newKey)) localStorage.setItem(newKey, val);
+      localStorage.removeItem(oldKey);
+    });
+
+    const remapObjectKeys = (obj) => {
+      if (!obj || typeof obj !== 'object') return obj;
+      const next = {};
+      Object.keys(obj).forEach(key => {
+        const mapped = idMap.get(key) || key;
+        // Prefer keeping existing canonical entry if both map to same key
+        if (next[mapped] === undefined) next[mapped] = obj[key];
+        else if (idMap.has(key)) next[mapped] = obj[key]; // legacy overwrite with migrated value when colliding intentionally last-wins from map order
+      });
+      return next;
+    };
+
+    const totalPages = parseInt(localStorage.getItem('dakboard-total-pages'), 10) || 1;
+    for (let page = 0; page < totalPages; page++) {
+      ['dakboard-widget-visibility-page-', 'dakboard-widget-layout-page-'].forEach(prefix => {
+        const key = `${prefix}${page}`;
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw) return;
+          const obj = JSON.parse(raw);
+          localStorage.setItem(key, JSON.stringify(remapObjectKeys(obj)));
+        } catch (e) { /* ignore */ }
+      });
+    }
+
+    try {
+      const legacyLayoutKey = 'dakboard-widget-layout';
+      const raw = localStorage.getItem(legacyLayoutKey);
+      if (raw) {
+        localStorage.setItem(legacyLayoutKey, JSON.stringify(remapObjectKeys(JSON.parse(raw))));
+      }
+    } catch (e) { /* ignore */ }
+
+    console.log(`[Hybrid conversion] Remapped ${idMap.size} widget id(s)`, Object.fromEntries(idMap));
+  }
+
+  // Always normalize DOM classes for any leftover legacy widgets
+  document.querySelectorAll(
+    '.agenda-direct-widget, .agenda-hybrid-widget, .calendar-direct-widget, .calendar-hybrid-widget'
+  ).forEach(el => {
+    const classes = Array.from(el.classList);
+    let legacyType = null;
+    let fullId = null;
+    classes.forEach(cls => {
+      if (LEGACY_CALENDAR_WIDGET_REMAP[cls]) legacyType = cls;
+      if (
+        cls.startsWith('agenda-direct-widget-page-') ||
+        cls.startsWith('agenda-hybrid-widget-page-') ||
+        cls.startsWith('calendar-direct-widget-page-') ||
+        cls.startsWith('calendar-hybrid-widget-page-')
+      ) {
+        fullId = cls;
+      }
+    });
+    if (!legacyType) return;
+    const canonical = LEGACY_CALENDAR_WIDGET_REMAP[legacyType];
+    el.classList.remove(legacyType);
+    el.classList.add(canonical);
+    if (fullId) {
+      const mapped = idMap.get(fullId) || fullId.replace(legacyType, canonical);
+      el.classList.remove(fullId);
+      el.classList.add(mapped);
+    }
+    // Update default title text if still saying Direct/Hybrid
+    const title = el.querySelector('.widget-title');
+    if (title) {
+      const text = title.textContent || '';
+      if (/Direct|Hybrid/i.test(text)) {
+        title.textContent = text.replace(/\s*(Direct|Hybrid)\s*/gi, ' ').replace(/\s+/g, ' ').trim() ||
+          (canonical === 'agenda-widget' ? '📋 Agenda' : 'Calendar');
+      }
+    }
+  });
+
+  // Remove leftover hidden templates if any remain in DOM from older HTML cache
+  document.querySelectorAll(
+    '.agenda-direct-widget.hidden, .agenda-hybrid-widget.hidden, .calendar-direct-widget.hidden, .calendar-hybrid-widget.hidden'
+  ).forEach(el => {
+    // If it's only a template (hidden and not an instance), remove
+    const isInstance = Array.from(el.classList).some(c => c.includes('-page-'));
+    if (!isInstance) el.remove();
+  });
+
+  localStorage.setItem(HYBRID_CONVERSION_FLAG, '1');
+}
 
 function updateAvailableGoogleCalendarsFromPayload(calendars, events) {
   const byId = new Map();
@@ -584,7 +768,7 @@ function createGoogleAddEventButtonEl(fullWidgetId, extraClass = '') {
     if (typeof isEditMode !== 'undefined' && isEditMode) return;
     let presetDate = null;
     if (
-      (isAgendaDirectWidgetId(fullWidgetId) || isAgendaHybridWidgetId(fullWidgetId)) &&
+      isAgendaFamilyWidgetId(fullWidgetId) &&
       typeof agendaDates !== 'undefined' &&
       agendaDates.has(fullWidgetId)
     ) {
@@ -595,12 +779,12 @@ function createGoogleAddEventButtonEl(fullWidgetId, extraClass = '') {
   return btn;
 }
 
-/** Calendar Direct/Hybrid: + sits to the right of Previous Week (mirrors month icon before Next). */
+/** Calendar: + sits to the right of Previous Week (mirrors month icon before Next). */
 function ensureGoogleAddEventButton(widget, fullWidgetId) {
   if (!widget || !fullWidgetId) return;
   removeHeaderGoogleAddEventButtons(widget);
 
-  if (!isCalendarDirectWidgetId(fullWidgetId) && !isCalendarHybridWidgetId(fullWidgetId)) return;
+  if (!isCalendarFamilyWidgetId(fullWidgetId)) return;
 
   const nav = widget.querySelector('.calendar-nav');
   const prevBtn = nav?.querySelector('#prev-week-btn');
@@ -627,7 +811,7 @@ function ensureGoogleAddEventButton(widget, fullWidgetId) {
 }
 
 function attachAgendaGoogleAddEventButton(container, widgetId) {
-  if (!container || (!isAgendaDirectWidgetId(widgetId) && !isAgendaHybridWidgetId(widgetId))) return;
+  if (!container || !isAgendaFamilyWidgetId(widgetId)) return;
   if (!shouldShowGoogleAddEventButton(widgetId)) return;
   if (container.querySelector('.agenda-add-event-btn')) return;
   const slot = document.createElement('div');
@@ -1446,14 +1630,7 @@ window.getAgendaPreviewRangeBounds = getAgendaPreviewRangeBounds;
 function buildAgendaPreviewHtml(styles = {}, options = {}) {
   const hidden = Array.isArray(styles.hiddenCalendars) ? styles.hiddenCalendars : [];
   const widgetId = options.widgetId;
-  let rawEvents;
-  if (options.source === 'hybrid' || isAgendaHybridWidgetId(widgetId)) {
-    rawEvents = mergeCalendarEventSources(googleCalendarEvents, calendarEvents);
-  } else if (options.source === 'google' || isAgendaDirectWidgetId(widgetId)) {
-    rawEvents = googleCalendarEvents;
-  } else {
-    rawEvents = calendarEvents;
-  }
+  const rawEvents = mergeCalendarEventSources(googleCalendarEvents, calendarEvents);
   const sourceEvents = filterEventsByHiddenList(rawEvents, hidden);
   const { minDate, maxDate } = getAgendaPreviewRangeBounds();
 
@@ -1539,14 +1716,7 @@ function buildAgendaPreviewHtml(styles = {}, options = {}) {
 function buildCalendarPreviewHtml(styles = {}, options = {}) {
   const hidden = Array.isArray(styles.hiddenCalendars) ? styles.hiddenCalendars : [];
   const widgetId = options.widgetId;
-  let rawEvents;
-  if (options.source === 'hybrid' || isCalendarHybridWidgetId(widgetId)) {
-    rawEvents = mergeCalendarEventSources(googleCalendarEvents, calendarEvents);
-  } else if (options.source === 'google' || isCalendarDirectWidgetId(widgetId)) {
-    rawEvents = googleCalendarEvents;
-  } else {
-    rawEvents = calendarEvents;
-  }
+  const rawEvents = mergeCalendarEventSources(googleCalendarEvents, calendarEvents);
   const sourceEvents = filterEventsByHiddenList(rawEvents, hidden);
   const todayColor = styles.calendarTodayColor || '#4a90e2';
   const dayColor = (styles.calendarDayColor || '#333333').replace(/^#([0-9A-F])([0-9A-F])([0-9A-F])$/i, '#$1$1$2$2$3$3');
@@ -2063,7 +2233,7 @@ function initializeEventListeners() {
     if (!btn.dataset.listenerAttached) {
       btn.dataset.listenerAttached = 'true';
       btn.addEventListener('click', () => {
-        const widget = btn.closest('.calendar-widget, .calendar-direct-widget, .calendar-hybrid-widget');
+        const widget = btn.closest('.calendar-widget');
         const fullId = widget && typeof resolveWidgetFullId === 'function'
           ? resolveWidgetFullId(widget, currentPageIndex)
           : null;
@@ -2245,14 +2415,12 @@ function initializeEventListeners() {
 
 // Render weekly calendar
 function renderCalendar() {
-  // Get all calendar widget instances on the current page (HA + Google Direct)
+  // Get all calendar widget instances on the current page
   const pageElement = getPageElement(currentPageIndex);
   if (!pageElement) return;
   
   const instances = [
-    ...getWidgetInstances('calendar-widget', currentPageIndex),
-    ...getWidgetInstances('calendar-direct-widget', currentPageIndex),
-    ...getWidgetInstances('calendar-hybrid-widget', currentPageIndex)
+    ...getWidgetInstances('calendar-widget', currentPageIndex)
   ];
   const calendarWidgets = [];
   
@@ -2840,15 +3008,11 @@ async function fetchMonthEvents(monthStart, monthEnd) {
   let monthEvents = [];
   let googleMonthEvents = [];
   try {
-    const wantGoogle =
-      isCalendarDirectWidgetId(calendarViewContextWidgetId) ||
-      isCalendarHybridWidgetId(calendarViewContextWidgetId);
-    const wantHa =
-      isCalendarHybridWidgetId(calendarViewContextWidgetId) ||
-      (!isCalendarDirectWidgetId(calendarViewContextWidgetId) &&
-        !isCalendarHybridWidgetId(calendarViewContextWidgetId));
+    const wantGoogle = isCalendarFamilyWidgetId(calendarViewContextWidgetId);
+    const wantHa = isCalendarFamilyWidgetId(calendarViewContextWidgetId) ||
+      !calendarViewContextWidgetId;
 
-    // Calendar Direct: Google only
+    // Calendar widgets always merge Google ICS + HA; unknown context defaults to HA
     if (wantGoogle && !wantHa) {
       return await fetchGoogleIcsMonthEvents(monthStart, monthEnd);
     }
@@ -2857,7 +3021,7 @@ async function fetchMonthEvents(monthStart, monthEnd) {
       try {
         googleMonthEvents = await fetchGoogleIcsMonthEvents(monthStart, monthEnd);
       } catch (error) {
-        console.error('Error loading Google month events for hybrid:', error);
+        console.error('Error loading Google month events:', error);
         googleMonthEvents = [];
       }
     }
@@ -3738,10 +3902,10 @@ async function loadAllData() {
       loadThermostat(), // Load thermostat
       loadNews(), // Load news feed
       initializeWhiteboard(), // Initialize whiteboard
-      loadCalendarEvents(), // Reload calendar events on refresh - agenda will load after this
-      loadGoogleCalendarEvents() // Google ICS for Agenda Direct
+      loadCalendarEvents(), // HA calendars
+      loadGoogleCalendarEvents() // Google ICS
     ]).then(() => {
-      // Load agenda after calendar events are loaded (HA + Direct)
+      // Load agenda after calendar events are loaded (ICS + HA)
       loadAgenda();
       // Load tasks widget (after todos for list discovery)
       loadTasks();
@@ -7030,15 +7194,13 @@ function updateThermostatControlStyles(widget) {
   widget.style.setProperty('--thermostat-text-secondary', widget.style.getPropertyValue('--widget-text-secondary'));
 }
 
-// Load and initialize agenda widgets (HA Agenda + Google Agenda Direct)
+// Load and initialize agenda widgets (Google ICS + Home Assistant)
 function loadAgenda() {
   const pageElement = getPageElement(currentPageIndex);
   if (!pageElement) return;
 
   const instances = [
-    ...getWidgetInstances('agenda-widget', currentPageIndex),
-    ...getWidgetInstances('agenda-direct-widget', currentPageIndex),
-    ...getWidgetInstances('agenda-hybrid-widget', currentPageIndex)
+    ...getWidgetInstances('agenda-widget', currentPageIndex)
   ];
 
   if (instances.length === 0) return;
@@ -7078,7 +7240,7 @@ function renderAgenda(widgetId, container) {
   const date = agendaDates.get(widgetId);
   if (!date) return;
   
-  // Get events for this date (HA calendarEvents or Google ICS for Agenda Direct)
+  // Get events for this date (Google ICS + Home Assistant)
   const dayStart = new Date(date);
   dayStart.setHours(0, 0, 0, 0);
   const dayEnd = new Date(date);
@@ -7350,7 +7512,7 @@ function renderAgenda(widgetId, container) {
 
 // Set up navigation buttons for agenda widget
 function setupAgendaNavigation(widgetId, container) {
-  const widget = container.closest('.agenda-widget, .agenda-direct-widget, .agenda-hybrid-widget');
+  const widget = container.closest('.agenda-widget');
   if (!widget) return;
   
   const date = agendaDates.get(widgetId);
@@ -10595,12 +10757,8 @@ function initializeAnnotationListeners() {
 
 // Widget Visibility Management
 const WIDGET_CONFIG = {
-  'calendar-widget': { name: 'Calendar', icon: '📅', deprecated: true },
-  'calendar-direct-widget': { name: 'Calendar Direct', icon: '📅', deprecated: true },
-  'calendar-hybrid-widget': { name: 'Calendar Hybrid', icon: '📅' },
-  'agenda-widget': { name: 'Agenda', icon: '📋', deprecated: true },
-  'agenda-direct-widget': { name: 'Agenda Direct', icon: '📋', deprecated: true },
-  'agenda-hybrid-widget': { name: 'Agenda Hybrid', icon: '📋' },
+  'calendar-widget': { name: 'Calendar', icon: '📅' },
+  'agenda-widget': { name: 'Agenda', icon: '📋' },
   'weather-widget': { name: 'Weather', icon: '🌤️' },
   'todo-widget': { name: 'Todo List', icon: '✅' },
   'garage-widget': { name: 'Garage Doors', icon: '🚗' },
@@ -10943,8 +11101,6 @@ function saveWidgetVisibility() {
 function getDefaultWidgetSize(widgetType) {
   const sizes = {
     'calendar-widget': { width: 800, height: 500 },
-    'calendar-direct-widget': { width: 800, height: 500 },
-    'calendar-hybrid-widget': { width: 800, height: 500 },
     'weather-widget': { width: 500, height: 400 },
     'todo-widget': { width: 500, height: 300 },
     'garage-widget': { width: 800, height: 200 },
@@ -10958,8 +11114,6 @@ function getDefaultWidgetSize(widgetType) {
     'scoreboard-widget': { width: 500, height: 300 },
     'news-widget': { width: 400, height: 400 },
     'agenda-widget': { width: 400, height: 500 },
-    'agenda-direct-widget': { width: 400, height: 500 },
-    'agenda-hybrid-widget': { width: 400, height: 500 },
     'tasks-widget': { width: 400, height: 500 }
   };
   return sizes[widgetType] || { width: 300, height: 200 };
@@ -11364,35 +11518,25 @@ function toggleWidgetVisibility(fullWidgetId) {
             loadSprinkler();
           } else if (widgetType === 'news-widget' && typeof loadNews === 'function') {
             loadNews();
-          } else if (widgetType === 'calendar-widget' && typeof loadCalendarEvents === 'function') {
-            loadCalendarEvents();
-          } else if (widgetType === 'calendar-direct-widget' || widgetType === 'calendar-hybrid-widget') {
+          } else if (widgetType === 'calendar-widget') {
             // Cloned nav buttons inherit listenerAttached without real listeners — re-bind
             widget.querySelectorAll('#prev-week-btn, #next-week-btn, #month-view-btn').forEach(btn => {
               delete btn.dataset.listenerAttached;
             });
             if (typeof initializeEventListeners === 'function') initializeEventListeners();
-            if (widgetType === 'calendar-hybrid-widget' && typeof loadCalendarEvents === 'function') {
-              loadCalendarEvents();
-            }
+            if (typeof loadCalendarEvents === 'function') loadCalendarEvents();
             if (typeof loadGoogleCalendarEvents === 'function') loadGoogleCalendarEvents();
-          } else if (widgetType === 'agenda-widget' && typeof loadAgenda === 'function') {
-            loadAgenda();
-          } else if (widgetType === 'agenda-direct-widget' || widgetType === 'agenda-hybrid-widget') {
-            if (widgetType === 'agenda-hybrid-widget' && typeof loadCalendarEvents === 'function') {
-              loadCalendarEvents().then(() => {
-                if (typeof loadGoogleCalendarEvents === 'function') return loadGoogleCalendarEvents();
-              }).then(() => {
-                if (typeof loadAgenda === 'function') loadAgenda();
-              }).catch(() => {
+          } else if (widgetType === 'agenda-widget') {
+            const haLoad = typeof loadCalendarEvents === 'function'
+              ? Promise.resolve(loadCalendarEvents())
+              : Promise.resolve();
+            haLoad
+              .then(() => (typeof loadGoogleCalendarEvents === 'function' ? loadGoogleCalendarEvents() : null))
+              .then(() => { if (typeof loadAgenda === 'function') loadAgenda(); })
+              .catch(() => {
                 if (typeof loadGoogleCalendarEvents === 'function') loadGoogleCalendarEvents();
                 else if (typeof loadAgenda === 'function') loadAgenda();
               });
-            } else if (typeof loadGoogleCalendarEvents === 'function') {
-              loadGoogleCalendarEvents();
-            } else if (typeof loadAgenda === 'function') {
-              loadAgenda();
-            }
           } else if (widgetType === 'tasks-widget' && typeof loadTasks === 'function') {
             loadTasks();
           }
@@ -12404,7 +12548,7 @@ function removeWidgetInstance(fullWidgetId) {
           stoplightStates.set(newId, state);
           stoplightStates.delete(oldId);
         }
-      } else if (widgetType === 'agenda-widget' || widgetType === 'agenda-direct-widget' || widgetType === 'agenda-hybrid-widget') {
+      } else if (widgetType === 'agenda-widget') {
         // Update agendaDates Map
         if (agendaDates.has(oldId)) {
           const date = agendaDates.get(oldId);
@@ -12834,9 +12978,7 @@ function initializeWidgetInstance(fullWidgetId, widgetElement, options = {}) {
     setTimeout(() => loadWeather(), 50);
   } else if (widgetType === 'todo-widget' && typeof loadTodos === 'function') {
     setTimeout(() => loadTodos(), 50);
-  } else if (widgetType === 'calendar-widget' && typeof loadCalendarEvents === 'function') {
-    setTimeout(() => loadCalendarEvents(), 50);
-  } else if (widgetType === 'calendar-direct-widget' || widgetType === 'calendar-hybrid-widget') {
+  } else if (widgetType === 'calendar-widget') {
     setTimeout(() => {
       const el = document.querySelector(`.${fullWidgetId}`) ||
         document.querySelector(`.${widgetType}:not(.hidden)`);
@@ -12846,32 +12988,25 @@ function initializeWidgetInstance(fullWidgetId, widgetElement, options = {}) {
         });
       }
       if (typeof initializeEventListeners === 'function') initializeEventListeners();
-      if (widgetType === 'calendar-hybrid-widget' && typeof loadCalendarEvents === 'function') {
-        loadCalendarEvents();
-      }
+      if (typeof loadCalendarEvents === 'function') loadCalendarEvents();
       if (typeof loadGoogleCalendarEvents === 'function') loadGoogleCalendarEvents();
     }, 50);
   } else if (widgetType === 'blank-widget' && typeof loadClipArt === 'function') {
     setTimeout(() => loadClipArt(), 50);
   } else if (widgetType === 'stoplight-widget' && typeof loadStoplight === 'function') {
     setTimeout(() => loadStoplight(), 50);
-  } else if (widgetType === 'agenda-widget' && typeof loadAgenda === 'function') {
-    setTimeout(() => loadAgenda(), 50);
-  } else if (widgetType === 'agenda-direct-widget' || widgetType === 'agenda-hybrid-widget') {
+  } else if (widgetType === 'agenda-widget') {
     setTimeout(() => {
-      if (widgetType === 'agenda-hybrid-widget' && typeof loadCalendarEvents === 'function') {
-        Promise.resolve(loadCalendarEvents())
-          .then(() => (typeof loadGoogleCalendarEvents === 'function' ? loadGoogleCalendarEvents() : null))
-          .then(() => { if (typeof loadAgenda === 'function') loadAgenda(); })
-          .catch(() => {
-            if (typeof loadGoogleCalendarEvents === 'function') loadGoogleCalendarEvents();
-            else if (typeof loadAgenda === 'function') loadAgenda();
-          });
-      } else if (typeof loadGoogleCalendarEvents === 'function') {
-        loadGoogleCalendarEvents();
-      } else if (typeof loadAgenda === 'function') {
-        loadAgenda();
-      }
+      const haLoad = typeof loadCalendarEvents === 'function'
+        ? Promise.resolve(loadCalendarEvents())
+        : Promise.resolve();
+      haLoad
+        .then(() => (typeof loadGoogleCalendarEvents === 'function' ? loadGoogleCalendarEvents() : null))
+        .then(() => { if (typeof loadAgenda === 'function') loadAgenda(); })
+        .catch(() => {
+          if (typeof loadGoogleCalendarEvents === 'function') loadGoogleCalendarEvents();
+          else if (typeof loadAgenda === 'function') loadAgenda();
+        });
     }, 50);
   } else if (widgetType === 'tasks-widget' && typeof loadTasks === 'function') {
     setTimeout(() => loadTasks(), 50);
