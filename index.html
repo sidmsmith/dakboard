@@ -717,15 +717,27 @@
           <input type="checkbox" id="create-event-all-day" />
           <span>All day</span>
         </label>
-        <div id="create-event-timed-fields" class="create-event-row">
-          <label class="create-event-field">
+        <div id="create-event-timed-fields" class="create-event-datetime-block">
+          <div class="create-event-field">
             <span>Start</span>
-            <input type="datetime-local" id="create-event-start" required />
-          </label>
-          <label class="create-event-field">
+            <div class="create-event-time-row">
+              <input type="date" id="create-event-start-day" required />
+              <select id="create-event-start-hour" class="create-event-time-select" aria-label="Start hour"></select>
+              <span class="create-event-time-sep">:</span>
+              <select id="create-event-start-minute" class="create-event-time-select" aria-label="Start minute"></select>
+              <select id="create-event-start-ampm" class="create-event-ampm-select" aria-label="Start AM/PM"></select>
+            </div>
+          </div>
+          <div class="create-event-field">
             <span>End</span>
-            <input type="datetime-local" id="create-event-end" required />
-          </label>
+            <div class="create-event-time-row">
+              <input type="date" id="create-event-end-day" required />
+              <select id="create-event-end-hour" class="create-event-time-select" aria-label="End hour"></select>
+              <span class="create-event-time-sep">:</span>
+              <select id="create-event-end-minute" class="create-event-time-select" aria-label="End minute"></select>
+              <select id="create-event-end-ampm" class="create-event-ampm-select" aria-label="End AM/PM"></select>
+            </div>
+          </div>
         </div>
         <div id="create-event-allday-fields" class="create-event-row" hidden>
           <label class="create-event-field">

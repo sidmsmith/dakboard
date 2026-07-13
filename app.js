@@ -616,16 +616,127 @@ function syncCreateEventAllDayFields() {
   const allDay = document.getElementById('create-event-all-day')?.checked;
   const timed = document.getElementById('create-event-timed-fields');
   const dates = document.getElementById('create-event-allday-fields');
-  const start = document.getElementById('create-event-start');
-  const end = document.getElementById('create-event-end');
+  const startDay = document.getElementById('create-event-start-day');
+  const endDay = document.getElementById('create-event-end-day');
   const startDate = document.getElementById('create-event-start-date');
   const endDate = document.getElementById('create-event-end-date');
   if (timed) timed.hidden = !!allDay;
   if (dates) dates.hidden = !allDay;
-  if (start) start.required = !allDay;
-  if (end) end.required = !allDay;
+  if (startDay) startDay.required = !allDay;
+  if (endDay) endDay.required = !allDay;
   if (startDate) startDate.required = !!allDay;
   if (endDate) endDate.required = !!allDay;
+}
+
+function populateCreateEventTimeSelects() {
+  const hourIds = ['create-event-start-hour', 'create-event-end-hour'];
+  const minuteIds = ['create-event-start-minute', 'create-event-end-minute'];
+  const ampmIds = ['create-event-start-ampm', 'create-event-end-ampm'];
+
+  hourIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el.options.length) return;
+    for (let h = 1; h <= 12; h++) {
+      const opt = document.createElement('option');
+      opt.value = String(h);
+      opt.textContent = String(h);
+      el.appendChild(opt);
+    }
+  });
+
+  minuteIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el.options.length) return;
+    ['00', '15', '30', '45'].forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      el.appendChild(opt);
+    });
+  });
+
+  ampmIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el.options.length) return;
+    [['AM', 'AM'], ['PM', 'PM']].forEach(([value, label]) => {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = label;
+      el.appendChild(opt);
+    });
+  });
+}
+
+function setCreateEventTimeParts(prefix, date) {
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return;
+
+  let minutes = Math.round(d.getMinutes() / 15) * 15;
+  if (minutes === 60) {
+    d.setHours(d.getHours() + 1);
+    minutes = 0;
+  }
+  d.setMinutes(minutes, 0, 0);
+
+  const dayEl = document.getElementById(`create-event-${prefix}-day`);
+  const hourEl = document.getElementById(`create-event-${prefix}-hour`);
+  const minuteEl = document.getElementById(`create-event-${prefix}-minute`);
+  const ampmEl = document.getElementById(`create-event-${prefix}-ampm`);
+  if (dayEl) dayEl.value = toDateInputValue(d);
+
+  let hours = d.getHours();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  let hour12 = hours % 12;
+  if (hour12 === 0) hour12 = 12;
+
+  if (hourEl) hourEl.value = String(hour12);
+  if (minuteEl) minuteEl.value = String(minutes).padStart(2, '0');
+  if (ampmEl) ampmEl.value = ampm;
+}
+
+function getCreateEventDateFromParts(prefix) {
+  const day = document.getElementById(`create-event-${prefix}-day`)?.value;
+  const hour12 = parseInt(document.getElementById(`create-event-${prefix}-hour`)?.value || '12', 10);
+  const minute = parseInt(document.getElementById(`create-event-${prefix}-minute`)?.value || '0', 10);
+  const ampm = document.getElementById(`create-event-${prefix}-ampm`)?.value || 'AM';
+  if (!day) return null;
+
+  let hour24 = hour12 % 12;
+  if (ampm === 'PM') hour24 += 12;
+  const d = new Date(`${day}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setHours(hour24, minute, 0, 0);
+  return d;
+}
+
+function ensureCreateEventRangeValid(changed = 'start') {
+  const allDay = !!document.getElementById('create-event-all-day')?.checked;
+
+  if (allDay) {
+    const startDateEl = document.getElementById('create-event-start-date');
+    const endDateEl = document.getElementById('create-event-end-date');
+    if (!startDateEl?.value) return;
+    if (!endDateEl?.value || endDateEl.value < startDateEl.value) {
+      endDateEl.value = startDateEl.value;
+    }
+    return;
+  }
+
+  const start = getCreateEventDateFromParts('start');
+  const end = getCreateEventDateFromParts('end');
+  if (!start) return;
+
+  if (!end || end.getTime() <= start.getTime()) {
+    if (changed === 'end' && end && end.getTime() <= start.getTime()) {
+      // User pulled end before/at start → bump start to 1 hour before end (min)
+      const newStart = new Date(end.getTime() - 60 * 60 * 1000);
+      setCreateEventTimeParts('start', newStart);
+    } else {
+      // Default: keep 1-hour duration after start
+      const newEnd = new Date(start.getTime() + 60 * 60 * 1000);
+      setCreateEventTimeParts('end', newEnd);
+    }
+  }
 }
 
 async function openCreateGoogleEventModal(fullWidgetId, presetDate = null) {
@@ -668,27 +779,32 @@ async function openCreateGoogleEventModal(fullWidgetId, presetDate = null) {
 
   const base = presetDate ? new Date(presetDate) : new Date();
   base.setSeconds(0, 0);
-  base.setMinutes(Math.ceil(base.getMinutes() / 15) * 15);
+  base.setMinutes(Math.ceil(base.getMinutes() / 15) * 15 || 0);
+  if (base.getMinutes() === 60) {
+    base.setHours(base.getHours() + 1);
+    base.setMinutes(0);
+  }
   const end = new Date(base.getTime() + 60 * 60 * 1000);
 
   const titleInput = document.getElementById('create-event-title');
   const allDay = document.getElementById('create-event-all-day');
-  const start = document.getElementById('create-event-start');
-  const endInput = document.getElementById('create-event-end');
   const startDate = document.getElementById('create-event-start-date');
   const endDate = document.getElementById('create-event-end-date');
   const location = document.getElementById('create-event-location');
   const description = document.getElementById('create-event-description');
 
+  populateCreateEventTimeSelects();
+
   if (titleInput) titleInput.value = '';
   if (allDay) allDay.checked = false;
-  if (start) start.value = toDatetimeLocalValue(base);
-  if (endInput) endInput.value = toDatetimeLocalValue(end);
+  setCreateEventTimeParts('start', base);
+  setCreateEventTimeParts('end', end);
   if (startDate) startDate.value = toDateInputValue(base);
   if (endDate) endDate.value = toDateInputValue(base);
   if (location) location.value = '';
   if (description) description.value = '';
   syncCreateEventAllDayFields();
+  ensureCreateEventRangeValid('start');
 
   if (googleCalendarWriteConfigured === false) {
     if (status) {
@@ -732,11 +848,31 @@ async function submitCreateGoogleEvent(event) {
   if (allDay) {
     payload.startDate = document.getElementById('create-event-start-date')?.value;
     payload.endDate = document.getElementById('create-event-end-date')?.value || payload.startDate;
+    if (payload.startDate && payload.endDate && payload.endDate < payload.startDate) {
+      payload.endDate = payload.startDate;
+    }
   } else {
-    const startLocal = document.getElementById('create-event-start')?.value;
-    const endLocal = document.getElementById('create-event-end')?.value;
-    payload.start = startLocal ? new Date(startLocal).toISOString() : null;
-    payload.end = endLocal ? new Date(endLocal).toISOString() : null;
+    ensureCreateEventRangeValid('start');
+    const startLocal = getCreateEventDateFromParts('start');
+    const endLocal = getCreateEventDateFromParts('end');
+    if (!startLocal || !endLocal) {
+      if (status) {
+        status.hidden = false;
+        status.className = 'create-event-status error';
+        status.textContent = 'Please choose a valid start and end time.';
+      }
+      return;
+    }
+    if (endLocal.getTime() <= startLocal.getTime()) {
+      if (status) {
+        status.hidden = false;
+        status.className = 'create-event-status error';
+        status.textContent = 'End time must be after start time.';
+      }
+      return;
+    }
+    payload.start = startLocal.toISOString();
+    payload.end = endLocal.toISOString();
   }
 
   if (submitBtn) submitBtn.disabled = true;
@@ -789,10 +925,37 @@ function initializeCreateGoogleEventModal() {
   if (!modal || modal.dataset.listenerAttached) return;
   modal.dataset.listenerAttached = 'true';
 
+  populateCreateEventTimeSelects();
+
   document.getElementById('close-create-google-event-modal')?.addEventListener('click', closeCreateGoogleEventModal);
   document.getElementById('create-event-cancel')?.addEventListener('click', closeCreateGoogleEventModal);
-  document.getElementById('create-event-all-day')?.addEventListener('change', syncCreateEventAllDayFields);
+  document.getElementById('create-event-all-day')?.addEventListener('change', () => {
+    syncCreateEventAllDayFields();
+    ensureCreateEventRangeValid('start');
+  });
   document.getElementById('create-google-event-form')?.addEventListener('submit', submitCreateGoogleEvent);
+
+  const startControls = [
+    'create-event-start-day',
+    'create-event-start-hour',
+    'create-event-start-minute',
+    'create-event-start-ampm',
+    'create-event-start-date'
+  ];
+  const endControls = [
+    'create-event-end-day',
+    'create-event-end-hour',
+    'create-event-end-minute',
+    'create-event-end-ampm',
+    'create-event-end-date'
+  ];
+  startControls.forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => ensureCreateEventRangeValid('start'));
+  });
+  endControls.forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => ensureCreateEventRangeValid('end'));
+  });
+
   modal.addEventListener('click', (e) => {
     if (e.target === modal) closeCreateGoogleEventModal();
   });

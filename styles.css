@@ -2341,6 +2341,44 @@ body {
   gap: 12px;
 }
 
+.create-event-datetime-block {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.create-event-time-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.create-event-time-row input[type="date"] {
+  flex: 1 1 140px;
+  min-width: 140px;
+}
+
+.create-event-time-select,
+.create-event-ampm-select {
+  background: #1f1f1f;
+  border: 1px solid #444;
+  border-radius: 8px;
+  color: #fff;
+  padding: 10px 8px;
+  font-size: 15px;
+  min-width: 64px;
+}
+
+.create-event-ampm-select {
+  min-width: 72px;
+}
+
+.create-event-time-sep {
+  color: #888;
+  font-weight: 600;
+}
+
 .create-event-actions {
   display: flex;
   justify-content: flex-end;
