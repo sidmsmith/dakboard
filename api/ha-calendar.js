@@ -1,6 +1,8 @@
 // Vercel serverless function to fetch calendar events from Home Assistant
 // Uses HA's calendar.get_events service
-// Enriches events with entity registry name + calendar color
+// Enriches events with entity registry name + calendar color (via websocket)
+
+import { fetchEntityRegistryEntries } from './lib/ha-websocket.js';
 
 const DEFAULT_CALENDAR_COLOR = '#4a90e2';
 
@@ -8,6 +10,14 @@ function fallbackCalendarName(entityId) {
   return String(entityId || '')
     .replace(/^calendar\./, '')
     .replace(/_/g, ' ');
+}
+
+/** Normalize HA calendar color (hex or CSS color name) for CSS use */
+function normalizeCalendarColor(color) {
+  if (!color || typeof color !== 'string') return DEFAULT_CALENDAR_COLOR;
+  const trimmed = color.trim();
+  if (!trimmed) return DEFAULT_CALENDAR_COLOR;
+  return trimmed;
 }
 
 async function buildCalendarMeta(haUrl, haToken, calendarEntities, allStates) {
@@ -30,44 +40,24 @@ async function buildCalendarMeta(haUrl, haToken, calendarEntities, allStates) {
     });
   }
 
+  // Entity registry (name override + options.calendar.color) is websocket-only
   try {
-    const registryResponse = await fetch(`${haUrl}/api/config/entity_registry/list`, {
-      headers: {
-        'Authorization': `Bearer ${haToken}`,
-        'Content-Type': 'application/json'
+    const entries = await fetchEntityRegistryEntries(haUrl, haToken, calendarEntities);
+    Object.entries(entries || {}).forEach(([entityId, entry]) => {
+      if (!entry || !meta[entityId]) return;
+
+      meta[entityId].name =
+        entry.name ||
+        entry.original_name ||
+        meta[entityId].name;
+
+      const registryColor = entry.options?.calendar?.color;
+      if (registryColor) {
+        meta[entityId].color = normalizeCalendarColor(registryColor);
       }
     });
-
-    if (registryResponse.ok) {
-      const registry = await registryResponse.json();
-      const entries = Array.isArray(registry) ? registry : (registry.entities || []);
-      entries.forEach(entry => {
-        if (!entry?.entity_id?.startsWith('calendar.')) return;
-        if (!meta[entry.entity_id] && !calendarEntities.includes(entry.entity_id)) return;
-
-        if (!meta[entry.entity_id]) {
-          meta[entry.entity_id] = {
-            name: fallbackCalendarName(entry.entity_id),
-            color: DEFAULT_CALENDAR_COLOR
-          };
-        }
-
-        // Prefer user-edited registry name, then original_name, then existing friendly_name
-        meta[entry.entity_id].name =
-          entry.name ||
-          entry.original_name ||
-          meta[entry.entity_id].name;
-
-        const registryColor = entry.options?.calendar?.color;
-        if (registryColor) {
-          meta[entry.entity_id].color = registryColor;
-        }
-      });
-    } else {
-      console.error('Failed to fetch entity registry:', registryResponse.status);
-    }
   } catch (error) {
-    console.error('Error fetching entity registry for calendar meta:', error);
+    console.error('Error fetching entity registry for calendar meta via websocket:', error);
   }
 
   return meta;

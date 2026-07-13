@@ -7,8 +7,7 @@
     "dev": "python -m http.server 8000"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^0.10.4"
-  },
-  "devDependencies": {}
+    "@neondatabase/serverless": "^0.10.4",
+    "ws": "^8.21.0"
+  }
 }
-

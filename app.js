@@ -1261,11 +1261,7 @@ async function fetchHACalendarMeta(entityIds) {
   };
 
   try {
-    const [statesRes, regRes] = await Promise.all([
-      fetch(`${haUrl}/api/states`, { headers }),
-      fetch(`${haUrl}/api/config/entity_registry/list`, { headers })
-    ]);
-
+    const statesRes = await fetch(`${haUrl}/api/states`, { headers });
     if (statesRes.ok) {
       const states = await statesRes.json();
       states.forEach(state => {
@@ -1275,26 +1271,98 @@ async function fetchHACalendarMeta(entityIds) {
         }
       });
     }
-
-    if (regRes.ok) {
-      const registry = await regRes.json();
-      const entries = Array.isArray(registry) ? registry : (registry.entities || []);
-      entries.forEach(entry => {
-        if (!meta[entry.entity_id]) return;
-        meta[entry.entity_id].name =
-          entry.name ||
-          entry.original_name ||
-          meta[entry.entity_id].name;
-        if (entry.options?.calendar?.color) {
-          meta[entry.entity_id].color = entry.options.calendar.color;
-        }
-      });
-    }
   } catch (error) {
-    console.error('Error fetching HA calendar meta:', error);
+    console.error('Error fetching HA calendar states for meta:', error);
+  }
+
+  // Entity registry is websocket-only — fetch name overrides + calendar colors
+  try {
+    const entries = await fetchHAEntityRegistryEntries(haUrl, haToken, entityIds);
+    Object.entries(entries || {}).forEach(([entityId, entry]) => {
+      if (!entry || !meta[entityId]) return;
+      meta[entityId].name =
+        entry.name ||
+        entry.original_name ||
+        meta[entityId].name;
+      if (entry.options?.calendar?.color) {
+        meta[entityId].color = entry.options.calendar.color;
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching HA calendar registry meta via websocket:', error);
   }
 
   return meta;
+}
+
+/** Browser HA websocket helper for entity registry entries */
+function fetchHAEntityRegistryEntries(haUrl, haToken, entityIds) {
+  return new Promise((resolve, reject) => {
+    if (!entityIds?.length) {
+      resolve({});
+      return;
+    }
+
+    const wsUrl = `${String(haUrl).replace(/\/$/, '').replace(/^http/i, 'ws')}/api/websocket`;
+    let settled = false;
+    let ws;
+    const msgId = 1;
+
+    const finish = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try { ws.close(); } catch (_) { /* ignore */ }
+      fn(value);
+    };
+
+    const timer = setTimeout(() => {
+      finish(reject, new Error('HA websocket timeout'));
+    }, 15000);
+
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch (err) {
+      finish(reject, err);
+      return;
+    }
+
+    ws.onmessage = (event) => {
+      let msg;
+      try {
+        msg = JSON.parse(event.data);
+      } catch (err) {
+        finish(reject, err);
+        return;
+      }
+
+      if (msg.type === 'auth_required') {
+        ws.send(JSON.stringify({ type: 'auth', access_token: haToken }));
+        return;
+      }
+      if (msg.type === 'auth_invalid') {
+        finish(reject, new Error(msg.message || 'HA websocket auth failed'));
+        return;
+      }
+      if (msg.type === 'auth_ok') {
+        ws.send(JSON.stringify({
+          id: msgId,
+          type: 'config/entity_registry/get_entries',
+          entity_ids: entityIds
+        }));
+        return;
+      }
+      if (msg.type === 'result' && msg.id === msgId) {
+        if (msg.success) finish(resolve, msg.result || {});
+        else finish(reject, new Error(msg.error?.message || 'HA registry request failed'));
+      }
+    };
+
+    ws.onerror = () => finish(reject, new Error('HA websocket error'));
+    ws.onclose = () => {
+      if (!settled) finish(reject, new Error('HA websocket closed before result'));
+    };
+  });
 }
 
 async function fetchMonthEvents(monthStart, monthEnd) {
