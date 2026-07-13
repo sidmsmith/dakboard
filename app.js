@@ -3043,32 +3043,76 @@ function showEventDetails(event, widgetId = null) {
   
   // Set title
   title.textContent = event.title || 'Event Details';
-  
-  // Format start and end times
-  const startDate = new Date(event.start);
-  const endDate = new Date(event.end || event.start);
-  
-  const startStr = startDate.toLocaleString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
-  
-  const endStr = endDate.toLocaleString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
+
+  const formatAllDayDate = (dateStr) => {
+    const datePart = String(dateStr || '').split('T')[0];
+    const parts = datePart.split('-');
+    if (parts.length !== 3) return null;
+    const localDate = new Date(
+      parseInt(parts[0], 10),
+      parseInt(parts[1], 10) - 1,
+      parseInt(parts[2], 10)
+    );
+    if (Number.isNaN(localDate.getTime())) return null;
+    return localDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  let timeValueHtml;
+  if (event.allDay) {
+    const startLabel = formatAllDayDate(event.start) || 'All Day';
+    // All-day end is typically exclusive (day after last day)
+    let endInclusive = null;
+    if (event.end) {
+      const endPart = String(event.end).split('T')[0];
+      const endParts = endPart.split('-');
+      if (endParts.length === 3) {
+        endInclusive = new Date(
+          parseInt(endParts[0], 10),
+          parseInt(endParts[1], 10) - 1,
+          parseInt(endParts[2], 10)
+        );
+        endInclusive.setDate(endInclusive.getDate() - 1);
+      }
+    }
+    const startPart = String(event.start || '').split('T')[0];
+    const endPartInclusive = endInclusive
+      ? `${endInclusive.getFullYear()}-${String(endInclusive.getMonth() + 1).padStart(2, '0')}-${String(endInclusive.getDate()).padStart(2, '0')}`
+      : startPart;
+    const multiDay = endPartInclusive && endPartInclusive !== startPart;
+    const endLabel = multiDay ? formatAllDayDate(endPartInclusive) : null;
+    timeValueHtml = multiDay && endLabel
+      ? `${startLabel} – ${endLabel}<div class="event-detail-all-day">All Day</div>`
+      : `${startLabel}<div class="event-detail-all-day">All Day</div>`;
+  } else {
+    const startDate = new Date(event.start);
+    const endDate = new Date(event.end || event.start);
+    const startStr = startDate.toLocaleString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+    const endStr = endDate.toLocaleString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+    timeValueHtml = `${startStr} - ${endStr}`;
+  }
   
   // Build event details HTML
   let detailsHTML = `
     <div class="event-detail-row">
       <div class="event-detail-label">Time:</div>
-      <div class="event-detail-value">${startStr} - ${endStr}</div>
+      <div class="event-detail-value">${timeValueHtml}</div>
     </div>
   `;
   

@@ -646,6 +646,15 @@ body {
   gap: 8px;
 }
 
+.event-detail-all-day {
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #aaa;
+}
+
 .event-detail-calendar-swatch {
   width: 14px;
   height: 14px;
