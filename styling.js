@@ -164,8 +164,20 @@ function openStylingModal(fullWidgetId) {
   switchTab('background');
   
   // Update preview after a delay to ensure DOM is ready and styles are loaded
-  setTimeout(() => {
+  setTimeout(async () => {
     updatePreview();
+    // Load real calendar data for calendar/agenda previews if not already cached
+    if ((widgetType === 'calendar-widget' || widgetType === 'agenda-widget') &&
+        typeof window.getCalendarEvents === 'function' &&
+        (!window.getCalendarEvents() || window.getCalendarEvents().length === 0) &&
+        typeof loadCalendarEvents === 'function') {
+      try {
+        await loadCalendarEvents();
+        updatePreview();
+      } catch (e) {
+        console.error('Error loading calendar events for styling preview:', e);
+      }
+    }
   }, 150);
 }
 
@@ -3156,6 +3168,7 @@ async function populateCalendarVisibilityList() {
   activeList.querySelectorAll('.calendar-visibility-checkbox').forEach(cb => {
     cb.addEventListener('change', () => {
       syncHiddenCalendarsFromForm();
+      updatePreview();
     });
   });
 }
@@ -4239,78 +4252,33 @@ function updatePreview() {
     }
   } else if (previewContent && widgetType === 'agenda-widget') {
     // Ensure we're using styles for the correct widget ID
-    // Verify currentWidgetId matches the widget being previewed
     if (!currentWidgetId) {
       console.warn('updatePreview: currentWidgetId is not set for agenda widget preview');
     }
     
-    // Double-check by loading from localStorage using currentWidgetId to ensure correctness
-    // This prevents any potential issues with currentStyles being from a different widget
-    let agendaCardStyles = {};
-    if (currentWidgetId) {
-      const storageKey = `dakboard-widget-styles-${currentWidgetId}`;
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        try {
-          const savedStyles = JSON.parse(saved);
-          agendaCardStyles = {
-            background: savedStyles.agendaCardBackground,
-            border: savedStyles.agendaCardBorder,
-            borderRadius: savedStyles.agendaCardBorderRadius,
-            borderWidth: savedStyles.agendaCardBorderWidth,
-            shadow: savedStyles.agendaCardShadow,
-            hoverBorder: savedStyles.agendaCardHoverBorder
-          };
-        } catch (e) {
-          console.error('Error parsing saved styles for agenda preview:', e);
-        }
-      }
-    }
-    
-    // Use currentStyles for preview (live updates as user changes values in the form)
-    // This allows real-time preview updates as the user adjusts settings
-    // If currentStyles doesn't have agenda-specific values, fall back to saved styles
-    // Priority: currentStyles (live edits) > saved styles (from localStorage) > defaults
-    const cardBg = (currentStyles.agendaCardBackground !== undefined && currentStyles.agendaCardBackground !== null)
-      ? currentStyles.agendaCardBackground 
-      : (agendaCardStyles.background || '#353535');
-    const cardBorder = (currentStyles.agendaCardBorder !== undefined && currentStyles.agendaCardBorder !== null)
-      ? currentStyles.agendaCardBorder 
-      : (agendaCardStyles.border || '#404040');
-    const cardBorderRadius = (currentStyles.agendaCardBorderRadius !== undefined && currentStyles.agendaCardBorderRadius !== null)
-      ? currentStyles.agendaCardBorderRadius 
-      : (agendaCardStyles.borderRadius !== undefined ? agendaCardStyles.borderRadius : 12);
-    const cardBorderWidth = (currentStyles.agendaCardBorderWidth !== undefined && currentStyles.agendaCardBorderWidth !== null)
-      ? currentStyles.agendaCardBorderWidth 
-      : (agendaCardStyles.borderWidth !== undefined ? agendaCardStyles.borderWidth : 1);
-    const cardShadow = (currentStyles.agendaCardShadow !== undefined && currentStyles.agendaCardShadow !== null)
-      ? currentStyles.agendaCardShadow 
-      : (agendaCardStyles.shadow !== undefined ? agendaCardStyles.shadow : true);
-    const cardHoverBorder = (currentStyles.agendaCardHoverBorder !== undefined && currentStyles.agendaCardHoverBorder !== null)
-      ? currentStyles.agendaCardHoverBorder 
-      : (agendaCardStyles.hoverBorder || '#4a90e2');
-    const shadowStyle = cardShadow ? '0 2px 8px rgba(0, 0, 0, 0.3)' : 'none';
-    
-    previewContent.innerHTML = `
-      <div style="width: 100%; padding: 12px; display: flex; flex-direction: column; gap: 12px;">
-        <div style="font-size: 14px; font-weight: 600; color: #aaa; margin-bottom: 8px; text-align: center;">Monday, January 15, 2024</div>
-        <div class="agenda-event" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; padding: 18px; transition: transform 0.2s, box-shadow 0.2s; --agenda-card-hover-border: ${cardHoverBorder};">
-          <div style="font-size: 13px; color: #aaa; font-weight: 500; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">All Day</div>
-          <div style="font-size: 17px; font-weight: 600; color: #fff; margin-bottom: 6px;">Project Deadline</div>
-          <div style="font-size: 14px; color: #aaa; margin-top: 6px;">📍 Remote</div>
-        </div>
-        <div class="agenda-event" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; padding: 18px; transition: transform 0.2s, box-shadow 0.2s; --agenda-card-hover-border: ${cardHoverBorder};">
-          <div style="font-size: 13px; color: #aaa; font-weight: 500; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">9:00 AM - 10:30 AM</div>
-          <div style="font-size: 17px; font-weight: 600; color: #fff; margin-bottom: 6px;">Team Meeting</div>
-          <div style="font-size: 14px; color: #aaa; margin-top: 6px;">📍 Conference Room A</div>
-        </div>
-        <div class="agenda-event" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; padding: 18px; transition: transform 0.2s, box-shadow 0.2s; --agenda-card-hover-border: ${cardHoverBorder};">
-          <div style="font-size: 13px; color: #aaa; font-weight: 500; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">2:00 PM - 3:00 PM</div>
-          <div style="font-size: 17px; font-weight: 600; color: #fff; margin-bottom: 6px;">Client Presentation</div>
-          <div style="font-size: 14px; color: #aaa; margin-top: 6px;">📍 Main Office</div>
-        </div>
-      </div>
-    `;
+    // Use currentStyles for live preview (including hiddenCalendars + card styles)
+    const agendaPreviewStyles = {
+      agendaCardBackground: currentStyles.agendaCardBackground,
+      agendaCardBorder: currentStyles.agendaCardBorder,
+      agendaCardBorderRadius: currentStyles.agendaCardBorderRadius,
+      agendaCardBorderWidth: currentStyles.agendaCardBorderWidth,
+      agendaCardShadow: currentStyles.agendaCardShadow,
+      agendaCardHoverBorder: currentStyles.agendaCardHoverBorder,
+      hiddenCalendars: Array.isArray(currentStyles.hiddenCalendars) ? currentStyles.hiddenCalendars : []
+    };
+
+    previewContent.innerHTML = typeof window.buildAgendaPreviewHtml === 'function'
+      ? window.buildAgendaPreviewHtml(agendaPreviewStyles, { widgetId: currentWidgetId })
+      : '<div style="padding:20px;color:#888;text-align:center;">Agenda preview</div>';
+  } else if (previewContent && widgetType === 'calendar-widget') {
+    const calendarPreviewStyles = {
+      calendarTodayColor: currentStyles.calendarTodayColor,
+      calendarDayColor: currentStyles.calendarDayColor,
+      hiddenCalendars: Array.isArray(currentStyles.hiddenCalendars) ? currentStyles.hiddenCalendars : []
+    };
+    previewContent.innerHTML = typeof window.buildCalendarPreviewHtml === 'function'
+      ? window.buildCalendarPreviewHtml(calendarPreviewStyles)
+      : '<div style="padding:20px;color:#888;text-align:center;">Calendar preview</div>';
   } else if (previewContent && widgetType === 'tasks-widget') {
     // Double-check by loading from localStorage using currentWidgetId to ensure correctness
     // This prevents any potential issues with currentStyles being from a different widget
@@ -4380,7 +4348,7 @@ function updatePreview() {
     previewContent.innerHTML = typeof window.buildClockPreviewHtml === 'function'
       ? window.buildClockPreviewHtml(currentStyles, { compact: true, now: clockPreviewFrozenNow })
       : '<div style="padding:20px;color:#fff;text-align:center;">Clock preview</div>';
-  } else if (previewContent && widgetType !== 'dice-widget' && widgetType !== 'blank-widget' && widgetType !== 'scoreboard-widget' && widgetType !== 'stoplight-widget' && widgetType !== 'agenda-widget' && widgetType !== 'tasks-widget' && widgetType !== 'clock-widget' && widgetType !== 'picker-wheel-widget') {
+  } else if (previewContent && widgetType !== 'dice-widget' && widgetType !== 'blank-widget' && widgetType !== 'scoreboard-widget' && widgetType !== 'stoplight-widget' && widgetType !== 'agenda-widget' && widgetType !== 'calendar-widget' && widgetType !== 'tasks-widget' && widgetType !== 'clock-widget' && widgetType !== 'picker-wheel-widget') {
     // Reset to default text for other widgets
     previewContent.innerHTML = 'Preview updates in real-time as you adjust settings';
   }

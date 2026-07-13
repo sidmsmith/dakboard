@@ -304,6 +304,171 @@ async function ensureAvailableCalendars() {
 window.getAvailableCalendars = () => availableCalendars;
 window.ensureAvailableCalendars = ensureAvailableCalendars;
 window.getHiddenCalendarsForWidget = getHiddenCalendarsForWidget;
+window.getCalendarEvents = () => calendarEvents;
+
+function filterEventsByHiddenList(events, hiddenList) {
+  if (!Array.isArray(events)) return [];
+  if (!Array.isArray(hiddenList) || hiddenList.length === 0) return events;
+  const hiddenSet = new Set(hiddenList.filter(Boolean));
+  return events.filter(event => !event.calendar || !hiddenSet.has(event.calendar));
+}
+
+function getEventsForDate(events, date) {
+  const dayStart = new Date(date);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(date);
+  dayEnd.setHours(23, 59, 59, 999);
+
+  return (events || []).filter(event => {
+    const eventStart = new Date(event.start);
+    const eventEnd = new Date(event.end || event.start);
+
+    if (event.allDay) {
+      const parseDateString = (dateStr) => {
+        const datePart = String(dateStr).split('T')[0];
+        const parts = datePart.split('-');
+        return {
+          year: parseInt(parts[0], 10),
+          month: parseInt(parts[1], 10) - 1,
+          day: parseInt(parts[2], 10)
+        };
+      };
+      const eventStartParts = parseDateString(event.start);
+      const eventEndParts = parseDateString(event.end || event.start);
+      const eventEndDateObj = new Date(eventEndParts.year, eventEndParts.month, eventEndParts.day);
+      eventEndDateObj.setDate(eventEndDateObj.getDate() - 1);
+      const currentDateObj = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const eventStartDateObj = new Date(eventStartParts.year, eventStartParts.month, eventStartParts.day);
+      return currentDateObj >= eventStartDateObj && currentDateObj <= eventEndDateObj;
+    }
+    return eventStart <= dayEnd && eventEnd >= dayStart;
+  }).sort((a, b) => {
+    if (a.allDay && !b.allDay) return -1;
+    if (!a.allDay && b.allDay) return 1;
+    return new Date(a.start) - new Date(b.start);
+  });
+}
+
+function escapePreviewText(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function buildAgendaPreviewHtml(styles = {}, options = {}) {
+  const hidden = Array.isArray(styles.hiddenCalendars) ? styles.hiddenCalendars : [];
+  const sourceEvents = filterEventsByHiddenList(calendarEvents, hidden);
+
+  let date = options.date ? new Date(options.date) : new Date();
+  if (options.widgetId && typeof agendaDates !== 'undefined' && agendaDates?.has(options.widgetId)) {
+    date = new Date(agendaDates.get(options.widgetId));
+  }
+  date.setHours(0, 0, 0, 0);
+
+  const dayEvents = getEventsForDate(sourceEvents, date).slice(0, 5);
+  const dateStr = date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+
+  const cardBg = styles.agendaCardBackground || '#353535';
+  const cardBorder = styles.agendaCardBorder || '#404040';
+  const cardBorderRadius = styles.agendaCardBorderRadius !== undefined ? styles.agendaCardBorderRadius : 12;
+  const cardBorderWidth = styles.agendaCardBorderWidth !== undefined ? styles.agendaCardBorderWidth : 1;
+  const cardShadow = styles.agendaCardShadow !== false;
+  const cardHoverBorder = styles.agendaCardHoverBorder || '#4a90e2';
+  const shadowStyle = cardShadow ? '0 2px 8px rgba(0, 0, 0, 0.3)' : 'none';
+
+  if (dayEvents.length === 0) {
+    return `
+      <div style="width: 100%; padding: 12px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 14px; font-weight: 600; color: #aaa; margin-bottom: 8px; text-align: center;">${escapePreviewText(dateStr)}</div>
+        <div style="text-align: center; color: #888; padding: 24px 8px;">No events scheduled for this day.</div>
+      </div>
+    `;
+  }
+
+  const cards = dayEvents.map(event => {
+    const eventStart = new Date(event.start);
+    const eventEnd = new Date(event.end || event.start);
+    let timeStr = 'All Day';
+    if (!event.allDay) {
+      const startTime = eventStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      const endTime = eventEnd.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      timeStr = `${startTime} - ${endTime}`;
+    }
+    const color = getEventCalendarColor(event);
+    return `
+      <div class="agenda-event" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-left: 6px solid ${color}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; padding: 18px; transition: transform 0.2s, box-shadow 0.2s; --agenda-card-hover-border: ${cardHoverBorder};">
+        <div style="font-size: 13px; color: #aaa; font-weight: 500; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">${escapePreviewText(timeStr)}</div>
+        <div style="font-size: 17px; font-weight: 600; color: #fff; margin-bottom: 6px;">${escapePreviewText(event.title || 'Untitled Event')}</div>
+        ${event.location ? `<div style="font-size: 14px; color: #aaa; margin-top: 6px;">📍 ${escapePreviewText(event.location)}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div style="width: 100%; padding: 12px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-size: 14px; font-weight: 600; color: #aaa; margin-bottom: 8px; text-align: center;">${escapePreviewText(dateStr)}</div>
+      ${cards}
+    </div>
+  `;
+}
+
+function buildCalendarPreviewHtml(styles = {}) {
+  const hidden = Array.isArray(styles.hiddenCalendars) ? styles.hiddenCalendars : [];
+  const sourceEvents = filterEventsByHiddenList(calendarEvents, hidden);
+  const todayColor = styles.calendarTodayColor || '#4a90e2';
+  const dayColor = (styles.calendarDayColor || '#333333').replace(/^#([0-9A-F])([0-9A-F])([0-9A-F])$/i, '#$1$1$2$2$3$3');
+
+  const weekStart = new Date(currentWeekStart);
+  weekStart.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  let daysHtml = '';
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(weekStart);
+    date.setDate(date.getDate() + i);
+    const isToday = date.getTime() === today.getTime();
+    const dayEvents = getEventsForDate(sourceEvents, date).slice(0, 3);
+    const eventsHtml = dayEvents.map(event => {
+      const eventStart = new Date(event.start);
+      let label = event.title || 'Event';
+      if (!event.allDay) {
+        const timeStr = eventStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        label = `${timeStr} ${label}`;
+      }
+      return `<div class="calendar-event" style="border-left-color: ${getEventCalendarColor(event)}; font-size: 10px; padding: 2px 4px; margin-top: 2px;">${escapePreviewText(label)}</div>`;
+    }).join('');
+
+    daysHtml += `
+      <div class="calendar-day${isToday ? ' today' : ''}" style="background-color: ${isToday ? todayColor : dayColor}; min-height: 72px; padding: 6px;">
+        <div style="font-size: 11px; opacity: 0.8; margin-bottom: 2px;">${dayNames[i]}</div>
+        <div class="calendar-day-number" style="font-size: 14px; font-weight: 600;">${date.getDate()}</div>
+        <div class="calendar-events">${eventsHtml || '<div style="font-size:10px;color:#888;margin-top:4px;">—</div>'}</div>
+      </div>
+    `;
+  }
+
+  const weekLabel = `Week of ${formatDate(weekStart)}`;
+  return `
+    <div style="width: 100%; padding: 8px;">
+      <div style="text-align: center; color: #aaa; font-size: 12px; margin-bottom: 8px;">${escapePreviewText(weekLabel)}</div>
+      <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
+        ${daysHtml}
+      </div>
+    </div>
+  `;
+}
+
+window.buildAgendaPreviewHtml = buildAgendaPreviewHtml;
+window.buildCalendarPreviewHtml = buildCalendarPreviewHtml;
 
 // Load calendar events from HA
 async function loadCalendarEvents() {
