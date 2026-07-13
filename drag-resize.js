@@ -196,7 +196,7 @@ function initializeDragAndResize() {
     const widgetTypes = ['scoreboard-widget', 'stopwatch-widget', 'stoplight-widget', 'dice-widget',
                          'picker-wheel-widget', 'blank-widget', 'whiteboard-widget', 'compressor-widget', 'sprinkler-widget',
                          'thermostat-widget', 'weather-widget', 'todo-widget', 'calendar-widget',
-                         'agenda-widget', 'tasks-widget', 'garage-widget', 'alarm-widget', 'news-widget'];
+                         'agenda-widget', 'agenda-direct-widget', 'tasks-widget', 'garage-widget', 'alarm-widget', 'news-widget'];
     const widgetsByType = new Set();
     widgetTypes.forEach(type => {
       currentPage.querySelectorAll(`.${type}`).forEach(w => {

@@ -5473,7 +5473,8 @@ html.dakboard-auth-pending body > *:not(#dakboard-auth-overlay) {
 
 
 /* Agenda Widget - Default position and size */
-.agenda-widget {
+.agenda-widget,
+.agenda-direct-widget {
   width: 500px;
   height: 600px;
   overflow: hidden;
