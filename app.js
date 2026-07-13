@@ -232,9 +232,32 @@ function getEventCalendarName(event) {
   return event.calendarName || fallbackCalendarName(event.calendar);
 }
 
-function getEventCalendarColor(event) {
+function getCalendarColorsForWidget(fullWidgetId) {
+  if (!fullWidgetId) return {};
+  try {
+    const saved = localStorage.getItem(`dakboard-widget-styles-${fullWidgetId}`);
+    if (!saved) return {};
+    const styles = JSON.parse(saved);
+    if (!styles.calendarColors || typeof styles.calendarColors !== 'object' || Array.isArray(styles.calendarColors)) {
+      return {};
+    }
+    return styles.calendarColors;
+  } catch (e) {
+    return {};
+  }
+}
+
+/** Resolve event bar color. Second arg may be a widget id (string) or a calendarColors map (object). */
+function getEventCalendarColor(event, widgetIdOrColors) {
   if (!event) return DEFAULT_CALENDAR_COLOR;
-  return event.color || DEFAULT_CALENDAR_COLOR;
+  let override = null;
+  if (widgetIdOrColors && typeof widgetIdOrColors === 'object' && !Array.isArray(widgetIdOrColors)) {
+    override = event.calendar ? widgetIdOrColors[event.calendar] : null;
+  } else if (typeof widgetIdOrColors === 'string' && event.calendar) {
+    const colors = getCalendarColorsForWidget(widgetIdOrColors);
+    override = colors[event.calendar] || null;
+  }
+  return override || event.color || DEFAULT_CALENDAR_COLOR;
 }
 
 function getHiddenCalendarsForWidget(fullWidgetId) {
@@ -307,6 +330,7 @@ window.getAvailableCalendars = () => availableCalendars;
 window.getAvailableGoogleCalendars = () => availableGoogleCalendars;
 window.ensureAvailableCalendars = ensureAvailableCalendars;
 window.getHiddenCalendarsForWidget = getHiddenCalendarsForWidget;
+window.getCalendarColorsForWidget = getCalendarColorsForWidget;
 window.getCalendarEvents = () => calendarEvents;
 window.getGoogleCalendarEvents = () => googleCalendarEvents;
 
@@ -609,7 +633,7 @@ function buildAgendaPreviewHtml(styles = {}, options = {}) {
       const endTime = eventEnd.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
       timeStr = `${startTime} - ${endTime}`;
     }
-    const color = getEventCalendarColor(event);
+    const color = getEventCalendarColor(event, styles.calendarColors);
     return `
       <div class="agenda-event" style="background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-left: 6px solid ${color}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; padding: 18px; transition: transform 0.2s, box-shadow 0.2s; --agenda-card-hover-border: ${cardHoverBorder};">
         <div style="font-size: 13px; color: #aaa; font-weight: 500; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">${escapePreviewText(timeStr)}</div>
@@ -6124,7 +6148,7 @@ function renderAgenda(widgetId, container) {
         timeStr = `${startTime} - ${endTime}`;
       }
       
-      const eventStyle = `background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-left: 6px solid ${getEventCalendarColor(event)}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; --agenda-card-hover-border: ${cardHoverBorder};`;
+      const eventStyle = `background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-left: 6px solid ${getEventCalendarColor(event, widgetId)}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; --agenda-card-hover-border: ${cardHoverBorder};`;
       
       // Create a unique identifier: use index in sortedEvents array (which is specific to this widget and date)
       // This ensures each event card has a unique identifier even if UID is empty

@@ -813,6 +813,7 @@ function generateAdvancedTab() {
   const isBlankWidget = widgetType === 'blank-widget';
   const isStoplightWidget = widgetType === 'stoplight-widget';
   const isAgendaWidget = widgetType === 'agenda-widget' || widgetType === 'agenda-direct-widget';
+  const isAgendaDirectWidget = widgetType === 'agenda-direct-widget';
   const isTasksWidget = widgetType === 'tasks-widget';
   const isCalendarWidget = widgetType === 'calendar-widget';
   const isClockWidget = widgetType === 'clock-widget';
@@ -1287,7 +1288,9 @@ function generateAdvancedTab() {
     <div class="styling-form-section">
       <div class="styling-section-title">Visible Calendars</div>
       <div class="styling-form-group">
-        <p style="color: #aaa; font-size: 13px; margin: 0 0 12px 0;">Uncheck a calendar to hide its events on this agenda widget. New calendars stay visible until you hide them.</p>
+        <p style="color: #aaa; font-size: 13px; margin: 0 0 12px 0;">${isAgendaDirectWidget
+          ? 'Uncheck a calendar to hide its events. Use the color picker to set each calendar bar color on this widget (Google ICS does not provide colors).'
+          : 'Uncheck a calendar to hide its events on this agenda widget. New calendars stay visible until you hide them.'}</p>
         <div id="calendar-visibility-list" class="calendar-visibility-list">
           <div style="color: #888; padding: 8px 0;">Loading calendars...</div>
         </div>
@@ -3224,20 +3227,39 @@ async function populateCalendarVisibilityList() {
 
   const hidden = Array.isArray(currentStyles.hiddenCalendars) ? currentStyles.hiddenCalendars : [];
   const hiddenSet = new Set(hidden);
+  const colorOverrides =
+    currentStyles.calendarColors && typeof currentStyles.calendarColors === 'object'
+      ? currentStyles.calendarColors
+      : {};
+
+  const toColorInputValue = (raw, fallback) => {
+    const value = String(raw || fallback || '#0f9d58').trim();
+    if (/^#[0-9A-Fa-f]{6}$/.test(value)) return value.toLowerCase();
+    if (/^#[0-9A-Fa-f]{3}$/.test(value)) {
+      return `#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}`.toLowerCase();
+    }
+    return (fallback || '#0f9d58').toLowerCase();
+  };
 
   activeList.innerHTML = calendars.map(cal => {
     const id = cal.id || cal;
     const name = cal.name || String(id).replace(/^calendar\./, '').replace(/_/g, ' ');
-    const color = cal.color || (isGoogleDirect ? '#0f9d58' : '#4a90e2');
+    const defaultColor = cal.color || (isGoogleDirect ? '#0f9d58' : '#4a90e2');
+    const color = toColorInputValue(colorOverrides[id] || defaultColor, defaultColor);
     const checked = !hiddenSet.has(id) ? 'checked' : '';
     const safeId = String(id).replace(/"/g, '&quot;');
     const safeName = String(name).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const colorControl = isGoogleDirect
+      ? `<input type="color" class="calendar-visibility-color" data-calendar-id="${safeId}" value="${color}" title="Calendar color" aria-label="Color for ${safeName}">`
+      : `<span class="calendar-visibility-swatch" style="background: ${color};"></span>`;
     return `
-      <label class="calendar-visibility-row">
-        <span class="calendar-visibility-swatch" style="background: ${color};"></span>
-        <input type="checkbox" class="calendar-visibility-checkbox" data-calendar-id="${safeId}" ${checked}>
-        <span class="calendar-visibility-name">${safeName}</span>
-      </label>
+      <div class="calendar-visibility-row">
+        ${colorControl}
+        <label class="calendar-visibility-label">
+          <input type="checkbox" class="calendar-visibility-checkbox" data-calendar-id="${safeId}" ${checked}>
+          <span class="calendar-visibility-name">${safeName}</span>
+        </label>
+      </div>
     `;
   }).join('');
 
@@ -3247,6 +3269,19 @@ async function populateCalendarVisibilityList() {
       updatePreview();
     });
   });
+
+  if (isGoogleDirect) {
+    activeList.querySelectorAll('.calendar-visibility-color').forEach(input => {
+      input.addEventListener('input', () => {
+        syncCalendarColorsFromForm();
+        updatePreview();
+      });
+      input.addEventListener('change', () => {
+        syncCalendarColorsFromForm();
+        updatePreview();
+      });
+    });
+  }
 }
 
 function syncHiddenCalendarsFromForm() {
@@ -3261,6 +3296,23 @@ function syncHiddenCalendarsFromForm() {
     }
   });
   currentStyles.hiddenCalendars = hidden;
+}
+
+function syncCalendarColorsFromForm() {
+  const stylingModal = document.getElementById('styling-modal');
+  if (!stylingModal) return;
+  const colorInputs = stylingModal.querySelectorAll('.calendar-visibility-color');
+  if (!colorInputs.length) return;
+
+  if (!currentStyles.calendarColors || typeof currentStyles.calendarColors !== 'object' || Array.isArray(currentStyles.calendarColors)) {
+    currentStyles.calendarColors = {};
+  }
+
+  colorInputs.forEach(input => {
+    const id = input.dataset.calendarId;
+    if (!id || !input.value) return;
+    currentStyles.calendarColors[id] = input.value;
+  });
 }
 
 // Update scoreboard configuration from form
@@ -4345,7 +4397,11 @@ function updatePreview() {
       agendaCardBorderWidth: currentStyles.agendaCardBorderWidth,
       agendaCardShadow: currentStyles.agendaCardShadow,
       agendaCardHoverBorder: currentStyles.agendaCardHoverBorder,
-      hiddenCalendars: Array.isArray(currentStyles.hiddenCalendars) ? currentStyles.hiddenCalendars : []
+      hiddenCalendars: Array.isArray(currentStyles.hiddenCalendars) ? currentStyles.hiddenCalendars : [],
+      calendarColors:
+        currentStyles.calendarColors && typeof currentStyles.calendarColors === 'object'
+          ? currentStyles.calendarColors
+          : {}
     };
 
     previewContent.innerHTML = typeof window.buildAgendaPreviewHtml === 'function'
@@ -4770,6 +4826,7 @@ function updateCurrentStylesFromForm() {
 
   // Calendar / agenda visible-calendar checkboxes (unchecked = hidden)
   syncHiddenCalendarsFromForm();
+  syncCalendarColorsFromForm();
   
   // Dice widget colors
   const diceFaceColor = stylingModal.querySelector('#dice-face-color');
@@ -5912,7 +5969,8 @@ function loadWidgetStyles(fullWidgetId) {
         weatherRadarLon: -84.4778
       } : {}),
       ...((widgetType === 'calendar-widget' || widgetType === 'agenda-widget' || widgetType === 'agenda-direct-widget') ? {
-        hiddenCalendars: []
+        hiddenCalendars: [],
+        ...(widgetType === 'agenda-direct-widget' ? { calendarColors: {} } : {})
       } : {})
     };
   }
@@ -5949,6 +6007,11 @@ function loadWidgetStyles(fullWidgetId) {
   if ((widgetType === 'calendar-widget' || widgetType === 'agenda-widget' || widgetType === 'agenda-direct-widget') &&
       !Array.isArray(currentStyles.hiddenCalendars)) {
     currentStyles.hiddenCalendars = [];
+  }
+
+  if (widgetType === 'agenda-direct-widget' &&
+      (!currentStyles.calendarColors || typeof currentStyles.calendarColors !== 'object' || Array.isArray(currentStyles.calendarColors))) {
+    currentStyles.calendarColors = {};
   }
 
   if (widgetType === 'picker-wheel-widget' && !currentStyles.pickerWheelConfig) {
