@@ -1254,6 +1254,15 @@ function generateAdvancedTab() {
     ` : ''}
     ${isAgendaWidget ? `
     <div class="styling-form-section">
+      <div class="styling-section-title">Visible Calendars</div>
+      <div class="styling-form-group">
+        <p style="color: #aaa; font-size: 13px; margin: 0 0 12px 0;">Uncheck a calendar to hide its events on this agenda widget. New calendars stay visible until you hide them.</p>
+        <div id="calendar-visibility-list" class="calendar-visibility-list">
+          <div style="color: #888; padding: 8px 0;">Loading calendars...</div>
+        </div>
+      </div>
+    </div>
+    <div class="styling-form-section">
       <div class="styling-section-title">Agenda Card Styling</div>
       <div class="styling-form-group">
         <div class="styling-form-row">
@@ -1496,6 +1505,15 @@ function generateAdvancedTab() {
     </div>
     ` : ''}
     ${isCalendarWidget ? `
+    <div class="styling-form-section">
+      <div class="styling-section-title">Visible Calendars</div>
+      <div class="styling-form-group">
+        <p style="color: #aaa; font-size: 13px; margin: 0 0 12px 0;">Uncheck a calendar to hide its events on this calendar widget (week, day, and month views). New calendars stay visible until you hide them.</p>
+        <div id="calendar-visibility-list" class="calendar-visibility-list">
+          <div style="color: #888; padding: 8px 0;">Loading calendars...</div>
+        </div>
+      </div>
+    </div>
     <div class="styling-form-section">
       <div class="styling-section-title">Calendar Day Colors</div>
       <div class="styling-form-group">
@@ -3080,8 +3098,80 @@ function attachTabEventListeners(tabName) {
         }
         syncRadarCoordsVisibility();
       }
+
+      if (widgetType === 'calendar-widget' || widgetType === 'agenda-widget') {
+        populateCalendarVisibilityList();
+      }
     }
   }
+}
+
+async function populateCalendarVisibilityList() {
+  const stylingModal = document.getElementById('styling-modal');
+  if (!stylingModal) return;
+  const list = stylingModal.querySelector('#calendar-visibility-list');
+  if (!list) return;
+
+  list.innerHTML = '<div style="color: #888; padding: 8px 0;">Loading calendars...</div>';
+
+  let calendars = typeof window.getAvailableCalendars === 'function'
+    ? window.getAvailableCalendars()
+    : [];
+  if ((!calendars || calendars.length === 0) && typeof window.ensureAvailableCalendars === 'function') {
+    try {
+      calendars = await window.ensureAvailableCalendars();
+    } catch (e) {
+      console.error('Error loading calendars for visibility list:', e);
+    }
+  }
+
+  // Re-check in case tab changed while loading
+  const activeList = stylingModal.querySelector('#calendar-visibility-list');
+  if (!activeList) return;
+
+  if (!calendars || calendars.length === 0) {
+    activeList.innerHTML = '<div style="color: #888; padding: 8px 0;">No Home Assistant calendars found.</div>';
+    return;
+  }
+
+  const hidden = Array.isArray(currentStyles.hiddenCalendars) ? currentStyles.hiddenCalendars : [];
+  const hiddenSet = new Set(hidden);
+
+  activeList.innerHTML = calendars.map(cal => {
+    const id = cal.id || cal;
+    const name = cal.name || String(id).replace(/^calendar\./, '').replace(/_/g, ' ');
+    const color = cal.color || '#4a90e2';
+    const checked = !hiddenSet.has(id) ? 'checked' : '';
+    const safeId = String(id).replace(/"/g, '&quot;');
+    const safeName = String(name).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return `
+      <label class="calendar-visibility-row">
+        <span class="calendar-visibility-swatch" style="background: ${color};"></span>
+        <input type="checkbox" class="calendar-visibility-checkbox" data-calendar-id="${safeId}" ${checked}>
+        <span class="calendar-visibility-name">${safeName}</span>
+      </label>
+    `;
+  }).join('');
+
+  activeList.querySelectorAll('.calendar-visibility-checkbox').forEach(cb => {
+    cb.addEventListener('change', () => {
+      syncHiddenCalendarsFromForm();
+    });
+  });
+}
+
+function syncHiddenCalendarsFromForm() {
+  const stylingModal = document.getElementById('styling-modal');
+  if (!stylingModal) return;
+  const checks = stylingModal.querySelectorAll('.calendar-visibility-checkbox');
+  if (!checks.length) return;
+  const hidden = [];
+  checks.forEach(cb => {
+    if (!cb.checked && cb.dataset.calendarId) {
+      hidden.push(cb.dataset.calendarId);
+    }
+  });
+  currentStyles.hiddenCalendars = hidden;
 }
 
 // Update scoreboard configuration from form
@@ -4419,7 +4509,7 @@ function applyStyles() {
       }, 50);
     }
   } else if (widgetType === 'calendar-widget') {
-    // Reload calendar widget to apply day colors
+    // Reload calendar widget to apply day colors + visibility
     if (typeof renderCalendar === 'function') {
       // Use setTimeout to ensure modal is fully closed and styles are saved to localStorage
       setTimeout(() => {
@@ -4621,6 +4711,9 @@ function updateCurrentStylesFromForm() {
   if (calendarDayColor && calendarDayColorText) {
     currentStyles.calendarDayColor = calendarDayColor.value;
   }
+
+  // Calendar / agenda visible-calendar checkboxes (unchecked = hidden)
+  syncHiddenCalendarsFromForm();
   
   // Dice widget colors
   const diceFaceColor = stylingModal.querySelector('#dice-face-color');
@@ -5761,6 +5854,9 @@ function loadWidgetStyles(fullWidgetId) {
         weatherRadarLocationSource: 'configured',
         weatherRadarLat: 33.9939,
         weatherRadarLon: -84.4778
+      } : {}),
+      ...((widgetType === 'calendar-widget' || widgetType === 'agenda-widget') ? {
+        hiddenCalendars: []
       } : {})
     };
   }
@@ -5792,6 +5888,11 @@ function loadWidgetStyles(fullWidgetId) {
     if (currentStyles.weatherRadarLon === undefined) {
       currentStyles.weatherRadarLon = -84.4778;
     }
+  }
+
+  if ((widgetType === 'calendar-widget' || widgetType === 'agenda-widget') &&
+      !Array.isArray(currentStyles.hiddenCalendars)) {
+    currentStyles.hiddenCalendars = [];
   }
 
   if (widgetType === 'picker-wheel-widget' && !currentStyles.pickerWheelConfig) {

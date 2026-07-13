@@ -215,6 +215,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Calendar events cache
 let calendarEvents = [];
+let availableCalendars = []; // [{ id, name, color }] from HA
+let calendarViewContextWidgetId = null; // widget that opened month/daily modal
 const DEFAULT_CALENDAR_COLOR = '#4a90e2';
 
 function fallbackCalendarName(entityId) {
@@ -232,6 +234,76 @@ function getEventCalendarColor(event) {
   if (!event) return DEFAULT_CALENDAR_COLOR;
   return event.color || DEFAULT_CALENDAR_COLOR;
 }
+
+function getHiddenCalendarsForWidget(fullWidgetId) {
+  if (!fullWidgetId) return [];
+  try {
+    const saved = localStorage.getItem(`dakboard-widget-styles-${fullWidgetId}`);
+    if (!saved) return [];
+    const styles = JSON.parse(saved);
+    return Array.isArray(styles.hiddenCalendars) ? styles.hiddenCalendars.filter(Boolean) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function filterEventsForWidget(events, fullWidgetId) {
+  if (!Array.isArray(events)) return [];
+  const hidden = getHiddenCalendarsForWidget(fullWidgetId);
+  if (!hidden.length) return events;
+  const hiddenSet = new Set(hidden);
+  return events.filter(event => !event.calendar || !hiddenSet.has(event.calendar));
+}
+
+function updateAvailableCalendarsFromPayload(calendars, events) {
+  const byId = new Map();
+
+  (calendars || []).forEach(cal => {
+    const id = typeof cal === 'string' ? cal : cal?.id;
+    if (!id) return;
+    byId.set(id, {
+      id,
+      name: (typeof cal === 'object' && cal.name) || fallbackCalendarName(id),
+      color: (typeof cal === 'object' && cal.color) || DEFAULT_CALENDAR_COLOR
+    });
+  });
+
+  (events || []).forEach(event => {
+    if (!event?.calendar || byId.has(event.calendar)) return;
+    byId.set(event.calendar, {
+      id: event.calendar,
+      name: event.calendarName || fallbackCalendarName(event.calendar),
+      color: event.color || DEFAULT_CALENDAR_COLOR
+    });
+  });
+
+  availableCalendars = Array.from(byId.values()).sort((a, b) =>
+    String(a.name).localeCompare(String(b.name))
+  );
+}
+
+async function ensureAvailableCalendars() {
+  if (availableCalendars.length > 0) return availableCalendars;
+  try {
+    const now = new Date();
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    const response = await fetch(`/api/ha-calendar?startDate=${start.toISOString()}&endDate=${end.toISOString()}`);
+    if (response.ok) {
+      const data = await response.json();
+      updateAvailableCalendarsFromPayload(data.calendars, data.events);
+    }
+  } catch (e) {
+    console.error('Error loading available calendars:', e);
+  }
+  return availableCalendars;
+}
+
+window.getAvailableCalendars = () => availableCalendars;
+window.ensureAvailableCalendars = ensureAvailableCalendars;
+window.getHiddenCalendarsForWidget = getHiddenCalendarsForWidget;
 
 // Load calendar events from HA
 async function loadCalendarEvents() {
@@ -305,6 +377,7 @@ async function loadCalendarEvents() {
       
       // De-duplicate events: compare by title and start/end times (ignore calendar source)
       calendarEvents = deduplicateEvents(calendarEvents);
+      updateAvailableCalendarsFromPayload(data.calendars, calendarEvents);
     
     // Re-render calendar with events
     renderCalendar();
@@ -697,7 +770,11 @@ function initializeEventListeners() {
     if (!btn.dataset.listenerAttached) {
       btn.dataset.listenerAttached = 'true';
       btn.addEventListener('click', () => {
-        showMonthModal();
+        const widget = btn.closest('.calendar-widget');
+        const fullId = widget && typeof resolveWidgetFullId === 'function'
+          ? resolveWidgetFullId(widget, currentPageIndex)
+          : null;
+        showMonthModal(fullId);
       });
     }
   });
@@ -917,6 +994,8 @@ function renderCalendar() {
         console.error('Error parsing calendar styles:', e);
       }
     }
+
+    const widgetEvents = filterEventsForWidget(calendarEvents, fullWidgetId);
   
   // Clear existing days (keep headers)
   const headers = Array.from(grid.querySelectorAll('.calendar-day-header'));
@@ -962,11 +1041,11 @@ function renderCalendar() {
     dayNumber.style.cursor = 'pointer';
     dayNumber.title = 'Click to view daily agenda';
     
-    // Add click handler to show daily agenda
+    // Add click handler to show daily agenda (filtered for this widget)
     dayNumber.addEventListener('click', (e) => {
       e.stopPropagation();
       if (!isEditMode) {
-        showDailyAgenda(date, dayEvents);
+        showDailyAgenda(date, fullWidgetId);
       }
     });
     
@@ -979,7 +1058,7 @@ function renderCalendar() {
     const dayEnd = new Date(date);
     dayEnd.setHours(23, 59, 59, 999);
     
-    const dayEvents = calendarEvents.filter(event => {
+    const dayEvents = widgetEvents.filter(event => {
       const eventStart = new Date(event.start);
       const eventEnd = new Date(event.end || event.start);
       
@@ -1079,7 +1158,8 @@ function renderCalendar() {
 }
 
 // Show monthly calendar modal
-async function showMonthModal() {
+async function showMonthModal(fullWidgetId = null) {
+  calendarViewContextWidgetId = fullWidgetId || null;
   const modal = document.getElementById('month-modal');
   const content = document.getElementById('month-calendar-content');
   
@@ -1096,8 +1176,11 @@ async function showMonthModal() {
   const monthStart = new Date(currentYear, currentMonth, 1);
   const monthEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
   
-  // Fetch events for the entire month
-  const monthEvents = await fetchMonthEvents(monthStart, monthEnd);
+  // Fetch events for the entire month, then apply this widget's hidden calendars
+  const monthEvents = filterEventsForWidget(
+    await fetchMonthEvents(monthStart, monthEnd),
+    calendarViewContextWidgetId
+  );
   
   // Render month calendar
   renderMonthCalendar(content, currentYear, currentMonth, monthEvents);
@@ -1222,7 +1305,10 @@ function renderMonthCalendar(container, year, month, events) {
       const newYear = month === 0 ? year - 1 : year;
       const newMonthStart = new Date(newYear, newMonth, 1);
       const newMonthEnd = new Date(newYear, newMonth + 1, 0, 23, 59, 59, 999);
-      const newEvents = await fetchMonthEvents(newMonthStart, newMonthEnd);
+      const newEvents = filterEventsForWidget(
+        await fetchMonthEvents(newMonthStart, newMonthEnd),
+        calendarViewContextWidgetId
+      );
       renderMonthCalendar(container, newYear, newMonth, newEvents);
     };
   }
@@ -1233,7 +1319,10 @@ function renderMonthCalendar(container, year, month, events) {
       const newYear = month === 11 ? year + 1 : year;
       const newMonthStart = new Date(newYear, newMonth, 1);
       const newMonthEnd = new Date(newYear, newMonth + 1, 0, 23, 59, 59, 999);
-      const newEvents = await fetchMonthEvents(newMonthStart, newMonthEnd);
+      const newEvents = filterEventsForWidget(
+        await fetchMonthEvents(newMonthStart, newMonthEnd),
+        calendarViewContextWidgetId
+      );
       renderMonthCalendar(container, newYear, newMonth, newEvents);
     };
   }
@@ -1479,6 +1568,10 @@ async function fetchMonthEvents(monthStart, monthEnd) {
         
         // De-duplicate month events
         monthEvents = deduplicateEvents(monthEvents);
+        updateAvailableCalendarsFromPayload(
+          Object.keys(calendarMeta).map(id => ({ id, ...calendarMeta[id] })),
+          monthEvents
+        );
       } else {
         monthEvents = [];
       }
@@ -1524,6 +1617,7 @@ async function fetchMonthEvents(monthStart, monthEnd) {
         });
         
         monthEvents = deduplicateEvents(monthEvents);
+        updateAvailableCalendarsFromPayload(data.calendars, monthEvents);
       } else {
         console.error('Failed to fetch month calendar events:', response.status);
         monthEvents = [];
@@ -1811,10 +1905,12 @@ function closeEventModal() {
 let currentAgendaDate = null;
 
 // Show daily agenda modal
-function showDailyAgenda(date, events) {
+function showDailyAgenda(date, fullWidgetId = null) {
   // Don't allow interaction in edit mode
   if (isEditMode) return;
   
+  calendarViewContextWidgetId = fullWidgetId || null;
+
   // Store the date for navigation
   currentAgendaDate = new Date(date);
   currentAgendaDate.setHours(0, 0, 0, 0);
@@ -1843,7 +1939,7 @@ function loadDailyAgendaForDate(date) {
   const dayEnd = new Date(date);
   dayEnd.setHours(23, 59, 59, 999);
   
-  const dayEvents = calendarEvents.filter(event => {
+  const dayEvents = filterEventsForWidget(calendarEvents, calendarViewContextWidgetId).filter(event => {
     const eventStart = new Date(event.start);
     const eventEnd = new Date(event.end || event.start);
     
@@ -5503,7 +5599,7 @@ function renderAgenda(widgetId, container) {
   const dayEnd = new Date(date);
   dayEnd.setHours(23, 59, 59, 999);
   
-  const dayEvents = calendarEvents.filter(event => {
+  const dayEvents = filterEventsForWidget(calendarEvents, widgetId).filter(event => {
     const eventStart = new Date(event.start);
     const eventEnd = new Date(event.end || event.start);
     
@@ -5709,7 +5805,7 @@ function renderAgenda(widgetId, container) {
           const dayEnd = new Date(widgetDate);
           dayEnd.setHours(23, 59, 59, 999);
           
-          const dayEvents = calendarEvents.filter(event => {
+          const dayEvents = filterEventsForWidget(calendarEvents, widgetId).filter(event => {
             const eventStart = new Date(event.start);
             const eventEnd = new Date(event.end || event.start);
             
