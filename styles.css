@@ -392,7 +392,8 @@ body {
 }
 
 /* Calendar - Default position and size */
-.calendar-widget {
+.calendar-widget,
+.calendar-direct-widget {
   width: 800px;
   height: 500px;
   overflow: hidden;
@@ -3319,25 +3320,31 @@ footer a:hover {
 }
 
 /* Calendar widget - prevent scaling for title, increase font sizes */
-.widget[data-scale].calendar-widget .widget-title {
+.widget[data-scale].calendar-widget .widget-title,
+.widget[data-scale].calendar-direct-widget .widget-title {
   font-size: 18px !important;
 }
 
-.widget[data-scale].calendar-widget .calendar-day-header {
+.widget[data-scale].calendar-widget .calendar-day-header,
+.widget[data-scale].calendar-direct-widget .calendar-day-header {
   font-size: 16px !important;
 }
 
-.widget[data-scale].calendar-widget .calendar-day-number {
+.widget[data-scale].calendar-widget .calendar-day-number,
+.widget[data-scale].calendar-direct-widget .calendar-day-number {
   font-size: 16px !important;
 }
 
-.widget[data-scale].calendar-widget .calendar-event {
+.widget[data-scale].calendar-widget .calendar-event,
+.widget[data-scale].calendar-direct-widget .calendar-event {
   font-size: 12px !important;
   padding: calc(4px * var(--scale-factor, 1)) calc(8px * var(--scale-factor, 1));
 }
 
 .widget[data-scale].calendar-widget #week-range,
-.widget[data-scale].calendar-widget .calendar-nav span {
+.widget[data-scale].calendar-widget .calendar-nav span,
+.widget[data-scale].calendar-direct-widget #week-range,
+.widget[data-scale].calendar-direct-widget .calendar-nav span {
   font-size: 16px !important;
 }
 

@@ -185,12 +185,17 @@ function openStylingModal(fullWidgetId) {
 
     updatePreview();
     // Load real calendar data for calendar previews if not already cached
-    if (widgetType === 'calendar-widget' &&
-        typeof window.getCalendarEvents === 'function' &&
-        (!window.getCalendarEvents() || window.getCalendarEvents().length === 0) &&
-        typeof loadCalendarEvents === 'function') {
+    if ((widgetType === 'calendar-widget' || widgetType === 'calendar-direct-widget') &&
+        typeof window.getCalendarEvents === 'function') {
       try {
-        await loadCalendarEvents();
+        if (widgetType === 'calendar-direct-widget' && typeof window.loadGoogleCalendarEvents === 'function') {
+          await window.loadGoogleCalendarEvents();
+        } else if (
+          (!window.getCalendarEvents() || window.getCalendarEvents().length === 0) &&
+          typeof loadCalendarEvents === 'function'
+        ) {
+          await loadCalendarEvents();
+        }
         updatePreview();
       } catch (e) {
         console.error('Error loading calendar events for styling preview:', e);
@@ -637,7 +642,7 @@ function generateTitleTab() {
   const titleVisible = currentStyles.titleVisible !== undefined ? currentStyles.titleVisible : true;
   const titleIconVisible = currentStyles.titleIconVisible !== undefined ? currentStyles.titleIconVisible : true;
   const titleAlignment = currentStyles.titleAlignment || 'left';
-  const isCalendarWidget = widgetType === 'calendar-widget';
+  const isCalendarWidget = widgetType === 'calendar-widget' || widgetType === 'calendar-direct-widget';
   const isWhiteboardWidget = widgetType === 'whiteboard-widget';
   const isSpecialWidget = isCalendarWidget || isWhiteboardWidget; // Keep for alignment and note display
   // Normalize color to 6-digit hex format for color input
@@ -815,7 +820,8 @@ function generateAdvancedTab() {
   const isAgendaWidget = widgetType === 'agenda-widget' || widgetType === 'agenda-direct-widget';
   const isAgendaDirectWidget = widgetType === 'agenda-direct-widget';
   const isTasksWidget = widgetType === 'tasks-widget';
-  const isCalendarWidget = widgetType === 'calendar-widget';
+  const isCalendarWidget = widgetType === 'calendar-widget' || widgetType === 'calendar-direct-widget';
+  const isCalendarDirectWidget = widgetType === 'calendar-direct-widget';
   const isClockWidget = widgetType === 'clock-widget';
   const isAlarmWidget = widgetType === 'alarm-widget';
   const isWeatherWidget = widgetType === 'weather-widget';
@@ -1542,7 +1548,9 @@ function generateAdvancedTab() {
     <div class="styling-form-section">
       <div class="styling-section-title">Visible Calendars</div>
       <div class="styling-form-group">
-        <p style="color: #aaa; font-size: 13px; margin: 0 0 12px 0;">Uncheck a calendar to hide its events on this calendar widget (week, day, and month views). New calendars stay visible until you hide them.</p>
+        <p style="color: #aaa; font-size: 13px; margin: 0 0 12px 0;">${isCalendarDirectWidget
+          ? 'Uncheck a calendar to hide its events. Use the color picker to set each calendar bar color on this widget (Google ICS does not provide colors). Applies to week, day, and month views.'
+          : 'Uncheck a calendar to hide its events on this calendar widget (week, day, and month views). New calendars stay visible until you hide them.'}</p>
         <div id="calendar-visibility-list" class="calendar-visibility-list">
           <div style="color: #888; padding: 8px 0;">Loading calendars...</div>
         </div>
@@ -2358,7 +2366,7 @@ function attachTabEventListeners(tabName) {
       }
       
       // Calendar widget color pickers
-      if (widgetType === 'calendar-widget') {
+      if (widgetType === 'calendar-widget' || widgetType === 'calendar-direct-widget') {
         const calendarTodayColor = stylingModal.querySelector('#calendar-today-color');
         const calendarTodayColorText = stylingModal.querySelector('#calendar-today-color-text');
         if (calendarTodayColor && calendarTodayColorText) {
@@ -3133,7 +3141,7 @@ function attachTabEventListeners(tabName) {
         syncRadarCoordsVisibility();
       }
 
-      if (widgetType === 'calendar-widget' || widgetType === 'agenda-widget' || widgetType === 'agenda-direct-widget') {
+      if (widgetType === 'calendar-widget' || widgetType === 'calendar-direct-widget' || widgetType === 'agenda-widget' || widgetType === 'agenda-direct-widget') {
         populateCalendarVisibilityList();
       }
     }
@@ -3189,7 +3197,9 @@ async function populateCalendarVisibilityList() {
   const parsed = typeof parseWidgetId !== 'undefined' && currentWidgetId
     ? parseWidgetId(currentWidgetId)
     : { widgetType: currentWidgetId || '' };
-  const isGoogleDirect = parsed.widgetType === 'agenda-direct-widget';
+  const isGoogleDirect =
+    parsed.widgetType === 'agenda-direct-widget' ||
+    parsed.widgetType === 'calendar-direct-widget';
 
   list.innerHTML = '<div style="color: #888; padding: 8px 0;">Loading calendars...</div>';
 
@@ -3220,7 +3230,7 @@ async function populateCalendarVisibilityList() {
 
   if (!calendars || calendars.length === 0) {
     activeList.innerHTML = isGoogleDirect
-      ? '<div style="color: #888; padding: 8px 0;">No Google calendars found. Check GOOGLE_CALENDAR_ICS_URL on the server.</div>'
+      ? '<div style="color: #888; padding: 8px 0;">No Google calendars found. Check GOOGLE_CALENDAR_ICS_URLS (or GOOGLE_CALENDAR_ICS_URL) on the server.</div>'
       : '<div style="color: #888; padding: 8px 0;">No Home Assistant calendars found.</div>';
     return;
   }
@@ -4413,14 +4423,21 @@ function updatePreview() {
       : '<div style="padding:20px;color:#888;text-align:center;">Agenda preview</div>';
 
     attachAgendaPreviewNavHandlers(previewContent);
-  } else if (previewContent && widgetType === 'calendar-widget') {
+  } else if (previewContent && (widgetType === 'calendar-widget' || widgetType === 'calendar-direct-widget')) {
     const calendarPreviewStyles = {
       calendarTodayColor: currentStyles.calendarTodayColor,
       calendarDayColor: currentStyles.calendarDayColor,
-      hiddenCalendars: Array.isArray(currentStyles.hiddenCalendars) ? currentStyles.hiddenCalendars : []
+      hiddenCalendars: Array.isArray(currentStyles.hiddenCalendars) ? currentStyles.hiddenCalendars : [],
+      calendarColors:
+        currentStyles.calendarColors && typeof currentStyles.calendarColors === 'object'
+          ? currentStyles.calendarColors
+          : {}
     };
     previewContent.innerHTML = typeof window.buildCalendarPreviewHtml === 'function'
-      ? window.buildCalendarPreviewHtml(calendarPreviewStyles)
+      ? window.buildCalendarPreviewHtml(calendarPreviewStyles, {
+          widgetId: currentWidgetId,
+          source: widgetType === 'calendar-direct-widget' ? 'google' : 'ha'
+        })
       : '<div style="padding:20px;color:#888;text-align:center;">Calendar preview</div>';
   } else if (previewContent && widgetType === 'tasks-widget') {
     // Double-check by loading from localStorage using currentWidgetId to ensure correctness
@@ -4491,7 +4508,7 @@ function updatePreview() {
     previewContent.innerHTML = typeof window.buildClockPreviewHtml === 'function'
       ? window.buildClockPreviewHtml(currentStyles, { compact: true, now: clockPreviewFrozenNow })
       : '<div style="padding:20px;color:#fff;text-align:center;">Clock preview</div>';
-  } else if (previewContent && widgetType !== 'dice-widget' && widgetType !== 'blank-widget' && widgetType !== 'scoreboard-widget' && widgetType !== 'stoplight-widget' && widgetType !== 'agenda-widget' && widgetType !== 'agenda-direct-widget' && widgetType !== 'calendar-widget' && widgetType !== 'tasks-widget' && widgetType !== 'clock-widget' && widgetType !== 'picker-wheel-widget') {
+  } else if (previewContent && widgetType !== 'dice-widget' && widgetType !== 'blank-widget' && widgetType !== 'scoreboard-widget' && widgetType !== 'stoplight-widget' && widgetType !== 'agenda-widget' && widgetType !== 'agenda-direct-widget' && widgetType !== 'calendar-widget' && widgetType !== 'calendar-direct-widget' && widgetType !== 'tasks-widget' && widgetType !== 'clock-widget' && widgetType !== 'picker-wheel-widget') {
     // Reset to default text for other widgets
     previewContent.innerHTML = 'Preview updates in real-time as you adjust settings';
   }
@@ -4620,9 +4637,11 @@ function applyStyles() {
         loadTasks();
       }, 50);
     }
-  } else if (widgetType === 'calendar-widget') {
+  } else if (widgetType === 'calendar-widget' || widgetType === 'calendar-direct-widget') {
     // Reload calendar widget to apply day colors + visibility
-    if (typeof renderCalendar === 'function') {
+    if (widgetType === 'calendar-direct-widget' && typeof loadGoogleCalendarEvents === 'function') {
+      setTimeout(() => loadGoogleCalendarEvents(), 50);
+    } else if (typeof renderCalendar === 'function') {
       // Use setTimeout to ensure modal is fully closed and styles are saved to localStorage
       setTimeout(() => {
         renderCalendar();
@@ -5225,7 +5244,7 @@ function applyCurrentStylesToWidget(widget) {
   // SPECIAL CASE: Calendar widget has month-view button - skip title alignment for this
   // Whiteboard widget has toolbar but we allow title visibility, icon, name, and size
   const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
-  const isCalendarWidget = widgetId === 'calendar-widget';
+  const isCalendarWidget = widgetId === 'calendar-widget' || widgetId === 'calendar-direct-widget';
   const isWhiteboardWidget = widgetId === 'whiteboard-widget';
   
   // Find the real header (not the minimal edit header)
@@ -5968,9 +5987,9 @@ function loadWidgetStyles(fullWidgetId) {
         weatherRadarLat: 33.9939,
         weatherRadarLon: -84.4778
       } : {}),
-      ...((widgetType === 'calendar-widget' || widgetType === 'agenda-widget' || widgetType === 'agenda-direct-widget') ? {
+      ...((widgetType === 'calendar-widget' || widgetType === 'calendar-direct-widget' || widgetType === 'agenda-widget' || widgetType === 'agenda-direct-widget') ? {
         hiddenCalendars: [],
-        ...(widgetType === 'agenda-direct-widget' ? { calendarColors: {} } : {})
+        ...((widgetType === 'agenda-direct-widget' || widgetType === 'calendar-direct-widget') ? { calendarColors: {} } : {})
       } : {})
     };
   }
@@ -6004,12 +6023,12 @@ function loadWidgetStyles(fullWidgetId) {
     }
   }
 
-  if ((widgetType === 'calendar-widget' || widgetType === 'agenda-widget' || widgetType === 'agenda-direct-widget') &&
+  if ((widgetType === 'calendar-widget' || widgetType === 'calendar-direct-widget' || widgetType === 'agenda-widget' || widgetType === 'agenda-direct-widget') &&
       !Array.isArray(currentStyles.hiddenCalendars)) {
     currentStyles.hiddenCalendars = [];
   }
 
-  if (widgetType === 'agenda-direct-widget' &&
+  if ((widgetType === 'agenda-direct-widget' || widgetType === 'calendar-direct-widget') &&
       (!currentStyles.calendarColors || typeof currentStyles.calendarColors !== 'object' || Array.isArray(currentStyles.calendarColors))) {
     currentStyles.calendarColors = {};
   }
@@ -6303,7 +6322,7 @@ function loadStyles() {
         } else {
           widgetType = fullWidgetId;
         }
-        const isCalendarWidget = widgetType === 'calendar-widget';
+        const isCalendarWidget = widgetType === 'calendar-widget' || widgetType === 'calendar-direct-widget';
         const isWhiteboardWidget = widgetType === 'whiteboard-widget';
         if (!isCalendarWidget && !isWhiteboardWidget) {
           const widgetHeader = widget.querySelector('.widget-header');
@@ -6473,7 +6492,7 @@ function loadStylesToWidget(widget, styles) {
   // SPECIAL CASE: Calendar widget has month-view button - skip all title styling for this
   // Whiteboard widget has toolbar but we allow title visibility, icon, text, and size (skip alignment)
   const widgetId = Array.from(widget.classList).find(c => c.endsWith('-widget'));
-  const isCalendarWidget = widgetId === 'calendar-widget';
+  const isCalendarWidget = widgetId === 'calendar-widget' || widgetId === 'calendar-direct-widget';
   const isWhiteboardWidget = widgetId === 'whiteboard-widget';
   
   const widgetHeader = widget.querySelector('.widget-header');

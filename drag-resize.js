@@ -120,7 +120,7 @@ function updateWidgetScale(widget) {
   let defaultWidth = 500;
   let defaultHeight = 400;
   
-  if (widget.classList.contains('calendar-widget')) {
+  if (widget.classList.contains('calendar-widget') || widget.classList.contains('calendar-direct-widget')) {
     defaultWidth = 800;
     defaultHeight = 500;
   } else if (widget.classList.contains('weather-widget')) {
@@ -196,7 +196,7 @@ function initializeDragAndResize() {
     const widgetTypes = ['scoreboard-widget', 'stopwatch-widget', 'stoplight-widget', 'dice-widget',
                          'picker-wheel-widget', 'blank-widget', 'whiteboard-widget', 'compressor-widget', 'sprinkler-widget',
                          'thermostat-widget', 'weather-widget', 'todo-widget', 'calendar-widget',
-                         'agenda-widget', 'agenda-direct-widget', 'tasks-widget', 'garage-widget', 'alarm-widget', 'news-widget'];
+                         'calendar-direct-widget', 'agenda-widget', 'agenda-direct-widget', 'tasks-widget', 'garage-widget', 'alarm-widget', 'news-widget'];
     const widgetsByType = new Set();
     widgetTypes.forEach(type => {
       currentPage.querySelectorAll(`.${type}`).forEach(w => {

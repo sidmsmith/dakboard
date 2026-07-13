@@ -342,8 +342,24 @@ function isAgendaDirectWidgetId(widgetId) {
   }
 }
 
+function isCalendarDirectWidgetId(widgetId) {
+  try {
+    return getWidgetType(widgetId) === 'calendar-direct-widget';
+  } catch (e) {
+    return String(widgetId || '').startsWith('calendar-direct-widget');
+  }
+}
+
+function isGoogleDirectWidgetId(widgetId) {
+  return isAgendaDirectWidgetId(widgetId) || isCalendarDirectWidgetId(widgetId);
+}
+
 function getEventsForAgendaWidget(widgetId) {
   return isAgendaDirectWidgetId(widgetId) ? googleCalendarEvents : calendarEvents;
+}
+
+function getEventsForCalendarWidget(widgetId) {
+  return isCalendarDirectWidgetId(widgetId) ? googleCalendarEvents : calendarEvents;
 }
 
 function updateAvailableGoogleCalendarsFromPayload(calendars, events) {
@@ -376,13 +392,19 @@ async function ensureAvailableGoogleCalendars() {
   return availableGoogleCalendars;
 }
 
-async function loadGoogleCalendarEvents() {
+async function loadGoogleCalendarEvents(rangeStart, rangeEnd) {
   try {
-    const start = new Date();
-    start.setDate(start.getDate() - 1);
+    // Cover current week navigation + near-term month view by default
+    const start = rangeStart ? new Date(rangeStart) : new Date(currentWeekStart);
+    if (!rangeStart) {
+      start.setDate(start.getDate() - 7);
+    }
     start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setDate(end.getDate() + 14);
+
+    const end = rangeEnd ? new Date(rangeEnd) : new Date(currentWeekStart);
+    if (!rangeEnd) {
+      end.setDate(end.getDate() + 42);
+    }
     end.setHours(23, 59, 59, 999);
 
     const response = await fetch(
@@ -410,13 +432,17 @@ async function loadGoogleCalendarEvents() {
     googleCalendarEvents = deduplicateEvents(googleCalendarEvents);
     updateAvailableGoogleCalendarsFromPayload(data.calendars, googleCalendarEvents);
 
-    // Refresh any visible Agenda Direct widgets
+    // Refresh Google-backed widgets
+    if (typeof renderCalendar === 'function') {
+      renderCalendar();
+    }
     if (typeof loadAgenda === 'function') {
       loadAgenda();
     }
   } catch (error) {
     console.error('Error loading Google Calendar ICS events:', error);
     googleCalendarEvents = [];
+    if (typeof renderCalendar === 'function') renderCalendar();
     if (typeof loadAgenda === 'function') loadAgenda();
   }
 }
@@ -651,9 +677,13 @@ function buildAgendaPreviewHtml(styles = {}, options = {}) {
   `;
 }
 
-function buildCalendarPreviewHtml(styles = {}) {
+function buildCalendarPreviewHtml(styles = {}, options = {}) {
   const hidden = Array.isArray(styles.hiddenCalendars) ? styles.hiddenCalendars : [];
-  const sourceEvents = filterEventsByHiddenList(calendarEvents, hidden);
+  const useGoogle = options.source === 'google' || isCalendarDirectWidgetId(options.widgetId);
+  const sourceEvents = filterEventsByHiddenList(
+    useGoogle ? googleCalendarEvents : calendarEvents,
+    hidden
+  );
   const todayColor = styles.calendarTodayColor || '#4a90e2';
   const dayColor = (styles.calendarDayColor || '#333333').replace(/^#([0-9A-F])([0-9A-F])([0-9A-F])$/i, '#$1$1$2$2$3$3');
 
@@ -676,7 +706,7 @@ function buildCalendarPreviewHtml(styles = {}) {
         const timeStr = eventStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
         label = `${timeStr} ${label}`;
       }
-      return `<div class="calendar-event" style="border-left-color: ${getEventCalendarColor(event)}; font-size: 10px; padding: 2px 4px; margin-top: 2px;">${escapePreviewText(label)}</div>`;
+      return `<div class="calendar-event" style="border-left-color: ${getEventCalendarColor(event, styles.calendarColors)}; font-size: 10px; padding: 2px 4px; margin-top: 2px;">${escapePreviewText(label)}</div>`;
     }).join('');
 
     daysHtml += `
@@ -1144,7 +1174,8 @@ function initializeEventListeners() {
       btn.addEventListener('click', () => {
     currentWeekStart.setDate(currentWeekStart.getDate() - 7);
     renderCalendar();
-    loadCalendarEvents(); // Reload events for new week
+    loadCalendarEvents(); // Reload HA events for new week
+    if (typeof loadGoogleCalendarEvents === 'function') loadGoogleCalendarEvents();
       });
     }
   });
@@ -1156,8 +1187,9 @@ function initializeEventListeners() {
       btn.addEventListener('click', () => {
     currentWeekStart.setDate(currentWeekStart.getDate() + 7);
     renderCalendar();
-    loadCalendarEvents(); // Reload events for new week
-      });
+    loadCalendarEvents(); // Reload HA events for new week
+    if (typeof loadGoogleCalendarEvents === 'function') loadGoogleCalendarEvents();
+  });
     }
   });
   
@@ -1167,7 +1199,7 @@ function initializeEventListeners() {
     if (!btn.dataset.listenerAttached) {
       btn.dataset.listenerAttached = 'true';
       btn.addEventListener('click', () => {
-        const widget = btn.closest('.calendar-widget');
+        const widget = btn.closest('.calendar-widget, .calendar-direct-widget');
         const fullId = widget && typeof resolveWidgetFullId === 'function'
           ? resolveWidgetFullId(widget, currentPageIndex)
           : null;
@@ -1349,11 +1381,14 @@ function initializeEventListeners() {
 
 // Render weekly calendar
 function renderCalendar() {
-  // Get all calendar widget instances on the current page
+  // Get all calendar widget instances on the current page (HA + Google Direct)
   const pageElement = getPageElement(currentPageIndex);
   if (!pageElement) return;
   
-  const instances = getWidgetInstances('calendar-widget', currentPageIndex);
+  const instances = [
+    ...getWidgetInstances('calendar-widget', currentPageIndex),
+    ...getWidgetInstances('calendar-direct-widget', currentPageIndex)
+  ];
   const calendarWidgets = [];
   
   instances.forEach(instance => {
@@ -1392,7 +1427,7 @@ function renderCalendar() {
       }
     }
 
-    const widgetEvents = filterEventsForWidget(calendarEvents, fullWidgetId);
+    const widgetEvents = filterEventsForWidget(getEventsForCalendarWidget(fullWidgetId), fullWidgetId);
   
   // Clear existing days (keep headers)
   const headers = Array.from(grid.querySelectorAll('.calendar-day-header'));
@@ -1506,7 +1541,7 @@ function renderCalendar() {
     dayEvents.slice(0, maxVisible).forEach(event => {
       const eventDiv = document.createElement('div');
       eventDiv.className = 'calendar-event';
-      eventDiv.style.borderLeftColor = getEventCalendarColor(event);
+      eventDiv.style.borderLeftColor = getEventCalendarColor(event, fullWidgetId);
       
       const eventStart = new Date(event.start);
       let eventText = event.title;
@@ -1676,7 +1711,7 @@ function renderMonthCalendar(container, year, month, events) {
         timeStr = eventStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
         titleText = `${event.title} - ${timeStr}`;
       }
-      html += `<div class="month-event" style="border-left-color: ${getEventCalendarColor(event)}" title="${titleText}">
+      html += `<div class="month-event" style="border-left-color: ${getEventCalendarColor(event, calendarViewContextWidgetId)}" title="${titleText}">
         ${timeStr ? `<span class="month-event-time">${timeStr}</span>` : ''}
         <span class="month-event-title">${event.title}</span>
       </div>`;
@@ -1854,6 +1889,33 @@ function fetchHAEntityRegistryEntries(haUrl, haToken, entityIds) {
 async function fetchMonthEvents(monthStart, monthEnd) {
   let monthEvents = [];
   try {
+    // Calendar Direct: fetch Google ICS for this month (do not touch HA calendarEvents)
+    if (isCalendarDirectWidgetId(calendarViewContextWidgetId)) {
+      const response = await fetch(
+        `/api/google-calendar-ics?startDate=${monthStart.toISOString()}&endDate=${monthEnd.toISOString()}`
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch Google Calendar ICS for month view');
+      }
+      const data = await response.json();
+      monthEvents = (data.events || []).map(event => ({
+        id: event.id,
+        title: event.title || 'Untitled Event',
+        start: event.start,
+        end: event.end,
+        location: event.location || null,
+        description: event.description || null,
+        calendar: event.calendar,
+        calendarName: event.calendarName || fallbackCalendarName(event.calendar),
+        color: event.color || '#0f9d58',
+        allDay: !!event.allDay,
+        uid: event.id
+      }));
+      monthEvents = deduplicateEvents(monthEvents);
+      updateAvailableGoogleCalendarsFromPayload(data.calendars, monthEvents);
+      return monthEvents;
+    }
+
     if (window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN) {
       const haUrl = window.CONFIG.HA_URL;
       const haToken = window.CONFIG.HA_TOKEN;
@@ -2336,7 +2398,10 @@ function loadDailyAgendaForDate(date) {
   const dayEnd = new Date(date);
   dayEnd.setHours(23, 59, 59, 999);
   
-  const dayEvents = filterEventsForWidget(calendarEvents, calendarViewContextWidgetId).filter(event => {
+  const dayEvents = filterEventsForWidget(
+    getEventsForCalendarWidget(calendarViewContextWidgetId),
+    calendarViewContextWidgetId
+  ).filter(event => {
     const eventStart = new Date(event.start);
     const eventEnd = new Date(event.end || event.start);
     
@@ -2410,7 +2475,7 @@ function loadDailyAgendaForDate(date) {
       
       // Build event HTML
       agendaHTML += `
-        <div class="daily-agenda-event" data-event-id="${event.uid || ''}" style="border-left-color: ${getEventCalendarColor(event)};">
+        <div class="daily-agenda-event" data-event-id="${event.uid || ''}" style="border-left-color: ${getEventCalendarColor(event, calendarViewContextWidgetId)};">
           <div class="daily-agenda-event-time">${timeStr}</div>
           <div class="daily-agenda-event-content">
             <div class="daily-agenda-event-title">${event.title || 'Untitled Event'}</div>
@@ -9484,6 +9549,7 @@ function initializeAnnotationListeners() {
 // Widget Visibility Management
 const WIDGET_CONFIG = {
   'calendar-widget': { name: 'Calendar', icon: '📅' },
+  'calendar-direct-widget': { name: 'Calendar Direct', icon: '📅' },
   'agenda-widget': { name: 'Agenda', icon: '📋' },
   'agenda-direct-widget': { name: 'Agenda Direct', icon: '📋' },
   'weather-widget': { name: 'Weather', icon: '🌤️' },
@@ -9825,6 +9891,7 @@ function saveWidgetVisibility() {
 function getDefaultWidgetSize(widgetType) {
   const sizes = {
     'calendar-widget': { width: 800, height: 500 },
+    'calendar-direct-widget': { width: 800, height: 500 },
     'weather-widget': { width: 500, height: 400 },
     'todo-widget': { width: 500, height: 300 },
     'garage-widget': { width: 800, height: 200 },
@@ -10245,6 +10312,13 @@ function toggleWidgetVisibility(fullWidgetId) {
             loadNews();
           } else if (widgetType === 'calendar-widget' && typeof loadCalendarEvents === 'function') {
             loadCalendarEvents();
+          } else if (widgetType === 'calendar-direct-widget') {
+            // Cloned nav buttons inherit listenerAttached without real listeners — re-bind
+            widget.querySelectorAll('#prev-week-btn, #next-week-btn, #month-view-btn').forEach(btn => {
+              delete btn.dataset.listenerAttached;
+            });
+            if (typeof initializeEventListeners === 'function') initializeEventListeners();
+            if (typeof loadGoogleCalendarEvents === 'function') loadGoogleCalendarEvents();
           } else if (widgetType === 'agenda-widget' && typeof loadAgenda === 'function') {
             loadAgenda();
           } else if (widgetType === 'agenda-direct-widget') {
@@ -11693,6 +11767,17 @@ function initializeWidgetInstance(fullWidgetId, widgetElement, options = {}) {
     setTimeout(() => loadTodos(), 50);
   } else if (widgetType === 'calendar-widget' && typeof loadCalendarEvents === 'function') {
     setTimeout(() => loadCalendarEvents(), 50);
+  } else if (widgetType === 'calendar-direct-widget') {
+    setTimeout(() => {
+      const el = document.querySelector(`.${fullWidgetId}`) || document.querySelector('.calendar-direct-widget:not(.hidden)');
+      if (el) {
+        el.querySelectorAll('#prev-week-btn, #next-week-btn, #month-view-btn').forEach(btn => {
+          delete btn.dataset.listenerAttached;
+        });
+      }
+      if (typeof initializeEventListeners === 'function') initializeEventListeners();
+      if (typeof loadGoogleCalendarEvents === 'function') loadGoogleCalendarEvents();
+    }, 50);
   } else if (widgetType === 'blank-widget' && typeof loadClipArt === 'function') {
     setTimeout(() => loadClipArt(), 50);
   } else if (widgetType === 'stoplight-widget' && typeof loadStoplight === 'function') {
