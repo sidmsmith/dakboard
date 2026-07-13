@@ -45,6 +45,7 @@ const CONFIG = {
   // Refresh interval (milliseconds)
   REFRESH_INTERVAL: 30000, // 30 seconds — full dashboard
   GARAGE_REFRESH_INTERVAL: 10000, // 10 seconds — garage doors only
+  ALARM_REFRESH_INTERVAL: 10000, // 10 seconds — alarm status only
   // After garage/alarm actions: poll ~1s until HA state changes or timeout, then resume normal cadence
   ENTITY_FAST_WATCH_INTERVAL: 1000,
   ENTITY_FAST_WATCH_TIMEOUT: 90000,
@@ -11269,6 +11270,14 @@ function startAutoRefresh() {
       loadGarageDoors();
     }
   }, CONFIG.GARAGE_REFRESH_INTERVAL || 10000);
+
+  // Alarm status on the same steady cadence as garage
+  setInterval(() => {
+    if (alarmFastWatch.active) return; // fast-watch owns cadence after arm/disarm
+    if (typeof loadAlarm === 'function') {
+      loadAlarm();
+    }
+  }, CONFIG.ALARM_REFRESH_INTERVAL || 10000);
 }
 
 // ==================== PAGE MANAGEMENT ====================
