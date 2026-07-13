@@ -707,7 +707,8 @@
       <form id="create-google-event-form" class="create-google-event-form">
         <label class="create-event-field">
           <span>Calendar</span>
-          <select id="create-event-calendar" required></select>
+          <div id="create-event-calendar-list" class="create-event-calendar-list" role="listbox" aria-label="Calendar"></div>
+          <input type="hidden" id="create-event-calendar" required />
         </label>
         <label class="create-event-field">
           <span>Title</span>

@@ -635,7 +635,8 @@ function populateCreateEventTimeSelects() {
 
   hourIds.forEach(id => {
     const el = document.getElementById(id);
-    if (!el || el.options.length) return;
+    if (!el) return;
+    if (el.options.length) return;
     for (let h = 1; h <= 12; h++) {
       const opt = document.createElement('option');
       opt.value = String(h);
@@ -646,8 +647,9 @@ function populateCreateEventTimeSelects() {
 
   minuteIds.forEach(id => {
     const el = document.getElementById(id);
-    if (!el || el.options.length) return;
-    ['00', '15', '30', '45'].forEach(m => {
+    if (!el) return;
+    el.innerHTML = '';
+    ['00', '30'].forEach(m => {
       const opt = document.createElement('option');
       opt.value = m;
       opt.textContent = m;
@@ -667,14 +669,56 @@ function populateCreateEventTimeSelects() {
   });
 }
 
+/** Next :00 or :30 from now. If baseDate is a date-only agenda day, keep that day and use current clock. */
+function getNextHalfHourDate(baseDate = null) {
+  const now = new Date();
+  const d = baseDate ? new Date(baseDate) : new Date(now);
+  if (Number.isNaN(d.getTime())) {
+    return getNextHalfHourDate(null);
+  }
+
+  const looksLikeDateOnly =
+    !!baseDate &&
+    d.getHours() === 0 &&
+    d.getMinutes() === 0 &&
+    d.getSeconds() === 0;
+
+  if (!baseDate || looksLikeDateOnly) {
+    if (baseDate) {
+      d.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), 0);
+    }
+  }
+
+  let totalMins = d.getHours() * 60 + d.getMinutes();
+  if (d.getSeconds() > 0 || d.getMilliseconds() > 0) {
+    totalMins += 1;
+  }
+  const rem = totalMins % 30;
+  if (rem !== 0) {
+    totalMins += 30 - rem;
+  }
+
+  if (totalMins >= 24 * 60) {
+    d.setDate(d.getDate() + 1);
+    totalMins -= 24 * 60;
+  }
+  d.setHours(Math.floor(totalMins / 60), totalMins % 60, 0, 0);
+  return d;
+}
+
 function setCreateEventTimeParts(prefix, date) {
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) return;
 
-  let minutes = Math.round(d.getMinutes() / 15) * 15;
-  if (minutes === 60) {
+  let minutes = d.getMinutes() < 30 ? 0 : 30;
+  // If past :30 within the hour from a non-snapped source, round up to next half hour
+  if (d.getMinutes() > 30 || (d.getMinutes() === 30 && (d.getSeconds() > 0 || d.getMilliseconds() > 0))) {
     d.setHours(d.getHours() + 1);
     minutes = 0;
+  } else if (d.getMinutes() > 0 && d.getMinutes() < 30) {
+    minutes = 30;
+  } else if (d.getMinutes() === 0 && (d.getSeconds() > 0 || d.getMilliseconds() > 0)) {
+    minutes = 30;
   }
   d.setMinutes(minutes, 0, 0);
 
@@ -692,6 +736,63 @@ function setCreateEventTimeParts(prefix, date) {
   if (hourEl) hourEl.value = String(hour12);
   if (minuteEl) minuteEl.value = String(minutes).padStart(2, '0');
   if (ampmEl) ampmEl.value = ampm;
+}
+
+function resolveCreateEventCalendarColor(calendarId, widgetId, fallback = '#0f9d58') {
+  const styles = getGoogleDirectWidgetStyles(widgetId);
+  const override =
+    styles.calendarColors && typeof styles.calendarColors === 'object'
+      ? styles.calendarColors[calendarId]
+      : null;
+  if (override) return override;
+  const cal =
+    (typeof availableGoogleCalendars !== 'undefined'
+      ? availableGoogleCalendars.find(c => c.id === calendarId)
+      : null) || null;
+  return cal?.color || fallback;
+}
+
+function populateCreateEventCalendarList(calendars, selectedId, widgetId) {
+  const list = document.getElementById('create-event-calendar-list');
+  const hidden = document.getElementById('create-event-calendar');
+  if (!list || !hidden) return;
+
+  const items = calendars || [];
+  if (!items.length) {
+    list.innerHTML = '<div style="color:#888;padding:8px 0;">No calendars configured</div>';
+    hidden.value = '';
+    return;
+  }
+
+  const selected = selectedId && items.some(c => c.id === selectedId) ? selectedId : items[0].id;
+  hidden.value = selected;
+
+  list.innerHTML = items.map(cal => {
+    const id = cal.id;
+    const name = cal.name || id;
+    const color = resolveCreateEventCalendarColor(id, widgetId, cal.color || '#0f9d58');
+    const isSelected = id === selected ? 'selected' : '';
+    const safeId = String(id).replace(/"/g, '&quot;');
+    const safeName = String(name).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return `
+      <button type="button" class="create-event-cal-option ${isSelected}" role="option" aria-selected="${id === selected}" data-calendar-id="${safeId}" style="--cal-color: ${color};">
+        <span class="create-event-cal-swatch" aria-hidden="true"></span>
+        <span>${safeName}</span>
+      </button>
+    `;
+  }).join('');
+
+  list.querySelectorAll('.create-event-cal-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.calendarId || '';
+      hidden.value = id;
+      list.querySelectorAll('.create-event-cal-option').forEach(el => {
+        const on = el === btn;
+        el.classList.toggle('selected', on);
+        el.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+    });
+  });
 }
 
 function getCreateEventDateFromParts(prefix) {
@@ -744,8 +845,8 @@ async function openCreateGoogleEventModal(fullWidgetId, presetDate = null) {
   const modal = document.getElementById('create-google-event-modal');
   const form = document.getElementById('create-google-event-form');
   const status = document.getElementById('create-event-status');
-  const calendarSelect = document.getElementById('create-event-calendar');
-  if (!modal || !form || !calendarSelect) return;
+  const calendarHidden = document.getElementById('create-event-calendar');
+  if (!modal || !form || !calendarHidden) return;
 
   if (status) {
     status.hidden = true;
@@ -764,26 +865,9 @@ async function openCreateGoogleEventModal(fullWidgetId, presetDate = null) {
   const styles = getGoogleDirectWidgetStyles(fullWidgetId);
   const defaultId = styles.defaultGoogleCalendarId || '';
 
-  calendarSelect.innerHTML = (calendars || []).map(cal => {
-    const id = cal.id;
-    const selected = id === defaultId ? 'selected' : '';
-    const label = cal.name || id;
-    return `<option value="${String(id).replace(/"/g, '&quot;')}" ${selected}>${String(label).replace(/</g, '&lt;')}</option>`;
-  }).join('');
+  populateCreateEventCalendarList(calendars, defaultId, fullWidgetId);
 
-  if (!calendarSelect.options.length) {
-    calendarSelect.innerHTML = '<option value="">No calendars configured</option>';
-  } else if (!defaultId) {
-    calendarSelect.selectedIndex = 0;
-  }
-
-  const base = presetDate ? new Date(presetDate) : new Date();
-  base.setSeconds(0, 0);
-  base.setMinutes(Math.ceil(base.getMinutes() / 15) * 15 || 0);
-  if (base.getMinutes() === 60) {
-    base.setHours(base.getHours() + 1);
-    base.setMinutes(0);
-  }
+  const base = getNextHalfHourDate(presetDate || null);
   const end = new Date(base.getTime() + 60 * 60 * 1000);
 
   const titleInput = document.getElementById('create-event-title');
@@ -835,6 +919,14 @@ async function submitCreateGoogleEvent(event) {
   const description = document.getElementById('create-event-description')?.value?.trim() || '';
 
   if (!title) return;
+  if (!calendar) {
+    if (status) {
+      status.hidden = false;
+      status.className = 'create-event-status error';
+      status.textContent = 'Please choose a calendar.';
+    }
+    return;
+  }
 
   const payload = {
     calendar,
