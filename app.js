@@ -1126,6 +1126,31 @@ function resolveCreateEventDefaultCalendarId(calendars, widgetDefaultId) {
   return items[0].id;
 }
 
+/** Google ICS calendars still visible on this widget (Advanced → Visible Calendars). */
+function getVisibleGoogleCalendarsForWidget(fullWidgetId) {
+  const all = typeof window.getAvailableGoogleCalendars === 'function'
+    ? (window.getAvailableGoogleCalendars() || [])
+    : (availableGoogleCalendars || []);
+  const hidden = new Set(getHiddenCalendarsForWidget(fullWidgetId));
+  if (!hidden.size) return all.slice();
+  return all.filter(cal => {
+    const id = cal?.id || cal;
+    return id && !hidden.has(id);
+  });
+}
+
+function setCreateEventCalendarDropdownInteractive(interactive) {
+  const trigger = document.getElementById('create-event-calendar-trigger');
+  const dropdown = document.getElementById('create-event-calendar-dropdown');
+  if (trigger) {
+    trigger.disabled = !interactive;
+    trigger.setAttribute('aria-disabled', interactive ? 'false' : 'true');
+    if (!interactive) trigger.setAttribute('aria-expanded', 'false');
+  }
+  if (dropdown) dropdown.classList.toggle('is-single', !interactive);
+  if (!interactive) closeCreateEventCalendarMenu();
+}
+
 function populateCreateEventCalendarList(calendars, selectedId, widgetId) {
   const menu = document.getElementById('create-event-calendar-menu');
   const trigger = document.getElementById('create-event-calendar-trigger');
@@ -1136,8 +1161,9 @@ function populateCreateEventCalendarList(calendars, selectedId, widgetId) {
   closeCreateEventCalendarMenu();
 
   if (!items.length) {
-    menu.innerHTML = '<div style="color:#888;padding:8px 12px;">No calendars configured</div>';
-    setCreateEventCalendarSelection('', 'No calendars configured', '#888');
+    menu.innerHTML = '<div style="color:#888;padding:8px 12px;">No visible Google calendars</div>';
+    setCreateEventCalendarSelection('', 'No visible Google calendars', '#888');
+    setCreateEventCalendarDropdownInteractive(false);
     return;
   }
 
@@ -1164,6 +1190,9 @@ function populateCreateEventCalendarList(calendars, selectedId, widgetId) {
     selectedCal.name || selected,
     resolveCreateEventCalendarColor(selected, widgetId, selectedCal.color || '#0f9d58')
   );
+
+  // One visible calendar → show it as read-only (no dropdown)
+  setCreateEventCalendarDropdownInteractive(items.length > 1);
 
   menu.querySelectorAll('.create-event-cal-option').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1246,9 +1275,8 @@ async function openCreateGoogleEventModal(fullWidgetId, presetDate = null) {
     await refreshGoogleCalendarWriteStatus();
   }
 
-  const calendars = typeof window.getAvailableGoogleCalendars === 'function'
-    ? window.getAvailableGoogleCalendars()
-    : availableGoogleCalendars;
+  // Only Google calendars still checked in Advanced → Visible Calendars
+  const calendars = getVisibleGoogleCalendarsForWidget(fullWidgetId);
   const styles = getGoogleDirectWidgetStyles(fullWidgetId);
   const defaultId = resolveCreateEventDefaultCalendarId(
     calendars,
@@ -1430,7 +1458,7 @@ function initializeCreateGoogleEventModal() {
   trigger?.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!menu) return;
+    if (!menu || trigger.disabled) return;
     const open = menu.hidden;
     menu.hidden = !open;
     trigger.setAttribute('aria-expanded', open ? 'true' : 'false');

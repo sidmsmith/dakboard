@@ -2426,8 +2426,19 @@ body {
   text-align: left;
 }
 
-.create-event-calendar-trigger:hover {
+.create-event-calendar-trigger:hover:not(:disabled) {
   border-color: #666;
+}
+
+.create-event-calendar-trigger:disabled,
+.create-event-calendar-dropdown.is-single .create-event-calendar-trigger {
+  cursor: default;
+  opacity: 1;
+}
+
+.create-event-calendar-dropdown.is-single .create-event-calendar-caret,
+.create-event-calendar-trigger:disabled .create-event-calendar-caret {
+  display: none;
 }
 
 .create-event-calendar-label {
