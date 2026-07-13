@@ -220,6 +220,7 @@ let googleCalendarEvents = []; // Direct Google ICS (Agenda Direct / future Cale
 let availableCalendars = []; // [{ id, name, color }] from HA
 let availableGoogleCalendars = []; // [{ id, name, color }] from Google ICS API
 let calendarViewContextWidgetId = null; // widget that opened month/daily modal
+let monthModalDisplayed = { year: null, month: null, events: [] };
 const DEFAULT_CALENDAR_COLOR = '#4a90e2';
 
 function fallbackCalendarName(entityId) {
@@ -441,11 +442,13 @@ async function loadGoogleCalendarEvents(rangeStart, rangeEnd) {
     if (typeof loadAgenda === 'function') {
       loadAgenda();
     }
+    refreshOpenMonthModal();
   } catch (error) {
     console.error('Error loading Google Calendar ICS events:', error);
     googleCalendarEvents = [];
     if (typeof renderCalendar === 'function') renderCalendar();
     if (typeof loadAgenda === 'function') loadAgenda();
+    refreshOpenMonthModal();
   }
 }
 
@@ -591,6 +594,28 @@ function mergeCreatedGoogleEvent(apiEvent, calendarInternalId, extras = {}) {
   googleCalendarEvents = deduplicateEvents([event, ...(googleCalendarEvents || [])]);
   if (typeof renderCalendar === 'function') renderCalendar();
   if (typeof loadAgenda === 'function') loadAgenda();
+  refreshOpenMonthModal();
+}
+
+/** Re-render the full-month modal from in-memory events (optimistic creates + ICS). */
+function refreshOpenMonthModal() {
+  const modal = document.getElementById('month-modal');
+  if (!modal || !modal.classList.contains('active')) return;
+
+  const content = document.getElementById('month-calendar-content');
+  const year = monthModalDisplayed.year;
+  const month = monthModalDisplayed.month;
+  if (!content || year == null || month == null) return;
+
+  let events = [...(monthModalDisplayed.events || [])];
+  if (isCalendarDirectWidgetId(calendarViewContextWidgetId)) {
+    events = [...(googleCalendarEvents || []), ...events];
+  } else if (Array.isArray(calendarEvents) && calendarEvents.length) {
+    events = [...calendarEvents, ...events];
+  }
+  events = deduplicateEvents(events);
+  events = filterEventsForWidget(events, calendarViewContextWidgetId);
+  renderMonthCalendar(content, year, month, events);
 }
 
 async function refreshGoogleCalendarWriteStatus() {
@@ -2300,6 +2325,12 @@ async function showMonthModal(fullWidgetId = null) {
 
 // Render month calendar view
 function renderMonthCalendar(container, year, month, events) {
+  monthModalDisplayed = {
+    year,
+    month,
+    events: Array.isArray(events) ? events.slice() : []
+  };
+
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   
@@ -2822,6 +2853,7 @@ async function fetchMonthEvents(monthStart, monthEnd) {
 // Close monthly calendar modal
 function closeMonthModal() {
   document.getElementById('month-modal').classList.remove('active');
+  monthModalDisplayed = { year: null, month: null, events: [] };
 }
 
 // Show hourly forecast modal
