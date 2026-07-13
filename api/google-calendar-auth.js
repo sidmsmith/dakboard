@@ -86,7 +86,7 @@ export default async function (req, res) {
            <ol>
              <li>Vercel → Project → Settings → Environment Variables</li>
              <li>Add <code>GOOGLE_CALENDAR_REFRESH_TOKEN</code> = (paste above)</li>
-             <li>Also set <code>GOOGLE_CALENDAR_CLIENT_ID</code> and <code>GOOGLE_CALENDAR_CLIENT_SECRET</code> if not already</li>
+             <li>Also set <code>GOOGLE_CALENDAR_OAUTH_JSON</code> (full client JSON) <em>or</em> <code>GOOGLE_CALENDAR_CLIENT_ID</code> + <code>GOOGLE_CALENDAR_CLIENT_SECRET</code> if not already</li>
              <li>Redeploy</li>
            </ol>
            <p>Family iPads/phones do <strong>not</strong> need Google login. Only this one-time admin step.</p>
@@ -126,7 +126,7 @@ export default async function (req, res) {
       return res.end(
         htmlPage(
           'Missing OAuth client',
-          `<p class="err">Set <code>GOOGLE_CALENDAR_CLIENT_ID</code> and <code>GOOGLE_CALENDAR_CLIENT_SECRET</code> in Vercel first.</p>
+          `<p class="err">Set <code>GOOGLE_CALENDAR_OAUTH_JSON</code> (paste the full client_secret JSON) <em>or</em> <code>GOOGLE_CALENDAR_CLIENT_ID</code> + <code>GOOGLE_CALENDAR_CLIENT_SECRET</code> in Vercel first.</p>
            <p>Redirect URI must be exactly:</p>
            <p><code>${redirectUri}</code></p>`
         )

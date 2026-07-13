@@ -14,8 +14,15 @@ It is **not** “auth once per device.” It is “auth once for the household s
 
 ## Vercel environment variables
 
-Add these (Production + Preview as needed):
+### Option A (simplest): paste the whole OAuth client JSON
+| Name | Value |
+|------|--------|
+| `GOOGLE_CALENDAR_OAUTH_JSON` | Full contents of `client_secret_….json` (the `{"web":{...}}` file) |
+| `GOOGLE_CALENDAR_REFRESH_TOKEN` | filled after one-time auth (below) |
 
+When `GOOGLE_CALENDAR_OAUTH_JSON` is set, it supplies client id, secret, and redirect URI (prefers the `/api/google-calendar-auth` entry in `redirect_uris`).
+
+### Option B: separate fields (used only if OAUTH_JSON is empty)
 | Name | Value |
 |------|--------|
 | `GOOGLE_CALENDAR_CLIENT_ID` | from your OAuth client JSON |
@@ -27,7 +34,7 @@ Keep existing:
 
 - `GOOGLE_CALENDAR_ICS_URLS` (read path)
 
-Optional per calendar in the JSON:
+Optional per calendar in the ICS JSON:
 
 ```json
 "googleCalendarId": "smithfamilycalendar77@gmail.com"
@@ -39,7 +46,7 @@ If omitted, dakboard derives it from the ICS URL email (works for your current f
 
 1. Confirm OAuth client redirect URI includes exactly:  
    `https://dakboard-smith.vercel.app/api/google-calendar-auth`
-2. Redeploy after setting Client ID + Secret (+ redirect URI).
+2. Redeploy after setting `GOOGLE_CALENDAR_OAUTH_JSON` (or Client ID + Secret).
 3. While signed into the household Google account (`sidmsmith@...`), open:  
    `https://dakboard-smith.vercel.app/api/google-calendar-auth`
 4. Allow Calendar access.

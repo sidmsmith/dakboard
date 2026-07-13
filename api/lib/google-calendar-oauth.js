@@ -2,15 +2,73 @@
 
 const DEFAULT_COLOR = '#0f9d58';
 const DEFAULT_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+const DEFAULT_REDIRECT_URI = 'https://dakboard-smith.vercel.app/api/google-calendar-auth';
+
+/**
+ * Optional full Google OAuth client JSON (the downloaded client_secret_*.json).
+ * When set and valid, it overrides CLIENT_ID / CLIENT_SECRET / REDIRECT_URI.
+ * When empty/invalid, those separate env vars are used instead.
+ *
+ * Env: GOOGLE_CALENDAR_OAUTH_JSON
+ */
+function parseOAuthClientJson() {
+  const raw = process.env.GOOGLE_CALENDAR_OAUTH_JSON;
+  if (!raw || !String(raw).trim()) return null;
+
+  try {
+    const parsed = JSON.parse(raw);
+    const web = parsed.web || parsed.installed || parsed;
+    const clientId = web.client_id || parsed.client_id || '';
+    const clientSecret = web.client_secret || parsed.client_secret || '';
+    if (!clientId || !clientSecret) return null;
+
+    const redirectUris = Array.isArray(web.redirect_uris)
+      ? web.redirect_uris.map(String)
+      : Array.isArray(parsed.redirect_uris)
+        ? parsed.redirect_uris.map(String)
+        : [];
+
+    const preferredRedirect =
+      redirectUris.find(u => u.includes('/api/google-calendar-auth')) ||
+      redirectUris.find(u => u.includes('dakboard-smith.vercel.app')) ||
+      redirectUris[0] ||
+      '';
+
+    return {
+      clientId: String(clientId).trim(),
+      clientSecret: String(clientSecret).trim(),
+      redirectUri: preferredRedirect ? String(preferredRedirect).trim() : ''
+    };
+  } catch (e) {
+    console.error('Invalid GOOGLE_CALENDAR_OAUTH_JSON — falling back to separate env vars');
+    return null;
+  }
+}
 
 export function getGoogleCalendarOAuthConfig() {
-  const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID || '';
-  const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET || '';
+  const fromJson = parseOAuthClientJson();
+
+  const clientId =
+    (fromJson && fromJson.clientId) ||
+    process.env.GOOGLE_CALENDAR_CLIENT_ID ||
+    '';
+  const clientSecret =
+    (fromJson && fromJson.clientSecret) ||
+    process.env.GOOGLE_CALENDAR_CLIENT_SECRET ||
+    '';
   const redirectUri =
+    (fromJson && fromJson.redirectUri) ||
     process.env.GOOGLE_CALENDAR_REDIRECT_URI ||
-    'https://dakboard-smith.vercel.app/api/google-calendar-auth';
+    DEFAULT_REDIRECT_URI;
   const refreshToken = process.env.GOOGLE_CALENDAR_REFRESH_TOKEN || '';
-  return { clientId, clientSecret, redirectUri, refreshToken };
+
+  return {
+    clientId,
+    clientSecret,
+    redirectUri,
+    refreshToken,
+    source: fromJson ? 'oauth_json' : 'env_vars'
+  };
 }
 
 export function extractGoogleCalendarIdFromIcsUrl(url) {
@@ -74,7 +132,9 @@ export function parseGoogleCalendarConfigs() {
 export async function exchangeCodeForTokens(code) {
   const { clientId, clientSecret, redirectUri } = getGoogleCalendarOAuthConfig();
   if (!clientId || !clientSecret) {
-    throw new Error('GOOGLE_CALENDAR_CLIENT_ID / GOOGLE_CALENDAR_CLIENT_SECRET not set');
+    throw new Error(
+      'Google OAuth client not configured. Set GOOGLE_CALENDAR_OAUTH_JSON (full client JSON) or GOOGLE_CALENDAR_CLIENT_ID + GOOGLE_CALENDAR_CLIENT_SECRET'
+    );
   }
 
   const response = await fetch('https://oauth2.googleapis.com/token', {
@@ -100,7 +160,7 @@ export async function getAccessTokenFromRefreshToken() {
   const { clientId, clientSecret, refreshToken } = getGoogleCalendarOAuthConfig();
   if (!clientId || !clientSecret || !refreshToken) {
     throw new Error(
-      'Missing GOOGLE_CALENDAR_CLIENT_ID, GOOGLE_CALENDAR_CLIENT_SECRET, or GOOGLE_CALENDAR_REFRESH_TOKEN'
+      'Missing Google Calendar OAuth config. Set GOOGLE_CALENDAR_OAUTH_JSON (or CLIENT_ID/SECRET) and GOOGLE_CALENDAR_REFRESH_TOKEN'
     );
   }
 
@@ -125,7 +185,9 @@ export async function getAccessTokenFromRefreshToken() {
 export function buildGoogleAuthUrl(state = 'dakboard') {
   const { clientId, redirectUri } = getGoogleCalendarOAuthConfig();
   if (!clientId) {
-    throw new Error('GOOGLE_CALENDAR_CLIENT_ID not set');
+    throw new Error(
+      'GOOGLE_CALENDAR_OAUTH_JSON or GOOGLE_CALENDAR_CLIENT_ID not set'
+    );
   }
   const params = new URLSearchParams({
     client_id: clientId,
