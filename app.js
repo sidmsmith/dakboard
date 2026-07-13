@@ -2243,7 +2243,7 @@ function renderCalendar() {
       eventDiv.addEventListener('click', (e) => {
         e.stopPropagation();
         if (!isEditMode) {
-          showEventDetails(event);
+          showEventDetails(event, fullWidgetId);
         }
       });
       
@@ -2308,10 +2308,20 @@ function renderMonthCalendar(container, year, month, events) {
   const daysInMonth = lastDay.getDate();
   const startingDayOfWeek = firstDay.getDay();
   
+  const showMonthAdd =
+    isCalendarDirectWidgetId(calendarViewContextWidgetId) &&
+    shouldShowGoogleAddEventButton(calendarViewContextWidgetId);
+
   let html = `
     <div class="month-calendar-header">
       <button class="month-nav-btn" id="prev-month-btn">←</button>
-      <h3>${monthNames[month]} ${year}</h3>
+      <div class="month-calendar-title-wrap">
+        <span class="month-calendar-title-side" aria-hidden="true"></span>
+        <h3>${monthNames[month]} ${year}</h3>
+        <span class="month-calendar-title-side">
+          ${showMonthAdd ? '<button type="button" class="google-add-event-btn month-add-event-btn" id="month-add-event-btn" title="Add event" aria-label="Add event">+</button>' : ''}
+        </span>
+      </div>
       <button class="month-nav-btn" id="next-month-btn">→</button>
     </div>
     <div class="month-calendar-grid">
@@ -2410,6 +2420,7 @@ function renderMonthCalendar(container, year, month, events) {
   // Add navigation listeners
   const prevBtn = document.getElementById('prev-month-btn');
   const nextBtn = document.getElementById('next-month-btn');
+  const monthAddBtn = document.getElementById('month-add-event-btn');
   
   if (prevBtn) {
     prevBtn.onclick = async () => {
@@ -2436,6 +2447,19 @@ function renderMonthCalendar(container, year, month, events) {
         calendarViewContextWidgetId
       );
       renderMonthCalendar(container, newYear, newMonth, newEvents);
+    };
+  }
+
+  if (monthAddBtn && calendarViewContextWidgetId) {
+    monthAddBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (typeof isEditMode !== 'undefined' && isEditMode) return;
+      const now = new Date();
+      const presetDate =
+        now.getFullYear() === year && now.getMonth() === month
+          ? now
+          : new Date(year, month, 1, 12, 0, 0, 0);
+      openCreateGoogleEventModal(calendarViewContextWidgetId, presetDate);
     };
   }
 }
@@ -2950,13 +2974,14 @@ function closeWeatherRadarModal() {
 }
 
 // Show calendar event details modal
-function showEventDetails(event) {
+function showEventDetails(event, widgetId = null) {
   // Don't allow interaction in edit mode
   if (isEditMode) return;
   
   const modal = document.getElementById('event-modal');
   const title = document.getElementById('event-modal-title');
   const content = document.getElementById('event-details-content');
+  const colorWidgetId = widgetId || calendarViewContextWidgetId || null;
   
   // Set title
   title.textContent = event.title || 'Event Details';
@@ -3018,10 +3043,15 @@ function showEventDetails(event) {
   }
   
   if (event.calendar || event.calendarName) {
+    const calColor = getEventCalendarColor(event, colorWidgetId);
+    const calName = getEventCalendarName(event);
     detailsHTML += `
       <div class="event-detail-row">
         <div class="event-detail-label">Calendar:</div>
-        <div class="event-detail-value">${getEventCalendarName(event)}</div>
+        <div class="event-detail-value event-detail-calendar">
+          <span class="event-detail-calendar-swatch" style="background:${calColor}" aria-hidden="true"></span>
+          <span>${calName}</span>
+        </div>
       </div>
     `;
   }
@@ -6942,7 +6972,7 @@ function renderAgenda(widgetId, container) {
         if (cachedEvents && eventIndex !== undefined && eventIndex >= 0 && eventIndex < cachedEvents.length) {
           const event = cachedEvents[eventIndex];
           console.log(`[Event Click] Found event by index ${eventIndex}: ${event.title}, Date: ${new Date(event.start).toISOString()}`);
-          showEventDetails(event);
+          showEventDetails(event, widgetId);
         } else {
           // Fallback: re-filter events for this date and use index
           const dayStart = new Date(widgetDate);
@@ -6991,7 +7021,7 @@ function renderAgenda(widgetId, container) {
           if (eventIndex !== undefined && eventIndex >= 0 && eventIndex < sortedDayEvents.length) {
             const event = sortedDayEvents[eventIndex];
             console.log(`[Event Click] Found event by index (fallback): ${event.title}, Date: ${new Date(event.start).toISOString()}`);
-            showEventDetails(event);
+            showEventDetails(event, widgetId);
           } else {
             console.error(`[Event Click] ERROR - Event not found! Index: ${eventIndex}, Widget Date: ${widgetDate ? widgetDate.toISOString() : 'undefined'}, Cached events: ${cachedEvents ? cachedEvents.length : 'null'}, Sorted events: ${sortedDayEvents.length}`);
           }
