@@ -1,5 +1,77 @@
 // Vercel serverless function to fetch calendar events from Home Assistant
 // Uses HA's calendar.get_events service
+// Enriches events with entity registry name + calendar color
+
+const DEFAULT_CALENDAR_COLOR = '#4a90e2';
+
+function fallbackCalendarName(entityId) {
+  return String(entityId || '')
+    .replace(/^calendar\./, '')
+    .replace(/_/g, ' ');
+}
+
+async function buildCalendarMeta(haUrl, haToken, calendarEntities, allStates) {
+  const meta = {};
+
+  calendarEntities.forEach(entityId => {
+    meta[entityId] = {
+      name: fallbackCalendarName(entityId),
+      color: DEFAULT_CALENDAR_COLOR
+    };
+  });
+
+  if (Array.isArray(allStates)) {
+    allStates.forEach(state => {
+      if (!state?.entity_id?.startsWith('calendar.')) return;
+      if (!meta[state.entity_id]) return;
+      if (state.attributes?.friendly_name) {
+        meta[state.entity_id].name = state.attributes.friendly_name;
+      }
+    });
+  }
+
+  try {
+    const registryResponse = await fetch(`${haUrl}/api/config/entity_registry/list`, {
+      headers: {
+        'Authorization': `Bearer ${haToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (registryResponse.ok) {
+      const registry = await registryResponse.json();
+      const entries = Array.isArray(registry) ? registry : (registry.entities || []);
+      entries.forEach(entry => {
+        if (!entry?.entity_id?.startsWith('calendar.')) return;
+        if (!meta[entry.entity_id] && !calendarEntities.includes(entry.entity_id)) return;
+
+        if (!meta[entry.entity_id]) {
+          meta[entry.entity_id] = {
+            name: fallbackCalendarName(entry.entity_id),
+            color: DEFAULT_CALENDAR_COLOR
+          };
+        }
+
+        // Prefer user-edited registry name, then original_name, then existing friendly_name
+        meta[entry.entity_id].name =
+          entry.name ||
+          entry.original_name ||
+          meta[entry.entity_id].name;
+
+        const registryColor = entry.options?.calendar?.color;
+        if (registryColor) {
+          meta[entry.entity_id].color = registryColor;
+        }
+      });
+    } else {
+      console.error('Failed to fetch entity registry:', registryResponse.status);
+    }
+  } catch (error) {
+    console.error('Error fetching entity registry for calendar meta:', error);
+  }
+
+  return meta;
+}
 
 export default async function (req, res) {
   // Set CORS headers
@@ -29,7 +101,8 @@ export default async function (req, res) {
     // If entityId is provided, fetch events for that specific calendar
     // Otherwise, fetch all calendar entities and get events from all
     let calendarEntities = [];
-    
+    let allStates = null;
+
     if (entityId) {
       calendarEntities = [entityId];
     } else {
@@ -40,12 +113,12 @@ export default async function (req, res) {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!statesResponse.ok) {
         throw new Error(`Failed to fetch HA states: ${statesResponse.status}`);
       }
-      
-      const allStates = await statesResponse.json();
+
+      allStates = await statesResponse.json();
       calendarEntities = allStates
         .filter(state => state.entity_id.startsWith('calendar.'))
         .map(state => state.entity_id);
@@ -59,18 +132,37 @@ export default async function (req, res) {
       });
     }
 
+    // When a single entityId was requested, still fetch states for friendly_name
+    if (!allStates) {
+      try {
+        const statesResponse = await fetch(`${haUrl}/api/states`, {
+          headers: {
+            'Authorization': `Bearer ${haToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (statesResponse.ok) {
+          allStates = await statesResponse.json();
+        }
+      } catch (e) {
+        console.error('Error fetching states for calendar meta:', e);
+      }
+    }
+
+    const calendarMeta = await buildCalendarMeta(haUrl, haToken, calendarEntities, allStates);
+
     // Calculate date range (default to current week)
     const now = new Date();
     const start = startDate ? new Date(startDate) : new Date(now.setDate(now.getDate() - now.getDay()));
     start.setHours(0, 0, 0, 0);
-    
+
     const end = endDate ? new Date(endDate) : new Date(start);
     end.setDate(end.getDate() + 7);
     end.setHours(23, 59, 59, 999);
 
     // Fetch events from all calendars
     const allEvents = [];
-    
+
     for (const calEntityId of calendarEntities) {
       try {
         // Use calendar.get_events service
@@ -92,7 +184,6 @@ export default async function (req, res) {
           const errorText = await serviceResponse.text();
           console.error(`Failed to fetch events for ${calEntityId}:`, serviceResponse.status);
           console.error(`Error details:`, errorText);
-          // Log the request body for debugging
           console.error(`Request was:`, JSON.stringify({
             entity_id: calEntityId,
             start_date_time: start.toISOString(),
@@ -102,14 +193,12 @@ export default async function (req, res) {
         }
 
         const serviceData = await serviceResponse.json();
-        console.log(`Calendar ${calEntityId} raw response:`, JSON.stringify(serviceData, null, 2));
-        
+
         // Response structure with ?return_response=true:
         // { "service_response": { "calendar.entity_id": { "events": [...] } } }
         // OR direct structure: { "calendar.entity_id": { "events": [...] } }
         let events = [];
-        
-        // Check service_response wrapper first (when using ?return_response=true)
+
         if (serviceData.service_response && serviceData.service_response[calEntityId]) {
           const calendarData = serviceData.service_response[calEntityId];
           if (calendarData.events && Array.isArray(calendarData.events)) {
@@ -118,7 +207,6 @@ export default async function (req, res) {
             events = calendarData;
           }
         } else if (serviceData[calEntityId]) {
-          // Direct structure: { "calendar.entity_id": { "events": [...] } }
           const calendarData = serviceData[calEntityId];
           if (calendarData.events && Array.isArray(calendarData.events)) {
             events = calendarData.events;
@@ -126,19 +214,20 @@ export default async function (req, res) {
             events = calendarData;
           }
         } else if (Array.isArray(serviceData)) {
-          // Direct array response
           events = serviceData;
         } else if (serviceData.events && Array.isArray(serviceData.events)) {
-          // Root level events array
           events = serviceData.events;
         }
-        
-        console.log(`Extracted ${events.length} events for ${calEntityId}`);
 
-        // Add calendar source to each event
         if (Array.isArray(events)) {
+          const meta = calendarMeta[calEntityId] || {
+            name: fallbackCalendarName(calEntityId),
+            color: DEFAULT_CALENDAR_COLOR
+          };
           events.forEach(event => {
             event.calendar = calEntityId;
+            event.calendarName = meta.name;
+            event.color = meta.color;
             allEvents.push(event);
           });
         } else {
@@ -159,12 +248,12 @@ export default async function (req, res) {
 
     // Format events for easier consumption
     const formattedEvents = allEvents.map(event => {
-      // Handle different event structures from HA
       const startTime = event.start || event.start_time || event.dtstart;
       const endTime = event.end || event.end_time || event.dtend;
       const summary = event.summary || event.title || event.name || 'Untitled Event';
       const location = event.location || null;
       const description = event.description || null;
+      const meta = calendarMeta[event.calendar] || {};
 
       return {
         id: event.uid || event.id || `${event.calendar}-${startTime}`,
@@ -174,6 +263,8 @@ export default async function (req, res) {
         location: location,
         description: description,
         calendar: event.calendar,
+        calendarName: event.calendarName || meta.name || fallbackCalendarName(event.calendar),
+        color: event.color || meta.color || DEFAULT_CALENDAR_COLOR,
         allDay: event.all_day || false
       };
     });
@@ -181,7 +272,11 @@ export default async function (req, res) {
     return res.status(200).json({
       success: true,
       events: formattedEvents,
-      calendars: calendarEntities,
+      calendars: calendarEntities.map(id => ({
+        id,
+        name: calendarMeta[id]?.name || fallbackCalendarName(id),
+        color: calendarMeta[id]?.color || DEFAULT_CALENDAR_COLOR
+      })),
       dateRange: {
         start: start.toISOString(),
         end: end.toISOString()
@@ -197,4 +292,3 @@ export default async function (req, res) {
     });
   }
 }
-

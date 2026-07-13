@@ -215,6 +215,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Calendar events cache
 let calendarEvents = [];
+const DEFAULT_CALENDAR_COLOR = '#4a90e2';
+
+function fallbackCalendarName(entityId) {
+  return String(entityId || '')
+    .replace(/^calendar\./, '')
+    .replace(/_/g, ' ');
+}
+
+function getEventCalendarName(event) {
+  if (!event) return '';
+  return event.calendarName || fallbackCalendarName(event.calendar);
+}
+
+function getEventCalendarColor(event) {
+  if (!event) return DEFAULT_CALENDAR_COLOR;
+  return event.color || DEFAULT_CALENDAR_COLOR;
+}
 
 // Load calendar events from HA
 async function loadCalendarEvents() {
@@ -243,7 +260,7 @@ async function loadCalendarEvents() {
         const summary = event.summary || event.title || event.name || 'Untitled Event';
         
         // Detect all-day events: check if all_day flag is set, or if times indicate all-day
-        let isAllDay = event.all_day || false;
+        let isAllDay = event.all_day || event.allDay || false;
         if (!isAllDay && startTime) {
           const start = new Date(startTime);
           // Check if event starts at midnight and spans full day (or ends at midnight next day)
@@ -280,6 +297,8 @@ async function loadCalendarEvents() {
           location: event.location || null,
           description: event.description || null,
           calendar: event.calendar,
+          calendarName: event.calendarName || fallbackCalendarName(event.calendar),
+          color: event.color || DEFAULT_CALENDAR_COLOR,
           allDay: isAllDay
         };
       });
@@ -1011,6 +1030,7 @@ function renderCalendar() {
     dayEvents.slice(0, maxVisible).forEach(event => {
       const eventDiv = document.createElement('div');
       eventDiv.className = 'calendar-event';
+      eventDiv.style.borderLeftColor = getEventCalendarColor(event);
       
       const eventStart = new Date(event.start);
       let eventText = event.title;
@@ -1026,7 +1046,7 @@ function renderCalendar() {
       }
       
       eventDiv.textContent = eventText;
-      eventDiv.title = `${event.title}${event.location ? ` - ${event.location}` : ''}`;
+      eventDiv.title = `${event.title}${event.location ? ` - ${event.location}` : ''}${getEventCalendarName(event) ? ` (${getEventCalendarName(event)})` : ''}`;
       
       // Add click handler to show event details
       eventDiv.addEventListener('click', (e) => {
@@ -1176,7 +1196,7 @@ function renderMonthCalendar(container, year, month, events) {
         timeStr = eventStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
         titleText = `${event.title} - ${timeStr}`;
       }
-      html += `<div class="month-event" style="border-left-color: ${event.color || '#4a90e2'}" title="${titleText}">
+      html += `<div class="month-event" style="border-left-color: ${getEventCalendarColor(event)}" title="${titleText}">
         ${timeStr ? `<span class="month-event-time">${timeStr}</span>` : ''}
         <span class="month-event-title">${event.title}</span>
       </div>`;
@@ -1220,6 +1240,63 @@ function renderMonthCalendar(container, year, month, events) {
 }
 
 // Fetch events for a month range
+async function fetchHACalendarMeta(entityIds) {
+  const meta = {};
+  (entityIds || []).forEach(id => {
+    meta[id] = {
+      name: fallbackCalendarName(id),
+      color: DEFAULT_CALENDAR_COLOR
+    };
+  });
+
+  if (!(window.CONFIG && window.CONFIG.LOCAL_MODE && window.CONFIG.HA_URL && window.CONFIG.HA_TOKEN)) {
+    return meta;
+  }
+
+  const haUrl = window.CONFIG.HA_URL;
+  const haToken = window.CONFIG.HA_TOKEN;
+  const headers = {
+    'Authorization': `Bearer ${haToken}`,
+    'Content-Type': 'application/json'
+  };
+
+  try {
+    const [statesRes, regRes] = await Promise.all([
+      fetch(`${haUrl}/api/states`, { headers }),
+      fetch(`${haUrl}/api/config/entity_registry/list`, { headers })
+    ]);
+
+    if (statesRes.ok) {
+      const states = await statesRes.json();
+      states.forEach(state => {
+        if (!meta[state.entity_id]) return;
+        if (state.attributes?.friendly_name) {
+          meta[state.entity_id].name = state.attributes.friendly_name;
+        }
+      });
+    }
+
+    if (regRes.ok) {
+      const registry = await regRes.json();
+      const entries = Array.isArray(registry) ? registry : (registry.entities || []);
+      entries.forEach(entry => {
+        if (!meta[entry.entity_id]) return;
+        meta[entry.entity_id].name =
+          entry.name ||
+          entry.original_name ||
+          meta[entry.entity_id].name;
+        if (entry.options?.calendar?.color) {
+          meta[entry.entity_id].color = entry.options.calendar.color;
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching HA calendar meta:', error);
+  }
+
+  return meta;
+}
+
 async function fetchMonthEvents(monthStart, monthEnd) {
   let monthEvents = [];
   try {
@@ -1227,6 +1304,7 @@ async function fetchMonthEvents(monthStart, monthEnd) {
       const haUrl = window.CONFIG.HA_URL;
       const haToken = window.CONFIG.HA_TOKEN;
       const calendarEntities = window.CONFIG.HA_CALENDAR_ENTITIES || [];
+      const calendarMeta = await fetchHACalendarMeta(calendarEntities);
       
       if (calendarEntities.length > 0) {
         const allEvents = [];
@@ -1272,8 +1350,11 @@ async function fetchMonthEvents(monthStart, monthEnd) {
               
               // Add calendar source to each event (same as weekly calendar)
               if (Array.isArray(events)) {
+                const meta = calendarMeta[calEntityId] || {};
                 events.forEach(event => {
                   event.calendar = calEntityId;
+                  event.calendarName = meta.name || fallbackCalendarName(calEntityId);
+                  event.color = meta.color || DEFAULT_CALENDAR_COLOR;
                   allEvents.push(event);
                 });
               }
@@ -1322,6 +1403,8 @@ async function fetchMonthEvents(monthStart, monthEnd) {
             location: event.location || null,
             description: event.description || null,
             calendar: event.calendar,
+            calendarName: event.calendarName || fallbackCalendarName(event.calendar),
+            color: event.color || DEFAULT_CALENDAR_COLOR,
             allDay: isAllDay
           };
         });
@@ -1364,7 +1447,12 @@ async function fetchMonthEvents(monthStart, monthEnd) {
               }
             }
           }
-          return { ...event, allDay: isAllDay };
+          return {
+            ...event,
+            allDay: isAllDay,
+            calendarName: event.calendarName || fallbackCalendarName(event.calendar),
+            color: event.color || DEFAULT_CALENDAR_COLOR
+          };
         });
         
         monthEvents = deduplicateEvents(monthEvents);
@@ -1628,13 +1716,11 @@ function showEventDetails(event) {
     }
   }
   
-  if (event.calendar) {
-    // Extract calendar name from entity ID (remove calendar. prefix)
-    const calendarName = event.calendar.replace(/^calendar\./, '').replace(/_/g, ' ');
+  if (event.calendar || event.calendarName) {
     detailsHTML += `
       <div class="event-detail-row">
         <div class="event-detail-label">Calendar:</div>
-        <div class="event-detail-value">${calendarName}</div>
+        <div class="event-detail-value">${getEventCalendarName(event)}</div>
       </div>
     `;
   }
@@ -1761,9 +1847,9 @@ function loadDailyAgendaForDate(date) {
         timeStr = `${startTime} - ${endTime}`;
       }
       
-      // Build event HTML (removed calendar name)
+      // Build event HTML
       agendaHTML += `
-        <div class="daily-agenda-event" data-event-id="${event.uid || ''}">
+        <div class="daily-agenda-event" data-event-id="${event.uid || ''}" style="border-left-color: ${getEventCalendarColor(event)};">
           <div class="daily-agenda-event-time">${timeStr}</div>
           <div class="daily-agenda-event-content">
             <div class="daily-agenda-event-title">${event.title || 'Untitled Event'}</div>
@@ -5503,7 +5589,7 @@ function renderAgenda(widgetId, container) {
         timeStr = `${startTime} - ${endTime}`;
       }
       
-      const eventStyle = `background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; --agenda-card-hover-border: ${cardHoverBorder};`;
+      const eventStyle = `background: ${cardBg}; border: ${cardBorderWidth}px solid ${cardBorder}; border-left: 6px solid ${getEventCalendarColor(event)}; border-radius: ${cardBorderRadius}px; box-shadow: ${shadowStyle}; --agenda-card-hover-border: ${cardHoverBorder};`;
       
       // Create a unique identifier: use index in sortedEvents array (which is specific to this widget and date)
       // This ensures each event card has a unique identifier even if UID is empty

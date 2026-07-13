@@ -496,7 +496,7 @@ body {
 
 .calendar-event {
   background: rgba(74, 144, 226, 0.2);
-  border-left: 3px solid #4a90e2;
+  border-left: 6px solid #4a90e2;
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
@@ -513,7 +513,6 @@ body {
 
 .calendar-day.today .calendar-event {
   background: rgba(255, 255, 255, 0.2);
-  border-left-color: #fff;
 }
 
 .calendar-event-more {
@@ -619,7 +618,7 @@ body {
   margin-bottom: 16px;
   background: #333;
   border-radius: 8px;
-  border-left: 4px solid #4a90e2;
+  border-left: 6px solid #4a90e2;
   transition: background 0.2s;
   overflow: hidden;
   box-sizing: border-box;
@@ -2403,7 +2402,7 @@ body {
 
 .month-event {
   background: rgba(74, 144, 226, 0.1);
-  border-left: 3px solid #4a90e2;
+  border-left: 6px solid #4a90e2;
   border-radius: 4px;
   padding: 4px 6px;
   font-size: 11px;
@@ -5537,7 +5536,9 @@ html.dakboard-auth-pending body > *:not(#dakboard-auth-overlay) {
 .agenda-event:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
-  border-color: var(--agenda-card-hover-border, #4a90e2) !important;
+  border-top-color: var(--agenda-card-hover-border, #4a90e2) !important;
+  border-right-color: var(--agenda-card-hover-border, #4a90e2) !important;
+  border-bottom-color: var(--agenda-card-hover-border, #4a90e2) !important;
 }
 
 .agenda-event-time {
