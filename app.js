@@ -905,6 +905,43 @@ function setCreateEventCalendarSelection(calendarId, name, color) {
   if (swatch) swatch.style.setProperty('--cal-color', color || '#0f9d58');
 }
 
+const LAST_GOOGLE_CALENDAR_STORAGE_KEY = 'dakboard-last-google-calendar-id';
+
+function getLastUsedGoogleCalendarId() {
+  try {
+    return localStorage.getItem(LAST_GOOGLE_CALENDAR_STORAGE_KEY) || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+function setLastUsedGoogleCalendarId(calendarId) {
+  if (!calendarId) return;
+  try {
+    localStorage.setItem(LAST_GOOGLE_CALENDAR_STORAGE_KEY, calendarId);
+  } catch (e) {
+    /* ignore quota / private mode */
+  }
+}
+
+function resolveCreateEventDefaultCalendarId(calendars, widgetDefaultId) {
+  const items = calendars || [];
+  if (!items.length) return '';
+
+  // Explicit Advanced default wins when set
+  if (widgetDefaultId && items.some(c => c.id === widgetDefaultId)) {
+    return widgetDefaultId;
+  }
+
+  // "Last used" (empty Advanced default)
+  const lastUsed = getLastUsedGoogleCalendarId();
+  if (lastUsed && items.some(c => c.id === lastUsed)) {
+    return lastUsed;
+  }
+
+  return items[0].id;
+}
+
 function populateCreateEventCalendarList(calendars, selectedId, widgetId) {
   const menu = document.getElementById('create-event-calendar-menu');
   const trigger = document.getElementById('create-event-calendar-trigger');
@@ -950,6 +987,7 @@ function populateCreateEventCalendarList(calendars, selectedId, widgetId) {
       const name = btn.dataset.calendarName || id;
       const color = btn.style.getPropertyValue('--cal-color') || '#0f9d58';
       setCreateEventCalendarSelection(id, name, color.trim());
+      setLastUsedGoogleCalendarId(id);
       menu.querySelectorAll('.create-event-cal-option').forEach(el => {
         const on = el === btn;
         el.classList.toggle('selected', on);
@@ -1028,7 +1066,10 @@ async function openCreateGoogleEventModal(fullWidgetId, presetDate = null) {
     ? window.getAvailableGoogleCalendars()
     : availableGoogleCalendars;
   const styles = getGoogleDirectWidgetStyles(fullWidgetId);
-  const defaultId = styles.defaultGoogleCalendarId || '';
+  const defaultId = resolveCreateEventDefaultCalendarId(
+    calendars,
+    styles.defaultGoogleCalendarId || ''
+  );
 
   populateCreateEventCalendarList(calendars, defaultId, fullWidgetId);
 
@@ -1157,6 +1198,7 @@ async function submitCreateGoogleEvent(event) {
     }
 
     // Show immediately (don't wait on ICS lag), then quietly re-sync feed
+    setLastUsedGoogleCalendarId(calendar);
     mergeCreatedGoogleEvent(data.event, calendar, {
       title,
       allDay,
@@ -1289,6 +1331,22 @@ function getEventsForDate(events, date) {
   });
 }
 
+/** Agenda widgets: when viewing today, hide timed events whose end is already past. All-day stays. */
+function filterCompletedAgendaEvents(events, viewDate, now = new Date()) {
+  if (!Array.isArray(events) || !events.length) return events || [];
+  const viewDay = new Date(viewDate);
+  viewDay.setHours(0, 0, 0, 0);
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  if (viewDay.getTime() !== today.getTime()) return events;
+
+  return events.filter(event => {
+    if (event.allDay) return true;
+    const end = new Date(event.end || event.start);
+    return !Number.isNaN(end.getTime()) && end.getTime() > now.getTime();
+  });
+}
+
 function escapePreviewText(text) {
   return String(text || '')
     .replace(/&/g, '&amp;')
@@ -1414,7 +1472,7 @@ function buildAgendaPreviewHtml(styles = {}, options = {}) {
   const canGoPrev = date.getTime() > minDate.getTime();
   const canGoNext = date.getTime() < maxDate.getTime();
 
-  const dayEvents = getEventsForDate(sourceEvents, date).slice(0, 5);
+  const dayEvents = filterCompletedAgendaEvents(getEventsForDate(sourceEvents, date), date).slice(0, 5);
   const dateStr = date.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
@@ -7026,7 +7084,8 @@ function renderAgenda(widgetId, container) {
   const dayEnd = new Date(date);
   dayEnd.setHours(23, 59, 59, 999);
   
-  const dayEvents = filterEventsForWidget(getEventsForAgendaWidget(widgetId), widgetId).filter(event => {
+  const dayEvents = filterCompletedAgendaEvents(
+    filterEventsForWidget(getEventsForAgendaWidget(widgetId), widgetId).filter(event => {
     const eventStart = new Date(event.start);
     const eventEnd = new Date(event.end || event.start);
     
@@ -7059,7 +7118,9 @@ function renderAgenda(widgetId, container) {
     } else {
       return (eventStart <= dayEnd && eventEnd >= dayStart);
     }
-  });
+  }),
+    date
+  );
   
   // Sort events: all-day events first, then by start time
   const sortedEvents = [...dayEvents].sort((a, b) => {
@@ -8262,7 +8323,7 @@ function showAddTaskModal(widgetId, entityId, container) {
 
 // Initialize midnight check for agenda widgets
 function initializeAgendaMidnightCheck() {
-  // Check every minute for midnight
+  // Check every minute: roll to today at midnight, and drop completed timed events on today's agenda
   agendaMidnightCheckInterval = setInterval(() => {
     const now = new Date();
     const hours = now.getHours();
@@ -8286,7 +8347,22 @@ function initializeAgendaMidnightCheck() {
           }
         }
       });
+      return;
     }
+
+    // Re-render agendas viewing today so finished timed events disappear
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    agendaDates.forEach((date, widgetId) => {
+      if (!date) return;
+      const viewDay = new Date(date);
+      viewDay.setHours(0, 0, 0, 0);
+      if (viewDay.getTime() !== today.getTime()) return;
+      const widget = document.querySelector(`.${widgetId}`);
+      if (!widget || widget.classList.contains('hidden')) return;
+      const container = widget.querySelector('.agenda-content');
+      if (container) renderAgenda(widgetId, container);
+    });
   }, 60000); // Check every minute
 }
 

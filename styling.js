@@ -1335,7 +1335,7 @@ function generateAdvancedTab() {
           <label class="styling-form-label">Default calendar</label>
           <div class="styling-form-control">
             <select id="google-default-calendar" class="styling-select" style="width: 100%;">
-              <option value="">First available</option>
+              <option value="">Last used</option>
             </select>
           </div>
         </div>
@@ -1615,7 +1615,7 @@ function generateAdvancedTab() {
           <label class="styling-form-label">Default calendar</label>
           <div class="styling-form-control">
             <select id="google-default-calendar" class="styling-select" style="width: 100%;">
-              <option value="">First available</option>
+              <option value="">Last used</option>
             </select>
           </div>
         </div>
@@ -3416,7 +3416,7 @@ async function populateGoogleDefaultCalendarSelect(calendars) {
   if (!select) return;
 
   const current = currentStyles.defaultGoogleCalendarId || '';
-  select.innerHTML = `<option value="">First available</option>` + (calendars || []).map(cal => {
+  select.innerHTML = `<option value="">Last used</option>` + (calendars || []).map(cal => {
     const id = cal.id || cal;
     const name = cal.name || String(id);
     const selected = id === current ? 'selected' : '';
