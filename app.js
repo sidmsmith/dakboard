@@ -2332,6 +2332,8 @@ function renderMonthCalendar(container, year, month, events) {
   for (let i = 0; i < startingDayOfWeek; i++) {
     html += '<div class="month-calendar-day empty"></div>';
   }
+
+  const monthEventRefs = [];
   
   // Add days of the month
   for (let day = 1; day <= daysInMonth; day++) {
@@ -2401,14 +2403,16 @@ function renderMonthCalendar(container, year, month, events) {
         timeStr = eventStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
         titleText = `${event.title} - ${timeStr}`;
       }
-      html += `<div class="month-event" style="border-left-color: ${getEventCalendarColor(event, calendarViewContextWidgetId)}" title="${titleText}">
+      const eventIdx = monthEventRefs.length;
+      monthEventRefs.push(event);
+      html += `<div class="month-event" data-month-event-idx="${eventIdx}" style="border-left-color: ${getEventCalendarColor(event, calendarViewContextWidgetId)}" title="${titleText}">
         ${timeStr ? `<span class="month-event-time">${timeStr}</span>` : ''}
         <span class="month-event-title">${event.title}</span>
       </div>`;
     });
     
     if (moreCount > 0) {
-      html += `<div class="month-event-more">+${moreCount} more</div>`;
+      html += `<div class="month-event-more" data-month-day="${day}">+${moreCount} more</div>`;
     }
     
     html += `</div></div>`;
@@ -2416,6 +2420,28 @@ function renderMonthCalendar(container, year, month, events) {
   
   html += '</div>';
   container.innerHTML = html;
+
+  container.querySelectorAll('.month-event[data-month-event-idx]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof isEditMode !== 'undefined' && isEditMode) return;
+      const idx = parseInt(el.dataset.monthEventIdx, 10);
+      const event = monthEventRefs[idx];
+      if (event) {
+        showEventDetails(event, calendarViewContextWidgetId);
+      }
+    });
+  });
+
+  container.querySelectorAll('.month-event-more[data-month-day]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof isEditMode !== 'undefined' && isEditMode) return;
+      const dayNum = parseInt(el.dataset.monthDay, 10);
+      if (!Number.isFinite(dayNum)) return;
+      showDailyAgenda(new Date(year, month, dayNum), calendarViewContextWidgetId);
+    });
+  });
   
   // Add navigation listeners
   const prevBtn = document.getElementById('prev-month-btn');
