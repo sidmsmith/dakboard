@@ -393,7 +393,8 @@ body {
 
 /* Calendar - Default position and size */
 .calendar-widget,
-.calendar-direct-widget {
+.calendar-direct-widget,
+.calendar-hybrid-widget {
   width: 800px;
   height: 500px;
   overflow: hidden;
@@ -412,7 +413,8 @@ body {
   margin-right: auto;
 }
 
-.calendar-direct-widget .calendar-nav #prev-week-btn {
+.calendar-direct-widget .calendar-nav #prev-week-btn,
+.calendar-hybrid-widget .calendar-nav #prev-week-btn {
   margin-right: 0;
 }
 
@@ -2559,7 +2561,8 @@ body {
   background: rgba(255, 255, 255, 0.2);
 }
 
-.calendar-direct-widget .calendar-add-event-btn {
+.calendar-direct-widget .calendar-add-event-btn,
+.calendar-hybrid-widget .calendar-add-event-btn {
   width: 36px;
   height: 36px;
   min-width: 36px;
@@ -3669,22 +3672,26 @@ footer a:hover {
 
 /* Calendar widget - prevent scaling for title, increase font sizes */
 .widget[data-scale].calendar-widget .widget-title,
-.widget[data-scale].calendar-direct-widget .widget-title {
+.widget[data-scale].calendar-direct-widget .widget-title,
+.widget[data-scale].calendar-hybrid-widget .widget-title {
   font-size: 18px !important;
 }
 
 .widget[data-scale].calendar-widget .calendar-day-header,
-.widget[data-scale].calendar-direct-widget .calendar-day-header {
+.widget[data-scale].calendar-direct-widget .calendar-day-header,
+.widget[data-scale].calendar-hybrid-widget .calendar-day-header {
   font-size: 16px !important;
 }
 
 .widget[data-scale].calendar-widget .calendar-day-number,
-.widget[data-scale].calendar-direct-widget .calendar-day-number {
+.widget[data-scale].calendar-direct-widget .calendar-day-number,
+.widget[data-scale].calendar-hybrid-widget .calendar-day-number {
   font-size: 16px !important;
 }
 
 .widget[data-scale].calendar-widget .calendar-event,
-.widget[data-scale].calendar-direct-widget .calendar-event {
+.widget[data-scale].calendar-direct-widget .calendar-event,
+.widget[data-scale].calendar-hybrid-widget .calendar-event {
   font-size: 12px !important;
   padding: calc(4px * var(--scale-factor, 1)) calc(8px * var(--scale-factor, 1));
 }
@@ -3692,7 +3699,9 @@ footer a:hover {
 .widget[data-scale].calendar-widget #week-range,
 .widget[data-scale].calendar-widget .calendar-nav span,
 .widget[data-scale].calendar-direct-widget #week-range,
-.widget[data-scale].calendar-direct-widget .calendar-nav span {
+.widget[data-scale].calendar-direct-widget .calendar-nav span,
+.widget[data-scale].calendar-hybrid-widget #week-range,
+.widget[data-scale].calendar-hybrid-widget .calendar-nav span {
   font-size: 16px !important;
 }
 
@@ -5857,7 +5866,8 @@ html.dakboard-auth-pending body > *:not(#dakboard-auth-overlay) {
 
 /* Agenda Widget - Default position and size */
 .agenda-widget,
-.agenda-direct-widget {
+.agenda-direct-widget,
+.agenda-hybrid-widget {
   width: 500px;
   height: 600px;
   overflow: hidden;

@@ -57,8 +57,12 @@ App can stay in **Testing**; only the household account needs to be a test user.
 
 ## Using it
 
-On **Agenda Direct** / **Calendar Direct**, tap **+** → New Event modal → Create.  
+On **Agenda Direct**, **Calendar Direct**, **Agenda Hybrid**, or **Calendar Hybrid**, tap **+** → New Event modal → Create.  
 Advanced tab: default calendar + show/hide the + button.
+
+**Hybrid widgets** show Google ICS events and Home Assistant calendars together. The create dropdown lists **Google calendars only** (HA calendars are read-only here).
+
+HA Agenda / Calendar and the Direct-only widgets remain available but are marked **deprecated** in the widget panel; prefer Hybrid going forward.
 
 ## Security note
 
