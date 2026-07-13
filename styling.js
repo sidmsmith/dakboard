@@ -3363,11 +3363,14 @@ async function populateCalendarVisibilityList() {
     const id = cal.id || cal;
     const name = cal.name || String(id).replace(/^calendar\./, '').replace(/_/g, ' ');
     const isGoogleCal = cal.source === 'google' || googleIdSet.has(id) || isGoogleDirect;
+    const displayName = isHybrid
+      ? `${name}${isGoogleCal ? ' (ICS)' : ' (HA)'}`
+      : name;
     const defaultColor = cal.color || (isGoogleCal ? '#0f9d58' : '#4a90e2');
     const color = toColorInputValue(colorOverrides[id] || defaultColor, defaultColor);
     const checked = !hiddenSet.has(id) ? 'checked' : '';
     const safeId = String(id).replace(/"/g, '&quot;');
-    const safeName = String(name).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeName = String(displayName).replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const colorControl = supportsColorPicker
       ? `<input type="color" class="calendar-visibility-color" data-calendar-id="${safeId}" value="${color}" title="Calendar color" aria-label="Color for ${safeName}">`
       : `<span class="calendar-visibility-swatch" style="background: ${color};"></span>`;
