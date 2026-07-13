@@ -620,8 +620,14 @@ function syncCreateEventAllDayFields() {
   const endDay = document.getElementById('create-event-end-day');
   const startDate = document.getElementById('create-event-start-date');
   const endDate = document.getElementById('create-event-end-date');
-  if (timed) timed.hidden = !!allDay;
-  if (dates) dates.hidden = !allDay;
+  if (timed) {
+    timed.hidden = !!allDay;
+    timed.style.display = allDay ? 'none' : '';
+  }
+  if (dates) {
+    dates.hidden = !allDay;
+    dates.style.display = allDay ? '' : 'none';
+  }
   if (startDay) startDay.required = !allDay;
   if (endDay) endDay.required = !allDay;
   if (startDate) startDate.required = !!allDay;
@@ -649,7 +655,7 @@ function populateCreateEventTimeSelects() {
     const el = document.getElementById(id);
     if (!el) return;
     el.innerHTML = '';
-    ['00', '30'].forEach(m => {
+    ['00', '15', '30', '45'].forEach(m => {
       const opt = document.createElement('option');
       opt.value = m;
       opt.textContent = m;
@@ -739,12 +745,24 @@ function setCreateEventTimeParts(prefix, date) {
 }
 
 function resolveCreateEventCalendarColor(calendarId, widgetId, fallback = '#0f9d58') {
+  // Prefer in-memory styles if this widget was just edited in Advanced
+  if (
+    typeof currentWidgetId !== 'undefined' &&
+    currentWidgetId === widgetId &&
+    typeof currentStyles !== 'undefined' &&
+    currentStyles?.calendarColors &&
+    currentStyles.calendarColors[calendarId]
+  ) {
+    return currentStyles.calendarColors[calendarId];
+  }
+
   const styles = getGoogleDirectWidgetStyles(widgetId);
   const override =
     styles.calendarColors && typeof styles.calendarColors === 'object'
       ? styles.calendarColors[calendarId]
       : null;
   if (override) return override;
+
   const cal =
     (typeof availableGoogleCalendars !== 'undefined'
       ? availableGoogleCalendars.find(c => c.id === calendarId)
@@ -752,22 +770,40 @@ function resolveCreateEventCalendarColor(calendarId, widgetId, fallback = '#0f9d
   return cal?.color || fallback;
 }
 
-function populateCreateEventCalendarList(calendars, selectedId, widgetId) {
-  const list = document.getElementById('create-event-calendar-list');
+function closeCreateEventCalendarMenu() {
+  const menu = document.getElementById('create-event-calendar-menu');
+  const trigger = document.getElementById('create-event-calendar-trigger');
+  if (menu) menu.hidden = true;
+  if (trigger) trigger.setAttribute('aria-expanded', 'false');
+}
+
+function setCreateEventCalendarSelection(calendarId, name, color) {
   const hidden = document.getElementById('create-event-calendar');
-  if (!list || !hidden) return;
+  const label = document.getElementById('create-event-calendar-label');
+  const swatch = document.getElementById('create-event-calendar-swatch');
+  if (hidden) hidden.value = calendarId || '';
+  if (label) label.textContent = name || 'Select calendar';
+  if (swatch) swatch.style.setProperty('--cal-color', color || '#0f9d58');
+}
+
+function populateCreateEventCalendarList(calendars, selectedId, widgetId) {
+  const menu = document.getElementById('create-event-calendar-menu');
+  const trigger = document.getElementById('create-event-calendar-trigger');
+  const hidden = document.getElementById('create-event-calendar');
+  if (!menu || !trigger || !hidden) return;
 
   const items = calendars || [];
+  closeCreateEventCalendarMenu();
+
   if (!items.length) {
-    list.innerHTML = '<div style="color:#888;padding:8px 0;">No calendars configured</div>';
-    hidden.value = '';
+    menu.innerHTML = '<div style="color:#888;padding:8px 12px;">No calendars configured</div>';
+    setCreateEventCalendarSelection('', 'No calendars configured', '#888');
     return;
   }
 
   const selected = selectedId && items.some(c => c.id === selectedId) ? selectedId : items[0].id;
-  hidden.value = selected;
 
-  list.innerHTML = items.map(cal => {
+  menu.innerHTML = items.map(cal => {
     const id = cal.id;
     const name = cal.name || id;
     const color = resolveCreateEventCalendarColor(id, widgetId, cal.color || '#0f9d58');
@@ -775,22 +811,32 @@ function populateCreateEventCalendarList(calendars, selectedId, widgetId) {
     const safeId = String(id).replace(/"/g, '&quot;');
     const safeName = String(name).replace(/</g, '&lt;').replace(/>/g, '&gt;');
     return `
-      <button type="button" class="create-event-cal-option ${isSelected}" role="option" aria-selected="${id === selected}" data-calendar-id="${safeId}" style="--cal-color: ${color};">
+      <button type="button" class="create-event-cal-option ${isSelected}" role="option" aria-selected="${id === selected}" data-calendar-id="${safeId}" data-calendar-name="${safeName}" style="--cal-color: ${color};">
         <span class="create-event-cal-swatch" aria-hidden="true"></span>
         <span>${safeName}</span>
       </button>
     `;
   }).join('');
 
-  list.querySelectorAll('.create-event-cal-option').forEach(btn => {
+  const selectedCal = items.find(c => c.id === selected) || items[0];
+  setCreateEventCalendarSelection(
+    selected,
+    selectedCal.name || selected,
+    resolveCreateEventCalendarColor(selected, widgetId, selectedCal.color || '#0f9d58')
+  );
+
+  menu.querySelectorAll('.create-event-cal-option').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.calendarId || '';
-      hidden.value = id;
-      list.querySelectorAll('.create-event-cal-option').forEach(el => {
+      const name = btn.dataset.calendarName || id;
+      const color = btn.style.getPropertyValue('--cal-color') || '#0f9d58';
+      setCreateEventCalendarSelection(id, name, color.trim());
+      menu.querySelectorAll('.create-event-cal-option').forEach(el => {
         const on = el === btn;
         el.classList.toggle('selected', on);
         el.setAttribute('aria-selected', on ? 'true' : 'false');
       });
+      closeCreateEventCalendarMenu();
     });
   });
 }
@@ -903,6 +949,7 @@ async function openCreateGoogleEventModal(fullWidgetId, presetDate = null) {
 }
 
 function closeCreateGoogleEventModal() {
+  closeCreateEventCalendarMenu();
   const modal = document.getElementById('create-google-event-modal');
   if (modal) modal.classList.remove('active');
   createGoogleEventContextWidgetId = null;
@@ -1019,13 +1066,30 @@ function initializeCreateGoogleEventModal() {
 
   populateCreateEventTimeSelects();
 
-  document.getElementById('close-create-google-event-modal')?.addEventListener('click', closeCreateGoogleEventModal);
-  document.getElementById('create-event-cancel')?.addEventListener('click', closeCreateGoogleEventModal);
+  document.getElementById('close-create-google-event-modal')?.addEventListener('click', () => {
+    closeCreateEventCalendarMenu();
+    closeCreateGoogleEventModal();
+  });
+  document.getElementById('create-event-cancel')?.addEventListener('click', () => {
+    closeCreateEventCalendarMenu();
+    closeCreateGoogleEventModal();
+  });
   document.getElementById('create-event-all-day')?.addEventListener('change', () => {
     syncCreateEventAllDayFields();
     ensureCreateEventRangeValid('start');
   });
   document.getElementById('create-google-event-form')?.addEventListener('submit', submitCreateGoogleEvent);
+
+  const trigger = document.getElementById('create-event-calendar-trigger');
+  const menu = document.getElementById('create-event-calendar-menu');
+  trigger?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!menu) return;
+    const open = menu.hidden;
+    menu.hidden = !open;
+    trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
 
   const startControls = [
     'create-event-start-day',
@@ -1049,7 +1113,15 @@ function initializeCreateGoogleEventModal() {
   });
 
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeCreateGoogleEventModal();
+    if (e.target === modal) {
+      closeCreateEventCalendarMenu();
+      closeCreateGoogleEventModal();
+      return;
+    }
+    const dropdown = document.getElementById('create-event-calendar-dropdown');
+    if (dropdown && !dropdown.contains(e.target)) {
+      closeCreateEventCalendarMenu();
+    }
   });
 }
 

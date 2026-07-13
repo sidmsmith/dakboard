@@ -707,8 +707,15 @@
       <form id="create-google-event-form" class="create-google-event-form">
         <label class="create-event-field">
           <span>Calendar</span>
-          <div id="create-event-calendar-list" class="create-event-calendar-list" role="listbox" aria-label="Calendar"></div>
-          <input type="hidden" id="create-event-calendar" required />
+          <div class="create-event-calendar-dropdown" id="create-event-calendar-dropdown">
+            <button type="button" class="create-event-calendar-trigger" id="create-event-calendar-trigger" aria-haspopup="listbox" aria-expanded="false">
+              <span class="create-event-cal-swatch" id="create-event-calendar-swatch" aria-hidden="true"></span>
+              <span class="create-event-calendar-label" id="create-event-calendar-label">Select calendar</span>
+              <span class="create-event-calendar-caret" aria-hidden="true">▾</span>
+            </button>
+            <div class="create-event-calendar-menu" id="create-event-calendar-menu" role="listbox" hidden></div>
+            <input type="hidden" id="create-event-calendar" required />
+          </div>
         </label>
         <label class="create-event-field">
           <span>Title</span>
