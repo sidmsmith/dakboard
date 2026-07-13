@@ -412,6 +412,18 @@ body {
   margin-right: auto;
 }
 
+.calendar-direct-widget .calendar-nav #prev-week-btn {
+  margin-right: 0;
+}
+
+.calendar-nav-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: auto;
+  flex-shrink: 0;
+}
+
 .calendar-nav #week-range {
   flex: 1;
   text-align: center;
@@ -2377,19 +2389,45 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.25);
   color: inherit;
   border-radius: 8px;
-  width: 32px;
-  height: 32px;
-  font-size: 20px;
+  width: 36px;
+  height: 36px;
+  font-size: 22px;
   line-height: 1;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  padding: 0;
 }
 
 .google-add-event-btn:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+.calendar-direct-widget .calendar-add-event-btn {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  padding: 0;
+}
+
+.agenda-add-event-slot {
+  margin-top: 4px;
+}
+
+.agenda-add-event-btn {
+  width: 100%;
+  min-height: 52px;
+  border-radius: 12px;
+  border-style: dashed;
+  font-size: 28px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.agenda-add-event-btn:hover {
+  background: rgba(15, 157, 88, 0.18);
+  border-color: rgba(15, 157, 88, 0.55);
 }
 
 .widget-header .widget-title {

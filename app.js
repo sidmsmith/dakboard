@@ -484,34 +484,113 @@ function shouldShowGoogleAddEventButton(fullWidgetId) {
   return styles.googleShowAddEvent !== false;
 }
 
+function removeHeaderGoogleAddEventButtons(widget) {
+  widget?.querySelectorAll('.widget-header .google-add-event-btn')?.forEach(btn => btn.remove());
+}
+
+function createGoogleAddEventButtonEl(fullWidgetId, extraClass = '') {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = `google-add-event-btn ${extraClass}`.trim();
+  btn.title = 'Add event';
+  btn.setAttribute('aria-label', 'Add event');
+  btn.textContent = '+';
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (typeof isEditMode !== 'undefined' && isEditMode) return;
+    let presetDate = null;
+    if (isAgendaDirectWidgetId(fullWidgetId) && typeof agendaDates !== 'undefined' && agendaDates.has(fullWidgetId)) {
+      presetDate = agendaDates.get(fullWidgetId);
+    }
+    openCreateGoogleEventModal(fullWidgetId, presetDate);
+  });
+  return btn;
+}
+
+/** Calendar Direct: + sits to the right of Previous Week (mirrors month icon before Next). */
 function ensureGoogleAddEventButton(widget, fullWidgetId) {
   if (!widget || !fullWidgetId) return;
-  if (!isGoogleDirectWidgetId(fullWidgetId)) return;
+  removeHeaderGoogleAddEventButtons(widget);
 
-  const header = widget.querySelector('.widget-header');
-  const title = header?.querySelector('.widget-title');
-  if (!header || !title) return;
+  if (!isCalendarDirectWidgetId(fullWidgetId)) return;
 
-  let btn = header.querySelector('.google-add-event-btn');
+  const nav = widget.querySelector('.calendar-nav');
+  const prevBtn = nav?.querySelector('#prev-week-btn');
+  if (!nav || !prevBtn) return;
+
+  let left = nav.querySelector('.calendar-nav-left');
+  if (!left) {
+    left = document.createElement('div');
+    left.className = 'calendar-nav-left';
+    prevBtn.parentNode.insertBefore(left, prevBtn);
+    left.appendChild(prevBtn);
+  }
+
+  let btn = left.querySelector('.google-add-event-btn');
   if (!shouldShowGoogleAddEventButton(fullWidgetId)) {
     if (btn) btn.remove();
     return;
   }
 
   if (!btn) {
-    btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'google-add-event-btn';
-    btn.title = 'Add event';
-    btn.setAttribute('aria-label', 'Add event');
-    btn.textContent = '+';
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (typeof isEditMode !== 'undefined' && isEditMode) return;
-      openCreateGoogleEventModal(fullWidgetId);
-    });
-    title.appendChild(btn);
+    btn = createGoogleAddEventButtonEl(fullWidgetId, 'calendar-add-event-btn');
+    left.appendChild(btn);
   }
+}
+
+function attachAgendaGoogleAddEventButton(container, widgetId) {
+  if (!container || !isAgendaDirectWidgetId(widgetId)) return;
+  if (!shouldShowGoogleAddEventButton(widgetId)) return;
+  if (container.querySelector('.agenda-add-event-btn')) return;
+  const slot = document.createElement('div');
+  slot.className = 'agenda-add-event-slot';
+  slot.appendChild(createGoogleAddEventButtonEl(widgetId, 'agenda-add-event-btn'));
+  container.appendChild(slot);
+}
+
+let googleIcsCatchupTimers = [];
+
+function scheduleGoogleCalendarIcsCatchup() {
+  // ICS feeds often lag ~30–90s; optimistic UI shows immediately, then catch up from feed
+  googleIcsCatchupTimers.forEach(id => clearTimeout(id));
+  googleIcsCatchupTimers = [20, 45, 90].map(sec =>
+    setTimeout(() => {
+      if (typeof loadGoogleCalendarEvents === 'function') loadGoogleCalendarEvents();
+    }, sec * 1000)
+  );
+}
+
+function mergeCreatedGoogleEvent(apiEvent, calendarInternalId, extras = {}) {
+  const meta =
+    (typeof availableGoogleCalendars !== 'undefined'
+      ? availableGoogleCalendars.find(c => c.id === calendarInternalId)
+      : null) || {};
+  const start = apiEvent?.start || extras.start || extras.startDate;
+  const end = apiEvent?.end || extras.end || extras.endDate || start;
+  if (!start) return;
+
+  const allDay =
+    extras.allDay !== undefined
+      ? !!extras.allDay
+      : typeof start === 'string' && !String(start).includes('T');
+
+  const event = {
+    id: apiEvent?.id || `local-${Date.now()}`,
+    title: apiEvent?.title || extras.title || 'Untitled Event',
+    start,
+    end: end || start,
+    location: extras.location || null,
+    description: extras.description || null,
+    calendar: calendarInternalId,
+    calendarName: meta.name || fallbackCalendarName(calendarInternalId),
+    color: meta.color || '#0f9d58',
+    allDay,
+    uid: apiEvent?.id || null
+  };
+
+  googleCalendarEvents = deduplicateEvents([event, ...(googleCalendarEvents || [])]);
+  if (typeof renderCalendar === 'function') renderCalendar();
+  if (typeof loadAgenda === 'function') loadAgenda();
 }
 
 async function refreshGoogleCalendarWriteStatus() {
@@ -680,10 +759,19 @@ async function submitCreateGoogleEvent(event) {
 
     if (status) {
       status.className = 'create-event-status ok';
-      status.textContent = 'Event created. Refreshing...';
+      status.textContent = 'Event created';
     }
 
-    await loadGoogleCalendarEvents();
+    // Show immediately (don't wait on ICS lag), then quietly re-sync feed
+    mergeCreatedGoogleEvent(data.event, calendar, {
+      title,
+      allDay,
+      start: payload.start || payload.startDate,
+      end: payload.end || payload.endDate,
+      location,
+      description
+    });
+    scheduleGoogleCalendarIcsCatchup();
     closeCreateGoogleEventModal();
   } catch (error) {
     if (status) {
@@ -6309,7 +6397,7 @@ function loadAgenda() {
     }
 
     setupAgendaNavigation(fullWidgetId, container);
-    ensureGoogleAddEventButton(widget, fullWidgetId);
+    removeHeaderGoogleAddEventButtons(widget);
     renderAgenda(fullWidgetId, container);
   });
 }
@@ -6373,7 +6461,10 @@ function renderAgenda(widgetId, container) {
   let agendaHTML = '';
   
   if (sortedEvents.length === 0) {
-    agendaHTML += '<div class="agenda-empty">No events scheduled for this day.</div>';
+    // Empty day: + sits where the first event card would be
+    agendaHTML += isAgendaDirectWidgetId(widgetId) && shouldShowGoogleAddEventButton(widgetId)
+      ? ''
+      : '<div class="agenda-empty">No events scheduled for this day.</div>';
   } else {
     // Get widget styles for card styling using the widgetId parameter (correct widget ID)
     // Use the widgetId parameter directly instead of trying to find it from class list
@@ -6498,6 +6589,7 @@ function renderAgenda(widgetId, container) {
   }
   
   container.innerHTML = agendaHTML;
+  attachAgendaGoogleAddEventButton(container, widgetId);
   
   // Store sortedEvents in a way accessible to click handlers
   // Use a Map keyed by widget ID and date to store events for this widget/date combination
