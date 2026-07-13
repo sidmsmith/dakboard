@@ -16,6 +16,7 @@ let currentStyles = {};
 let applyToAllFlags = {};
 let shadowSameAsBorder = false; // Track "Same as Border" checkbox state
 let clockPreviewFrozenNow = null; // Freeze analog preview hands while styling modal is open
+let agendaPreviewDate = null; // Day shown in agenda styling preview (yesterday .. today+7)
 
 // Helper function to convert hex color to rgba with opacity
 function hexToRgba(hex, opacity) {
@@ -117,6 +118,7 @@ function initStyling() {
 function openStylingModal(fullWidgetId) {
   currentWidgetId = fullWidgetId;
   clockPreviewFrozenNow = null;
+  agendaPreviewDate = null;
   
   // Parse instance ID to get widget type
   const parsed = typeof parseWidgetId !== 'undefined' ? parseWidgetId(fullWidgetId) : { widgetType: fullWidgetId, pageIndex: 0, instanceIndex: 0, isLegacy: true };
@@ -165,9 +167,23 @@ function openStylingModal(fullWidgetId) {
   
   // Update preview after a delay to ensure DOM is ready and styles are loaded
   setTimeout(async () => {
+    if (widgetType === 'agenda-widget') {
+      agendaPreviewDate = new Date();
+      agendaPreviewDate.setHours(0, 0, 0, 0);
+      if (typeof window.ensureAgendaPreviewEventRange === 'function') {
+        try {
+          await window.ensureAgendaPreviewEventRange();
+        } catch (e) {
+          console.error('Error loading agenda preview range:', e);
+        }
+      }
+      updatePreview();
+      return;
+    }
+
     updatePreview();
-    // Load real calendar data for calendar/agenda previews if not already cached
-    if ((widgetType === 'calendar-widget' || widgetType === 'agenda-widget') &&
+    // Load real calendar data for calendar previews if not already cached
+    if (widgetType === 'calendar-widget' &&
         typeof window.getCalendarEvents === 'function' &&
         (!window.getCalendarEvents() || window.getCalendarEvents().length === 0) &&
         typeof loadCalendarEvents === 'function') {
@@ -3118,6 +3134,46 @@ function attachTabEventListeners(tabName) {
   }
 }
 
+function attachAgendaPreviewNavHandlers(previewContent) {
+  if (!previewContent) return;
+  const prevBtn = previewContent.querySelector('#agenda-preview-prev');
+  const nextBtn = previewContent.querySelector('#agenda-preview-next');
+  if (!agendaPreviewDate) {
+    agendaPreviewDate = new Date();
+    agendaPreviewDate.setHours(0, 0, 0, 0);
+  }
+
+  const bounds = typeof window.getAgendaPreviewRangeBounds === 'function'
+    ? window.getAgendaPreviewRangeBounds()
+    : null;
+
+  if (prevBtn) {
+    prevBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (prevBtn.disabled) return;
+      const nextDate = new Date(agendaPreviewDate);
+      nextDate.setDate(nextDate.getDate() - 1);
+      if (bounds && nextDate < bounds.minDate) return;
+      agendaPreviewDate = nextDate;
+      updatePreview();
+    });
+  }
+
+  if (nextBtn) {
+    nextBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (nextBtn.disabled) return;
+      const nextDate = new Date(agendaPreviewDate);
+      nextDate.setDate(nextDate.getDate() + 1);
+      if (bounds && nextDate > bounds.maxDate) return;
+      agendaPreviewDate = nextDate;
+      updatePreview();
+    });
+  }
+}
+
 async function populateCalendarVisibilityList() {
   const stylingModal = document.getElementById('styling-modal');
   if (!stylingModal) return;
@@ -4255,6 +4311,11 @@ function updatePreview() {
     if (!currentWidgetId) {
       console.warn('updatePreview: currentWidgetId is not set for agenda widget preview');
     }
+
+    if (!agendaPreviewDate) {
+      agendaPreviewDate = new Date();
+      agendaPreviewDate.setHours(0, 0, 0, 0);
+    }
     
     // Use currentStyles for live preview (including hiddenCalendars + card styles)
     const agendaPreviewStyles = {
@@ -4268,8 +4329,10 @@ function updatePreview() {
     };
 
     previewContent.innerHTML = typeof window.buildAgendaPreviewHtml === 'function'
-      ? window.buildAgendaPreviewHtml(agendaPreviewStyles, { widgetId: currentWidgetId })
+      ? window.buildAgendaPreviewHtml(agendaPreviewStyles, { date: agendaPreviewDate })
       : '<div style="padding:20px;color:#888;text-align:center;">Agenda preview</div>';
+
+    attachAgendaPreviewNavHandlers(previewContent);
   } else if (previewContent && widgetType === 'calendar-widget') {
     const calendarPreviewStyles = {
       calendarTodayColor: currentStyles.calendarTodayColor,

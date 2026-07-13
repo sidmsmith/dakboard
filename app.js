@@ -357,15 +357,113 @@ function escapePreviewText(text) {
     .replace(/"/g, '&quot;');
 }
 
+function getAgendaPreviewRangeBounds() {
+  const minDate = new Date();
+  minDate.setHours(0, 0, 0, 0);
+  minDate.setDate(minDate.getDate() - 1); // yesterday
+  const maxDate = new Date();
+  maxDate.setHours(0, 0, 0, 0);
+  maxDate.setDate(maxDate.getDate() + 7); // next 7 days
+  return { minDate, maxDate };
+}
+
+function normalizeCalendarEvent(event) {
+  const startTime = event.start || event.start_time || event.dtstart;
+  const endTime = event.end || event.end_time || event.dtend;
+  const summary = event.summary || event.title || event.name || 'Untitled Event';
+
+  let isAllDay = event.all_day || event.allDay || false;
+  if (!isAllDay && startTime) {
+    const start = new Date(startTime);
+    const startHour = start.getHours();
+    const startMinute = start.getMinutes();
+    const startSecond = start.getSeconds();
+
+    if ((startHour === 0 && startMinute === 0 && startSecond === 0) ||
+        (startHour === 19 && startMinute === 0 && startSecond === 0)) {
+      if (endTime) {
+        const end = new Date(endTime);
+        const endHour = end.getHours();
+        const endMinute = end.getMinutes();
+        const endSecond = end.getSeconds();
+        if ((endHour === 0 && endMinute === 0 && endSecond === 0) ||
+            (endHour === 19 && endMinute === 0 && endSecond === 0)) {
+          isAllDay = true;
+        }
+      } else {
+        isAllDay = true;
+      }
+    }
+  }
+
+  return {
+    id: event.uid || event.id || `${event.calendar}-${startTime}`,
+    title: summary,
+    start: startTime,
+    end: endTime,
+    location: event.location || null,
+    description: event.description || null,
+    calendar: event.calendar,
+    calendarName: event.calendarName || fallbackCalendarName(event.calendar),
+    color: event.color || DEFAULT_CALENDAR_COLOR,
+    allDay: isAllDay
+  };
+}
+
+function mergeCalendarEvents(incomingEvents) {
+  const byId = new Map();
+  (calendarEvents || []).forEach(event => {
+    if (event?.id) byId.set(event.id, event);
+  });
+  (incomingEvents || []).forEach(raw => {
+    const event = normalizeCalendarEvent(raw);
+    if (event?.id) byId.set(event.id, event);
+  });
+  calendarEvents = Array.from(byId.values());
+  calendarEvents = deduplicateEvents(calendarEvents);
+}
+
+async function ensureAgendaPreviewEventRange() {
+  const { minDate, maxDate } = getAgendaPreviewRangeBounds();
+  const rangeEnd = new Date(maxDate);
+  rangeEnd.setHours(23, 59, 59, 999);
+
+  try {
+    const response = await fetch(
+      `/api/ha-calendar?startDate=${minDate.toISOString()}&endDate=${rangeEnd.toISOString()}`
+    );
+    if (!response.ok) throw new Error('Failed to fetch agenda preview range');
+    const data = await response.json();
+    mergeCalendarEvents(data.events || []);
+    updateAvailableCalendarsFromPayload(data.calendars, calendarEvents);
+  } catch (error) {
+    console.error('Error loading agenda preview event range:', error);
+  }
+  return calendarEvents;
+}
+
+window.ensureAgendaPreviewEventRange = ensureAgendaPreviewEventRange;
+window.getAgendaPreviewRangeBounds = getAgendaPreviewRangeBounds;
+
 function buildAgendaPreviewHtml(styles = {}, options = {}) {
   const hidden = Array.isArray(styles.hiddenCalendars) ? styles.hiddenCalendars : [];
   const sourceEvents = filterEventsByHiddenList(calendarEvents, hidden);
+  const { minDate, maxDate } = getAgendaPreviewRangeBounds();
 
-  let date = options.date ? new Date(options.date) : new Date();
-  if (options.widgetId && typeof agendaDates !== 'undefined' && agendaDates?.has(options.widgetId)) {
+  let date;
+  if (options.date) {
+    date = new Date(options.date);
+  } else if (options.widgetId && typeof agendaDates !== 'undefined' && agendaDates?.has(options.widgetId)) {
     date = new Date(agendaDates.get(options.widgetId));
+  } else {
+    date = new Date();
   }
   date.setHours(0, 0, 0, 0);
+  if (date < minDate) date = new Date(minDate);
+  if (date > maxDate) date = new Date(maxDate);
+
+  const canGoPrev = date.getTime() > minDate.getTime();
+  const canGoNext = date.getTime() < maxDate.getTime();
 
   const dayEvents = getEventsForDate(sourceEvents, date).slice(0, 5);
   const dateStr = date.toLocaleDateString('en-US', {
@@ -383,10 +481,22 @@ function buildAgendaPreviewHtml(styles = {}, options = {}) {
   const cardHoverBorder = styles.agendaCardHoverBorder || '#4a90e2';
   const shadowStyle = cardShadow ? '0 2px 8px rgba(0, 0, 0, 0.3)' : 'none';
 
+  const navHtml = `
+    <div class="agenda-preview-nav" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 4px;">
+      <button type="button" id="agenda-preview-prev" class="agenda-nav-btn" title="Previous Day" ${canGoPrev ? '' : 'disabled'} style="${canGoPrev ? '' : 'opacity: 0.35; cursor: not-allowed;'}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
+      <div style="font-size: 14px; font-weight: 600; color: #aaa; text-align: center; min-width: 0; flex: 1;">${escapePreviewText(dateStr)}</div>
+      <button type="button" id="agenda-preview-next" class="agenda-nav-btn" title="Next Day" ${canGoNext ? '' : 'disabled'} style="${canGoNext ? '' : 'opacity: 0.35; cursor: not-allowed;'}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </button>
+    </div>
+  `;
+
   if (dayEvents.length === 0) {
     return `
       <div style="width: 100%; padding: 12px; display: flex; flex-direction: column; gap: 12px;">
-        <div style="font-size: 14px; font-weight: 600; color: #aaa; margin-bottom: 8px; text-align: center;">${escapePreviewText(dateStr)}</div>
+        ${navHtml}
         <div style="text-align: center; color: #888; padding: 24px 8px;">No events scheduled for this day.</div>
       </div>
     `;
@@ -413,7 +523,7 @@ function buildAgendaPreviewHtml(styles = {}, options = {}) {
 
   return `
     <div style="width: 100%; padding: 12px; display: flex; flex-direction: column; gap: 12px;">
-      <div style="font-size: 14px; font-weight: 600; color: #aaa; margin-bottom: 8px; text-align: center;">${escapePreviewText(dateStr)}</div>
+      ${navHtml}
       ${cards}
     </div>
   `;
