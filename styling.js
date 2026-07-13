@@ -1309,7 +1309,7 @@ function generateAdvancedTab() {
       <div class="styling-section-title">Visible Calendars</div>
       <div class="styling-form-group">
         <p style="color: #aaa; font-size: 13px; margin: 0 0 12px 0;">${isAgendaHybridWidget
-          ? 'Uncheck a calendar to hide its events. Google and Home Assistant calendars both appear here. Use color pickers for Google calendars (and optional HA overrides).'
+          ? 'Uncheck a calendar to hide its events. Google and Home Assistant calendars both appear here (labeled ICS or HA). Use color pickers for Google calendars (and optional HA overrides).'
           : isAgendaDirectWidget
           ? 'Uncheck a calendar to hide its events. Use the color picker to set each calendar bar color on this widget (Google ICS does not provide colors).'
           : 'Uncheck a calendar to hide its events on this agenda widget. New calendars stay visible until you hide them.'}</p>
@@ -1589,7 +1589,7 @@ function generateAdvancedTab() {
       <div class="styling-section-title">Visible Calendars</div>
       <div class="styling-form-group">
         <p style="color: #aaa; font-size: 13px; margin: 0 0 12px 0;">${isCalendarHybridWidget
-          ? 'Uncheck a calendar to hide its events. Google and Home Assistant calendars both appear here. Applies to week, day, and month views. Color pickers work for Google calendars (and optional HA overrides).'
+          ? 'Uncheck a calendar to hide its events. Google and Home Assistant calendars both appear here (labeled ICS or HA). Applies to week, day, and month views. Color pickers work for Google calendars (and optional HA overrides).'
           : isCalendarDirectWidget
           ? 'Uncheck a calendar to hide its events. Use the color picker to set each calendar bar color on this widget (Google ICS does not provide colors). Applies to week, day, and month views.'
           : 'Uncheck a calendar to hide its events on this calendar widget (week, day, and month views). New calendars stay visible until you hide them.'}</p>
