@@ -7639,6 +7639,141 @@ function setupAgendaNavigation(widgetId, container) {
   navContainer.appendChild(nextBtn);
 }
 
+const TASKS_DAILY_MARKER = 'DAILY';
+const TASKS_DAILY_RESET_STORAGE_KEY = 'dakboard-tasks-daily-reset-date';
+let tasksDailyResetInterval = null;
+
+function isDailyTask(item) {
+  return String(item?.description || '').trim().toUpperCase() === TASKS_DAILY_MARKER;
+}
+
+function getTaskDueValue(item) {
+  return item?.due || item?.due_datetime || item?.due_date || null;
+}
+
+function formatTaskDueDisplay(dueValue) {
+  if (!dueValue) return null;
+  const raw = String(dueValue).trim();
+  // Date-only (YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const d = new Date(`${raw}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return raw;
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  const d = new Date(raw.includes('T') ? raw : raw.replace(' ', 'T'));
+  if (Number.isNaN(d.getTime())) return raw;
+  return d.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+}
+
+function datetimeLocalToHaDueDatetime(value) {
+  // datetime-local: 2026-07-19T12:00 → HA: 2026-07-19 12:00:00
+  if (!value) return null;
+  const match = String(value).match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::(\d{2}))?$/);
+  if (!match) return null;
+  const seconds = match[3] || '00';
+  return `${match[1]} ${match[2]}:${seconds}`;
+}
+
+function getConfiguredTasksListEntityIds() {
+  const ids = new Set();
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key || !key.startsWith('dakboard-widget-styles-')) continue;
+    try {
+      const styles = JSON.parse(localStorage.getItem(key));
+      if (styles?.tasksSelectedList && styles.tasksSelectedList !== 'none') {
+        ids.add(styles.tasksSelectedList);
+      }
+    } catch (e) {
+      // ignore bad style payloads
+    }
+  }
+  return [...ids];
+}
+
+function getLocalDateKey(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+async function resetCompletedDailyTasks() {
+  const entityIds = getConfiguredTasksListEntityIds();
+  if (entityIds.length === 0) return;
+
+  for (const entityId of entityIds) {
+    try {
+      const response = await fetch('/api/ha-todo-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'list_items', entity_id: entityId })
+      });
+      if (!response.ok) continue;
+      const data = await response.json();
+      const items = Array.isArray(data.items) ? data.items : [];
+      const dailyCompleted = items.filter(item =>
+        isDailyTask(item) && item.status === 'completed'
+      );
+
+      for (const item of dailyCompleted) {
+        if (!item.uid) continue;
+        await fetch('/api/ha-todo-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'uncomplete',
+            entity_id: entityId,
+            uid: item.uid
+          })
+        });
+      }
+    } catch (error) {
+      console.error('Error resetting daily tasks for', entityId, error);
+    }
+  }
+}
+
+async function runTasksDailyResetIfNeeded(force = false) {
+  const todayKey = getLocalDateKey();
+  const lastKey = localStorage.getItem(TASKS_DAILY_RESET_STORAGE_KEY);
+  if (!force && lastKey === todayKey) return;
+
+  await resetCompletedDailyTasks();
+  localStorage.setItem(TASKS_DAILY_RESET_STORAGE_KEY, todayKey);
+
+  // Refresh visible tasks widgets
+  const pageElement = getPageElement(currentPageIndex);
+  if (!pageElement) return;
+  const instances = getWidgetInstances('tasks-widget', currentPageIndex);
+  instances.forEach(instance => {
+    const widget = instance.element;
+    if (!widget || widget.classList.contains('hidden')) return;
+    const container = widget.querySelector('.tasks-content');
+    if (container) renderTasks(instance.fullId, container);
+  });
+}
+
+function initializeTasksDailyReset() {
+  if (tasksDailyResetInterval) return;
+
+  // Catch up if the tablet missed midnight while asleep / offline
+  runTasksDailyResetIfNeeded(false);
+
+  tasksDailyResetInterval = setInterval(() => {
+    const now = new Date();
+    if (now.getHours() === 0 && now.getMinutes() === 0) {
+      runTasksDailyResetIfNeeded(true);
+    }
+  }, 60000);
+}
+
 // Load and initialize tasks widgets
 async function loadTasks() {
   // Get all tasks widget instances on the current page
@@ -7648,6 +7783,8 @@ async function loadTasks() {
   const instances = getWidgetInstances('tasks-widget', currentPageIndex);
   
   if (instances.length === 0) return;
+
+  initializeTasksDailyReset();
   
   // Ensure todoLists is populated (reuse from todo widget discovery)
   if (todoLists.length === 0) {
@@ -7874,6 +8011,30 @@ function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
     taskName.style.textDecoration = 'line-through';
   }
   taskContent.appendChild(taskName);
+
+  const metaRow = document.createElement('div');
+  metaRow.className = 'task-meta';
+
+  const dueDisplay = formatTaskDueDisplay(getTaskDueValue(item));
+  if (dueDisplay) {
+    const dueEl = document.createElement('div');
+    dueEl.className = 'task-due';
+    dueEl.textContent = dueDisplay;
+    metaRow.appendChild(dueEl);
+  }
+
+  if (isDailyTask(item)) {
+    const dailyEl = document.createElement('div');
+    dailyEl.className = 'task-daily';
+    dailyEl.title = 'Daily task';
+    dailyEl.setAttribute('aria-label', 'Daily task');
+    dailyEl.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>';
+    metaRow.appendChild(dailyEl);
+  }
+
+  if (metaRow.childNodes.length > 0) {
+    taskContent.appendChild(metaRow);
+  }
   
   wrapper.appendChild(taskContent);
   card.appendChild(wrapper);
@@ -8234,6 +8395,52 @@ function showAddTaskInline(container, widgetId, entityId, cardStyles) {
   input.style.fontSize = '16px';
   input.style.fontWeight = '500';
   input.style.outline = 'none';
+
+  const dueLabel = document.createElement('label');
+  dueLabel.className = 'task-add-due-label';
+  dueLabel.textContent = 'Due date/time (optional)';
+  dueLabel.style.display = 'block';
+  dueLabel.style.color = '#b0b0b0';
+  dueLabel.style.fontSize = '13px';
+  dueLabel.style.fontWeight = '500';
+
+  const dueInput = document.createElement('input');
+  dueInput.type = 'datetime-local';
+  dueInput.className = 'task-add-due-input';
+  dueInput.style.width = '100%';
+  dueInput.style.padding = '10px 12px';
+  dueInput.style.borderRadius = '6px';
+  dueInput.style.border = '1px solid #4a4a4a';
+  dueInput.style.background = '#2a2a2a';
+  dueInput.style.color = '#e0e0e0';
+  dueInput.style.fontSize = '15px';
+  dueInput.style.outline = 'none';
+  dueInput.style.colorScheme = 'dark';
+
+  const dailyRow = document.createElement('label');
+  dailyRow.className = 'task-add-daily-row';
+  dailyRow.style.display = 'flex';
+  dailyRow.style.alignItems = 'center';
+  dailyRow.style.gap = '10px';
+  dailyRow.style.color = '#e0e0e0';
+  dailyRow.style.fontSize = '15px';
+  dailyRow.style.fontWeight = '500';
+  dailyRow.style.cursor = 'pointer';
+  dailyRow.style.userSelect = 'none';
+
+  const dailyCheckbox = document.createElement('input');
+  dailyCheckbox.type = 'checkbox';
+  dailyCheckbox.className = 'task-add-daily-checkbox';
+  dailyCheckbox.style.width = '18px';
+  dailyCheckbox.style.height = '18px';
+  dailyCheckbox.style.accentColor = '#4a90e2';
+  dailyCheckbox.style.cursor = 'pointer';
+
+  const dailyText = document.createElement('span');
+  dailyText.textContent = 'Daily task (resets at midnight)';
+
+  dailyRow.appendChild(dailyCheckbox);
+  dailyRow.appendChild(dailyText);
   
   // Create button group
   const buttonGroup = document.createElement('div');
@@ -8269,6 +8476,9 @@ function showAddTaskInline(container, widgetId, entityId, cardStyles) {
   buttonGroup.appendChild(addBtn);
   
   inputContainer.appendChild(input);
+  inputContainer.appendChild(dueLabel);
+  inputContainer.appendChild(dueInput);
+  inputContainer.appendChild(dailyRow);
   inputContainer.appendChild(buttonGroup);
   
   wrapper.appendChild(inputContainer);
@@ -8323,6 +8533,21 @@ function showAddTaskInline(container, widgetId, entityId, cardStyles) {
     
     // Remove outside click listener before adding
     document.removeEventListener('click', handleOutsideClick);
+
+    const payload = {
+      action: 'add',
+      entity_id: entityId,
+      item: taskName
+    };
+
+    const dueDatetime = datetimeLocalToHaDueDatetime(dueInput.value);
+    if (dueDatetime) {
+      payload.due_datetime = dueDatetime;
+    }
+
+    if (dailyCheckbox.checked) {
+      payload.description = TASKS_DAILY_MARKER;
+    }
     
     try {
       await fetch('/api/ha-todo-action', {
@@ -8330,11 +8555,7 @@ function showAddTaskInline(container, widgetId, entityId, cardStyles) {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          action: 'add',
-          entity_id: entityId,
-          item: taskName
-        })
+        body: JSON.stringify(payload)
       });
       
       closeAddCard();

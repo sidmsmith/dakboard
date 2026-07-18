@@ -7,7 +7,7 @@ export default async function (req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { action, entity_id, uid, item } = req.body;
+  const { action, entity_id, uid, item, due_date, due_datetime, description } = req.body;
   
   // Handle list_items action (fetch todo items)
   if (action === 'list_items') {
@@ -124,6 +124,15 @@ export default async function (req, res) {
         entity_id: entity_id,
         item: item
       };
+      // HA allows either due_date OR due_datetime, not both
+      if (due_datetime) {
+        body.due_datetime = due_datetime;
+      } else if (due_date) {
+        body.due_date = due_date;
+      }
+      if (description) {
+        body.description = description;
+      }
     } else if (action === 'complete' || action === 'uncomplete') {
       if (!uid) {
         return res.status(400).json({ error: 'Missing required field: uid' });

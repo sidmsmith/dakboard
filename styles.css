@@ -6184,6 +6184,38 @@ html.dakboard-auth-pending body > *:not(#dakboard-auth-overlay) {
   white-space: normal;
 }
 
+.task-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.task-due {
+  font-size: 13px;
+  font-weight: 500;
+  color: #a8b0bc;
+  line-height: 1.2;
+}
+
+.task-daily {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #7eb6ff;
+  flex-shrink: 0;
+}
+
+.task-daily svg {
+  display: block;
+}
+
+.task-card.completed .task-due,
+.task-card.completed .task-daily {
+  opacity: 0.85;
+}
+
 /* Tasks Add Modal */
 .tasks-add-modal {
   display: flex !important;
