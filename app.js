@@ -8039,44 +8039,90 @@ function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
   wrapper.appendChild(taskContent);
   card.appendChild(wrapper);
   
-  // Long press handlers - use unique key per card
+  // Long press / tap / scroll gesture handling
+  // Important: do NOT preventDefault on touchstart — that blocks tablet scrolling.
   const cardId = `${widgetId}-${item.uid}`;
-  
-  const handleLongPressStart = (e) => {
-    // Prevent default to avoid text selection
-    e.preventDefault();
-    
-    // Clear any existing timer for this card
+  const MOVE_THRESHOLD_PX = 12;
+  let gestureStartX = 0;
+  let gestureStartY = 0;
+  let gestureMoved = false;
+
+  const clearLongPressTimer = () => {
     if (tasksLongPressTimers.has(cardId)) {
       clearTimeout(tasksLongPressTimers.get(cardId));
+      tasksLongPressTimers.delete(cardId);
     }
-    
+  };
+
+  const handleGestureStart = (clientX, clientY) => {
+    gestureStartX = clientX;
+    gestureStartY = clientY;
+    gestureMoved = false;
+    card.dataset.suppressClick = '0';
+
+    clearLongPressTimer();
     tasksLongPressCards.set(cardId, card);
-    
+
     const timer = setTimeout(() => {
+      if (gestureMoved) return;
       enterTasksSelectionMode(card, widgetId, entityId);
       tasksLongPressTimers.delete(cardId);
       tasksLongPressCards.delete(cardId);
-    }, 500); // 500ms long press
-    
+    }, 500);
+
     tasksLongPressTimers.set(cardId, timer);
   };
-  
-  const handleLongPressEnd = (e) => {
-    if (tasksLongPressCards.get(cardId) === card && tasksLongPressTimers.has(cardId)) {
-      clearTimeout(tasksLongPressTimers.get(cardId));
-      tasksLongPressTimers.delete(cardId);
+
+  const handleGestureMove = (clientX, clientY) => {
+    const dx = Math.abs(clientX - gestureStartX);
+    const dy = Math.abs(clientY - gestureStartY);
+    if (dx > MOVE_THRESHOLD_PX || dy > MOVE_THRESHOLD_PX) {
+      gestureMoved = true;
+      card.dataset.suppressClick = '1';
+      clearLongPressTimer();
       tasksLongPressCards.delete(cardId);
     }
   };
-  
+
+  const handleGestureEnd = () => {
+    clearLongPressTimer();
+    // Keep suppressClick flag for the following click event if user scrolled
+    if (!gestureMoved) {
+      // Brief hold so a pending click can still complete the task
+      setTimeout(() => {
+        if (tasksLongPressCards.get(cardId) === card) {
+          tasksLongPressCards.delete(cardId);
+        }
+      }, 50);
+    } else {
+      tasksLongPressCards.delete(cardId);
+    }
+  };
+
   // Only attach interaction handlers if not in edit mode (similar to stoplight widget)
   if (!isEditMode) {
-    card.addEventListener('touchstart', handleLongPressStart, { passive: false });
-    card.addEventListener('touchend', handleLongPressEnd);
-    card.addEventListener('mousedown', handleLongPressStart);
-    card.addEventListener('mouseup', handleLongPressEnd);
-    card.addEventListener('mouseleave', handleLongPressEnd);
+    card.addEventListener('touchstart', (e) => {
+      if (!e.touches || e.touches.length === 0) return;
+      handleGestureStart(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+
+    card.addEventListener('touchmove', (e) => {
+      if (!e.touches || e.touches.length === 0) return;
+      handleGestureMove(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+
+    card.addEventListener('touchend', handleGestureEnd, { passive: true });
+    card.addEventListener('touchcancel', handleGestureEnd, { passive: true });
+
+    card.addEventListener('mousedown', (e) => {
+      handleGestureStart(e.clientX, e.clientY);
+    });
+    card.addEventListener('mousemove', (e) => {
+      if (!tasksLongPressTimers.has(cardId) && tasksLongPressCards.get(cardId) !== card) return;
+      handleGestureMove(e.clientX, e.clientY);
+    });
+    card.addEventListener('mouseup', handleGestureEnd);
+    card.addEventListener('mouseleave', handleGestureEnd);
   }
   
   // Click handler (only in normal mode, not edit mode)
@@ -8085,6 +8131,12 @@ function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
       e.stopPropagation();
       if (e.target.type === 'checkbox') {
         return; // Checkbox handles its own change
+      }
+
+      // Ignore click that followed a scroll/drag gesture
+      if (card.dataset.suppressClick === '1') {
+        card.dataset.suppressClick = '0';
+        return;
       }
       
       const container = card.closest('.tasks-content');
@@ -8104,7 +8156,7 @@ function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
       // If we just ended a long press and we're NOT in selection mode yet, don't treat as click
       // (This prevents the normal click action from firing right after long press)
       if (!isSelectionMode) {
-        if (tasksLongPressCards.get(cardId) === card) {
+        if (tasksLongPressCards.get(cardId) === card && tasksLongPressTimers.has(cardId)) {
           // Clear the reference after a delay
           setTimeout(() => {
             tasksLongPressCards.delete(cardId);

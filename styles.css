@@ -6078,12 +6078,24 @@ html.dakboard-auth-pending body > *:not(#dakboard-auth-overlay) {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
 }
 
 .tasks-content::-webkit-scrollbar {
-  display: none;
+  width: 8px;
+}
+
+.tasks-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tasks-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
 }
 
 .tasks-empty {
@@ -6102,6 +6114,10 @@ html.dakboard-auth-pending body > *:not(#dakboard-auth-overlay) {
   transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, opacity 0.2s;
   cursor: pointer;
   position: relative;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .task-card-wrapper {
