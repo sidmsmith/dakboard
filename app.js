@@ -7651,17 +7651,29 @@ function getTaskDueValue(item) {
   return item?.due || item?.due_datetime || item?.due_date || null;
 }
 
-function formatTaskDueDisplay(dueValue) {
+function formatTaskDueDisplay(dueValue, options = {}) {
   if (!dueValue) return null;
   const raw = String(dueValue).trim();
+  const daily = !!options.daily;
+
   // Date-only (YYYY-MM-DD)
   if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    if (daily) return null; // Daily tasks show time only
     const d = new Date(`${raw}T00:00:00`);
     if (Number.isNaN(d.getTime())) return raw;
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   }
+
   const d = new Date(raw.includes('T') ? raw : raw.replace(' ', 'T'));
   if (Number.isNaN(d.getTime())) return raw;
+
+  if (daily) {
+    return d.toLocaleTimeString(undefined, {
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+  }
+
   return d.toLocaleString(undefined, {
     month: 'short',
     day: 'numeric',
@@ -7681,6 +7693,32 @@ function getTaskDueDate(dueValue) {
   }
   const d = new Date(raw.includes('T') ? raw : raw.replace(' ', 'T'));
   return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** Build HA due payload rolled to today's local date, preserving time-of-day when present. */
+function buildTodayHaDueFields(dueValue) {
+  if (!dueValue) return null;
+  const raw = String(dueValue).trim();
+  const todayKey = getLocalDateKey();
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    if (raw === todayKey) return null; // already today
+    return { due_date: todayKey };
+  }
+
+  const due = getTaskDueDate(raw);
+  if (!due) return null;
+
+  const hh = String(due.getHours()).padStart(2, '0');
+  const mm = String(due.getMinutes()).padStart(2, '0');
+  const ss = String(due.getSeconds()).padStart(2, '0');
+  const dueDatetime = `${todayKey} ${hh}:${mm}:${ss}`;
+
+  // Skip update if already on today's date (compare local date of existing due)
+  const existingKey = getLocalDateKey(due);
+  if (existingKey === todayKey) return null;
+
+  return { due_datetime: dueDatetime };
 }
 
 function isTaskOverdue(item, isCompleted = false) {
@@ -7804,20 +7842,40 @@ async function resetCompletedDailyTasks() {
       if (!response.ok) continue;
       const data = await response.json();
       const items = Array.isArray(data.items) ? data.items : [];
-      const dailyCompleted = items.filter(item =>
-        isDailyTask(item) && item.status === 'completed'
-      );
+      const dailyItems = items.filter(isDailyTask);
 
-      for (const item of dailyCompleted) {
+      for (const item of dailyItems) {
         if (!item.uid) continue;
+
+        const payload = {
+          action: 'update',
+          entity_id: entityId,
+          uid: item.uid
+        };
+        let needsUpdate = false;
+
+        // Re-activate completed daily tasks for the new day
+        if (item.status === 'completed') {
+          payload.status = 'needs_action';
+          needsUpdate = true;
+        }
+
+        // Roll due date/time forward to today (keep the time-of-day)
+        const rolledDue = buildTodayHaDueFields(getTaskDueValue(item));
+        if (rolledDue?.due_datetime) {
+          payload.due_datetime = rolledDue.due_datetime;
+          needsUpdate = true;
+        } else if (rolledDue?.due_date) {
+          payload.due_date = rolledDue.due_date;
+          needsUpdate = true;
+        }
+
+        if (!needsUpdate) continue;
+
         await fetch('/api/ha-todo-action', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'uncomplete',
-            entity_id: entityId,
-            uid: item.uid
-          })
+          body: JSON.stringify(payload)
         });
       }
     } catch (error) {
@@ -8101,7 +8159,7 @@ function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
   const metaRow = document.createElement('div');
   metaRow.className = 'task-meta';
 
-  const dueDisplay = formatTaskDueDisplay(getTaskDueValue(item));
+  const dueDisplay = formatTaskDueDisplay(getTaskDueValue(item), { daily: isDailyTask(item) });
   const overdue = isTaskOverdue(item, isCompleted);
   if (dueDisplay) {
     const dueEl = document.createElement('div');
