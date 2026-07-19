@@ -7671,6 +7671,92 @@ function formatTaskDueDisplay(dueValue) {
   });
 }
 
+function getTaskDueDate(dueValue) {
+  if (!dueValue) return null;
+  const raw = String(dueValue).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    // Date-only: due through end of that local day
+    const endOfDay = new Date(`${raw}T23:59:59.999`);
+    return Number.isNaN(endOfDay.getTime()) ? null : endOfDay;
+  }
+  const d = new Date(raw.includes('T') ? raw : raw.replace(' ', 'T'));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function isTaskOverdue(item, isCompleted = false) {
+  if (isCompleted) return false;
+  const dueDate = getTaskDueDate(getTaskDueValue(item));
+  if (!dueDate) return false;
+  return Date.now() > dueDate.getTime();
+}
+
+function parseCssColorToRgb(color) {
+  if (!color || typeof color !== 'string') return null;
+  const value = color.trim();
+  const hex = value.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hex) {
+    let h = hex[1];
+    if (h.length === 3) {
+      h = h.split('').map(ch => ch + ch).join('');
+    }
+    return {
+      r: parseInt(h.slice(0, 2), 16),
+      g: parseInt(h.slice(2, 4), 16),
+      b: parseInt(h.slice(4, 6), 16)
+    };
+  }
+  const rgb = value.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (rgb) {
+    return {
+      r: Number(rgb[1]),
+      g: Number(rgb[2]),
+      b: Number(rgb[3])
+    };
+  }
+  // Fallback for named colors
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.fillStyle = '#000';
+    ctx.fillStyle = value;
+    const normalized = String(ctx.fillStyle);
+    const normalizedHex = normalized.match(/^#([0-9a-f]{6})$/i);
+    if (normalizedHex) {
+      const h = normalizedHex[1];
+      return {
+        r: parseInt(h.slice(0, 2), 16),
+        g: parseInt(h.slice(2, 4), 16),
+        b: parseInt(h.slice(4, 6), 16)
+      };
+    }
+    const normalizedRgb = normalized.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+    if (normalizedRgb) {
+      return {
+        r: Number(normalizedRgb[1]),
+        g: Number(normalizedRgb[2]),
+        b: Number(normalizedRgb[3])
+      };
+    }
+  } catch (e) {
+    return null;
+  }
+  return null;
+}
+
+function isApproximatelyRedColor(color) {
+  const rgb = parseCssColorToRgb(color);
+  if (!rgb) return false;
+  const { r, g, b } = rgb;
+  // Red-dominant: high R, clearly ahead of G/B (covers #e74c3c, crimson, etc.)
+  return r >= 140 && (r - g) >= 40 && (r - b) >= 40;
+}
+
+function getOverdueMarkColor(cardBackground) {
+  return isApproximatelyRedColor(cardBackground) ? '#111111' : '#e74c3c';
+}
+
 function datetimeLocalToHaDueDatetime(value) {
   // datetime-local: 2026-07-19T12:00 → HA: 2026-07-19 12:00:00
   if (!value) return null;
@@ -8016,10 +8102,14 @@ function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
   metaRow.className = 'task-meta';
 
   const dueDisplay = formatTaskDueDisplay(getTaskDueValue(item));
+  const overdue = isTaskOverdue(item, isCompleted);
   if (dueDisplay) {
     const dueEl = document.createElement('div');
     dueEl.className = 'task-due';
     dueEl.textContent = dueDisplay;
+    if (overdue) {
+      dueEl.style.color = getOverdueMarkColor(cardStyles.background);
+    }
     metaRow.appendChild(dueEl);
   }
 
@@ -8037,6 +8127,18 @@ function createTaskCard(item, entityId, widgetId, isCompleted, cardStyles) {
   }
   
   wrapper.appendChild(taskContent);
+
+  if (isTaskOverdue(item, isCompleted)) {
+    card.classList.add('overdue');
+    const overdueMark = document.createElement('div');
+    overdueMark.className = 'task-overdue-mark';
+    overdueMark.textContent = '!';
+    overdueMark.title = 'Overdue';
+    overdueMark.setAttribute('aria-label', 'Overdue');
+    overdueMark.style.color = getOverdueMarkColor(cardStyles.background);
+    wrapper.appendChild(overdueMark);
+  }
+
   card.appendChild(wrapper);
   
   // Long press / tap / scroll gesture handling

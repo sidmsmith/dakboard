@@ -6124,6 +6124,22 @@ html.dakboard-auth-pending body > *:not(#dakboard-auth-overlay) {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-height: 100%;
+}
+
+.task-overdue-mark {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 2px 4px 2px 8px;
+  margin: -4px 0;
+  font-size: clamp(2.4rem, 8vh, 3.6rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  pointer-events: none;
 }
 
 .task-card .task-checkbox {
